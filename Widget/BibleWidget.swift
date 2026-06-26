@@ -121,10 +121,22 @@ struct BibleWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             BibleWidgetEntryView(entry: entry)
-                .containerBackground(.clear, for: .widget) // Поддержка iOS 17 контейнерного фона
+                .widgetBackground(.clear)
         }
         .configurationDisplayName("Աստվածաշունչ") // "Библия" на армянском
         .description("Աստվածաշնչի ոգեշնչող տողեր Կողպման էկրանին:") // "Вдохновляющие стихи из Библии на экране блокировки."
         .supportedFamilies([.accessoryRectangular]) // Поддерживаем только прямоугольный виджет Lock Screen
+    }
+}
+
+// MARK: - Поддержка контейнерного фона для iOS 17
+extension View {
+    @ViewBuilder
+    func widgetBackground(_ color: Color) -> some View {
+        if #available(iOS 17.0, *) {
+            self.containerBackground(color, for: .widget)
+        } else {
+            self
+        }
     }
 }
