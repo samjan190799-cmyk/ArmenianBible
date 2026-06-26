@@ -27,176 +27,181 @@ struct ContentView: View {
                 .blur(radius: 90)
                 .offset(y: -70)
             
-            VStack(spacing: 24) {
-                // MARK: - Top Header & Settings Button
-                HStack {
-                    Spacer()
-                    
-                    Button {
-                        triggerHaptic(.light)
-                        isShowingSettings.toggle()
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white.opacity(0.7))
-                            .padding(12)
-                            .background(Color.white.opacity(0.04))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle().stroke(Color.white.opacity(0.08), lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .padding(.trailing, 20)
-                    .padding(.top, 10)
-                }
-                
-                Spacer()
-                
-                // MARK: - Контейнер со стихом
-                VStack(spacing: 20) {
-                    Image(systemName: "laurel.leading")
-                        .font(.system(size: 28))
-                        .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
-                    
-                    Text(manager.currentVerse.text)
-                        .font(.system(size: 21, weight: .medium, design: .serif))
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(8)
-                        .padding(.horizontal, 10)
-                        .opacity(animateVerse ? 1 : 0)
-                        .offset(y: animateVerse ? 0 : 15)
-                    
-                    Text(manager.currentVerse.reference)
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(hex: "818CF8"))
-                        .padding(.top, 4)
-                        .opacity(animateVerse ? 0.8 : 0)
-                        .offset(y: animateVerse ? 0 : 10)
-                }
-                .padding(26)
-                .background(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(Color.white.opacity(0.03))
-                        .background(.ultraThinMaterial)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.12),
-                                    Color.white.opacity(0.03)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.2
-                        )
-                )
-                .padding(.horizontal, 20)
-                
-                // MARK: - Блок кнопок генерации
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        // Кнопка: Случайный оффлайн-стих
-                        Button {
-                            triggerHaptic(.medium)
-                            
-                            withAnimation(.easeOut(duration: 0.18)) {
-                                animateVerse = false
-                            }
-                            
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                                manager.selectRandomVerse()
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                    animateVerse = true
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "book.fill")
-                                    .font(.system(size: 15))
-                                Text("Պատահական տող") // Случайный стих
-                            }
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.white.opacity(0.06))
-                            .cornerRadius(14)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(ScaleButtonStyle())
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // MARK: - Top Header & Settings Button
+                    HStack {
+                        Spacer()
                         
-                        // Кнопка: Генерация через ИИ (Gemini)
                         Button {
-                            let key = manager.geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if key.isEmpty {
-                                triggerHaptic(.heavy)
-                                showingNoKeyAlert = true
-                            } else {
-                                triggerHaptic(.medium)
-                                runAIGeneration()
-                            }
+                            triggerHaptic(.light)
+                            isShowingSettings.toggle()
                         } label: {
-                            HStack(spacing: 10) {
-                                if manager.isGeneratingAI {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Image(systemName: "sparkles")
-                                        .font(.system(size: 15))
-                                    Text("ԱԻ Գեներացում") // Генерация ИИ
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white.opacity(0.7))
+                                .padding(12)
+                                .background(Color.white.opacity(0.04))
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle().stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        .padding(.trailing, 20)
+                        .padding(.top, 10)
+                    }
+                    
+                    Spacer()
+                        .frame(height: 10)
+                    
+                    // MARK: - Контейнер со стихом
+                    VStack(spacing: 20) {
+                        Image(systemName: "laurel.leading")
+                            .font(.system(size: 28))
+                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+                        
+                        Text(manager.currentVerse.text)
+                            .font(.system(size: 21, weight: .medium, design: .serif))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(8)
+                            .padding(.horizontal, 10)
+                            .fixedSize(horizontal: false, vertical: true) // Предотвращает обрезку троеточием в приложении
+                            .opacity(animateVerse ? 1 : 0)
+                            .offset(y: animateVerse ? 0 : 15)
+                        
+                        Text(manager.currentVerse.reference)
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color(hex: "818CF8"))
+                            .padding(.top, 4)
+                            .opacity(animateVerse ? 0.8 : 0)
+                            .offset(y: animateVerse ? 0 : 10)
+                    }
+                    .padding(26)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(Color.white.opacity(0.03))
+                            .background(.ultraThinMaterial)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.12),
+                                        Color.white.opacity(0.03)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.2
+                            )
+                    )
+                    .padding(.horizontal, 20)
+                    
+                    // MARK: - Блок кнопок генерации
+                    VStack(spacing: 12) {
+                        HStack(spacing: 12) {
+                            // Кнопка: Случайный оффлайн-стих
+                            Button {
+                                triggerHaptic(.medium)
+                                
+                                withAnimation(.easeOut(duration: 0.18)) {
+                                    animateVerse = false
                                 }
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                                    manager.selectRandomVerse()
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        animateVerse = true
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "book.fill")
+                                        .font(.system(size: 15))
+                                    Text("Պատահական տող") // Случайный стих
+                                }
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Color.white.opacity(0.06))
+                                .cornerRadius(14)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                )
                             }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // Кнопка: Генерация через ИИ (Gemini)
+                            Button {
+                                let key = manager.geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                                if key.isEmpty {
+                                    triggerHaptic(.heavy)
+                                    showingNoKeyAlert = true
+                                } else {
+                                    triggerHaptic(.medium)
+                                    runAIGeneration()
+                                }
+                            } label: {
+                                HStack(spacing: 10) {
+                                    if manager.isGeneratingAI {
+                                        ProgressView()
+                                            .tint(.white)
+                                    } else {
+                                        Image(systemName: "sparkles")
+                                            .font(.system(size: 15))
+                                        Text("ԱԻ Գեներացում") // Генерация ИИ
+                                    }
+                                }
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color(hex: "4F46E5"), Color(hex: "6366F1")],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(14)
+                                .shadow(color: Color(hex: "4F46E5").opacity(0.3), radius: 8, y: 4)
+                            }
+                            .disabled(manager.isGeneratingAI)
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    
+                    Spacer()
+                        .frame(height: 10)
+                    
+                    // MARK: - Блок инструкций для экрана блокировки
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Ինչպե՞ս ավելացնել Կողպման էկրանին.")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color(hex: "4F46E5"), Color(hex: "6366F1")],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(14)
-                            .shadow(color: Color(hex: "4F46E5").opacity(0.3), radius: 8, y: 4)
-                        }
-                        .disabled(manager.isGeneratingAI)
-                        .buttonStyle(ScaleButtonStyle())
+                            .padding(.bottom, 2)
+                        
+                        InstructionRow(number: "1", text: "Հպեք և պահեք Կողպման էկրանը:")
+                        InstructionRow(number: "2", text: "Ընտրեք «Կարգավորել» (Customize), ապա «Կողպման էկրան»:")
+                        InstructionRow(number: "3", text: "Հպեք «Ավելացնել վիդջեթներ» բաժնին:")
+                        InstructionRow(number: "4", text: "Գտեք «ArmenianBible» հավելվածը և ավելացրեք վիդջեթը:")
                     }
+                    .padding(20)
+                    .background(Color.white.opacity(0.02))
+                    .cornerRadius(18)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                    )
                     .padding(.horizontal, 20)
                 }
-                
-                Spacer()
-                
-                // MARK: - Блок инструкций для экрана блокировки
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Ինչպե՞ս ավելացնել Կողպման էկրանին.")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.bottom, 2)
-                    
-                    InstructionRow(number: "1", text: "Հպեք և պահեք Կողպման էկրանը:")
-                    InstructionRow(number: "2", text: "Ընտրեք «Կարգավորել» (Customize), ապա «Կողպման էկրան»:")
-                    InstructionRow(number: "3", text: "Հպեք «Ավելացնել վիդջեթներ» բաժնին:")
-                    InstructionRow(number: "4", text: "Գտեք «ArmenianBible» հավելվածը և ավելացրեք վիդջեթը:")
-                }
-                .padding(20)
-                .background(Color.white.opacity(0.02))
-                .cornerRadius(18)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
-                )
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
+                .padding(.bottom, 30)
             }
         }
         .onAppear {
@@ -233,8 +238,8 @@ struct ContentView: View {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     animateVerse = true
                 }
-            case .failure(_):
-                errorMessage = "Գեներացման սխալ. խնդրում ենք ստուգել ձեր API Key-ը և ինտերնետ կապը:"
+            case .failure(let error):
+                errorMessage = "Գեներացման սխալ. \(error.localizedDescription)"
                 showingErrorAlert = true
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     animateVerse = true

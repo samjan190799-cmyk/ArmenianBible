@@ -21,12 +21,7 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        CFBundleIconName: AppIcon
-        CFBundleIcons:
-          CFBundlePrimaryIcon:
-            CFBundleIconFiles:
-              - AppIcon
-            CFBundleIconName: AppIcon
+
     settings:
       base:
         SWIFT_VERSION: "5.9"

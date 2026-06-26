@@ -92,8 +92,8 @@ class BibleManager: ObservableObject {
             return
         }
         
-        // Создаем системный промпт на армянском языке, требующий строго JSON на выходе
-        let prompt = "Դու Աստվածաշնչի փորձագետ ես: Գեներացրու մեկ պատահական, ոգեշնչող, իմաստալից և գեղեցիկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (Արարատ թարգմանությունից): Տուր միայն մեջբերման տեքստը և հղումը (օրինակ՝ Հովհաննես 3:16) JSON ֆորմատով՝ {\"text\": \"մեջբերում...\", \"reference\": \"Հղում\"}: Ոչ մի ավելորդ բան մի գրիր, պատասխանը պետք է լինի միայն մաքուր JSON առանց markdown նշագրման (առանց ```json):"
+        // Промпт, требующий простой текстовый формат с разделителем "|"
+        let prompt = "Դու Աստվածաշնչի փորձագետ ես: Գեներացրու մեկ պատահական, ոգեշնչող, իմաստալից և գեղեցիկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (Արարատ թարգմանությունից): Գրիր ԱՄԲՈՂՋԱԿԱՆ տեքստը, առանց կրճատումների կամ բազմակետերի (...): Տուր միայն մեջբերման տեքստը և հղումը հետևյալ ֆորմատով՝ [Մեջբերում] | [Հղում] (օրինակ՝ Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ | Սաղմոսներ 23:1): Ոչ մի ուրիշ բան մի գրիր:"
         
         let requestBody: [String: Any] = [
             "contents": [
@@ -102,9 +102,6 @@ class BibleManager: ObservableObject {
                         ["text": prompt]
                     ]
                 ]
-            ],
-            "generationConfig": [
-                "responseMimeType": "application/json"
             ]
         ]
         
@@ -135,8 +132,20 @@ class BibleManager: ObservableObject {
                 return
             }
             
+            // Проверяем HTTP статус на наличие ошибок
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                // Пытаемся извлечь сообщение об ошибке от самого API Gemini
+                if let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorDict = errJson["error"] as? [String: Any],
+                   let errMsg = errorDict["message"] as? String {
+                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Gemini API: \(errMsg)"])))
+                } else {
+                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])))
+                }
+                return
+            }
+            
             do {
-                // Парсим структуру ответа Gemini API
                 if let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let candidates = jsonResponse["candidates"] as? [[String: Any]],
                    let firstCandidate = candidates.first,
@@ -145,30 +154,41 @@ class BibleManager: ObservableObject {
                    let firstPart = parts.first,
                    let textResult = firstPart["text"] as? String {
                     
-                    // Парсим внутренний JSON, сгенерированный ИИ
-                    if let innerData = textResult.data(using: .utf8) {
-                        let decodedVerse = try JSONDecoder().decode(InnerVerseResponse.self, from: innerData)
-                        let newVerse = BibleVerse(text: decodedVerse.text, reference: decodedVerse.reference)
+                    let cleanResult = textResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let components = cleanResult.components(separatedBy: "|")
+                    
+                    if components.count >= 2 {
+                        let text = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                        let reference = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"”'«»"))
+                        
+                        let newVerse = BibleVerse(text: text, reference: reference)
                         
                         DispatchQueue.main.async {
                             self?.updateCurrentVerse(newVerse)
                         }
                         completion(.success(newVerse))
                     } else {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Inner parsing failed"])))
+                        // Попытка использовать всю полученную строку, если нет разделителя |
+                        let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                        if !cleanText.isEmpty {
+                            let newVerse = BibleVerse(text: cleanText, reference: "Աստվածաշունչ")
+                            DispatchQueue.main.async {
+                                self?.updateCurrentVerse(newVerse)
+                            }
+                            completion(.success(newVerse))
+                        } else {
+                            completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
+                        }
                     }
                 } else {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "JSON structure mismatched"])))
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
                 }
             } catch {
                 completion(.failure(error))
             }
         }.resume()
     }
-}
-
-// MARK: - Вспомогательная структура для парсинга JSON от ИИ
-struct InnerVerseResponse: Codable {
-    let text: String
-    let reference: String
 }
