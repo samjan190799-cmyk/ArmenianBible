@@ -71,22 +71,15 @@ struct BibleWidgetEntryView: View {
         switch family {
         case .accessoryRectangular:
             // Специальный дизайн для прямоугольной области на экране блокировки iOS
-            VStack(alignment: .leading, spacing: 3) {
-                // Текст стиха на армянском языке с засечками и масштабированием под размер виджета
-                Text(entry.verse.text)
-                    .font(.system(size: 11.5, weight: .medium, design: .serif))
-                    .minimumScaleFactor(0.78)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Ссылка на стих мелким полупрозрачным шрифтом
-                Text(entry.verse.reference)
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .opacity(0.8)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-            .padding(.horizontal, 2)
+            (Text(entry.verse.text)
+                .font(.system(size: 9.2, weight: .medium, design: .serif))
+            + Text(" — \(entry.verse.reference)")
+                .font(.system(size: 8.0, weight: .bold, design: .monospaced))
+                .foregroundColor(.secondary))
+            .lineLimit(4)
+            .minimumScaleFactor(0.70)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             
         default:
             // Резервный вариант для обычного виджета на домашнем экране (systemSmall)
