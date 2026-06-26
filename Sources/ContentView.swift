@@ -374,3 +374,56 @@ struct SettingsView: View {
         }
     }
 }
+
+// MARK: - Вспомогательное представление: Строка инструкции
+struct InstructionRow: View {
+    let number: String
+    let text: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(number)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(Color(hex: "818CF8"))
+                .frame(width: 20, height: 20)
+                .background(Color(hex: "818CF8").opacity(0.1))
+                .clipShape(Circle())
+                .padding(.top, 1)
+            
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+// MARK: - Вспомогательное представление: Сетка точек (Dot Grid)
+struct StaticDotGridView: View {
+    let dotColor: Color
+    
+    var body: some View {
+        Canvas { context, size in
+            var path = Path()
+            let dotSize: CGFloat = 1.0
+            let spacing: CGFloat = 22.0
+            for x in stride(from: 0, to: size.width, by: spacing) {
+                for y in stride(from: 0, to: size.height, by: spacing) {
+                    path.addRect(CGRect(x: x, y: y, width: dotSize, height: dotSize))
+                }
+            }
+            context.fill(path, with: .color(dotColor))
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Эластичный стиль кнопки
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.spring(response: 0.15, dampingFraction: 0.65), value: configuration.isPressed)
+    }
+}
