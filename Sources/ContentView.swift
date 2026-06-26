@@ -137,7 +137,7 @@ struct ContentView: View {
                         Button {
                             let key = manager.geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
                             if key.isEmpty {
-                                triggerHaptic(.warning)
+                                triggerHaptic(.heavy)
                                 showingNoKeyAlert = true
                             } else {
                                 triggerHaptic(.medium)
@@ -204,17 +204,17 @@ struct ContentView: View {
                 animateVerse = true
             }
         }
-        .sheet(isPresented: &isShowingSettings) {
-            SettingsView(isPresented: &isShowingSettings)
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView(isPresented: $isShowingSettings)
         }
-        .alert("Մուտքագրեք API բանալին", isPresented: &showingNoKeyAlert) {
+        .alert("Մուտքագրեք API բանալին", isPresented: $showingNoKeyAlert) {
             Button("Լավ", role: .cancel) {
                 isShowingSettings = true
             }
         } message: {
             Text("ԱԻ գեներացման համար անհրաժեշտ է կարգավորումներում ավելացնել Gemini API բանալին (API Key):")
         }
-        .alert("Սխալ", isPresented: &showingErrorAlert) {
+        .alert("Սխալ", isPresented: $showingErrorAlert) {
             Button("Լավ", role: .cancel) {}
         } message: {
             Text(errorMessage)
@@ -233,7 +233,7 @@ struct ContentView: View {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     animateVerse = true
                 }
-            case .failure(let error):
+            case .failure(_):
                 errorMessage = "Գեներացման սխալ. խնդրում ենք ստուգել ձեր API Key-ը և ինտերնետ կապը:"
                 showingErrorAlert = true
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
