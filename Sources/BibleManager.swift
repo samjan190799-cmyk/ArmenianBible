@@ -7,15 +7,28 @@ class BibleManager: ObservableObject {
     static let shared = BibleManager()
     
     @Published var currentVerse: BibleVerse
+    @Published var isGeneratingAI = false
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
     
     private let textKey = "currentVerseText"
     private let referenceKey = "currentVerseReference"
+    private let apiKeyStoreKey = "gemini_api_key_secure"
     
     private var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupSuiteName)
+    }
+    
+    // Свойство для получения и сохранения API-ключа Gemini
+    var geminiApiKey: String {
+        get {
+            UserDefaults.standard.string(forKey: apiKeyStoreKey) ?? ""
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: apiKeyStoreKey)
+            objectWillChange.send()
+        }
     }
     
     private init() {
@@ -37,12 +50,23 @@ class BibleManager: ObservableObject {
         }
     }
     
-    // MARK: - Выбор случайного стиха
+    // MARK: - Сохранение стиха в AppGroup и обновление виджета
+    func updateCurrentVerse(_ verse: BibleVerse) {
+        self.currentVerse = verse
+        if let defaults = sharedDefaults {
+            defaults.set(verse.text, forKey: textKey)
+            defaults.set(verse.reference, forKey: referenceKey)
+            
+            // Заставляем виджеты немедленно обновиться
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Выбор случайного стиха из оффлайн-базы данных
     func selectRandomVerse() {
         let database = BibleVerse.database
         guard !database.isEmpty else { return }
         
-        // Фильтруем стихи, чтобы не выбрать тот же самый повторно (если их больше одного)
         let availableVerses = database.filter { $0.text != currentVerse.text }
         let newVerse: BibleVerse
         
@@ -52,16 +76,99 @@ class BibleManager: ObservableObject {
             newVerse = database[0]
         }
         
-        // Обновляем состояние в приложении
-        self.currentVerse = newVerse
-        
-        // Сохраняем в UserDefaults группы приложений
-        if let defaults = sharedDefaults {
-            defaults.set(newVerse.text, forKey: textKey)
-            defaults.set(newVerse.reference, forKey: referenceKey)
-            
-            // Вынуждаем WidgetKit немедленно перезагрузить все виджеты на экране блокировки
-            WidgetCenter.shared.reloadAllTimelines()
-        }
+        updateCurrentVerse(newVerse)
     }
+    
+    // MARK: - Генерация цитаты через Gemini API
+    func generateVerseWithAI(completion: @escaping (Result<BibleVerse, Error>) -> Void) {
+        let apiKey = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !apiKey.isEmpty else {
+            completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is empty"])))
+            return
+        }
+        
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
+            completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+            return
+        }
+        
+        // Создаем системный промпт на армянском языке, требующий строго JSON на выходе
+        let prompt = "Դու Աստվածաշնչի փորձագետ ես: Գեներացրու մեկ պատահական, ոգեշնչող, իմաստալից և գեղեցիկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (Արարատ թարգմանությունից): Տուր միայն մեջբերման տեքստը և հղումը (օրինակ՝ Հովհաննես 3:16) JSON ֆորմատով՝ {\"text\": \"մեջբերում...\", \"reference\": \"Հղում\"}: Ոչ մի ավելորդ բան մի գրիր, պատասխանը պետք է լինի միայն մաքուր JSON առանց markdown նշագրման (առանց ```json):"
+        
+        let requestBody: [String: Any] = [
+            "contents": [
+                [
+                    "parts": [
+                        ["text": prompt]
+                    ]
+                ]
+            ],
+            "generationConfig": [
+                "responseMimeType": "application/json"
+            ]
+        ]
+        
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = jsonData
+        
+        isGeneratingAI = true
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                self?.isGeneratingAI = false
+            }
+            
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                return
+            }
+            
+            do {
+                // Парсим структуру ответа Gemini API
+                if let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let candidates = jsonResponse["candidates"] as? [[String: Any]],
+                   let firstCandidate = candidates.first,
+                   let content = firstCandidate["content"] as? [String: Any],
+                   let parts = content["parts"] as? [[String: Any]],
+                   let firstPart = parts.first,
+                   let textResult = firstPart["text"] as? String {
+                    
+                    // Парсим внутренний JSON, сгенерированный ИИ
+                    if let innerData = textResult.data(using: .utf8) {
+                        let decodedVerse = try JSONDecoder().decode(InnerVerseResponse.self, from: innerData)
+                        let newVerse = BibleVerse(text: decodedVerse.text, reference: decodedVerse.reference)
+                        
+                        DispatchQueue.main.async {
+                            self?.updateCurrentVerse(newVerse)
+                        }
+                        completion(.success(newVerse))
+                    } else {
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Inner parsing failed"])))
+                    }
+                } else {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "JSON structure mismatched"])))
+                }
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+}
+
+// MARK: - Вспомогательная структура для парсинга JSON от ИИ
+struct InnerVerseResponse: Codable {
+    let text: String
+    let reference: String
 }
