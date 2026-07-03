@@ -14,14 +14,40 @@ struct Provider: TimelineProvider {
     private let referenceKey = "currentVerseReference"
     private let updateIntervalKey = "widgetUpdateInterval"
     
+    // Вспомогательный метод для получения текущей категории
+    private func getSharedCategory() -> TextCategory {
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+           let savedRaw = defaults.string(forKey: "selectedCategory"),
+           let category = TextCategory(rawValue: savedRaw) {
+            return category
+        }
+        return .both
+    }
+    
+    // Вспомогательный метод для получения отфильтрованной базы данных
+    private func getFilteredDatabase(for category: TextCategory) -> [BibleVerse] {
+        switch category {
+        case .verses:
+            return BibleVerse.database.filter { !$0.isPrayer }
+        case .prayers:
+            return BibleVerse.database.filter { $0.isPrayer }
+        case .both:
+            return BibleVerse.database
+        }
+    }
+    
     // Вспомогательный метод для получения текущего стиха из App Group UserDefaults
     private func getSharedVerse() -> BibleVerse {
+        let category = getSharedCategory()
+        let database = getFilteredDatabase(for: category)
+        let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
+        
         if let defaults = UserDefaults(suiteName: appGroupSuiteName),
            let savedText = defaults.string(forKey: textKey),
            let savedRef = defaults.string(forKey: referenceKey) {
             return BibleVerse(text: savedText, reference: savedRef)
         }
-        return BibleVerse.database[0]
+        return fallback
     }
     
     // Вспомогательный метод для получения текущего интервала обновления
@@ -35,7 +61,10 @@ struct Provider: TimelineProvider {
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), verse: BibleVerse.database[0])
+        let category = getSharedCategory()
+        let database = getFilteredDatabase(for: category)
+        let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
+        return SimpleEntry(date: Date(), verse: fallback)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
@@ -64,6 +93,10 @@ struct Provider: TimelineProvider {
         let calendar = Calendar.current
         var lastVerse = currentVerse
         
+        let category = getSharedCategory()
+        let database = getFilteredDatabase(for: category)
+        let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
+        
         let intervalHours: Int
         switch interval {
         case .everyHour:
@@ -81,8 +114,8 @@ struct Provider: TimelineProvider {
         for offset in 1..<5 {
             if let entryDate = calendar.date(byAdding: .hour, value: offset * intervalHours, to: currentDate) {
                 // Выбираем случайный стих, отличный от предыдущего
-                let availableVerses = BibleVerse.database.filter { $0.text != lastVerse.text }
-                let randomVerse = availableVerses.randomElement() ?? BibleVerse.database[0]
+                let availableVerses = database.filter { $0.text != lastVerse.text }
+                let randomVerse = availableVerses.randomElement() ?? fallback
                 
                 entries.append(SimpleEntry(date: entryDate, verse: randomVerse))
                 lastVerse = randomVerse
@@ -91,8 +124,7 @@ struct Provider: TimelineProvider {
         
         let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
-    }
-}
+    }}
 
 // MARK: - Интерфейс виджета для Lock Screen и Home Screen (Widget View)
 struct BibleWidgetEntryView: View {
@@ -104,15 +136,17 @@ struct BibleWidgetEntryView: View {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки iOS (Accessory Rectangular)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(entry.verse.text)
-                        .font(.system(size: 11.0, weight: .semibold, design: .serif))
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.72)
+                        .font(.system(size: 9.5, weight: .semibold, design: .serif))
+                        .lineLimit(6)
+                        .minimumScaleFactor(0.40)
                         .multilineTextAlignment(.leading)
                     
+                    Spacer(minLength: 0)
+                    
                     Text(entry.verse.reference)
-                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                        .font(.system(size: 7.5, weight: .bold, design: .monospaced))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }

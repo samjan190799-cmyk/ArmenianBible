@@ -9,6 +9,7 @@ class BibleManager: ObservableObject {
     @Published var currentVerse: BibleVerse
     @Published var isGeneratingAI = false
     @Published var updateInterval: UpdateInterval = .everyHour
+    @Published var selectedCategory: TextCategory = .both
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -17,6 +18,7 @@ class BibleManager: ObservableObject {
     private let referenceKey = "currentVerseReference"
     private let apiKeyStoreKey = "gemini_api_key_secure"
     private let updateIntervalKey = "widgetUpdateInterval"
+    private let categoryKey = "selectedCategory"
     
     private var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupSuiteName)
@@ -59,6 +61,15 @@ class BibleManager: ObservableObject {
         } else {
             self.updateInterval = .everyHour
         }
+        
+        // Загрузка категории отображаемого текста
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+           let savedCategoryRaw = defaults.string(forKey: categoryKey),
+           let savedCategory = TextCategory(rawValue: savedCategoryRaw) {
+            self.selectedCategory = savedCategory
+        } else {
+            self.selectedCategory = .both
+        }
     }
     
     // MARK: - Сохранение интервала обновления и перезапуск виджета
@@ -67,6 +78,27 @@ class BibleManager: ObservableObject {
         if let defaults = sharedDefaults {
             defaults.set(interval.rawValue, forKey: updateIntervalKey)
             WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Сохранение категории контента и перезапуск виджета
+    func setSelectedCategory(_ category: TextCategory) {
+        self.selectedCategory = category
+        if let defaults = sharedDefaults {
+            defaults.set(category.rawValue, forKey: categoryKey)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Получение отфильтрованной базы данных стихов/молитв
+    func getFilteredDatabase(for category: TextCategory) -> [BibleVerse] {
+        switch category {
+        case .verses:
+            return BibleVerse.database.filter { !$0.isPrayer }
+        case .prayers:
+            return BibleVerse.database.filter { $0.isPrayer }
+        case .both:
+            return BibleVerse.database
         }
     }
     
@@ -84,7 +116,7 @@ class BibleManager: ObservableObject {
     
     // MARK: - Выбор случайного стиха из оффлайн-базы данных
     func selectRandomVerse() {
-        let database = BibleVerse.database
+        let database = getFilteredDatabase(for: selectedCategory)
         guard !database.isEmpty else { return }
         
         let availableVerses = database.filter { $0.text != currentVerse.text }

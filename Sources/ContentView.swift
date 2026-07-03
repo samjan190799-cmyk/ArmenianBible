@@ -306,6 +306,7 @@ struct SettingsView: View {
     @ObservedObject var manager = BibleManager.shared
     @State private var keyInput = ""
     @State private var selectedInterval: UpdateInterval = .everyHour
+    @State private var selectedCategory: TextCategory = .both
     
     var body: some View {
         NavigationStack {
@@ -381,6 +382,36 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal, 4)
                         
+                        // MARK: - Выбор типа контента (Стихи / Молитвы / Все)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Ցուցադրվող նյութ") // Отображаемый контент
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text("Ընտրեք, թե ինչ տեքստեր պետք է ցուցադրվեն վիդջեթում:") // Выберите, какие тексты должны отображаться в виджете
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineSpacing(4)
+                            
+                            Picker("Նյութի տեսակը", selection: $selectedCategory) {
+                                ForEach(TextCategory.allCases) { category in
+                                    Text(category.titleArmenian).tag(category)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .tint(.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.04))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 4)
+                        
                         // MARK: - Кнопка сохранения
                         Button {
                             let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -389,6 +420,7 @@ struct SettingsView: View {
                             
                             manager.geminiApiKey = keyInput
                             manager.setUpdateInterval(selectedInterval)
+                            manager.setSelectedCategory(selectedCategory)
                             isPresented = false
                         } label: {
                             Text("Պահպանել") // Сохранить
@@ -453,6 +485,7 @@ struct SettingsView: View {
             .onAppear {
                 keyInput = manager.geminiApiKey
                 selectedInterval = manager.updateInterval
+                selectedCategory = manager.selectedCategory
             }
         }
     }
