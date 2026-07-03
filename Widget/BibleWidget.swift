@@ -104,15 +104,36 @@ struct BibleWidgetEntryView: View {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки iOS (Accessory Rectangular)
-                (Text(entry.verse.text)
-                    .font(.system(size: 12.0, weight: .medium, design: .serif))
-                + Text(" — \(entry.verse.reference)")
-                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary))
-                .lineLimit(5)
-                .minimumScaleFactor(0.50)
-                .multilineTextAlignment(.leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.verse.text)
+                        .font(.system(size: 11.0, weight: .semibold, design: .serif))
+                        .lineLimit(4)
+                        .minimumScaleFactor(0.72)
+                        .multilineTextAlignment(.leading)
+                    
+                    Text(entry.verse.reference)
+                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                
+            case .accessoryInline:
+                // Строчный виджет на экране блокировки над часами
+                Text("✝️ \(entry.verse.reference)")
+                
+            case .accessoryCircular:
+                // Круглый виджет на экране блокировки
+                ZStack {
+                    AccessoryWidgetBackground()
+                    VStack(spacing: 1) {
+                        Image(systemName: "book.closed.fill")
+                            .font(.system(size: 16))
+                        Text("ԱՍՏ") // "АСТ" от Аствацашунч
+                            .font(.system(size: 8, weight: .bold))
+                    }
+                }
+                
                 
             case .systemSmall:
                 // Маленький виджет на домашнем экране (System Small)
@@ -213,6 +234,8 @@ struct BibleWidget: Widget {
         .description("Աստվածաշնչի ոգեշնչող տողեր Կողպման էկրանին և Գլխավոր էկրանին:") // "Вдохновляющие стихи из Библии на экране блокировки и домашнем экране."
         .supportedFamilies([
             .accessoryRectangular,
+            .accessoryInline,
+            .accessoryCircular,
             .systemSmall,
             .systemMedium,
             .systemLarge
