@@ -8,6 +8,7 @@ class BibleManager: ObservableObject {
     
     @Published var currentVerse: BibleVerse
     @Published var isGeneratingAI = false
+    @Published var updateInterval: UpdateInterval = .everyHour
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -15,6 +16,7 @@ class BibleManager: ObservableObject {
     private let textKey = "currentVerseText"
     private let referenceKey = "currentVerseReference"
     private let apiKeyStoreKey = "gemini_api_key_secure"
+    private let updateIntervalKey = "widgetUpdateInterval"
     
     private var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupSuiteName)
@@ -47,6 +49,24 @@ class BibleManager: ObservableObject {
                 defaults.set(defaultVerse.text, forKey: textKey)
                 defaults.set(defaultVerse.reference, forKey: referenceKey)
             }
+        }
+        
+        // Загрузка интервала обновления
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+           let savedIntervalRaw = defaults.string(forKey: updateIntervalKey),
+           let savedInterval = UpdateInterval(rawValue: savedIntervalRaw) {
+            self.updateInterval = savedInterval
+        } else {
+            self.updateInterval = .everyHour
+        }
+    }
+    
+    // MARK: - Сохранение интервала обновления и перезапуск виджета
+    func setUpdateInterval(_ interval: UpdateInterval) {
+        self.updateInterval = interval
+        if let defaults = sharedDefaults {
+            defaults.set(interval.rawValue, forKey: updateIntervalKey)
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
     

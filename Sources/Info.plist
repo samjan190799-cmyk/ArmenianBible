@@ -26,5 +26,18 @@
     <true/>
     <key>CADisableMinimumFrameDuration</key>
     <true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>com.samvel.armenianbible</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>armenianbible</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>

@@ -10,6 +10,8 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var showingNoKeyAlert = false
     
+    @Environment(\.scenePhase) private var scenePhase
+    
     var body: some View {
         ZStack {
             // MARK: - Премиальный глубокий темный фон
@@ -99,6 +101,21 @@ struct ContentView: View {
                             )
                     )
                     .padding(.horizontal, 20)
+                    .onTapGesture {
+                        triggerHaptic(.medium)
+                        
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            animateVerse = false
+                        }
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                            manager.selectRandomVerse()
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                animateVerse = true
+                            }
+                        }
+                    }
+                    
                     
                     // MARK: - Блок кнопок генерации
                     VStack(spacing: 12) {
@@ -224,6 +241,34 @@ struct ContentView: View {
         } message: {
             Text(errorMessage)
         }
+        .onOpenURL { url in
+            if url.scheme == "armenianbible" && url.host == "next-verse" {
+                triggerHaptic(.medium)
+                withAnimation(.easeOut(duration: 0.18)) {
+                    animateVerse = false
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                    manager.selectRandomVerse()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        animateVerse = true
+                    }
+                }
+            }
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active && manager.updateInterval == .onScreenActivation {
+                triggerHaptic(.light)
+                withAnimation(.easeOut(duration: 0.18)) {
+                    animateVerse = false
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                    manager.selectRandomVerse()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        animateVerse = true
+                    }
+                }
+            }
+        }
     }
     
     // MARK: - Логика отправки запроса к ИИ
@@ -260,6 +305,7 @@ struct SettingsView: View {
     @Binding var isPresented: Bool
     @ObservedObject var manager = BibleManager.shared
     @State private var keyInput = ""
+    @State private var selectedInterval: UpdateInterval = .everyHour
     
     var body: some View {
         NavigationStack {
@@ -305,6 +351,36 @@ struct SettingsView: View {
                             }
                         }
                         
+                        // MARK: - Частота смены стихов
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Թարմացման հաճախականություն") // Частота обновления
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text("Ընտրեք, թե որքան հաճախ պետք է փոխվի տողը վիդջեթում:") // Выберите, как часто должен меняться стих в виджете
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineSpacing(4)
+                            
+                            Picker("Հաճախականություն", selection: $selectedInterval) {
+                                ForEach(UpdateInterval.allCases) { interval in
+                                    Text(interval.titleArmenian).tag(interval)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .tint(.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.04))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 4)
+                        
                         // MARK: - Кнопка сохранения
                         Button {
                             let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -312,6 +388,7 @@ struct SettingsView: View {
                             generator.impactOccurred()
                             
                             manager.geminiApiKey = keyInput
+                            manager.setUpdateInterval(selectedInterval)
                             isPresented = false
                         } label: {
                             Text("Պահպանել") // Сохранить
@@ -375,6 +452,7 @@ struct SettingsView: View {
             }
             .onAppear {
                 keyInput = manager.geminiApiKey
+                selectedInterval = manager.updateInterval
             }
         }
     }

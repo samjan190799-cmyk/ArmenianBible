@@ -12,6 +12,7 @@ struct Provider: TimelineProvider {
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
     private let textKey = "currentVerseText"
     private let referenceKey = "currentVerseReference"
+    private let updateIntervalKey = "widgetUpdateInterval"
     
     // Вспомогательный метод для получения текущего стиха из App Group UserDefaults
     private func getSharedVerse() -> BibleVerse {
@@ -21,6 +22,16 @@ struct Provider: TimelineProvider {
             return BibleVerse(text: savedText, reference: savedRef)
         }
         return BibleVerse.database[0]
+    }
+    
+    // Вспомогательный метод для получения текущего интервала обновления
+    private func getSharedUpdateInterval() -> UpdateInterval {
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+           let savedRaw = defaults.string(forKey: updateIntervalKey),
+           let interval = UpdateInterval(rawValue: savedRaw) {
+            return interval
+        }
+        return .everyHour
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
@@ -40,13 +51,35 @@ struct Provider: TimelineProvider {
         let currentVerse = getSharedVerse()
         entries.append(SimpleEntry(date: currentDate, verse: currentVerse))
         
-        // 2. Генерируем автоматическое обновление каждый час на 5 часов вперед, выбирая случайные стихи
-        // Это обеспечивает автономную смену стихов на экране блокировки
+        let interval = getSharedUpdateInterval()
+        
+        // Если обновление только по тапу или при активации, не генерируем будущие автоматические обновления.
+        if interval == .onTapOnly || interval == .onScreenActivation {
+            let timeline = Timeline(entries: entries, policy: .never)
+            completion(timeline)
+            return
+        }
+        
+        // Генерируем автоматическое обновление со смещением по времени, выбирая случайные стихи
         let calendar = Calendar.current
         var lastVerse = currentVerse
         
-        for hourOffset in 1..<5 {
-            if let entryDate = calendar.date(byAdding: .hour, value: hourOffset, to: currentDate) {
+        let intervalHours: Int
+        switch interval {
+        case .everyHour:
+            intervalHours = 1
+        case .every6Hours:
+            intervalHours = 6
+        case .every12Hours:
+            intervalHours = 12
+        case .every24Hours:
+            intervalHours = 24
+        default:
+            intervalHours = 1
+        }
+        
+        for offset in 1..<5 {
+            if let entryDate = calendar.date(byAdding: .hour, value: offset * intervalHours, to: currentDate) {
                 // Выбираем случайный стих, отличный от предыдущего
                 let availableVerses = BibleVerse.database.filter { $0.text != lastVerse.text }
                 let randomVerse = availableVerses.randomElement() ?? BibleVerse.database[0]
@@ -56,7 +89,6 @@ struct Provider: TimelineProvider {
             }
         }
         
-        // Создаем таймлайн. В конце 5-часового цикла мы просим систему обновить таймлайн заново
         let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
     }
@@ -68,99 +100,102 @@ struct BibleWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        switch family {
-        case .accessoryRectangular:
-            // Прямоугольный виджет на экране блокировки iOS (Accessory Rectangular)
-            (Text(entry.verse.text)
-                .font(.system(size: 8.2, weight: .medium, design: .serif))
-            + Text(" — \(entry.verse.reference)")
-                .font(.system(size: 7.2, weight: .bold, design: .monospaced))
-                .foregroundColor(.secondary))
-            .lineLimit(5)
-            .minimumScaleFactor(0.55)
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            
-        case .systemSmall:
-            // Маленький виджет на домашнем экране (System Small)
-            VStack(alignment: .leading, spacing: 6) {
-                Image(systemName: "laurel.leading")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+        Group {
+            switch family {
+            case .accessoryRectangular:
+                // Прямоугольный виджет на экране блокировки iOS (Accessory Rectangular)
+                (Text(entry.verse.text)
+                    .font(.system(size: 8.2, weight: .medium, design: .serif))
+                + Text(" — \(entry.verse.reference)")
+                    .font(.system(size: 7.2, weight: .bold, design: .monospaced))
+                    .foregroundColor(.secondary))
+                .lineLimit(5)
+                .minimumScaleFactor(0.55)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 
-                Text(entry.verse.text)
-                    .font(.system(size: 11, weight: .medium, design: .serif))
-                    .minimumScaleFactor(0.65)
-                    .lineLimit(4)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text(entry.verse.reference)
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color(hex: "818CF8"))
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-            .padding(10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .widgetBackground(Color(hex: "090A0F"))
-            
-        case .systemMedium:
-            // Средний виджет на домашнем экране (System Medium)
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
+            case .systemSmall:
+                // Маленький виджет на домашнем экране (System Small)
+                VStack(alignment: .leading, spacing: 6) {
                     Image(systemName: "laurel.leading")
-                        .font(.system(size: 13))
+                        .font(.system(size: 11))
                         .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+                    
+                    Text(entry.verse.text)
+                        .font(.system(size: 11, weight: .medium, design: .serif))
+                        .minimumScaleFactor(0.65)
+                        .lineLimit(4)
+                        .foregroundColor(.white)
+                    
                     Spacer()
+                    
+                    Text(entry.verse.reference)
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(hex: "818CF8"))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+                .padding(10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .widgetBackground(Color(hex: "090A0F"))
                 
-                Text(entry.verse.text)
-                    .font(.system(size: 13, weight: .medium, design: .serif))
-                    .minimumScaleFactor(0.70)
-                    .lineSpacing(3)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text(entry.verse.reference)
-                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color(hex: "818CF8"))
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .widgetBackground(Color(hex: "090A0F"))
-            
-        case .systemLarge:
-            // Большой виджет на домашнем экране (System Large)
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "laurel.leading")
-                        .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+            case .systemMedium:
+                // Средний виджет на домашнем экране (System Medium)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "laurel.leading")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+                        Spacer()
+                    }
+                    
+                    Text(entry.verse.text)
+                        .font(.system(size: 13, weight: .medium, design: .serif))
+                        .minimumScaleFactor(0.70)
+                        .lineSpacing(3)
+                        .foregroundColor(.white)
+                    
                     Spacer()
+                    
+                    Text(entry.verse.reference)
+                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(hex: "818CF8"))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+                .padding(14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .widgetBackground(Color(hex: "090A0F"))
                 
-                Text(entry.verse.text)
-                    .font(.system(size: 16, weight: .medium, design: .serif))
-                    .lineSpacing(5)
-                    .foregroundColor(.white)
+            case .systemLarge:
+                // Большой виджет на домашнем экране (System Large)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "laurel.leading")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+                        Spacer()
+                    }
+                    
+                    Text(entry.verse.text)
+                        .font(.system(size: 16, weight: .medium, design: .serif))
+                        .lineSpacing(5)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Text(entry.verse.reference)
+                        .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(hex: "818CF8"))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .widgetBackground(Color(hex: "090A0F"))
                 
-                Spacer()
-                
-                Text(entry.verse.reference)
-                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color(hex: "818CF8"))
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+            default:
+                EmptyView()
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .widgetBackground(Color(hex: "090A0F"))
-            
-        default:
-            EmptyView()
         }
+        .widgetURL(URL(string: "armenianbible://next-verse"))
     }
 }
 

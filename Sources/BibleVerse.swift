@@ -218,3 +218,27 @@ extension BibleVerse {
         )
     ]
 }
+
+// MARK: - Интервал обновления стихов
+enum UpdateInterval: String, CaseIterable, Identifiable, Codable {
+    case everyHour = "everyHour"
+    case every6Hours = "every6Hours"
+    case every12Hours = "every12Hours"
+    case every24Hours = "every24Hours"
+    case onScreenActivation = "onScreenActivation" // При запуске приложения / активации
+    case onTapOnly = "onTapOnly" // Только по тапу
+    
+    var id: String { self.rawValue }
+    
+    var titleArmenian: String {
+        switch self {
+        case .everyHour: return "Ամեն ժամ"
+        case .every6Hours: return "6 ժամը մեկ"
+        case .every12Hours: return "12 ժամը մեկ"
+        case .every24Hours: return "Օրական 1 անգամ"
+        case .onScreenActivation: return "Ակտիվացումով (հավելվածում)"
+        case .onTapOnly: return "Միայն հպումով"
+        }
+    }
+}
+
