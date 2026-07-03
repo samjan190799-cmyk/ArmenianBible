@@ -172,79 +172,102 @@ struct BibleWidgetEntryView: View {
             case .systemSmall:
                 // Маленький виджет на домашнем экране (System Small)
                 VStack(alignment: .leading, spacing: 6) {
-                    Image(systemName: "laurel.leading")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+                    HStack {
+                        Image(systemName: "quote.opening")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.35))
+                        Spacer()
+                    }
                     
                     Text(entry.verse.text)
-                        .font(.system(size: 11, weight: .medium, design: .serif))
-                        .minimumScaleFactor(0.65)
-                        .lineLimit(4)
-                        .foregroundColor(.white)
+                        .font(.system(size: 13.5, weight: .medium, design: .serif))
+                        .lineLimit(6)
+                        .minimumScaleFactor(0.68)
+                        .lineSpacing(3)
+                        .foregroundColor(.white.opacity(0.95))
                     
-                    Spacer()
+                    Spacer(minLength: 4)
                     
                     Text(entry.verse.reference)
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .font(.system(size: 9.0, weight: .bold, design: .monospaced))
                         .foregroundColor(Color(hex: "818CF8"))
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(10)
+                .padding(12)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .widgetBackground(Color(hex: "090A0F"))
+                .widgetBackground(
+                    LinearGradient(
+                        colors: [Color(hex: "0D0E15"), Color(hex: "151720")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 
             case .systemMedium:
                 // Средний виджет на домашнем экране (System Medium)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "laurel.leading")
-                            .font(.system(size: 13))
-                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+                        Image(systemName: "quote.opening")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.35))
                         Spacer()
                     }
                     
                     Text(entry.verse.text)
-                        .font(.system(size: 13, weight: .medium, design: .serif))
+                        .font(.system(size: 15.0, weight: .medium, design: .serif))
+                        .lineLimit(5)
                         .minimumScaleFactor(0.70)
-                        .lineSpacing(3)
-                        .foregroundColor(.white)
+                        .lineSpacing(4)
+                        .foregroundColor(.white.opacity(0.95))
                     
-                    Spacer()
+                    Spacer(minLength: 4)
                     
                     Text(entry.verse.reference)
-                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10.0, weight: .bold, design: .monospaced))
                         .foregroundColor(Color(hex: "818CF8"))
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(14)
+                .padding(15)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .widgetBackground(Color(hex: "090A0F"))
+                .widgetBackground(
+                    LinearGradient(
+                        colors: [Color(hex: "0D0E15"), Color(hex: "151720")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 
             case .systemLarge:
                 // Большой виджет на домашнем экране (System Large)
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Image(systemName: "laurel.leading")
-                            .font(.system(size: 16))
-                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+                        Image(systemName: "quote.opening")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.35))
                         Spacer()
                     }
                     
                     Text(entry.verse.text)
-                        .font(.system(size: 16, weight: .medium, design: .serif))
+                        .font(.system(size: 17.5, weight: .medium, design: .serif))
                         .lineSpacing(5)
-                        .foregroundColor(.white)
+                        .foregroundColor(.white.opacity(0.95))
                     
-                    Spacer()
+                    Spacer(minLength: 4)
                     
                     Text(entry.verse.reference)
-                        .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                        .font(.system(size: 12.0, weight: .bold, design: .monospaced))
                         .foregroundColor(Color(hex: "818CF8"))
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .padding(18)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .widgetBackground(Color(hex: "090A0F"))
+                .widgetBackground(
+                    LinearGradient(
+                        colors: [Color(hex: "0D0E15"), Color(hex: "151720")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 
             default:
                 EmptyView()
