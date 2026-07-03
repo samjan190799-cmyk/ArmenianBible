@@ -105,12 +105,12 @@ struct BibleWidgetEntryView: View {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки iOS (Accessory Rectangular)
                 (Text(entry.verse.text)
-                    .font(.system(size: 8.2, weight: .medium, design: .serif))
+                    .font(.system(size: 12.0, weight: .medium, design: .serif))
                 + Text(" — \(entry.verse.reference)")
-                    .font(.system(size: 7.2, weight: .bold, design: .monospaced))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                     .foregroundColor(.secondary))
                 .lineLimit(5)
-                .minimumScaleFactor(0.55)
+                .minimumScaleFactor(0.50)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 
