@@ -136,20 +136,19 @@ struct BibleWidgetEntryView: View {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки iOS (Accessory Rectangular)
-                VStack(alignment: .leading, spacing: 1) {
+                (
                     Text(entry.verse.text)
-                        .font(.system(size: 15.0, weight: .bold, design: .serif))
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.65)
-                        .multilineTextAlignment(.leading)
-                    
-                    Text(entry.verse.reference)
+                        .font(.system(size: 14.0, weight: .bold, design: .serif))
+                    + Text("  ")
+                    + Text(entry.verse.reference)
                         .font(.system(size: 10.0, weight: .bold, design: .monospaced))
                         .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 4)
+                )
+                .lineLimit(5)
+                .minimumScaleFactor(0.60)
+                .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .padding(.horizontal, 2)
                 
             case .accessoryInline:
                 // Строчный виджет на экране блокировки над часами
