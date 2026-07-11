@@ -301,11 +301,11 @@ struct BibleWidget: Widget {
 // MARK: - Поддержка контейнерного фона для iOS 17
 extension View {
     @ViewBuilder
-    func widgetBackground(_ color: Color) -> some View {
+    func widgetBackground<S: ShapeStyle>(_ style: S) -> some View {
         if #available(iOS 17.0, *) {
-            self.containerBackground(color, for: .widget)
+            self.containerBackground(style, for: .widget)
         } else {
-            self.background(color)
+            self.background(style)
         }
     }
 }
