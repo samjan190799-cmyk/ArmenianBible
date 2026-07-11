@@ -133,18 +133,19 @@ struct ContentView: View {
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                         animateVerse = true
                                     }
-                                                      Text("button_random_verse") // Случайный стих (локализуется автоматически)
                                 }
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color.white.opacity(0.06))
-                                .cornerRadius(14)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                                )
+                            } label: {
+                                Text("button_random_verse")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color.white.opacity(0.06))
+                                    .cornerRadius(14)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                    )
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
