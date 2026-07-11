@@ -136,18 +136,19 @@ struct BibleWidgetEntryView: View {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки iOS (Accessory Rectangular)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(entry.verse.text)
-                        .font(.system(size: 13.5, weight: .semibold, design: .serif))
-                        .lineLimit(5)
-                        .minimumScaleFactor(0.50)
+                        .font(.system(size: 15.0, weight: .bold, design: .serif))
+                        .lineLimit(4)
+                        .minimumScaleFactor(0.65)
                         .multilineTextAlignment(.leading)
                     
                     Text(entry.verse.reference)
-                        .font(.system(size: 9.0, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10.0, weight: .bold, design: .monospaced))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
+                .padding(.horizontal, 4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 
             case .accessoryInline:
@@ -161,7 +162,7 @@ struct BibleWidgetEntryView: View {
                     VStack(spacing: 1) {
                         Image(systemName: "book.closed.fill")
                             .font(.system(size: 16))
-                        Text("ԱՍՏ") // "АСТ" от Аствацашунч
+                        Text("ԱՍՏ") // "ԱՍՏ" от Аствацашунч
                             .font(.system(size: 8, weight: .bold))
                     }
                 }
@@ -295,6 +296,19 @@ struct BibleWidget: Widget {
             .systemMedium,
             .systemLarge
         ]) // Поддерживаем Lock Screen и Home Screen виджеты
+        .disableContentMarginsIfNeeded()
+    }
+}
+
+// MARK: - Расширение WidgetConfiguration для поддержки iOS 17
+extension WidgetConfiguration {
+    func disableContentMarginsIfNeeded() -> some WidgetConfiguration {
+        #if compiler(>=5.9)
+        if #available(iOS 17.0, *) {
+            return self.contentMarginsDisabled()
+        }
+        #endif
+        return self
     }
 }
 
