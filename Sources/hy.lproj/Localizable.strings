@@ -1,0 +1,47 @@
+/* Armenian Strings */
+
+"settings_title" = "Կարգավորումներ";
+"close_button" = "Փակել";
+"save_button" = "Պահպանել";
+"ai_provider" = "ԱԻ Պրովայդեր";
+"ai_provider_description" = "Ընտրեք արհեստական բանականության մոդելը տողերի գեներացման համար:";
+"ai_language" = "ԱԻ Գեներացման Լեզու";
+"ai_language_description" = "Ընտրեք լեզուն, որով ցանկանում եք գեներացնել նոր տողեր:";
+"gemini_settings_title" = "Gemini AI Կարգավորումներ";
+"gemini_settings_description" = "Մուտքագրեք ձեր Gemini API Key-ը, որպեսզի հավելվածը կարողանա գեներացնել նոր տողեր (gemini-3.5-flash):";
+"chatgpt_settings_title" = "ChatGPT (OpenAI) Կարգավորումներ";
+"chatgpt_settings_description" = "Մուտքագրեք ձեր OpenAI API Key-ը, որպեսզի հավելվածը կարողանա գեներացնել նոր տողեր (gpt-5.5):";
+"claude_settings_title" = "Claude (Anthropic) Կարգավորումներ";
+"claude_settings_description" = "Մուտքագրեք ձեր Anthropic API Key-ը, որպեսզի հավելվածը կարողանա գեներացնել նոր տողեր (claude-sonnet-5):";
+"api_key_saved" = "✅ API բանալին պահպանված է:";
+"update_interval_title" = "Թարմացման հաճախականություն";
+"update_interval_description" = "Ընտրեք, թե որքան հաճախ պետք է փոխվի տողը վիդջեթում:";
+"content_type_title" = "Ցուցադրվող նյութ";
+"content_type_description" = "Ընտրեք, թե ինչ տեքստեր պետք է ցուցադրվեն վիդջեթում:";
+"about_app_title" = "Հավելվածի մասին";
+"about_app_version" = "Տարբերակ";
+"about_app_developer" = "Մշակող";
+"instruction_title" = "Ինչպե՞ս ավելացնել Կողպման էկրանին.";
+"instruction_step_1" = "Հպեք և պահեք Կողպման էկրանը:";
+"instruction_step_2" = "Ընտրեք «Կարգավորել» (Customize), ապա «Կողպման էկրան»:";
+"instruction_step_3" = "Հպեք «Ավելացնել վիդջեթներ» բաժնին:";
+"instruction_step_4" = "Գտեք «ArmenianBible» հավելվածը և ավելացրեք վիդջեթը:";
+"button_random_verse" = "Պատահական տող";
+"button_ai_generation" = "ԱԻ Գեներացում";
+"alert_empty_key_title" = "Մուտքագրեք API բանալին";
+"alert_empty_key_message" = "ԱԻ գեներացման համար անհրաժեշտ է կարգավորումներում ավելացնել %1$@ API բանալին (API Key):";
+"alert_error_title" = "Սխալ";
+"alert_ok_button" = "Լավ";
+
+/* Categories */
+"category_verses" = "Աստվածաշունչ";
+"category_prayers" = "Աղոթքներ";
+"category_both" = "Խառը";
+
+/* Intervals */
+"interval_every_hour" = "Ամեն ժամ";
+"interval_every_6_hours" = "6 ժամը մեկ";
+"interval_every_12_hours" = "12 ժամը մեկ";
+"interval_every_24_hours" = "Օրական 1 անգամ";
+"interval_on_screen_activation" = "Ակտիվացումով (հավելվածում)";
+"interval_on_tap_only" = "Միայն հպումով";

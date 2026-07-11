@@ -133,12 +133,7 @@ struct ContentView: View {
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                         animateVerse = true
                                     }
-                                }
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "book.fill")
-                                        .font(.system(size: 15))
-                                    Text("Պատահական տող") // Случайный стих
+                                                      Text("button_random_verse") // Случайный стих (локализуется автоматически)
                                 }
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
@@ -153,10 +148,19 @@ struct ContentView: View {
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // Кнопка: Генерация через ИИ (Gemini)
+                            // Кнопка: Генерация через ИИ
                             Button {
-                                let key = manager.geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-                                if key.isEmpty {
+                                let key: String
+                                switch manager.activeProvider {
+                                case .gemini:
+                                    key = manager.geminiApiKey
+                                case .chatgpt:
+                                    key = manager.openaiApiKey
+                                case .claude:
+                                    key = manager.anthropicApiKey
+                                }
+                                
+                                if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                     triggerHaptic(.heavy)
                                     showingNoKeyAlert = true
                                 } else {
@@ -171,7 +175,7 @@ struct ContentView: View {
                                     } else {
                                         Image(systemName: "sparkles")
                                             .font(.system(size: 15))
-                                        Text("ԱԻ Գեներացում") // Генерация ИИ
+                                        Text("button_ai_generation") // Генерация ИИ
                                     }
                                 }
                                 .font(.system(size: 15, weight: .bold))
@@ -199,15 +203,15 @@ struct ContentView: View {
                     
                     // MARK: - Блок инструкций для экрана блокировки
                     VStack(alignment: .leading, spacing: 14) {
-                        Text("Ինչպե՞ս ավելացնել Կողպման էկրանին.")
+                        Text("instruction_title")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
                             .padding(.bottom, 2)
                         
-                        InstructionRow(number: "1", text: "Հպեք և պահեք Կողպման էկրանը:")
-                        InstructionRow(number: "2", text: "Ընտրեք «Կարգավորել» (Customize), ապա «Կողպման էկրան»:")
-                        InstructionRow(number: "3", text: "Հպեք «Ավելացնել վիդջեթներ» բաժնին:")
-                        InstructionRow(number: "4", text: "Գտեք «ArmenianBible» հավելվածը և ավելացրեք վիդջեթը:")
+                        InstructionRow(number: "1", text: NSLocalizedString("instruction_step_1", comment: ""))
+                        InstructionRow(number: "2", text: NSLocalizedString("instruction_step_2", comment: ""))
+                        InstructionRow(number: "3", text: NSLocalizedString("instruction_step_3", comment: ""))
+                        InstructionRow(number: "4", text: NSLocalizedString("instruction_step_4", comment: ""))
                     }
                     .padding(20)
                     .background(Color.white.opacity(0.02))
@@ -229,15 +233,15 @@ struct ContentView: View {
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings)
         }
-        .alert("Մուտքագրեք API բանալին", isPresented: $showingNoKeyAlert) {
-            Button("Լավ", role: .cancel) {
+        .alert(NSLocalizedString("alert_empty_key_title", comment: ""), isPresented: $showingNoKeyAlert) {
+            Button(NSLocalizedString("alert_ok_button", comment: ""), role: .cancel) {
                 isShowingSettings = true
             }
         } message: {
-            Text("ԱԻ գեներացման համար անհրաժեշտ է կարգավորումներում ավելացնել Gemini API բանալին (API Key):")
+            Text(String(format: NSLocalizedString("alert_empty_key_message", comment: ""), manager.activeProvider.displayName))
         }
-        .alert("Սխալ", isPresented: $showingErrorAlert) {
-            Button("Լավ", role: .cancel) {}
+        .alert(NSLocalizedString("alert_error_title", comment: ""), isPresented: $showingErrorAlert) {
+            Button(NSLocalizedString("alert_ok_button", comment: ""), role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
@@ -304,7 +308,13 @@ struct ContentView: View {
 struct SettingsView: View {
     @Binding var isPresented: Bool
     @ObservedObject var manager = BibleManager.shared
-    @State private var keyInput = ""
+    
+    @State private var selectedProvider: AIProvider = .gemini
+    @State private var selectedLanguage: AILanguage = .armenian
+    @State private var geminiKeyInput = ""
+    @State private var openaiKeyInput = ""
+    @State private var anthropicKeyInput = ""
+    
     @State private var selectedInterval: UpdateInterval = .everyHour
     @State private var selectedCategory: TextCategory = .both
     
@@ -317,55 +327,158 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         
-                        // MARK: - Информационный блок
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Gemini AI Կարգավորումներ")
-                                .font(.system(size: 16, weight: .bold))
+                        // MARK: - Выбор ИИ Провайдера
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("ai_provider")
+                                .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
                             
-                            Text("Մուտքագրեք ձեր Gemini API Key-ը, որպեսզի հավելվածը կարողանա ինքնուրույն գեներացնել նոր տողեր Աստվածաշնչից:")
+                            Text("ai_provider_description")
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
+                            
+                            Picker("ai_provider", selection: $selectedProvider) {
+                                ForEach(AIProvider.allCases) { provider in
+                                    Text(provider.displayName).tag(provider)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .tint(.white)
+                            .padding(.vertical, 4)
                         }
                         .padding(.horizontal, 4)
                         .padding(.top, 10)
                         
-                        // MARK: - Поле ввода API Key
-                        VStack(alignment: .leading, spacing: 8) {
-                            SecureField("AI API Key (AIzaSy...)", text: $keyInput)
-                                .font(.system(size: 15, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.white.opacity(0.04))
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                )
-                            
-                            if !manager.geminiApiKey.isEmpty {
-                                Text("✅ API բանալին պահպանված է:")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.green)
-                                    .padding(.horizontal, 4)
-                            }
-                        }
-                        
-                        // MARK: - Частота смены стихов
+                        // MARK: - Выбор языка генерации ИИ
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Թարմացման հաճախականություն") // Частота обновления
+                            Text("ai_language")
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
                             
-                            Text("Ընտրեք, թե որքան հաճախ պետք է փոխվի տողը վիդջեթում:") // Выберите, как часто должен меняться стих в виджете
+                            Text("ai_language_description")
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
                             
-                            Picker("Հաճախականություն", selection: $selectedInterval) {
+                            Picker("ai_language", selection: $selectedLanguage) {
+                                ForEach(AILanguage.allCases) { language in
+                                    Text(language.displayName).tag(language)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .tint(.white)
+                            .padding(.vertical, 4)
+                        }
+                        .padding(.horizontal, 4)
+                        
+                        // MARK: - Поле ввода API Key в зависимости от провайдера
+                        VStack(alignment: .leading, spacing: 8) {
+                            switch selectedProvider {
+                            case .gemini:
+                                Text("gemini_settings_title")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Text("gemini_settings_description")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .lineSpacing(4)
+                                    .padding(.bottom, 6)
+                                
+                                SecureField("Gemini API Key (AIzaSy...)", text: $geminiKeyInput)
+                                    .font(.system(size: 15, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .background(Color.white.opacity(0.04))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    )
+                                
+                                if !manager.geminiApiKey.isEmpty {
+                                    Text("api_key_saved")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.green)
+                                        .padding(.horizontal, 4)
+                                }
+                                
+                            case .chatgpt:
+                                Text("chatgpt_settings_title")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Text("chatgpt_settings_description")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .lineSpacing(4)
+                                    .padding(.bottom, 6)
+                                
+                                SecureField("OpenAI API Key (sk-...)", text: $openaiKeyInput)
+                                    .font(.system(size: 15, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .background(Color.white.opacity(0.04))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    )
+                                
+                                if !manager.openaiApiKey.isEmpty {
+                                    Text("api_key_saved")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.green)
+                                        .padding(.horizontal, 4)
+                                }
+                                
+                            case .claude:
+                                Text("claude_settings_title")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Text("claude_settings_description")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .lineSpacing(4)
+                                    .padding(.bottom, 6)
+                                
+                                SecureField("Anthropic API Key (sk-ant-...)", text: $anthropicKeyInput)
+                                    .font(.system(size: 15, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .background(Color.white.opacity(0.04))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    )
+                                
+                                if !manager.anthropicApiKey.isEmpty {
+                                    Text("api_key_saved")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.green)
+                                        .padding(.horizontal, 4)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                        
+                        // MARK: - Частота смены стихов
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("update_interval_title")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text("update_interval_description")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineSpacing(4)
+                            
+                            Picker("update_interval_title", selection: $selectedInterval) {
                                 ForEach(UpdateInterval.allCases) { interval in
-                                    Text(interval.titleArmenian).tag(interval)
+                                    Text(interval.localizedTitle).tag(interval)
                                 }
                             }
                             .pickerStyle(.menu)
@@ -384,18 +497,18 @@ struct SettingsView: View {
                         
                         // MARK: - Выбор типа контента (Стихи / Молитвы / Все)
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Ցուցադրվող նյութ") // Отображаемый контент
+                            Text("content_type_title")
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
                             
-                            Text("Ընտրեք, թե ինչ տեքստեր պետք է ցուցադրվեն վիդջեթում:") // Выберите, какие тексты должны отображаться в виджете
+                            Text("content_type_description")
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
                             
-                            Picker("Նյութի տեսակը", selection: $selectedCategory) {
+                            Picker("content_type_title", selection: $selectedCategory) {
                                 ForEach(TextCategory.allCases) { category in
-                                    Text(category.titleArmenian).tag(category)
+                                    Text(category.localizedTitle).tag(category)
                                 }
                             }
                             .pickerStyle(.menu)
@@ -418,12 +531,16 @@ struct SettingsView: View {
                             generator.prepare()
                             generator.impactOccurred()
                             
-                            manager.geminiApiKey = keyInput
+                            manager.setActiveProvider(selectedProvider)
+                            manager.setAILanguage(selectedLanguage)
+                            manager.geminiApiKey = geminiKeyInput
+                            manager.openaiApiKey = openaiKeyInput
+                            manager.anthropicApiKey = anthropicKeyInput
                             manager.setUpdateInterval(selectedInterval)
                             manager.setSelectedCategory(selectedCategory)
                             isPresented = false
                         } label: {
-                            Text("Պահպանել") // Сохранить
+                            Text("save_button")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -439,12 +556,12 @@ struct SettingsView: View {
                         
                         // MARK: - О приложении
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Հավելվածի մասին")
+                            Text("about_app_title")
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
                             
                             HStack {
-                                Text("Տարբերակ")
+                                Text("about_app_version")
                                 Spacer()
                                 Text("1.0.1")
                                     .foregroundColor(.secondary)
@@ -452,7 +569,7 @@ struct SettingsView: View {
                             .font(.system(size: 14))
                             
                             HStack {
-                                Text("Մշակող")
+                                Text("about_app_developer")
                                 Spacer()
                                 Text("Samvel")
                                     .foregroundColor(.secondary)
@@ -470,11 +587,11 @@ struct SettingsView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("Կարգավորումներ")
+            .navigationTitle("settings_title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Փակել") { // Закрыть
+                    Button("close_button") {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.prepare()
                         generator.impactOccurred()
@@ -483,7 +600,11 @@ struct SettingsView: View {
                 }
             }
             .onAppear {
-                keyInput = manager.geminiApiKey
+                selectedProvider = manager.activeProvider
+                selectedLanguage = manager.aiLanguage
+                geminiKeyInput = manager.geminiApiKey
+                openaiKeyInput = manager.openaiApiKey
+                anthropicKeyInput = manager.anthropicApiKey
                 selectedInterval = manager.updateInterval
                 selectedCategory = manager.selectedCategory
             }

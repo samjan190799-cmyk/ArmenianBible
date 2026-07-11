@@ -1,0 +1,47 @@
+/* English Strings */
+
+"settings_title" = "Settings";
+"close_button" = "Close";
+"save_button" = "Save";
+"ai_provider" = "AI Provider";
+"ai_provider_description" = "Select the artificial intelligence model for generating verses:";
+"ai_language" = "AI Generation Language";
+"ai_language_description" = "Select the language you want to generate verses in:";
+"gemini_settings_title" = "Gemini AI Settings";
+"gemini_settings_description" = "Enter your Gemini API Key to enable AI generation (gemini-3.5-flash):";
+"chatgpt_settings_title" = "ChatGPT (OpenAI) Settings";
+"chatgpt_settings_description" = "Enter your OpenAI API Key to enable AI generation (gpt-5.5):";
+"claude_settings_title" = "Claude (Anthropic) Settings";
+"claude_settings_description" = "Enter your Anthropic API Key to enable AI generation (claude-sonnet-5):";
+"api_key_saved" = "✅ API Key is saved:";
+"update_interval_title" = "Update Frequency";
+"update_interval_description" = "Choose how often the verse should update in the widget:";
+"content_type_title" = "Displayed Content";
+"content_type_description" = "Select what type of text should be shown in the widget:";
+"about_app_title" = "About App";
+"about_app_version" = "Version";
+"about_app_developer" = "Developer";
+"instruction_title" = "How to add to Lock Screen:";
+"instruction_step_1" = "Tap and hold the Lock Screen;";
+"instruction_step_2" = "Select 'Customize', then 'Lock Screen';";
+"instruction_step_3" = "Tap the 'Add Widgets' section;";
+"instruction_step_4" = "Find the 'ArmenianBible' app and add the widget.";
+"button_random_verse" = "Random Verse";
+"button_ai_generation" = "AI Generation";
+"alert_empty_key_title" = "Enter API Key";
+"alert_empty_key_message" = "For AI generation, you need to add the %1$@ API Key in settings.";
+"alert_error_title" = "Error";
+"alert_ok_button" = "OK";
+
+/* Categories */
+"category_verses" = "Bible";
+"category_prayers" = "Prayers";
+"category_both" = "Mixed";
+
+/* Intervals */
+"interval_every_hour" = "Every Hour";
+"interval_every_6_hours" = "Every 6 Hours";
+"interval_every_12_hours" = "Every 12 Hours";
+"interval_every_24_hours" = "Once a Day";
+"interval_on_screen_activation" = "On Activation (in App)";
+"interval_on_tap_only" = "Only on Tap";

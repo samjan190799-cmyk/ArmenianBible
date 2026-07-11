@@ -1,0 +1,47 @@
+/* Russian Strings */
+
+"settings_title" = "Настройки";
+"close_button" = "Закрыть";
+"save_button" = "Сохранить";
+"ai_provider" = "Провайдер ИИ";
+"ai_provider_description" = "Выберите модель искусственного интеллекта для генерации строк:";
+"ai_language" = "Язык генерации ИИ";
+"ai_language_description" = "Выберите язык, на котором хотите генерировать стихи:";
+"gemini_settings_title" = "Настройки Gemini AI";
+"gemini_settings_description" = "Введите ваш Gemini API Key для генерации стихов (gemini-3.5-flash):";
+"chatgpt_settings_title" = "Настройки ChatGPT (OpenAI)";
+"chatgpt_settings_description" = "Введите ваш OpenAI API Key для генерации стихов (gpt-5.5):";
+"claude_settings_title" = "Настройки Claude (Anthropic)";
+"claude_settings_description" = "Введите ваш Anthropic API Key для генерации стихов (claude-sonnet-5):";
+"api_key_saved" = "✅ API-ключ сохранен:";
+"update_interval_title" = "Частота обновления";
+"update_interval_description" = "Выберите, как часто должен меняться стих в виджете:";
+"content_type_title" = "Отображаемый контент";
+"content_type_description" = "Выберите, какие тексты должны отображаться в виджете:";
+"about_app_title" = "О приложении";
+"about_app_version" = "Версия";
+"about_app_developer" = "Разработчик";
+"instruction_title" = "Как добавить на экран блокировки:";
+"instruction_step_1" = "Зажмите палец на экране блокировки;";
+"instruction_step_2" = "Нажмите «Настроить», затем «Экран блокировки»;";
+"instruction_step_3" = "Нажмите на область «Добавить виджеты»;";
+"instruction_step_4" = "Найдите приложение «ArmenianBible» и добавьте виджет.";
+"button_random_verse" = "Случайный стих";
+"button_ai_generation" = "Генерация ИИ";
+"alert_empty_key_title" = "Введите API-ключ";
+"alert_empty_key_message" = "Для генерации ИИ необходимо добавить API-ключ %1$@ в настройках.";
+"alert_error_title" = "Ошибка";
+"alert_ok_button" = "ОК";
+
+/* Categories */
+"category_verses" = "Библия";
+"category_prayers" = "Молитвы";
+"category_both" = "Смешанное";
+
+/* Intervals */
+"interval_every_hour" = "Каждый час";
+"interval_every_6_hours" = "Каждые 6 часов";
+"interval_every_12_hours" = "Каждые 12 часов";
+"interval_every_24_hours" = "Раз в день";
+"interval_on_screen_activation" = "При активации (в приложении)";
+"interval_on_tap_only" = "Только по нажатию";

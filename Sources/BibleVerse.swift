@@ -15,6 +15,40 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     }
 }
 
+// MARK: - Языки генерации ИИ
+enum AILanguage: String, CaseIterable, Identifiable, Codable {
+    case armenian = "armenian"
+    case russian = "russian"
+    case english = "english"
+    
+    var id: String { self.rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .armenian: return "Հայերեն"
+        case .russian: return "Русский"
+        case .english: return "English"
+        }
+    }
+}
+
+// MARK: - Провайдеры искусственного интеллекта
+enum AIProvider: String, CaseIterable, Identifiable, Codable {
+    case gemini = "gemini"
+    case chatgpt = "chatgpt"
+    case claude = "claude"
+    
+    var id: String { self.rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .gemini: return "Gemini"
+        case .chatgpt: return "ChatGPT"
+        case .claude: return "Claude"
+        }
+    }
+}
+
 // MARK: - Категория отображаемого текста
 enum TextCategory: String, CaseIterable, Identifiable, Codable {
     case verses = "verses"
@@ -25,9 +59,17 @@ enum TextCategory: String, CaseIterable, Identifiable, Codable {
     
     var titleArmenian: String {
         switch self {
-        case .verses: return "Աստվածաշունչ" // Библия
-        case .prayers: return "Աղոթքներ"    // Молитвы
-        case .both: return "Խառը"           // Смешанное
+        case .verses: return "Աստվածաշունչ"
+        case .prayers: return "Աղոթքներ"
+        case .both: return "Խառը"
+        }
+    }
+    
+    var localizedTitle: String {
+        switch self {
+        case .verses: return NSLocalizedString("category_verses", comment: "")
+        case .prayers: return NSLocalizedString("category_prayers", comment: "")
+        case .both: return NSLocalizedString("category_both", comment: "")
         }
     }
 }
@@ -51,6 +93,17 @@ enum UpdateInterval: String, CaseIterable, Identifiable, Codable {
         case .every24Hours: return "Օրական 1 անգամ"
         case .onScreenActivation: return "Ակտիվացումով (հավելվածում)"
         case .onTapOnly: return "Միայն հպումով"
+        }
+    }
+    
+    var localizedTitle: String {
+        switch self {
+        case .everyHour: return NSLocalizedString("interval_every_hour", comment: "")
+        case .every6Hours: return NSLocalizedString("interval_every_6_hours", comment: "")
+        case .every12Hours: return NSLocalizedString("interval_every_12_hours", comment: "")
+        case .every24Hours: return NSLocalizedString("interval_every_24_hours", comment: "")
+        case .onScreenActivation: return NSLocalizedString("interval_on_screen_activation", comment: "")
+        case .onTapOnly: return NSLocalizedString("interval_on_tap_only", comment: "")
         }
     }
 }

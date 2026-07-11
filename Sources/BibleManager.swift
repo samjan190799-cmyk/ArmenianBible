@@ -10,6 +10,8 @@ class BibleManager: ObservableObject {
     @Published var isGeneratingAI = false
     @Published var updateInterval: UpdateInterval = .everyHour
     @Published var selectedCategory: TextCategory = .both
+    @Published var activeProvider: AIProvider = .gemini
+    @Published var aiLanguage: AILanguage = .armenian
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -17,8 +19,12 @@ class BibleManager: ObservableObject {
     private let textKey = "currentVerseText"
     private let referenceKey = "currentVerseReference"
     private let apiKeyStoreKey = "gemini_api_key_secure"
+    private let openaiApiKeyStoreKey = "openai_api_key_secure"
+    private let anthropicApiKeyStoreKey = "anthropic_api_key_secure"
     private let updateIntervalKey = "widgetUpdateInterval"
     private let categoryKey = "selectedCategory"
+    private let activeProviderKey = "active_ai_provider"
+    private let aiLanguageKey = "active_ai_language"
     
     private var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupSuiteName)
@@ -31,6 +37,28 @@ class BibleManager: ObservableObject {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: apiKeyStoreKey)
+            objectWillChange.send()
+        }
+    }
+    
+    // Свойство для получения и сохранения API-ключа OpenAI (ChatGPT)
+    var openaiApiKey: String {
+        get {
+            UserDefaults.standard.string(forKey: openaiApiKeyStoreKey) ?? ""
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: openaiApiKeyStoreKey)
+            objectWillChange.send()
+        }
+    }
+    
+    // Свойство для получения и сохранения API-ключа Anthropic (Claude)
+    var anthropicApiKey: String {
+        get {
+            UserDefaults.standard.string(forKey: anthropicApiKeyStoreKey) ?? ""
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: anthropicApiKeyStoreKey)
             objectWillChange.send()
         }
     }
@@ -69,6 +97,42 @@ class BibleManager: ObservableObject {
             self.selectedCategory = savedCategory
         } else {
             self.selectedCategory = .both
+        }
+        
+        // Загрузка активного провайдера ИИ
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+           let savedProviderRaw = defaults.string(forKey: activeProviderKey),
+           let savedProvider = AIProvider(rawValue: savedProviderRaw) {
+            self.activeProvider = savedProvider
+        } else {
+            self.activeProvider = .gemini
+        }
+        
+        // Загрузка языка генерации ИИ
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+           let savedLanguageRaw = defaults.string(forKey: aiLanguageKey),
+           let savedLanguage = AILanguage(rawValue: savedLanguageRaw) {
+            self.aiLanguage = savedLanguage
+        } else {
+            self.aiLanguage = .armenian
+        }
+    }
+    
+    // MARK: - Сохранение активного провайдера ИИ
+    func setActiveProvider(_ provider: AIProvider) {
+        self.activeProvider = provider
+        if let defaults = sharedDefaults {
+            defaults.set(provider.rawValue, forKey: activeProviderKey)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Сохранение языка генерации ИИ
+    func setAILanguage(_ language: AILanguage) {
+        self.aiLanguage = language
+        if let defaults = sharedDefaults {
+            defaults.set(language.rawValue, forKey: aiLanguageKey)
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
     
@@ -131,41 +195,102 @@ class BibleManager: ObservableObject {
         updateCurrentVerse(newVerse)
     }
     
-    // MARK: - Генерация цитаты через Gemini API
+    // MARK: - Генерация цитаты через Gemini API / ChatGPT / Claude
     func generateVerseWithAI(completion: @escaping (Result<BibleVerse, Error>) -> Void) {
-        let apiKey = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let apiKey: String
+        switch activeProvider {
+        case .gemini:
+            apiKey = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .chatgpt:
+            apiKey = openaiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .claude:
+            apiKey = anthropicApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
         guard !apiKey.isEmpty else {
             completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is empty"])))
             return
         }
         
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=\(apiKey)") else {
-            completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-            return
+        var request: URLRequest
+        let prompt: String
+        switch aiLanguage {
+        case .armenian:
+            prompt = "Դու Աստվածաշնչի փորձագետ ես: Գեներացրու մեկ պատահական, ոգեշնչող, իմաստալից և գեղեցիկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (Արարատ թարգմանությունից): Գրիր ԱՄԲՈՂՋԱԿԱՆ տեքստը, առանց կրճատումների կամ բազմակետերի (...): Տուր միայն մեջբերման տեքստը և հղումը հետևյալ ֆորմատով՝ [Մեջբերում] | [Հղում] (օրինակ՝ Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ | Սաղմոսներ 23:1): Ոչ մի ուրիշ բան մի գրիր:"
+        case .russian:
+            prompt = "Ты эксперт по Библии. Сгенерируй одну случайную, вдохновляющую, глубокую и красивую библейскую цитату на русском языке (из Синодального перевода). Пиши ПОЛНЫЙ текст цитаты без сокращений и многоточий (...). Выдай только текст цитаты и ссылку на нее в следующем формате: [Цитата] | [Ссылка] (например: Господь — Пастырь мой; я ни в чем не буду нуждаться. | Псалом 22:1). Больше ничего не пиши."
+        case .english:
+            prompt = "You are a Bible expert. Generate one random, inspiring, meaningful, and beautiful Bible quote in English (from KJV or ESV translation). Write the COMPLETE text of the quote without abbreviations or ellipses (...). Return only the quote text and the reference in the following format: [Quote] | [Reference] (example: The Lord is my shepherd; I shall not want. | Psalm 23:1). Do not write anything else."
         }
         
-        // Промпт, требующий простой текстовый формат с разделителем "|"
-        let prompt = "Դու Աստվածաշնչի փորձագետ ես: Գեներացրու մեկ պատահական, ոգեշնչող, իմաստալից և գեղեցիկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (Արարատ թարգմանությունից): Գրիր ԱՄԲՈՂՋԱԿԱՆ տեքստը, առանց կրճատումների կամ բազմակետերի (...): Տուր միայն մեջբերման տեքստը և հղումը հետևյալ ֆորմատով՝ [Մեջբերում] | [Հղում] (օրինակ՝ Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ | Սաղմոսներ 23:1): Ոչ մի ուրիշ բան մի գրիր:"
-        
-        let requestBody: [String: Any] = [
-            "contents": [
-                [
-                    "parts": [
-                        ["text": prompt]
+        switch activeProvider {
+        case .gemini:
+            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=\(apiKey)") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "contents": [
+                    [
+                        "parts": [
+                            ["text": prompt]
+                        ]
                     ]
                 ]
             ]
-        ]
-        
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-            completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-            return
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = jsonData
+            
+        case .chatgpt:
+            guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "model": "gpt-5.5",
+                "messages": [
+                    ["role": "user", "content": prompt]
+                ]
+            ]
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.httpBody = jsonData
+            
+        case .claude:
+            guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "model": "claude-sonnet-5",
+                "max_tokens": 1024,
+                "messages": [
+                    ["role": "user", "content": prompt]
+                ]
+            ]
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            request.httpBody = jsonData
         }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = jsonData
         
         isGeneratingAI = true
         
@@ -186,57 +311,90 @@ class BibleManager: ObservableObject {
             
             // Проверяем HTTP статус на наличие ошибок
             if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                // Пытаемся извлечь сообщение об ошибке от самого API Gemini
-                if let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let errorDict = errJson["error"] as? [String: Any],
-                   let errMsg = errorDict["message"] as? String {
-                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Gemini API: \(errMsg)"])))
-                } else {
-                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])))
+                // Пытаемся извлечь сообщение об ошибке от API
+                if let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    var errorMsg: String? = nil
+                    
+                    if let errorDict = errJson["error"] as? [String: Any] {
+                        errorMsg = errorDict["message"] as? String
+                    } else if let errorDict = errJson["error"] as? String {
+                        errorMsg = errorDict
+                    }
+                    
+                    if let msg = errorMsg {
+                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "\(self?.activeProvider.displayName ?? "AI") API: \(msg)"])))
+                        return
+                    }
                 }
+                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])))
                 return
             }
             
             do {
-                if let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let candidates = jsonResponse["candidates"] as? [[String: Any]],
-                   let firstCandidate = candidates.first,
-                   let content = firstCandidate["content"] as? [String: Any],
-                   let parts = content["parts"] as? [[String: Any]],
-                   let firstPart = parts.first,
-                   let textResult = firstPart["text"] as? String {
+                guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    return
+                }
+                
+                var extractedText: String? = nil
+                
+                switch self?.activeProvider {
+                case .gemini:
+                    if let candidates = jsonResponse["candidates"] as? [[String: Any]],
+                       let firstCandidate = candidates.first,
+                       let content = firstCandidate["content"] as? [String: Any],
+                       let parts = content["parts"] as? [[String: Any]],
+                       let firstPart = parts.first {
+                        extractedText = firstPart["text"] as? String
+                    }
+                case .chatgpt:
+                    if let choices = jsonResponse["choices"] as? [[String: Any]],
+                       let firstChoice = choices.first,
+                       let message = firstChoice["message"] as? [String: Any] {
+                        extractedText = message["content"] as? String
+                    }
+                case .claude:
+                    if let contentList = jsonResponse["content"] as? [[String: Any]],
+                       let firstContent = contentList.first {
+                        extractedText = firstContent["text"] as? String
+                    }
+                default:
+                    break
+                }
+                
+                guard let textResult = extractedText else {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                    return
+                }
+                
+                let cleanResult = textResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                let components = cleanResult.components(separatedBy: "|")
+                
+                if components.count >= 2 {
+                    let text = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                    let reference = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"”'«»"))
                     
-                    let cleanResult = textResult.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let components = cleanResult.components(separatedBy: "|")
+                    let newVerse = BibleVerse(text: text, reference: reference)
                     
-                    if components.count >= 2 {
-                        let text = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
-                        let reference = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
-                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"”'«»"))
-                        
-                        let newVerse = BibleVerse(text: text, reference: reference)
-                        
+                    DispatchQueue.main.async {
+                        self?.updateCurrentVerse(newVerse)
+                    }
+                    completion(.success(newVerse))
+                } else {
+                    // Попытка использовать всю полученную строку, если нет разделителя |
+                    let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                    if !cleanText.isEmpty {
+                        let newVerse = BibleVerse(text: cleanText, reference: "Աստվածաշունչ")
                         DispatchQueue.main.async {
                             self?.updateCurrentVerse(newVerse)
                         }
                         completion(.success(newVerse))
                     } else {
-                        // Попытка использовать всю полученную строку, если нет разделителя |
-                        let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
-                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
-                        if !cleanText.isEmpty {
-                            let newVerse = BibleVerse(text: cleanText, reference: "Աստվածաշունչ")
-                            DispatchQueue.main.async {
-                                self?.updateCurrentVerse(newVerse)
-                            }
-                            completion(.success(newVerse))
-                        } else {
-                            completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
-                        }
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
                     }
-                } else {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
                 }
             } catch {
                 completion(.failure(error))
