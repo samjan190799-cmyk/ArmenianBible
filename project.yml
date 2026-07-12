@@ -45,9 +45,9 @@ targets:
     sources:
       - path: Widget
       - path: Sources/BibleVerse.swift
-      - path: Sources/en.lproj
-      - path: Sources/ru.lproj
-      - path: Sources/hy.lproj
+      - path: Sources/en.lproj/Localizable.strings
+      - path: Sources/ru.lproj/Localizable.strings
+      - path: Sources/hy.lproj/Localizable.strings
     info:
       path: Widget/Info.plist
       properties:
