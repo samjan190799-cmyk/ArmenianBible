@@ -619,7 +619,7 @@ class BibleManager: ObservableObject {
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "gpt-4o-mini", // более стабильная модель, т.к. gpt-5.5 не существует
+                "model": "gpt-5.5",
                 "messages": [
                     ["role": "user", "content": prompt]
                 ]
@@ -640,7 +640,7 @@ class BibleManager: ObservableObject {
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "claude-3-5-sonnet-20241022", // реальное имя модели Claude 3.5 Sonnet
+                "model": "claude-sonnet-5",
                 "max_tokens": 1024,
                 "messages": [
                     ["role": "user", "content": prompt]
@@ -790,7 +790,7 @@ class BibleManager: ObservableObject {
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "gpt-4o-mini",
+                "model": "gpt-5.5",
                 "messages": [["role": "user", "content": prompt]]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
@@ -809,7 +809,7 @@ class BibleManager: ObservableObject {
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "claude-3-5-sonnet-20241022",
+                "model": "claude-sonnet-5",
                 "max_tokens": 1024,
                 "messages": [["role": "user", "content": prompt]]
             ]
