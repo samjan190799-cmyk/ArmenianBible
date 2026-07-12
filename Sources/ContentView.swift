@@ -422,12 +422,24 @@ struct ContentView: View {
             theme: manager.accentTheme,
             colorScheme: colorScheme
         )
-        let renderer = ImageRenderer(content: exportView)
-        renderer.scale = 3.0 // Высокое качество
-        if let image = renderer.uiImage {
-            self.shareImage = image
-            self.isShowingShareSheet = true
+        
+        // Используем UIHostingController для стабильного рендеринга на всех iOS 16+
+        // ImageRenderer(content:).uiImage часто возвращает nil при наличии blur/gradient
+        let hostingController = UIHostingController(rootView: exportView)
+        hostingController.view.frame = CGRect(x: 0, y: 0, width: 1080, height: 1080)
+        hostingController.view.backgroundColor = .clear
+        
+        // Принудительный layout
+        hostingController.view.setNeedsLayout()
+        hostingController.view.layoutIfNeeded()
+        
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1080, height: 1080))
+        let image = renderer.image { context in
+            hostingController.view.drawHierarchy(in: hostingController.view.bounds, afterScreenUpdates: true)
         }
+        
+        self.shareImage = image
+        self.isShowingShareSheet = true
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
@@ -463,11 +475,13 @@ struct VerseCardExportView: View {
         ZStack {
             backgroundColor
             
-            // Мягкое фоновое свечение
-            Circle()
-                .fill(accentColor.opacity(colorScheme == .dark ? 0.08 : 0.05))
-                .frame(width: 600, height: 600)
-                .blur(radius: 120)
+            // Мягкое фоновое свечение (без blur — совместимость с UIHostingController рендерингом)
+            RadialGradient(
+                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.15 : 0.08), Color.clear]),
+                center: .center,
+                startRadius: 50,
+                endRadius: 400
+            )
             
             VStack(spacing: 40) {
                 Image(systemName: "laurel.leading")
@@ -876,10 +890,19 @@ struct SettingsView: View {
                             manager.setUpdateInterval(selectedInterval)
                             manager.setSelectedCategory(selectedCategory)
                             
-                            // Выбираем новый оффлайн стих на выбранном языке, чтобы изменения применились сразу
+                            // Выбираем новый оффлайн стих на выбранном языке
                             manager.selectRandomVerse()
                             
-                            isPresented = false
+                            // Принудительно обновляем UI: BibleVerse — struct, и при смене языка
+                            // stored properties не меняются, поэтому SwiftUI может "не заметить" изменение.
+                            // forceRefreshUI() вызывает objectWillChange.send() для перерисовки.
+                            manager.forceRefreshUI()
+                            
+                            // Закрываем настройки с задержкой, чтобы SwiftUI успел обработать
+                            // все изменения state до начала анимации закрытия sheet
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                isPresented = false
+                            }
                         } label: {
                             Text("save_button".localized(for: selectedLanguage))
                                 .font(.system(size: 16, weight: .bold))

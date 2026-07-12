@@ -1,6 +1,7 @@
 import SwiftUI
 import WidgetKit
 import Foundation
+import UserNotifications
 
 // MARK: - Менеджер стихов (Bible Manager)
 class BibleManager: ObservableObject {
@@ -176,8 +177,14 @@ class BibleManager: ObservableObject {
         self.appLanguage = language
         if let defaults = sharedDefaults {
             defaults.set(language.rawValue, forKey: appLanguageKey)
+            defaults.synchronize()
             WidgetCenter.shared.reloadAllTimelines()
         }
+    }
+    
+    // MARK: - Принудительное обновление UI после смены языка/темы
+    func forceRefreshUI() {
+        objectWillChange.send()
     }
     
     // MARK: - Сохранение интервала обновления и перезапуск виджета
@@ -324,9 +331,13 @@ class BibleManager: ObservableObject {
     // MARK: - Сохранение стиха в AppGroup и обновление виджета
     func updateCurrentVerse(_ verse: BibleVerse) {
         self.currentVerse = verse
+        // Принудительно уведомляем SwiftUI, т.к. BibleVerse struct с computed свойствами
+        // может не считаться "изменённым" при смене языка (stored properties те же)
+        objectWillChange.send()
         if let defaults = sharedDefaults {
             defaults.set(verse.text, forKey: textKey)
             defaults.set(verse.reference, forKey: referenceKey)
+            defaults.synchronize()
             
             // Заставляем виджеты немедленно обновиться
             WidgetCenter.shared.reloadAllTimelines()
