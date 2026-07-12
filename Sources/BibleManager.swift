@@ -128,10 +128,15 @@ class BibleManager: ObservableObject {
         }
         
         // Загрузка языка приложения
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-           let savedLanguageRaw = defaults.string(forKey: appLanguageKey),
-           let savedLanguage = AppLanguage(rawValue: savedLanguageRaw) {
-            self.appLanguage = savedLanguage
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
+            if let savedLanguageRaw = defaults.string(forKey: appLanguageKey),
+               let savedLanguage = AppLanguage(rawValue: savedLanguageRaw) {
+                self.appLanguage = savedLanguage
+            } else {
+                self.appLanguage = .armenian
+                defaults.set(AppLanguage.armenian.rawValue, forKey: appLanguageKey)
+                defaults.synchronize()
+            }
         } else {
             self.appLanguage = .armenian
         }

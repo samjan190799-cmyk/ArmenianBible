@@ -237,9 +237,7 @@ private func getSharedLanguage() -> AppLanguage {
         return lang
     }
     
-    let preferred = Bundle.main.preferredLocalizations.first ?? "hy"
-    if preferred.hasPrefix("ru") { return .russian }
-    if preferred.hasPrefix("en") { return .english }
+    // Если настройки не найдены (или нет доступа к App Group), по умолчанию для ArmenianBible используем армянский язык
     return .armenian
 }
 
