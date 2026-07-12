@@ -17,6 +17,7 @@ class BibleManager: ObservableObject {
     @Published var accentTheme: AccentColorTheme = .indigo
     @Published var dailyNotificationsEnabled: Bool = false
     @Published var dailyNotificationTime: Date = Date()
+    @Published var widgetLanguage: WidgetLanguage = .followApp
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -170,6 +171,15 @@ class BibleManager: ObservableObject {
             components.minute = 0
             self.dailyNotificationTime = Calendar.current.date(from: components) ?? Date()
         }
+        
+        // Загрузка языка виджета
+        if let defaults = sharedDefaults,
+           let savedWidgetLangRaw = defaults.string(forKey: "widget_language"),
+           let savedWidgetLang = WidgetLanguage(rawValue: savedWidgetLangRaw) {
+            self.widgetLanguage = savedWidgetLang
+        } else {
+            self.widgetLanguage = .followApp
+        }
     }
     
     // MARK: - Сохранение активного провайдера ИИ
@@ -186,6 +196,16 @@ class BibleManager: ObservableObject {
         self.appLanguage = language
         if let defaults = sharedDefaults {
             defaults.set(language.rawValue, forKey: appLanguageKey)
+            defaults.synchronize()
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Сохранение языка виджета
+    func setWidgetLanguage(_ language: WidgetLanguage) {
+        self.widgetLanguage = language
+        if let defaults = sharedDefaults {
+            defaults.set(language.rawValue, forKey: "widget_language")
             defaults.synchronize()
             WidgetCenter.shared.reloadAllTimelines()
         }

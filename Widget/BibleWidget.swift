@@ -55,11 +55,15 @@ struct Provider: TimelineProvider {
             }
             
             if let savedText = defaults.string(forKey: textKey) {
-                // Ищем в базе по тексту на любом языке
-                if let foundVerse = BibleVerse.database.first(where: {
-                    $0.textHy == savedText || $0.textRu == savedText || $0.textEn == savedText
-                }) {
-                    return foundVerse
+                let normalizedSaved = savedText.normalizedForComparison
+                if !normalizedSaved.isEmpty {
+                    if let foundVerse = BibleVerse.database.first(where: {
+                        $0.textHy.normalizedForComparison == normalizedSaved ||
+                        $0.textRu.normalizedForComparison == normalizedSaved ||
+                        $0.textEn.normalizedForComparison == normalizedSaved
+                    }) {
+                        return foundVerse
+                    }
                 }
                 
                 let savedRef = defaults.string(forKey: referenceKey) ?? ""
@@ -144,11 +148,29 @@ struct Provider: TimelineProvider {
 // MARK: - Вспомогательные функции локализации и тем оформления для виджета
 private func getSharedLanguage() -> AppLanguage {
     let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-    if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-       let savedRaw = defaults.string(forKey: "app_language"),
+    guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
+        return .armenian
+    }
+    
+    if let widgetLangRaw = defaults.string(forKey: "widget_language"),
+       let widgetLang = WidgetLanguage(rawValue: widgetLangRaw) {
+        switch widgetLang {
+        case .followApp:
+            break
+        case .armenian:
+            return .armenian
+        case .russian:
+            return .russian
+        case .english:
+            return .english
+        }
+    }
+    
+    if let savedRaw = defaults.string(forKey: "app_language"),
        let lang = AppLanguage(rawValue: savedRaw) {
         return lang
     }
+    
     let preferred = Bundle.main.preferredLocalizations.first ?? "hy"
     if preferred.hasPrefix("ru") { return .russian }
     if preferred.hasPrefix("en") { return .english }
@@ -219,7 +241,7 @@ struct BibleWidgetEntryView: View {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки
-                Text(entry.verse.text)
+                Text(entry.verse.text(for: getSharedLanguage()))
                     .font(.system(size: 13, weight: .bold, design: .serif))
                     .lineLimit(7)
                     .minimumScaleFactor(0.4)
@@ -229,7 +251,7 @@ struct BibleWidgetEntryView: View {
                 
             case .accessoryInline:
                 // Строчный виджет на экране блокировки над часами
-                Text("✝️ \(entry.verse.reference)")
+                Text("✝️ \(entry.verse.reference(for: getSharedLanguage()))")
                 
             case .accessoryCircular:
                 // Круглый виджет на экране блокировки
@@ -253,7 +275,7 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                     }
                     
-                    Text(entry.verse.text)
+                    Text(entry.verse.text(for: getSharedLanguage()))
                         .font(.system(size: 13.5, weight: .medium, design: .serif))
                         .lineLimit(6)
                         .minimumScaleFactor(0.68)
@@ -262,7 +284,7 @@ struct BibleWidgetEntryView: View {
                     
                     Spacer(minLength: 4)
                     
-                    Text(entry.verse.reference)
+                    Text(entry.verse.reference(for: getSharedLanguage()))
                         .font(.system(size: 9.0, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -281,7 +303,7 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                     }
                     
-                    Text(entry.verse.text)
+                    Text(entry.verse.text(for: getSharedLanguage()))
                         .font(.system(size: 15.0, weight: .medium, design: .serif))
                         .lineLimit(5)
                         .minimumScaleFactor(0.70)
@@ -290,7 +312,7 @@ struct BibleWidgetEntryView: View {
                     
                     Spacer(minLength: 4)
                     
-                    Text(entry.verse.reference)
+                    Text(entry.verse.reference(for: getSharedLanguage()))
                         .font(.system(size: 10.0, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -309,14 +331,14 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                     }
                     
-                    Text(entry.verse.text)
+                    Text(entry.verse.text(for: getSharedLanguage()))
                         .font(.system(size: 17.5, weight: .medium, design: .serif))
                         .lineSpacing(5)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 4)
                     
-                    Text(entry.verse.reference)
+                    Text(entry.verse.reference(for: getSharedLanguage()))
                         .font(.system(size: 12.0, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)

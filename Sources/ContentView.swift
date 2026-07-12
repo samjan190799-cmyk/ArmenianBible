@@ -1200,6 +1200,7 @@ struct SettingsView: View {
     @State private var selectedInterval: UpdateInterval = .everyHour
     @State private var selectedCategory: TextCategory = .both
     @State private var selectedTheme: AccentColorTheme = .indigo
+    @State private var selectedWidgetLanguage: WidgetLanguage = .followApp
     
     // Переменные для уведомлений
     @State private var notificationsEnabled = false
@@ -1503,6 +1504,31 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal, 4)
                         
+                        // MARK: - Выбор языка виджета
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("widget_language_title".localized(for: selectedLanguage))
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(primaryTextColor)
+                            
+                            Picker("widget_language_title", selection: $selectedWidgetLanguage) {
+                                ForEach(WidgetLanguage.allCases) { lang in
+                                    Text(lang.localizedName(for: selectedLanguage)).tag(lang)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .tint(colorScheme == .dark ? .white : .primary)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(inputFieldBgColor)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(inputFieldBorderColor, lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 4)
+                        
                         // MARK: - Кнопка сохранения
                         Button {
                             let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -1514,6 +1540,7 @@ struct SettingsView: View {
                             manager.setAccentTheme(selectedTheme)
                             manager.setDailyNotificationsEnabled(notificationsEnabled)
                             manager.setDailyNotificationTime(notificationTime)
+                            manager.setWidgetLanguage(selectedWidgetLanguage)
                             
                             // Сохраняем ключи, очищая их от лишних пробелов
                             manager.geminiApiKey = geminiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1608,6 +1635,7 @@ struct SettingsView: View {
                 selectedTheme = manager.accentTheme
                 notificationsEnabled = manager.dailyNotificationsEnabled
                 notificationTime = manager.dailyNotificationTime
+                selectedWidgetLanguage = manager.widgetLanguage
             }
         }
         .environment(\.locale, Locale(identifier: selectedLanguage.localeCode))

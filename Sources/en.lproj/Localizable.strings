@@ -99,3 +99,6 @@
 "explain_no_key" = "Configure your AI API Key in Settings to get spiritual interpretations.";
 "explain_welcome" = "Tap the button below to generate a deep theological commentary for the current verse.";
 
+/* Widget Settings */
+"widget_settings_header" = "Widget Settings";
+"widget_language_title" = "Widget Language";

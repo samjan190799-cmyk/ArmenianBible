@@ -35,6 +35,22 @@ struct BibleVerse: Identifiable, Codable, Hashable {
         }
     }
     
+    func text(for language: AppLanguage) -> String {
+        switch language {
+        case .armenian: return textHy
+        case .russian: return textRu
+        case .english: return textEn
+        }
+    }
+    
+    func reference(for language: AppLanguage) -> String {
+        switch language {
+        case .armenian: return refHy
+        case .russian: return refRu
+        case .english: return refEn
+        }
+    }
+    
     init(id: UUID = UUID(), textHy: String, textRu: String, textEn: String, refHy: String, refRu: String, refEn: String, isPrayer: Bool = false) {
         self.id = id
         self.textHy = textHy
@@ -128,6 +144,30 @@ enum AppLanguage: String, CaseIterable, Identifiable, Codable {
         case .armenian: return "hy"
         case .russian: return "ru"
         case .english: return "en"
+        }
+    }
+}
+
+// MARK: - Язык виджета
+enum WidgetLanguage: String, CaseIterable, Identifiable, Codable {
+    case followApp = "followApp"
+    case armenian = "armenian"
+    case russian = "russian"
+    case english = "english"
+    
+    var id: String { self.rawValue }
+    
+    func localizedName(for language: AppLanguage) -> String {
+        switch self {
+        case .followApp:
+            switch language {
+            case .armenian: return "Ինչպես հավելվածում"
+            case .russian: return "Как в приложении"
+            case .english: return "Same as App"
+            }
+        case .armenian: return "Հայերեն"
+        case .russian: return "Русский"
+        case .english: return "English"
         }
     }
 }
@@ -1114,4 +1154,13 @@ extension BibleVerse {
             isPrayer: true
         )
     ]
+}
+
+// MARK: - Нормализация строк для сравнения без учета регистра и знаков препинания
+extension String {
+    var normalizedForComparison: String {
+        self.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .joined()
+    }
 }
