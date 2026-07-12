@@ -243,7 +243,7 @@ struct ContentView: View {
                                     }
                                 }
                             } label: {
-                                Text("button_random_verse")
+                                Text("button_random_verse".localized(for: manager.appLanguage))
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundColor(randomButtonTextColor)
                                     .frame(maxWidth: .infinity)
@@ -284,7 +284,7 @@ struct ContentView: View {
                                     } else {
                                         Image(systemName: "sparkles")
                                             .font(.system(size: 15))
-                                        Text("button_ai_generation")
+                                        Text("button_ai_generation".localized(for: manager.appLanguage))
                                     }
                                 }
                                 .font(.system(size: 15, weight: .bold))
@@ -312,7 +312,7 @@ struct ContentView: View {
                     
                     // MARK: - Блок инструкций для экрана блокировки
                     VStack(alignment: .leading, spacing: 14) {
-                        Text("instruction_title")
+                        Text("instruction_title".localized(for: manager.appLanguage))
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(primaryTextColor)
                             .padding(.bottom, 2)
@@ -437,7 +437,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Представление открытки для экспорта (Export Image View)
+// MARK: - Представление открытки для экспорта (без Canvas/StaticDotGridView для 100% стабильного рендеринга на iOS 16+)
 struct VerseCardExportView: View {
     let verse: BibleVerse
     let theme: AccentColorTheme
@@ -463,10 +463,7 @@ struct VerseCardExportView: View {
         ZStack {
             backgroundColor
             
-            // Тонкая сетка на фоне
-            StaticDotGridView(dotColor: colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.03))
-            
-            // Мягкое свечение в центре
+            // Мягкое фоновое свечение
             Circle()
                 .fill(accentColor.opacity(colorScheme == .dark ? 0.08 : 0.05))
                 .frame(width: 600, height: 600)
@@ -598,11 +595,11 @@ struct SettingsView: View {
                         
                         // MARK: - Выбор ИИ Провайдера
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("ai_provider")
+                            Text("ai_provider".localized(for: selectedLanguage))
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
-                            Text("ai_provider_description")
+                            Text("ai_provider_description".localized(for: selectedLanguage))
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
@@ -621,11 +618,11 @@ struct SettingsView: View {
                         
                         // MARK: - Выбор языка приложения (интерфейса и стихов)
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("ai_language")
+                            Text("ai_language".localized(for: selectedLanguage))
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
-                            Text("ai_language_description")
+                            Text("ai_language_description".localized(for: selectedLanguage))
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
@@ -643,30 +640,31 @@ struct SettingsView: View {
                         
                         // MARK: - Выбор цветовой темы оформления
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("theme_section_title")
+                            Text("theme_section_title".localized(for: selectedLanguage))
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
                             HStack(spacing: 16) {
                                 ForEach(AccentColorTheme.allCases) { theme in
-                                    Button {
+                                    // Используем ZStack с onTapGesture вместо Button для 100% стабильного срабатывания в ScrollView
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(hex: theme.colorHex))
+                                            .frame(width: 40, height: 40)
+                                            .shadow(color: Color(hex: theme.colorHex).opacity(0.3), radius: 4, y: 2)
+                                        
+                                        if selectedTheme == theme {
+                                            Circle()
+                                                .stroke(primaryTextColor, lineWidth: 2)
+                                                .frame(width: 48, height: 48)
+                                        }
+                                    }
+                                    .contentShape(Circle())
+                                    .onTapGesture {
                                         let generator = UIImpactFeedbackGenerator(style: .light)
                                         generator.prepare()
                                         generator.impactOccurred()
                                         selectedTheme = theme
-                                    } label: {
-                                        ZStack {
-                                            Circle()
-                                                .fill(Color(hex: theme.colorHex))
-                                                .frame(width: 40, height: 40)
-                                                .shadow(color: Color(hex: theme.colorHex).opacity(0.3), radius: 4, y: 2)
-                                            
-                                            if selectedTheme == theme {
-                                                Circle()
-                                                    .stroke(primaryTextColor, lineWidth: 2)
-                                                    .frame(width: 48, height: 48)
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -678,17 +676,17 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             switch selectedProvider {
                             case .gemini:
-                                Text("gemini_settings_title")
+                                Text("gemini_settings_title".localized(for: selectedLanguage))
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(primaryTextColor)
                                 
-                                Text("gemini_settings_description")
+                                Text("gemini_settings_description".localized(for: selectedLanguage))
                                     .font(.system(size: 13))
                                     .foregroundColor(.secondary)
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField("placeholder_gemini_key".localized(for: manager.appLanguage), text: $geminiKeyInput)
+                                SecureField("placeholder_gemini_key".localized(for: selectedLanguage), text: $geminiKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
                                     .foregroundColor(primaryTextColor)
                                     .padding()
@@ -700,24 +698,24 @@ struct SettingsView: View {
                                     )
                                 
                                 if !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty {
-                                    Text("api_key_saved")
+                                    Text("api_key_saved".localized(for: selectedLanguage))
                                         .font(.system(size: 12))
                                         .foregroundColor(.green)
                                         .padding(.horizontal, 4)
                                 }
                                 
                             case .chatgpt:
-                                Text("chatgpt_settings_title")
+                                Text("chatgpt_settings_title".localized(for: selectedLanguage))
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(primaryTextColor)
                                 
-                                Text("chatgpt_settings_description")
+                                Text("chatgpt_settings_description".localized(for: selectedLanguage))
                                     .font(.system(size: 13))
                                     .foregroundColor(.secondary)
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField("placeholder_openai_key".localized(for: manager.appLanguage), text: $openaiKeyInput)
+                                SecureField("placeholder_openai_key".localized(for: selectedLanguage), text: $openaiKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
                                     .foregroundColor(primaryTextColor)
                                     .padding()
@@ -729,24 +727,24 @@ struct SettingsView: View {
                                     )
                                 
                                 if !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty {
-                                    Text("api_key_saved")
+                                    Text("api_key_saved".localized(for: selectedLanguage))
                                         .font(.system(size: 12))
                                         .foregroundColor(.green)
                                         .padding(.horizontal, 4)
                                 }
                                 
                             case .claude:
-                                Text("claude_settings_title")
+                                Text("claude_settings_title".localized(for: selectedLanguage))
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(primaryTextColor)
                                 
-                                Text("claude_settings_description")
+                                Text("claude_settings_description".localized(for: selectedLanguage))
                                     .font(.system(size: 13))
                                     .foregroundColor(.secondary)
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField("placeholder_anthropic_key".localized(for: manager.appLanguage), text: $anthropicKeyInput)
+                                SecureField("placeholder_anthropic_key".localized(for: selectedLanguage), text: $anthropicKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
                                     .foregroundColor(primaryTextColor)
                                     .padding()
@@ -758,7 +756,7 @@ struct SettingsView: View {
                                     )
                                 
                                 if !manager.anthropicApiKey.isEmpty && !anthropicKeyInput.isEmpty {
-                                    Text("api_key_saved")
+                                    Text("api_key_saved".localized(for: selectedLanguage))
                                         .font(.system(size: 12))
                                         .foregroundColor(.green)
                                         .padding(.horizontal, 4)
@@ -769,12 +767,12 @@ struct SettingsView: View {
                         
                         // MARK: - Ежедневные уведомления
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("notification_section_title")
+                            Text("notification_section_title".localized(for: selectedLanguage))
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
                             Toggle(isOn: $notificationsEnabled) {
-                                Text("notification_enable_title")
+                                Text("notification_enable_title".localized(for: selectedLanguage))
                                     .font(.system(size: 14))
                                     .foregroundColor(primaryTextColor)
                             }
@@ -790,7 +788,7 @@ struct SettingsView: View {
                             }
                             
                             if notificationsEnabled {
-                                DatePicker("notification_time_title", selection: $notificationTime, displayedComponents: .hourAndMinute)
+                                DatePicker("notification_time_title".localized(for: selectedLanguage), selection: $notificationTime, displayedComponents: .hourAndMinute)
                                     .font(.system(size: 14))
                                     .foregroundColor(primaryTextColor)
                                     .padding(.vertical, 4)
@@ -800,11 +798,11 @@ struct SettingsView: View {
                         
                         // MARK: - Частота смены стихов
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("update_interval_title")
+                            Text("update_interval_title".localized(for: selectedLanguage))
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
-                            Text("update_interval_description")
+                            Text("update_interval_description".localized(for: selectedLanguage))
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
@@ -830,11 +828,11 @@ struct SettingsView: View {
                         
                         // MARK: - Выбор типа контента (Стихи / Молитвы / Избранное / Все)
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("content_type_title")
+                            Text("content_type_title".localized(for: selectedLanguage))
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
-                            Text("content_type_description")
+                            Text("content_type_description".localized(for: selectedLanguage))
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
@@ -883,7 +881,7 @@ struct SettingsView: View {
                             
                             isPresented = false
                         } label: {
-                            Text("save_button")
+                            Text("save_button".localized(for: selectedLanguage))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -899,12 +897,12 @@ struct SettingsView: View {
                         
                         // MARK: - О приложении
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("about_app_title")
+                            Text("about_app_title".localized(for: selectedLanguage))
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
                             HStack {
-                                Text("about_app_version")
+                                Text("about_app_version".localized(for: selectedLanguage))
                                 Spacer()
                                 Text("1.0.1")
                                     .foregroundColor(.secondary)
@@ -912,7 +910,7 @@ struct SettingsView: View {
                             .font(.system(size: 14))
                             
                             HStack {
-                                Text("about_app_developer")
+                                Text("about_app_developer".localized(for: selectedLanguage))
                                 Spacer()
                                 Text("Samvel")
                                     .foregroundColor(.secondary)
@@ -930,11 +928,11 @@ struct SettingsView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("settings_title")
+            .navigationTitle("settings_title".localized(for: selectedLanguage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("close_button") {
+                    Button("close_button".localized(for: selectedLanguage)) {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.prepare()
                         generator.impactOccurred()
@@ -956,7 +954,7 @@ struct SettingsView: View {
                 notificationTime = manager.dailyNotificationTime
             }
         }
-        .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
+        .environment(\.locale, Locale(identifier: selectedLanguage.localeCode))
     }
 }
 
