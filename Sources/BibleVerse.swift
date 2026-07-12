@@ -153,6 +153,7 @@ enum AIProvider: String, CaseIterable, Identifiable, Codable {
 enum TextCategory: String, CaseIterable, Identifiable, Codable {
     case verses = "verses"
     case prayers = "prayers"
+    case favorites = "favorites"
     case both = "both"
     
     var id: String { self.rawValue }
@@ -161,6 +162,7 @@ enum TextCategory: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .verses: return "Աստվածաշունչ"
         case .prayers: return "Աղոթքներ"
+        case .favorites: return "Ընտրյալներ"
         case .both: return "Խառը"
         }
     }
@@ -169,7 +171,49 @@ enum TextCategory: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .verses: return NSLocalizedString("category_verses", comment: "")
         case .prayers: return NSLocalizedString("category_prayers", comment: "")
+        case .favorites: return NSLocalizedString("category_favorites", comment: "")
         case .both: return NSLocalizedString("category_both", comment: "")
+        }
+    }
+}
+
+// MARK: - Цветовые темы оформления
+enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
+    case indigo = "indigo"
+    case gold = "gold"
+    case blue = "blue"
+    case green = "green"
+    case purple = "purple"
+    
+    var id: String { self.rawValue }
+    
+    var localizedName: String {
+        switch self {
+        case .indigo: return NSLocalizedString("color_indigo", comment: "")
+        case .gold: return NSLocalizedString("color_gold", comment: "")
+        case .blue: return NSLocalizedString("color_blue", comment: "")
+        case .green: return NSLocalizedString("color_green", comment: "")
+        case .purple: return NSLocalizedString("color_purple", comment: "")
+        }
+    }
+    
+    var colorHex: String {
+        switch self {
+        case .indigo: return "6366F1"
+        case .gold: return "D97706"
+        case .blue: return "0EA5E9"
+        case .green: return "10B981"
+        case .purple: return "8B5CF6"
+        }
+    }
+    
+    var secondaryColorHex: String {
+        switch self {
+        case .indigo: return "818CF8"
+        case .gold: return "FBBF24"
+        case .blue: return "38BDF8"
+        case .green: return "34D399"
+        case .purple: return "A78BFA"
         }
     }
 }

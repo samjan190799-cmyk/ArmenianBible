@@ -10,10 +10,22 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var showingNoKeyAlert = false
     
+    // Переменные для экспорта картинок
+    @State private var shareImage: UIImage? = nil
+    @State private var isShowingShareSheet = false
+    
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
     
-    // MARK: - Адаптивная цветовая палитра
+    // MARK: - Адаптивная цветовая палитра на основе AccentColorTheme
+    private var accentColor: Color {
+        Color(hex: manager.accentTheme.colorHex)
+    }
+    
+    private var secondaryAccentColor: Color {
+        Color(hex: manager.accentTheme.secondaryColorHex)
+    }
+    
     private var backgroundColor: Color {
         colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
     }
@@ -23,7 +35,7 @@ struct ContentView: View {
     }
     
     private var glowColor: Color {
-        Color(hex: "6366F1").opacity(colorScheme == .dark ? 0.08 : 0.05)
+        accentColor.opacity(colorScheme == .dark ? 0.08 : 0.05)
     }
     
     private var settingsButtonBgColor: Color {
@@ -60,10 +72,6 @@ struct ContentView: View {
     
     private var primaryTextColor: Color {
         colorScheme == .dark ? .white : Color(hex: "1E293B")
-    }
-    
-    private var secondaryTextColor: Color {
-        colorScheme == .dark ? Color(hex: "818CF8") : Color(hex: "4F46E5")
     }
     
     private var randomButtonBgColor: Color {
@@ -135,7 +143,7 @@ struct ContentView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "laurel.leading")
                             .font(.system(size: 28))
-                            .foregroundColor(secondaryTextColor.opacity(0.7))
+                            .foregroundColor(secondaryAccentColor.opacity(0.7))
                         
                         Text(manager.currentVerse.text)
                             .font(.system(size: 21, weight: .medium, design: .serif))
@@ -149,10 +157,47 @@ struct ContentView: View {
                         
                         Text(manager.currentVerse.reference)
                             .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .foregroundColor(secondaryTextColor)
+                            .foregroundColor(secondaryAccentColor)
                             .padding(.top, 4)
                             .opacity(animateVerse ? 0.8 : 0)
                             .offset(y: animateVerse ? 0 : 10)
+                        
+                        // Кнопки управления стихом (Избранное и Поделиться)
+                        HStack(spacing: 24) {
+                            // Кнопка Лайка
+                            Button {
+                                triggerHaptic(.light)
+                                if manager.isFavorite(manager.currentVerse) {
+                                    manager.removeFromFavorites(manager.currentVerse)
+                                } else {
+                                    manager.addToFavorites(manager.currentVerse)
+                                }
+                            } label: {
+                                Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(manager.isFavorite(manager.currentVerse) ? .red : primaryTextColor.opacity(0.4))
+                                    .padding(10)
+                                    .background(primaryTextColor.opacity(0.04))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // Кнопка Поделиться открыткой
+                            Button {
+                                triggerHaptic(.medium)
+                                shareVerseAsImage()
+                            } label: {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(primaryTextColor.opacity(0.4))
+                                    .padding(10)
+                                    .background(primaryTextColor.opacity(0.04))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                        .padding(.top, 8)
+                        .opacity(animateVerse ? 1 : 0)
                     }
                     .padding(26)
                     .background(
@@ -248,13 +293,13 @@ struct ContentView: View {
                                 .padding(.vertical, 16)
                                 .background(
                                     LinearGradient(
-                                        colors: [Color(hex: "4F46E5"), Color(hex: "6366F1")],
+                                        colors: [accentColor, secondaryAccentColor],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
                                 )
                                 .cornerRadius(14)
-                                .shadow(color: Color(hex: "4F46E5").opacity(colorScheme == .dark ? 0.3 : 0.2), radius: 8, y: 4)
+                                .shadow(color: accentColor.opacity(colorScheme == .dark ? 0.3 : 0.2), radius: 8, y: 4)
                             }
                             .disabled(manager.isGeneratingAI)
                             .buttonStyle(ScaleButtonStyle())
@@ -294,9 +339,16 @@ struct ContentView: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 animateVerse = true
             }
+            // Перепланируем уведомления на неделю вперед при открытии
+            manager.scheduleDailyNotifications()
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings)
+        }
+        .sheet(isPresented: $isShowingShareSheet) {
+            if let image = shareImage {
+                ActivityView(activityItems: [image])
+            }
         }
         .alert("alert_empty_key_title".localized(for: manager.appLanguage), isPresented: $showingNoKeyAlert) {
             Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {
@@ -363,11 +415,131 @@ struct ContentView: View {
         }
     }
     
+    @MainActor
+    private func shareVerseAsImage() {
+        let exportView = VerseCardExportView(
+            verse: manager.currentVerse,
+            theme: manager.accentTheme,
+            colorScheme: colorScheme
+        )
+        let renderer = ImageRenderer(content: exportView)
+        renderer.scale = 3.0 // Высокое качество
+        if let image = renderer.uiImage {
+            self.shareImage = image
+            self.isShowingShareSheet = true
+        }
+    }
+    
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
     }
+}
+
+// MARK: - Представление открытки для экспорта (Export Image View)
+struct VerseCardExportView: View {
+    let verse: BibleVerse
+    let theme: AccentColorTheme
+    let colorScheme: ColorScheme
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+    }
+    
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : Color(hex: "1E293B")
+    }
+    
+    private var accentColor: Color {
+        Color(hex: theme.colorHex)
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? Color(hex: theme.secondaryColorHex) : accentColor
+    }
+    
+    var body: some View {
+        ZStack {
+            backgroundColor
+            
+            // Тонкая сетка на фоне
+            StaticDotGridView(dotColor: colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.03))
+            
+            // Мягкое свечение в центре
+            Circle()
+                .fill(accentColor.opacity(colorScheme == .dark ? 0.08 : 0.05))
+                .frame(width: 600, height: 600)
+                .blur(radius: 120)
+            
+            VStack(spacing: 40) {
+                Image(systemName: "laurel.leading")
+                    .font(.system(size: 64))
+                    .foregroundColor(secondaryTextColor.opacity(0.7))
+                
+                Text(verse.text)
+                    .font(.system(size: 42, weight: .medium, design: .serif))
+                    .foregroundColor(primaryTextColor)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(14)
+                    .padding(.horizontal, 80)
+                
+                Text(verse.reference)
+                    .font(.system(size: 26, weight: .bold, design: .monospaced))
+                    .foregroundColor(secondaryTextColor)
+                    .padding(.top, 10)
+                
+                Image(systemName: "laurel.trailing")
+                    .font(.system(size: 32))
+                    .foregroundColor(secondaryTextColor.opacity(0.3))
+                    .padding(.top, 20)
+                
+                Spacer()
+                    .frame(height: 20)
+                
+                // Подпись приложения
+                VStack(spacing: 6) {
+                    Text("widget_title".localized(for: BibleManager.shared.appLanguage))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(primaryTextColor.opacity(0.6))
+                    Text("LockScreen Widget App")
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundColor(secondaryTextColor.opacity(0.5))
+                }
+            }
+            .padding(60)
+            .frame(width: 960, height: 960)
+            .background(
+                RoundedRectangle(cornerRadius: 48, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.02) : Color.white.opacity(0.8))
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.06), radius: 30, x: 0, y: 15)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 48, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(colorScheme == .dark ? 0.12 : 0.4), Color.white.opacity(0.02)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2
+                    )
+            )
+        }
+        .frame(width: 1080, height: 1080)
+    }
+}
+
+// MARK: - Activity View (Share Sheet) для SwiftUI
+struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Экран Настроек (Settings View)
@@ -383,6 +555,11 @@ struct SettingsView: View {
     
     @State private var selectedInterval: UpdateInterval = .everyHour
     @State private var selectedCategory: TextCategory = .both
+    @State private var selectedTheme: AccentColorTheme = .indigo
+    
+    // Переменные для уведомлений
+    @State private var notificationsEnabled = false
+    @State private var notificationTime = Date()
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -444,7 +621,7 @@ struct SettingsView: View {
                         
                         // MARK: - Выбор языка приложения (интерфейса и стихов)
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("ai_language") // В русской локализации это "Язык генерации ИИ", но мы переосмыслим его как язык приложения. В strings заменим название
+                            Text("ai_language")
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
@@ -461,6 +638,39 @@ struct SettingsView: View {
                             .pickerStyle(.segmented)
                             .tint(colorScheme == .dark ? .white : .primary)
                             .padding(.vertical, 4)
+                        }
+                        .padding(.horizontal, 4)
+                        
+                        // MARK: - Выбор цветовой темы оформления
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("theme_section_title")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(primaryTextColor)
+                            
+                            HStack(spacing: 16) {
+                                ForEach(AccentColorTheme.allCases) { theme in
+                                    Button {
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.prepare()
+                                        generator.impactOccurred()
+                                        selectedTheme = theme
+                                    } label: {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color(hex: theme.colorHex))
+                                                .frame(width: 40, height: 40)
+                                                .shadow(color: Color(hex: theme.colorHex).opacity(0.3), radius: 4, y: 2)
+                                            
+                                            if selectedTheme == theme {
+                                                Circle()
+                                                    .stroke(primaryTextColor, lineWidth: 2)
+                                                    .frame(width: 48, height: 48)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 6)
                         }
                         .padding(.horizontal, 4)
                         
@@ -557,6 +767,37 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal, 4)
                         
+                        // MARK: - Ежедневные уведомления
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("notification_section_title")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(primaryTextColor)
+                            
+                            Toggle(isOn: $notificationsEnabled) {
+                                Text("notification_enable_title")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(primaryTextColor)
+                            }
+                            .tint(Color(hex: selectedTheme.colorHex))
+                            .onChange(of: notificationsEnabled) { newValue in
+                                if newValue {
+                                    manager.requestNotificationPermission { granted in
+                                        if !granted {
+                                            self.notificationsEnabled = false
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if notificationsEnabled {
+                                DatePicker("notification_time_title", selection: $notificationTime, displayedComponents: .hourAndMinute)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(primaryTextColor)
+                                    .padding(.vertical, 4)
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                        
                         // MARK: - Частота смены стихов
                         VStack(alignment: .leading, spacing: 10) {
                             Text("update_interval_title")
@@ -587,7 +828,7 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal, 4)
                         
-                        // MARK: - Выбор типа контента (Стихи / Молитвы / Все)
+                        // MARK: - Выбор типа контента (Стихи / Молитвы / Избранное / Все)
                         VStack(alignment: .leading, spacing: 10) {
                             Text("content_type_title")
                                 .font(.system(size: 15, weight: .bold))
@@ -625,6 +866,9 @@ struct SettingsView: View {
                             
                             manager.setActiveProvider(selectedProvider)
                             manager.setAppLanguage(selectedLanguage)
+                            manager.setAccentTheme(selectedTheme)
+                            manager.setDailyNotificationsEnabled(notificationsEnabled)
+                            manager.setDailyNotificationTime(notificationTime)
                             
                             // Сохраняем ключи, очищая их от лишних пробелов
                             manager.geminiApiKey = geminiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -644,7 +888,7 @@ struct SettingsView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(Color(hex: "4F46E5"))
+                                .background(Color(hex: selectedTheme.colorHex))
                                 .cornerRadius(12)
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -707,6 +951,9 @@ struct SettingsView: View {
                 anthropicKeyInput = manager.anthropicApiKey
                 selectedInterval = manager.updateInterval
                 selectedCategory = manager.selectedCategory
+                selectedTheme = manager.accentTheme
+                notificationsEnabled = manager.dailyNotificationsEnabled
+                notificationTime = manager.dailyNotificationTime
             }
         }
         .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
@@ -721,11 +968,14 @@ struct InstructionRow: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var numberBgColor: Color {
-        colorScheme == .dark ? Color(hex: "818CF8").opacity(0.1) : Color(hex: "4F46E5").opacity(0.08)
+        let accentColor = Color(hex: BibleManager.shared.accentTheme.colorHex)
+        return colorScheme == .dark ? accentColor.opacity(0.1) : accentColor.opacity(0.08)
     }
     
     private var numberTextColor: Color {
-        colorScheme == .dark ? Color(hex: "818CF8") : Color(hex: "4F46E5")
+        let accentColor = Color(hex: BibleManager.shared.accentTheme.colorHex)
+        let secondaryAccentColor = Color(hex: BibleManager.shared.accentTheme.secondaryColorHex)
+        return colorScheme == .dark ? secondaryAccentColor : accentColor
     }
     
     var body: some View {

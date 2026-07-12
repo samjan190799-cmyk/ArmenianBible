@@ -55,3 +55,19 @@
 "placeholder_anthropic_key" = "Anthropic API Key (sk-ant...)";
 "error_generation_prefix" = "Generation error: ";
 
+/* New features strings */
+"category_favorites" = "Favorites";
+"color_indigo" = "Indigo";
+"color_gold" = "Gold";
+"color_blue" = "Blue";
+"color_green" = "Green";
+"color_purple" = "Purple";
+"theme_section_title" = "Accent Color Theme";
+"notification_section_title" = "Daily Notifications";
+"notification_enable_title" = "Verse of the day every morning";
+"notification_time_title" = "Notification Time";
+"share_button" = "Share";
+"save_image_success" = "Card saved to photo gallery!";
+"favorite_added" = "Added to Favorites";
+"favorite_removed" = "Removed from Favorites";
+

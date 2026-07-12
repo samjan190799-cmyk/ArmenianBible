@@ -29,6 +29,14 @@ struct Provider: TimelineProvider {
             return BibleVerse.database.filter { !$0.isPrayer }
         case .prayers:
             return BibleVerse.database.filter { $0.isPrayer }
+        case .favorites:
+            if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+               let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
+               let decoded = try? JSONDecoder().decode([BibleVerse].self, from: savedFavoritesData),
+               !decoded.isEmpty {
+                return decoded
+            }
+            return BibleVerse.database
         case .both:
             return BibleVerse.database
         }
@@ -119,7 +127,7 @@ struct Provider: TimelineProvider {
     }
 }
 
-// MARK: - Вспомогательные функции локализации для виджета
+// MARK: - Вспомогательные функции локализации и тем оформления для виджета
 private func getSharedLanguage() -> AppLanguage {
     let appGroupSuiteName = "group.com.samvel.ArmenianBible"
     if let defaults = UserDefaults(suiteName: appGroupSuiteName),
@@ -131,6 +139,16 @@ private func getSharedLanguage() -> AppLanguage {
     if preferred.hasPrefix("ru") { return .russian }
     if preferred.hasPrefix("en") { return .english }
     return .armenian
+}
+
+private func getSharedTheme() -> AccentColorTheme {
+    let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+    if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+       let savedRaw = defaults.string(forKey: "accent_theme"),
+       let theme = AccentColorTheme(rawValue: savedRaw) {
+        return theme
+    }
+    return .indigo
 }
 
 extension String {
@@ -170,12 +188,16 @@ struct BibleWidgetEntryView: View {
         colorScheme == .dark ? Color.white.opacity(0.95) : Color(hex: "1E293B")
     }
     
+    private var accentColor: Color {
+        Color(hex: getSharedTheme().colorHex)
+    }
+    
     private var secondaryTextColor: Color {
-        colorScheme == .dark ? Color(hex: "818CF8") : Color(hex: "4F46E5")
+        colorScheme == .dark ? Color(hex: getSharedTheme().secondaryColorHex) : accentColor
     }
     
     private var quoteIconColor: Color {
-        colorScheme == .dark ? Color(hex: "A5B4FC").opacity(0.35) : Color(hex: "4F46E5").opacity(0.18)
+        colorScheme == .dark ? Color(hex: getSharedTheme().secondaryColorHex).opacity(0.35) : accentColor.opacity(0.18)
     }
 
     var body: some View {

@@ -55,3 +55,19 @@
 "placeholder_anthropic_key" = "API-ключ Anthropic (sk-ant...)";
 "error_generation_prefix" = "Ошибка генерации: ";
 
+/* New features strings */
+"category_favorites" = "Избранное";
+"color_indigo" = "Индиго";
+"color_gold" = "Золотой";
+"color_blue" = "Синий";
+"color_green" = "Зеленый";
+"color_purple" = "Фиолетовый";
+"theme_section_title" = "Цветовая тема оформления";
+"notification_section_title" = "Ежедневные уведомления";
+"notification_enable_title" = "Стих дня каждое утро";
+"notification_time_title" = "Время уведомления";
+"share_button" = "Поделиться";
+"save_image_success" = "Открытка сохранена в галерею!";
+"favorite_added" = "Добавлено в Избранное";
+"favorite_removed" = "Удалено из Избранного";
+

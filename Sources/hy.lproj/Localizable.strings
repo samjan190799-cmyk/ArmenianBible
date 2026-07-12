@@ -55,3 +55,19 @@
 "placeholder_anthropic_key" = "Anthropic API Key (sk-ant...)";
 "error_generation_prefix" = "Գեներացման սխալ. ";
 
+/* New features strings */
+"category_favorites" = "Ընտրյալներ";
+"color_indigo" = "Ինդիգո";
+"color_gold" = "Ոսկեգույն";
+"color_blue" = "Կապույտ";
+"color_green" = "Կանաչ";
+"color_purple" = "Մանուշակագույն";
+"theme_section_title" = "Գունային թեմա";
+"notification_section_title" = "Օրական ծանուցումներ";
+"notification_enable_title" = "Օրվա տողը ամեն առավոտ";
+"notification_time_title" = "Ծանուցման ժամը";
+"share_button" = "Կիսվել";
+"save_image_success" = "Բացիկը պահպանվեց պատկերասրահում:";
+"favorite_added" = "Ավելացվեց ընտրյալների մեջ";
+"favorite_removed" = "Հեռացվեց ընտրյալներից";
+

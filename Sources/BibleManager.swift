@@ -12,6 +12,10 @@ class BibleManager: ObservableObject {
     @Published var selectedCategory: TextCategory = .both
     @Published var activeProvider: AIProvider = .gemini
     @Published var appLanguage: AppLanguage = .armenian
+    @Published var favoriteVerses: [BibleVerse] = []
+    @Published var accentTheme: AccentColorTheme = .indigo
+    @Published var dailyNotificationsEnabled: Bool = false
+    @Published var dailyNotificationTime: Date = Date()
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -25,6 +29,10 @@ class BibleManager: ObservableObject {
     private let categoryKey = "selectedCategory"
     private let activeProviderKey = "active_ai_provider"
     private let appLanguageKey = "app_language"
+    private let favoritesKey = "favorite_verses"
+    private let accentThemeKey = "accent_theme"
+    private let notificationsEnabledKey = "daily_notifications_enabled"
+    private let notificationTimeKey = "daily_notification_time"
     
     private var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupSuiteName)
@@ -116,6 +124,42 @@ class BibleManager: ObservableObject {
         } else {
             self.appLanguage = .armenian
         }
+        
+        // Загрузка Избранного
+        if let defaults = sharedDefaults,
+           let savedFavoritesData = defaults.data(forKey: favoritesKey) {
+            if let decoded = try? JSONDecoder().decode([BibleVerse].self, from: savedFavoritesData) {
+                self.favoriteVerses = decoded
+            }
+        }
+        
+        // Загрузка Цветовой темы
+        if let defaults = sharedDefaults,
+           let savedThemeRaw = defaults.string(forKey: accentThemeKey),
+           let savedTheme = AccentColorTheme(rawValue: savedThemeRaw) {
+            self.accentTheme = savedTheme
+        } else {
+            self.accentTheme = .indigo
+        }
+        
+        // Загрузка Уведомлений
+        if let defaults = sharedDefaults {
+            self.dailyNotificationsEnabled = defaults.bool(forKey: notificationsEnabledKey)
+            if let savedTime = defaults.object(forKey: notificationTimeKey) as? Date {
+                self.dailyNotificationTime = savedTime
+            } else {
+                var components = DateComponents()
+                components.hour = 9
+                components.minute = 0
+                self.dailyNotificationTime = Calendar.current.date(from: components) ?? Date()
+            }
+        } else {
+            self.dailyNotificationsEnabled = false
+            var components = DateComponents()
+            components.hour = 9
+            components.minute = 0
+            self.dailyNotificationTime = Calendar.current.date(from: components) ?? Date()
+        }
     }
     
     // MARK: - Сохранение активного провайдера ИИ
@@ -161,8 +205,119 @@ class BibleManager: ObservableObject {
             return BibleVerse.database.filter { !$0.isPrayer }
         case .prayers:
             return BibleVerse.database.filter { $0.isPrayer }
+        case .favorites:
+            return favoriteVerses.isEmpty ? BibleVerse.database : favoriteVerses
         case .both:
             return BibleVerse.database
+        }
+    }
+    
+    // MARK: - Управление Избранным
+    func addToFavorites(_ verse: BibleVerse) {
+        if !favoriteVerses.contains(where: { $0.text == verse.text }) {
+            favoriteVerses.append(verse)
+            saveFavorites()
+        }
+    }
+    
+    func removeFromFavorites(_ verse: BibleVerse) {
+        favoriteVerses.removeAll(where: { $0.text == verse.text })
+        saveFavorites()
+    }
+    
+    func isFavorite(_ verse: BibleVerse) -> Bool {
+        favoriteVerses.contains(where: { $0.text == verse.text })
+    }
+    
+    private func saveFavorites() {
+        if let defaults = sharedDefaults,
+           let encoded = try? JSONEncoder().encode(favoriteVerses) {
+            defaults.set(encoded, forKey: favoritesKey)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Сохранение цветовой темы
+    func setAccentTheme(_ theme: AccentColorTheme) {
+        self.accentTheme = theme
+        if let defaults = sharedDefaults {
+            defaults.set(theme.rawValue, forKey: accentThemeKey)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Сохранение и планирование уведомлений
+    func setDailyNotificationsEnabled(_ enabled: Bool) {
+        self.dailyNotificationsEnabled = enabled
+        if let defaults = sharedDefaults {
+            defaults.set(enabled, forKey: notificationsEnabledKey)
+        }
+        if enabled {
+            requestNotificationPermission { granted in
+                if granted {
+                    self.scheduleDailyNotifications()
+                }
+            }
+        } else {
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        }
+    }
+    
+    func setDailyNotificationTime(_ time: Date) {
+        self.dailyNotificationTime = time
+        if let defaults = sharedDefaults {
+            defaults.set(time, forKey: notificationTimeKey)
+        }
+        if dailyNotificationsEnabled {
+            scheduleDailyNotifications()
+        }
+    }
+    
+    func requestNotificationPermission(completion: @escaping (Bool) -> Void = { _ in }) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            DispatchQueue.main.async {
+                completion(granted)
+            }
+        }
+    }
+    
+    func scheduleDailyNotifications() {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        guard dailyNotificationsEnabled else { return }
+        
+        let database = getFilteredDatabase(for: selectedCategory)
+        guard !database.isEmpty else { return }
+        
+        let calendar = Calendar.current
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: dailyNotificationTime)
+        
+        // UNUserNotificationCenter принимает до 64 уведомлений, мы планируем 7 штук на неделю вперед
+        for dayOffset in 0..<7 {
+            let verse = database.randomElement() ?? database[0]
+            
+            let content = UNMutableNotificationContent()
+            content.title = "widget_title".localized(for: appLanguage)
+            content.body = "\(verse.text) (\(verse.reference))"
+            content.sound = .default
+            
+            guard let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: Date()) else { continue }
+            var components = calendar.dateComponents([.year, .month, .day], from: targetDate)
+            components.hour = timeComponents.hour
+            components.minute = timeComponents.minute
+            
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let request = UNNotificationRequest(
+                identifier: "daily_verse_\(dayOffset)",
+                content: content,
+                trigger: trigger
+            )
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Error scheduling notification: \(error)")
+                }
+            }
         }
     }
     
