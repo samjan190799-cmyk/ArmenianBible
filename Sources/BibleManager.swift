@@ -74,20 +74,29 @@ class BibleManager: ObservableObject {
     
     private init() {
         // Попытка загрузить сохраненный стих из общей памяти App Group
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-           let savedText = defaults.string(forKey: textKey),
-           let savedRef = defaults.string(forKey: referenceKey) {
-            self.currentVerse = BibleVerse(text: savedText, reference: savedRef)
-        } else {
-            // Если сохраненного стиха нет, используем первый по умолчанию
-            let defaultVerse = BibleVerse.database[0]
-            self.currentVerse = defaultVerse
-            
-            // Записываем в общую память
-            if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
+            if let savedIdString = defaults.string(forKey: "currentVerseId"),
+               let savedId = UUID(uuidString: savedIdString),
+               let foundVerse = BibleVerse.database.first(where: { $0.id == savedId }) {
+                self.currentVerse = foundVerse
+            } else if let savedText = defaults.string(forKey: textKey),
+                      let savedRef = defaults.string(forKey: referenceKey) {
+                if let foundVerse = BibleVerse.database.first(where: {
+                    $0.textHy == savedText || $0.textRu == savedText || $0.textEn == savedText
+                }) {
+                    self.currentVerse = foundVerse
+                } else {
+                    self.currentVerse = BibleVerse(text: savedText, reference: savedRef)
+                }
+            } else {
+                let defaultVerse = BibleVerse.database[0]
+                self.currentVerse = defaultVerse
+                defaults.set(defaultVerse.id.uuidString, forKey: "currentVerseId")
                 defaults.set(defaultVerse.text, forKey: textKey)
                 defaults.set(defaultVerse.reference, forKey: referenceKey)
             }
+        } else {
+            self.currentVerse = BibleVerse.database[0]
         }
         
         // Загрузка интервала обновления
@@ -335,6 +344,7 @@ class BibleManager: ObservableObject {
         // может не считаться "изменённым" при смене языка (stored properties те же)
         objectWillChange.send()
         if let defaults = sharedDefaults {
+            defaults.set(verse.id.uuidString, forKey: "currentVerseId")
             defaults.set(verse.text, forKey: textKey)
             defaults.set(verse.reference, forKey: referenceKey)
             defaults.synchronize()

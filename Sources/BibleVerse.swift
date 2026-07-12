@@ -945,6 +945,173 @@ extension BibleVerse {
             refRu: "Молитва об исцелении",
             refEn: "Prayer for Healing",
             isPrayer: true
+        ),
+        // --- НОВЫЕ ДОПОЛНИТЕЛЬНЫЕ СТИХИ ---
+        BibleVerse(
+            textHy: "Որովհետև Աստված իր Որդուն չուղարկեց աշխարհ, որ դատապարտի աշխարհը, այլ որպեսզի աշխարհը նրանով փրկվի։",
+            textRu: "Ибо не послал Бог Сына Своего в мир, чтобы судить мир, но чтобы мир спасен был чрез Него.",
+            textEn: "For God sent not his Son into the world to condemn the world; but that the world through him might be saved.",
+            refHy: "Հովհաննես 3:17",
+            refRu: "Иоанна 3:17",
+            refEn: "John 3:17"
+        ),
+        BibleVerse(
+            textHy: "Իմ լուծը ձեզ վրա՛ վերցրեք և սովորեցե՛ք ինձնից, որովհետև հեզ եմ և սրտով խոնարհ, և ձեր անձերի համար հանգիստ կգտնեք։",
+            textRu: "Возьмите иго Мое на себя и научитесь от Меня, ибо Я кроток и смирен сердцем, и найдете покой душам вашим;",
+            textEn: "Take my yoke upon you, and learn of me; for I am meek and lowly in heart: and ye shall find rest unto your souls.",
+            refHy: "Մատթեոս 11:29",
+            refRu: "Матфея 11:29",
+            refEn: "Matthew 11:29"
+        ),
+        BibleVerse(
+            textHy: "Որովհետև հաստատ գիտեմ, որ ո՛չ մահը, ո՛չ կյանքը, ո՛չ հրեշտակները... չեն կարող մեզ բաժանել Աստծու սիրուց, որ մեր Տեր Քրիստոս Հիսուսի մեջ է։",
+            textRu: "Ибо я уверен, что ни смерть, ни жизнь, ни Ангелы... не может отлучить нас от любви Божией во Христе Иисусе, Господе нашем.",
+            textEn: "For I am persuaded, that neither death, nor life, nor angels... shall be able to separate us from the love of God, which is in Christ Jesus our Lord.",
+            refHy: "Հռոմեացիներին 8:38-39",
+            refRu: "Римлянам 8:38-39",
+            refEn: "Romans 8:38-39"
+        ),
+        BibleVerse(
+            textHy: "Արթո՛ւն կացեք, հաստա՛տ մնացեք հավատի մեջ, տղամա՛րդ եղեք, զորացե՛ք։ Ձեր ամեն գործ թող սիրով լինի։",
+            textRu: "Бодрствуйте, стойте в вере, будьте мужественны, тверды. Все у вас да будет с любовью.",
+            textEn: "Watch ye, stand fast in the faith, quit you like men, be strong. Let all your things be done with charity.",
+            refHy: "Ա Կորնթացիներին 16:13-14",
+            refRu: "1 Коринфянам 16:13-14",
+            refEn: "1 Cor 16:13-14"
+        ),
+        BibleVerse(
+            textHy: "Եվ նա ինձ ասաց. «Իմ շնորհը բավական է քեզ, որովհետև իմ զորությունը տկարության մեջ է կատարյալ դառնում»։",
+            textRu: "Но Господь сказал мне: «довольно для тебя благодати Моей, ибо сила Моя совершается в немощи».",
+            textEn: "And he said unto me, My grace is sufficient for thee: for my strength is made perfect in weakness.",
+            refHy: "Բ Կորնթացիներին 12:9",
+            refRu: "2 Коринфянам 12:9",
+            refEn: "2 Corinthians 12:9"
+        ),
+        BibleVerse(
+            textHy: "Եվ բարիք գործելուց չձանձրանա՛նք, որովհետև իր ժամանակին կհնձենք, եթե չթուլանանք։",
+            textRu: "Делая добро, да не унываем, ибо в свое время пожнем, если не ослабеем.",
+            textEn: "And let us not be weary in well doing: for in due season we shall reap, if we faint not.",
+            refHy: "Գաղատացիներին 6:9",
+            refRu: "Галатам 6:9",
+            refEn: "Galatians 6:9"
+        ),
+        BibleVerse(
+            textHy: "Եվ Աստծու խաղաղությունը, որ վեր է ամեն մտքից, կպահպանի ձեր սրտերն ու մտքերը Քրիստոս Հիսուսով։",
+            textRu: "И мир Божий, который превыше всякого ума, соблюдет сердца ваши и помышления ваши во Христе Иисусе.",
+            textEn: "And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus.",
+            refHy: "Փիլիպպեցիներին 4:7",
+            refRu: "Филиппийцам 4:7",
+            refEn: "Philippians 4:7"
+        ),
+        BibleVerse(
+            textHy: "Եվ իմ Աստվածը թող լրացնի ձեր ամեն կարիքը իր հարստության համեմատ՝ փառքով Քրիստոս Հիսուսի միջոցով։",
+            textRu: "Бог мой да восполнит всякую нужду вашу, по богатству Своему в славе, Христом Иисусом.",
+            textEn: "But my God shall supply all your need according to his riches in glory by Christ Jesus.",
+            refHy: "Փիլիպպեցիներին 4:19",
+            refRu: "Филиппийцам 4:19",
+            refEn: "Philippians 4:19"
+        ),
+        BibleVerse(
+            textHy: "Եվ ամենայն շնորհների Աստվածը... ձեզ՝ մի փոքր ժամանակ չարչարվածներիս, թող կատարյալ դարձնի, հաստատի, զորացնի և հիմնավորի։",
+            textRu: "Бог же всякой благодати... по кратковременном страдании вашем, да совершит вас, да утвердит, да укрепит, да соделает непоколебимыми.",
+            textEn: "But the God of all grace... after that ye have suffered a while, make you perfect, stablish, strengthen, settle you.",
+            refHy: "Ա Պետրոս 5:10",
+            refRu: "1 Петра 5:10",
+            refEn: "1 Peter 5:10"
+        ),
+        BibleVerse(
+            textHy: "Ապա եթե խոստովանենք մեր մեղքերը, նա հավատարիմ է և արդար՝ մեր մեղքերը ներելու և մեզ մաքրելու ամեն անիրավությունից։",
+            textRu: "Если исповедаем грехи наши, то Он, будучи верен и праведен, простит нам грехи наши и очистит нас от всякой неправды.",
+            textEn: "If we confess our sins, he is faithful and just to forgive us our sins, and to cleanse us from all unrighteousness.",
+            refHy: "Ա Հովհաննես 1:9",
+            refRu: "1 Иоанна 1:9",
+            refEn: "1 John 1:9"
+        ),
+        BibleVerse(
+            textHy: "Պահի՛ր ինձ աչքի բիբի պես, Քո թևերի հովանու տակ թաքցրո՛ւ ինձ։",
+            textRu: "Храни меня, как зеницу ока; в тени крыл Твоих укрой меня.",
+            textEn: "Keep me as the apple of the eye, hide me under the shadow of thy wings.",
+            refHy: "Սաղմոսներ 17:8",
+            refRu: "Псалом 16:8",
+            refEn: "Psalm 17:8"
+        ),
+        BibleVerse(
+            textHy: "Ո՞վ վեր կելնի Տիրոջ լեռը, կամ ո՞վ կկանգնի նրա սուրբ տեղում։ Նա, ով մաքուր ձեռքեր ունի և անարատ սիրտ։",
+            textRu: "Кто взойдет на гору Господню, или кто станет на святом месте Его? Тот, у которого руки неповинны и сердце чисто.",
+            textEn: "Who shall ascend into the hill of the Lord? or who shall stand in his holy place? He that hath clean hands, and a pure heart.",
+            refHy: "Սաղմոսներ 24:3-4",
+            refRu: "Псалом 23:3-4",
+            refEn: "Psalm 24:3-4"
+        ),
+        BibleVerse(
+            textHy: "Սպասի՛ր Տիրոջը, զորացի՛ր, և թող քո սիրտը պնդանա. այո՛, սպասի՛ր Տիրոջը։",
+            textRu: "Надейся на Господа, мужайся, и да укрепляется сердце твое, и надейся на Господа.",
+            textEn: "Wait on the Lord: be of good courage, and he shall strengthen thine heart: wait, I say, on the Lord.",
+            refHy: "Սաղմոսներ 27:14",
+            refRu: "Псалом 26:14",
+            refEn: "Psalm 27:14"
+        ),
+        BibleVerse(
+            textHy: "Ճաշակեցե՛ք և տեսե՛ք, որ Տերը քաղցր է. երանելի՜ է այն մարդը, որ նրան է ապավինում։",
+            textRu: "Вкусите, и увидите, как благ Господь! Блажен человек, который уповает на Него!",
+            textEn: "O taste and see that the Lord is good: blessed is the man that trusteth in him.",
+            refHy: "Սաղմոսներ 34:8",
+            refRu: "Псалом 33:9",
+            refEn: "Psalm 34:8"
+        ),
+        BibleVerse(
+            textHy: "Տիրոջից են հաստատվում մարդու քայլերը, և նա հավանում է նրա ճանապարհը։ Թեև նա վայր ընկնի, չի կործանվի, որովհետև Տերը բռնում է նրա ձեռքը։",
+            textRu: "Господом утверждаются шаги человека, и Он благоволит к пути его: когда он будет падать, не упадет, ибо Господь держит его за руку.",
+            textEn: "The steps of a good man are ordered by the Lord: and he delighteth in his way. Though he fall, he shall not be utterly cast down: for the Lord upholdeth him with his hand.",
+            refHy: "Սաղմոսներ 37:23-24",
+            refRu: "Псалом 36:23-24",
+            refEn: "Psalm 37:23-24"
+        ),
+        // --- НОВЫЕ ДОПОЛНИТЕЛЬНЫЕ МОЛИТВЫ ---
+        BibleVerse(
+            textHy: "Տե՛ր Յիսուս Քրիստոս, աճեցրո՛ւ իմ հաւատքը, զօրացրո՛ւ իմ յոյսը և կատարելագործի՛ր իմ սէրը։ Տո՛ւր ինձ սիրտ, որ լսի Քո ձայնը, և կամք՝ որ հնազանդուի Քո սուրբ կամքին։ Ամեն։",
+            textRu: "Господи Иисусе Христе, умножь мою веру, укрепи мою надежду и усовершенствуй мою любовь! Даруй мне сердце, внемлющее Твоему голосу, и волю, покорную Твоей святой воле. Аминь.",
+            textEn: "Lord Jesus Christ, increase my faith, strengthen my hope, and perfect my love! Grant me a heart that listens to Thy voice, and a will obedient to Thy holy will. Amen.",
+            refHy: "Աղոթագիրք (Հավատքի)",
+            refRu: "Молитвослов (О вере)",
+            refEn: "Prayer Book (Of Faith)",
+            isPrayer: true
+        ),
+        BibleVerse(
+            textHy: "Աստուա՛ծ երկնաւոր, օրհնի՛ր իմ ընտանիքը։ Տո՛ւր մեզ խաղաղութիւն, սէր և համերաշխութիւն։ Պահպանի՛ր մեզ ամեն չարից և փորձանքից, եղի՛ր մեր տան Պահապանն ու Ապաւէնը։ Ամեն։",
+            textRu: "Отец Небесный, благослови мою семью! Даруй нам мир, любовь и единомыслие. Сохрани нас от всякого зла и невзгод, будь Хранителем и Защитником нашего дома. Аминь.",
+            textEn: "Heavenly Father, bless my family! Grant us peace, love, and unity. Keep us from all evil and adversity, and be the Guardian and Protector of our home. Amen.",
+            refHy: "Ընտանեկան Աղոթք",
+            refRu: "Семейная молитва",
+            refEn: "Family Prayer",
+            isPrayer: true
+        ),
+        BibleVerse(
+            textHy: "Հաւատով խոստովանիմ և երկիր պագանեմ Քեզ՝ Հա՛յր և Որդի և Սուրբ Հոգի, անեղ և անմահ բնութիւն, արարիչ հրեշտակաց և մարդկանց և ամենայն եղելոց. ողորմեա՛ Քո արարածոց և ինձ՝ բազմամեղիս։",
+            textRu: "С верою исповедую и поклоняюсь Тебе, Отец, Сын и Дух Святой, несотворенное и бессмертное Естество, Творец ангелов, людей и всего сущего. Помилуй Творения Твои и меня, многогрешного.",
+            textEn: "In faith I confess and worship Thee, Father, Son and Holy Spirit, uncreated and immortal Essence, Creator of angels, of men, and of all things. Have mercy upon Thy creations, and upon me, a manifold sinner.",
+            refHy: "Սուրբ Ներսես Շնորհալի",
+            refRu: "Св. Нерсес Шнорали",
+            refEn: "St. Nerses the Gracious",
+            isPrayer: true
+        ),
+        BibleVerse(
+            textHy: "Տե՛ր և արարիչ կյանքիս, ծուլության, տխրության, արծաթասիրության և դատարկախոսության հոգին մի՛ տուր ինձ։ Իսկ ողջախոհության, խոնարհության, համբերության և սիրո հոգին շնորհի՛ր Քո ծառային։ Ամեն։",
+            textRu: "Господи и Владыка живота моего, дух праздности, уныния, любоначалия и празднословия не даждь ми. Дух же целомудрия, смиренномудрия, терпения и любви даруй ми, рабу Твоему. Аминь.",
+            textEn: "O Lord and Master of my life, take from me the spirit of sloth, despair, lust of power, and idle talk. But give rather the spirit of chastity, humility, patience, and love to Thy servant. Amen.",
+            refHy: "Սուրբ Եփրեմ Ասորի",
+            refRu: "Св. Ефрем Сирин",
+            refEn: "St. Ephrem the Syrian",
+            isPrayer: true
+        ),
+        BibleVerse(
+            textHy: "Տէր Աստուած մեր, զոր ինչ մեղայ այսօր բանիւ, գործով կամ խորհրդով, որպէս բարերար և մարդասէր Աստուած՝ ներեա՛ ինձ։ Տո՛ւր ինձ խաղաղ քուն և անխռով ննջում, պահպանիր զիս չարի փորձանքից։ Ամեն։",
+            textRu: "Господи Боже наш, если согрешил я в сей день словом, делом или помышлением, как благой и человеколюбивый Бог, прости мне. Даруй мне мирный и безмятежный сон, сохрани меня от всякого зла. Аминь.",
+            textEn: "O Lord our God, if I have sinned this day in word, deed, or thought, as a good and loving God, forgive me. Grant me peaceful and undisturbed sleep, and keep me safe from all evil. Amen.",
+            refHy: "Երեկոյան Աղոթք",
+            refRu: "Вечерняя молитва",
+            refEn: "Evening Prayer",
+            isPrayer: true
         )
     ]
 }

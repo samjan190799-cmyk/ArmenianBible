@@ -47,10 +47,24 @@ struct Provider: TimelineProvider {
         let database = getFilteredDatabase(for: category)
         let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
         
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-           let savedText = defaults.string(forKey: textKey),
-           let savedRef = defaults.string(forKey: referenceKey) {
-            return BibleVerse(text: savedText, reference: savedRef)
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
+            if let savedIdString = defaults.string(forKey: "currentVerseId"),
+               let savedId = UUID(uuidString: savedIdString),
+               let foundVerse = BibleVerse.database.first(where: { $0.id == savedId }) {
+                return foundVerse
+            }
+            
+            if let savedText = defaults.string(forKey: textKey) {
+                // Ищем в базе по тексту на любом языке
+                if let foundVerse = BibleVerse.database.first(where: {
+                    $0.textHy == savedText || $0.textRu == savedText || $0.textEn == savedText
+                }) {
+                    return foundVerse
+                }
+                
+                let savedRef = defaults.string(forKey: referenceKey) ?? ""
+                return BibleVerse(text: savedText, reference: savedRef)
+            }
         }
         return fallback
     }
