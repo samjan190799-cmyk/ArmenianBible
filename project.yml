@@ -44,7 +44,7 @@ targets:
   BibleWidget:
     type: app-extension
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
     sources:
       - path: Widget
       - path: Sources/BibleVerse.swift

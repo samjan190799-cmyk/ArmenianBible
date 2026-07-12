@@ -1,26 +1,154 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
+
+// MARK: - Перечисления конфигурации для AppIntents
+@available(iOS 17.0, *)
+enum WidgetLanguageAppEnum: String, AppEnum {
+    case followApp = "followApp"
+    case armenian = "armenian"
+    case russian = "russian"
+    case english = "english"
+    
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        "Widget Language"
+    }
+    
+    static var caseDisplayRepresentations: [WidgetLanguageAppEnum: DisplayRepresentation] {
+        [
+            .followApp: DisplayRepresentation(title: "Same as App", subtitle: "Uses language selected in the main app settings"),
+            .armenian: DisplayRepresentation(title: "Հայերեն (Armenian)", subtitle: "Forces Armenian language for the widget"),
+            .russian: DisplayRepresentation(title: "Русский (Russian)", subtitle: "Forces Russian language for the widget"),
+            .english: DisplayRepresentation(title: "English", subtitle: "Forces English language for the widget")
+        ]
+    }
+    
+    var appLanguage: AppLanguage? {
+        switch self {
+        case .followApp: return nil
+        case .armenian: return .armenian
+        case .russian: return .russian
+        case .english: return .english
+        }
+    }
+}
+
+@available(iOS 17.0, *)
+enum TextCategoryAppEnum: String, AppEnum {
+    case both = "both"
+    case verses = "verses"
+    case prayers = "prayers"
+    case favorites = "favorites"
+    
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        "Widget Content"
+    }
+    
+    static var caseDisplayRepresentations: [TextCategoryAppEnum: DisplayRepresentation] {
+        [
+            .both: DisplayRepresentation(title: "Verses & Prayers", subtitle: "Shows both Bible verses and prayers"),
+            .verses: DisplayRepresentation(title: "Bible Verses Only", subtitle: "Shows only biblical verses"),
+            .prayers: DisplayRepresentation(title: "Prayers Only", subtitle: "Shows only christian prayers"),
+            .favorites: DisplayRepresentation(title: "Favorites Only", subtitle: "Shows only your saved favorite items")
+        ]
+    }
+    
+    var textCategory: TextCategory {
+        switch self {
+        case .both: return .both
+        case .verses: return .verses
+        case .prayers: return .prayers
+        case .favorites: return .favorites
+        }
+    }
+}
+
+// MARK: - Намерение конфигурации виджета (AppIntent)
+@available(iOS 17.0, *)
+struct ConfigurationAppIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "Widget Configuration"
+    static var description: LocalizedStringResource = "Customize your Bible widget language and content type."
+    
+    @Parameter(title: "Language", default: .followApp)
+    var language: WidgetLanguageAppEnum
+    
+    @Parameter(title: "Content Type", default: .both)
+    var category: TextCategoryAppEnum
+}
 
 // MARK: - Модель записи таймлайна (Timeline Entry)
+@available(iOS 17.0, *)
 struct SimpleEntry: TimelineEntry {
     let date: Date
     let verse: BibleVerse
+    let configuration: ConfigurationAppIntent
 }
 
 // MARK: - Провайдер временной шкалы (Timeline Provider)
-struct Provider: TimelineProvider {
+@available(iOS 17.0, *)
+struct Provider: AppIntentTimelineProvider {
+    typealias Entry = SimpleEntry
+    typealias Intent = ConfigurationAppIntent
+    
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
     private let textKey = "currentVerseText"
     private let referenceKey = "currentVerseReference"
     private let updateIntervalKey = "widgetUpdateInterval"
     
-    private func getSharedCategory() -> TextCategory {
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-           let savedRaw = defaults.string(forKey: "selectedCategory"),
-           let category = TextCategory(rawValue: savedRaw) {
-            return category
+    func placeholder(in context: Context) -> SimpleEntry {
+        SimpleEntry(date: Date(), verse: BibleVerse.database[0], configuration: ConfigurationAppIntent())
+    }
+    
+    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
+        let verse = getSharedVerse(for: configuration)
+        return SimpleEntry(date: Date(), verse: verse, configuration: configuration)
+    }
+    
+    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
+        var entries: [SimpleEntry] = []
+        let currentDate = Date()
+        
+        let currentVerse = getSharedVerse(for: configuration)
+        entries.append(SimpleEntry(date: currentDate, verse: currentVerse, configuration: configuration))
+        
+        let interval = getSharedUpdateInterval()
+        
+        if interval == .onTapOnly || interval == .onScreenActivation {
+            let timeline = Timeline(entries: entries, policy: .never)
+            return timeline
         }
-        return .both
+        
+        let calendar = Calendar.current
+        var lastVerse = currentVerse
+        
+        let database = getFilteredDatabase(for: configuration.category.textCategory)
+        let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
+        
+        let intervalHours: Int
+        switch interval {
+        case .everyHour:
+            intervalHours = 1
+        case .every6Hours:
+            intervalHours = 6
+        case .every12Hours:
+            intervalHours = 12
+        case .every24Hours:
+            intervalHours = 24
+        default:
+            intervalHours = 1
+        }
+        
+        for offset in 1..<5 {
+            if let entryDate = calendar.date(byAdding: .hour, value: offset * intervalHours, to: currentDate) {
+                let availableVerses = database.filter { $0.id != lastVerse.id }
+                let randomVerse = availableVerses.randomElement() ?? fallback
+                
+                entries.append(SimpleEntry(date: entryDate, verse: randomVerse, configuration: configuration))
+                lastVerse = randomVerse
+            }
+        }
+        
+        return Timeline(entries: entries, policy: .atEnd)
     }
     
     private func getFilteredDatabase(for category: TextCategory) -> [BibleVerse] {
@@ -42,8 +170,8 @@ struct Provider: TimelineProvider {
         }
     }
     
-    private func getSharedVerse() -> BibleVerse {
-        let category = getSharedCategory()
+    private func getSharedVerse(for configuration: ConfigurationAppIntent) -> BibleVerse {
+        let category = configuration.category.textCategory
         let database = getFilteredDatabase(for: category)
         let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
         
@@ -80,68 +208,6 @@ struct Provider: TimelineProvider {
             return interval
         }
         return .everyHour
-    }
-    
-    func placeholder(in context: Context) -> SimpleEntry {
-        let category = getSharedCategory()
-        let database = getFilteredDatabase(for: category)
-        let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
-        return SimpleEntry(date: Date(), verse: fallback)
-    }
-
-    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = SimpleEntry(date: Date(), verse: getSharedVerse())
-        completion(entry)
-    }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> ()) {
-        var entries: [SimpleEntry] = []
-        let currentDate = Date()
-        
-        let currentVerse = getSharedVerse()
-        entries.append(SimpleEntry(date: currentDate, verse: currentVerse))
-        
-        let interval = getSharedUpdateInterval()
-        
-        if interval == .onTapOnly || interval == .onScreenActivation {
-            let timeline = Timeline(entries: entries, policy: .never)
-            completion(timeline)
-            return
-        }
-        
-        let calendar = Calendar.current
-        var lastVerse = currentVerse
-        
-        let category = getSharedCategory()
-        let database = getFilteredDatabase(for: category)
-        let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
-        
-        let intervalHours: Int
-        switch interval {
-        case .everyHour:
-            intervalHours = 1
-        case .every6Hours:
-            intervalHours = 6
-        case .every12Hours:
-            intervalHours = 12
-        case .every24Hours:
-            intervalHours = 24
-        default:
-            intervalHours = 1
-        }
-        
-        for offset in 1..<5 {
-            if let entryDate = calendar.date(byAdding: .hour, value: offset * intervalHours, to: currentDate) {
-                let availableVerses = database.filter { $0.text != lastVerse.text }
-                let randomVerse = availableVerses.randomElement() ?? fallback
-                
-                entries.append(SimpleEntry(date: entryDate, verse: randomVerse))
-                lastVerse = randomVerse
-            }
-        }
-        
-        let timeline = Timeline(entries: entries, policy: .atEnd)
-        completion(timeline)
     }
 }
 
@@ -198,6 +264,7 @@ extension String {
 }
 
 // MARK: - Интерфейс виджета (Widget View)
+@available(iOS 17.0, *)
 struct BibleWidgetEntryView: View {
     var entry: Provider.Entry
     @Environment(\.widgetFamily) var family
@@ -235,13 +302,20 @@ struct BibleWidgetEntryView: View {
     private var quoteIconColor: Color {
         colorScheme == .dark ? Color(hex: getSharedTheme().secondaryColorHex).opacity(0.35) : accentColor.opacity(0.18)
     }
+    
+    private func getLanguage() -> AppLanguage {
+        if let forced = entry.configuration.language.appLanguage {
+            return forced
+        }
+        return getSharedLanguage()
+    }
 
     var body: some View {
         Group {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки
-                Text(entry.verse.text(for: getSharedLanguage()))
+                Text(entry.verse.text(for: getLanguage()))
                     .font(.system(size: 13, weight: .bold, design: .serif))
                     .lineLimit(7)
                     .minimumScaleFactor(0.4)
@@ -251,7 +325,7 @@ struct BibleWidgetEntryView: View {
                 
             case .accessoryInline:
                 // Строчный виджет на экране блокировки над часами
-                Text("✝️ \(entry.verse.reference(for: getSharedLanguage()))")
+                Text("✝️ \(entry.verse.reference(for: getLanguage()))")
                 
             case .accessoryCircular:
                 // Круглый виджет на экране блокировки
@@ -260,7 +334,7 @@ struct BibleWidgetEntryView: View {
                     VStack(spacing: 1) {
                         Image(systemName: "book.closed.fill")
                             .font(.system(size: 16))
-                        Text("widget_circular_text".localized(for: getSharedLanguage()))
+                        Text("widget_circular_text".localized(for: getLanguage()))
                             .font(.system(size: 8, weight: .bold))
                     }
                 }
@@ -275,7 +349,7 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                     }
                     
-                    Text(entry.verse.text(for: getSharedLanguage()))
+                    Text(entry.verse.text(for: getLanguage()))
                         .font(.system(size: 13.5, weight: .medium, design: .serif))
                         .lineLimit(6)
                         .minimumScaleFactor(0.68)
@@ -284,7 +358,7 @@ struct BibleWidgetEntryView: View {
                     
                     Spacer(minLength: 4)
                     
-                    Text(entry.verse.reference(for: getSharedLanguage()))
+                    Text(entry.verse.reference(for: getLanguage()))
                         .font(.system(size: 9.0, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -303,7 +377,7 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                     }
                     
-                    Text(entry.verse.text(for: getSharedLanguage()))
+                    Text(entry.verse.text(for: getLanguage()))
                         .font(.system(size: 15.0, weight: .medium, design: .serif))
                         .lineLimit(5)
                         .minimumScaleFactor(0.70)
@@ -312,7 +386,7 @@ struct BibleWidgetEntryView: View {
                     
                     Spacer(minLength: 4)
                     
-                    Text(entry.verse.reference(for: getSharedLanguage()))
+                    Text(entry.verse.reference(for: getLanguage()))
                         .font(.system(size: 10.0, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -331,14 +405,14 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                     }
                     
-                    Text(entry.verse.text(for: getSharedLanguage()))
+                    Text(entry.verse.text(for: getLanguage()))
                         .font(.system(size: 17.5, weight: .medium, design: .serif))
                         .lineSpacing(5)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 4)
                     
-                    Text(entry.verse.reference(for: getSharedLanguage()))
+                    Text(entry.verse.reference(for: getLanguage()))
                         .font(.system(size: 12.0, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -356,12 +430,13 @@ struct BibleWidgetEntryView: View {
 }
 
 // MARK: - Конфигурация виджета (Widget Settings)
+@available(iOS 17.0, *)
 @main
 struct BibleWidget: Widget {
     let kind: String = "BibleWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: Provider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
             BibleWidgetEntryView(entry: entry)
                 .widgetBackground(.clear)
         }
