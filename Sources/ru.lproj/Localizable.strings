@@ -45,3 +45,13 @@
 "interval_every_24_hours" = "Раз в день";
 "interval_on_screen_activation" = "При активации (в приложении)";
 "interval_on_tap_only" = "Только по нажатию";
+
+/* Widget & Placeholders */
+"widget_title" = "Армянская Библия";
+"widget_description" = "Вдохновляющие стихи из Библии на экране блокировки и домашнем экране.";
+"widget_circular_text" = "БИБ";
+"placeholder_gemini_key" = "API-ключ Gemini (AIzaSy...)";
+"placeholder_openai_key" = "API-ключ OpenAI (sk-...)";
+"placeholder_anthropic_key" = "API-ключ Anthropic (sk-ant...)";
+"error_generation_prefix" = "Ошибка генерации: ";
+

@@ -45,3 +45,13 @@
 "interval_every_24_hours" = "Օրական 1 անգամ";
 "interval_on_screen_activation" = "Ակտիվացումով (հավելվածում)";
 "interval_on_tap_only" = "Միայն հպումով";
+
+/* Widget & Placeholders */
+"widget_title" = "Աստվածաշունչ";
+"widget_description" = "Աստվածաշնչի ոգեշնչող տողեր Կողպման էկրանին և Գլխավոր էկրանին:";
+"widget_circular_text" = "ԱՍՏ";
+"placeholder_gemini_key" = "Gemini API Key (AIzaSy...)";
+"placeholder_openai_key" = "OpenAI API Key (sk-...)";
+"placeholder_anthropic_key" = "Anthropic API Key (sk-ant...)";
+"error_generation_prefix" = "Գեներացման սխալ. ";
+

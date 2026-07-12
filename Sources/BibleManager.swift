@@ -387,7 +387,7 @@ class BibleManager: ObservableObject {
                     let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
                         .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
                     if !cleanText.isEmpty {
-                        let newVerse = BibleVerse(text: cleanText, reference: "Աստվածաշունչ")
+                        let newVerse = BibleVerse(text: cleanText, reference: NSLocalizedString("widget_title", comment: ""))
                         DispatchQueue.main.async {
                             self?.updateCurrentVerse(newVerse)
                         }

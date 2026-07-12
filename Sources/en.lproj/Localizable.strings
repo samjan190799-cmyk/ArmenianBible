@@ -45,3 +45,13 @@
 "interval_every_24_hours" = "Once a Day";
 "interval_on_screen_activation" = "On Activation (in App)";
 "interval_on_tap_only" = "Only on Tap";
+
+/* Widget & Placeholders */
+"widget_title" = "Armenian Bible";
+"widget_description" = "Inspiring Bible verses on your Lock Screen and Home Screen.";
+"widget_circular_text" = "BIB";
+"placeholder_gemini_key" = "Gemini API Key (AIzaSy...)";
+"placeholder_openai_key" = "OpenAI API Key (sk-...)";
+"placeholder_anthropic_key" = "Anthropic API Key (sk-ant...)";
+"error_generation_prefix" = "Generation error: ";
+

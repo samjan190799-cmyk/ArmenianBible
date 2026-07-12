@@ -14,7 +14,6 @@ struct Provider: TimelineProvider {
     private let referenceKey = "currentVerseReference"
     private let updateIntervalKey = "widgetUpdateInterval"
     
-    // Вспомогательный метод для получения текущей категории
     private func getSharedCategory() -> TextCategory {
         if let defaults = UserDefaults(suiteName: appGroupSuiteName),
            let savedRaw = defaults.string(forKey: "selectedCategory"),
@@ -24,7 +23,6 @@ struct Provider: TimelineProvider {
         return .both
     }
     
-    // Вспомогательный метод для получения отфильтрованной базы данных
     private func getFilteredDatabase(for category: TextCategory) -> [BibleVerse] {
         switch category {
         case .verses:
@@ -36,7 +34,6 @@ struct Provider: TimelineProvider {
         }
     }
     
-    // Вспомогательный метод для получения текущего стиха из App Group UserDefaults
     private func getSharedVerse() -> BibleVerse {
         let category = getSharedCategory()
         let database = getFilteredDatabase(for: category)
@@ -50,7 +47,6 @@ struct Provider: TimelineProvider {
         return fallback
     }
     
-    // Вспомогательный метод для получения текущего интервала обновления
     private func getSharedUpdateInterval() -> UpdateInterval {
         if let defaults = UserDefaults(suiteName: appGroupSuiteName),
            let savedRaw = defaults.string(forKey: updateIntervalKey),
@@ -76,20 +72,17 @@ struct Provider: TimelineProvider {
         var entries: [SimpleEntry] = []
         let currentDate = Date()
         
-        // 1. Первая запись отображает стих, выбранный пользователем в приложении прямо сейчас
         let currentVerse = getSharedVerse()
         entries.append(SimpleEntry(date: currentDate, verse: currentVerse))
         
         let interval = getSharedUpdateInterval()
         
-        // Если обновление только по тапу или при активации, не генерируем будущие автоматические обновления.
         if interval == .onTapOnly || interval == .onScreenActivation {
             let timeline = Timeline(entries: entries, policy: .never)
             completion(timeline)
             return
         }
         
-        // Генерируем автоматическое обновление со смещением по времени, выбирая случайные стихи
         let calendar = Calendar.current
         var lastVerse = currentVerse
         
@@ -113,7 +106,6 @@ struct Provider: TimelineProvider {
         
         for offset in 1..<5 {
             if let entryDate = calendar.date(byAdding: .hour, value: offset * intervalHours, to: currentDate) {
-                // Выбираем случайный стих, отличный от предыдущего
                 let availableVerses = database.filter { $0.text != lastVerse.text }
                 let randomVerse = availableVerses.randomElement() ?? fallback
                 
@@ -124,25 +116,55 @@ struct Provider: TimelineProvider {
         
         let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
-    }}
+    }
+}
 
-// MARK: - Интерфейс виджета для Lock Screen и Home Screen (Widget View)
+// MARK: - Интерфейс виджета (Widget View)
 struct BibleWidgetEntryView: View {
     var entry: Provider.Entry
     @Environment(\.widgetFamily) var family
+    @Environment(\.colorScheme) var colorScheme
+
+    // Адаптивные цвета для домашнего экрана
+    private var widgetBackgroundGradient: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [Color(hex: "0D0E15"), Color(hex: "151720")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [Color(hex: "F8FAFC"), Color(hex: "E2E8F0")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+    
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.95) : Color(hex: "1E293B")
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? Color(hex: "818CF8") : Color(hex: "4F46E5")
+    }
+    
+    private var quoteIconColor: Color {
+        colorScheme == .dark ? Color(hex: "A5B4FC").opacity(0.35) : Color(hex: "4F46E5").opacity(0.18)
+    }
 
     var body: some View {
         Group {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки iOS (Accessory Rectangular)
-                // Весь текст стиха без ссылки — максимум пространства под чтение
+                // Прямоугольный виджет на экране блокировки
                 Text(entry.verse.text)
                     .font(.system(size: 13, weight: .bold, design: .serif))
                     .lineLimit(7)
                     .minimumScaleFactor(0.4)
                     .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                     .padding(0)
                 
             case .accessoryInline:
@@ -156,11 +178,10 @@ struct BibleWidgetEntryView: View {
                     VStack(spacing: 1) {
                         Image(systemName: "book.closed.fill")
                             .font(.system(size: 16))
-                        Text("ԱՍՏ") // "ԱՍՏ" от Аствацашунч
+                        Text(NSLocalizedString("widget_circular_text", comment: ""))
                             .font(.system(size: 8, weight: .bold))
                     }
                 }
-                
                 
             case .systemSmall:
                 // Маленький виджет на домашнем экране (System Small)
@@ -168,7 +189,7 @@ struct BibleWidgetEntryView: View {
                     HStack {
                         Image(systemName: "quote.opening")
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.35))
+                            .foregroundColor(quoteIconColor)
                         Spacer()
                     }
                     
@@ -177,24 +198,18 @@ struct BibleWidgetEntryView: View {
                         .lineLimit(6)
                         .minimumScaleFactor(0.68)
                         .lineSpacing(3)
-                        .foregroundColor(.white.opacity(0.95))
+                        .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 4)
                     
                     Text(entry.verse.reference)
                         .font(.system(size: 9.0, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(hex: "818CF8"))
+                        .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .widgetBackground(
-                    LinearGradient(
-                        colors: [Color(hex: "0D0E15"), Color(hex: "151720")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .widgetBackground(widgetBackgroundGradient)
                 
             case .systemMedium:
                 // Средний виджет на домашнем экране (System Medium)
@@ -202,7 +217,7 @@ struct BibleWidgetEntryView: View {
                     HStack {
                         Image(systemName: "quote.opening")
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.35))
+                            .foregroundColor(quoteIconColor)
                         Spacer()
                     }
                     
@@ -211,24 +226,18 @@ struct BibleWidgetEntryView: View {
                         .lineLimit(5)
                         .minimumScaleFactor(0.70)
                         .lineSpacing(4)
-                        .foregroundColor(.white.opacity(0.95))
+                        .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 4)
                     
                     Text(entry.verse.reference)
                         .font(.system(size: 10.0, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(hex: "818CF8"))
+                        .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .padding(15)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .widgetBackground(
-                    LinearGradient(
-                        colors: [Color(hex: "0D0E15"), Color(hex: "151720")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .widgetBackground(widgetBackgroundGradient)
                 
             case .systemLarge:
                 // Большой виджет на домашнем экране (System Large)
@@ -236,31 +245,25 @@ struct BibleWidgetEntryView: View {
                     HStack {
                         Image(systemName: "quote.opening")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.35))
+                            .foregroundColor(quoteIconColor)
                         Spacer()
                     }
                     
                     Text(entry.verse.text)
                         .font(.system(size: 17.5, weight: .medium, design: .serif))
                         .lineSpacing(5)
-                        .foregroundColor(.white.opacity(0.95))
+                        .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 4)
                     
                     Text(entry.verse.reference)
                         .font(.system(size: 12.0, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(hex: "818CF8"))
+                        .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .padding(18)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .widgetBackground(
-                    LinearGradient(
-                        colors: [Color(hex: "0D0E15"), Color(hex: "151720")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .widgetBackground(widgetBackgroundGradient)
                 
             default:
                 EmptyView()
@@ -280,8 +283,8 @@ struct BibleWidget: Widget {
             BibleWidgetEntryView(entry: entry)
                 .widgetBackground(.clear)
         }
-        .configurationDisplayName("Աստվածաշունչ") // "Библия" на армянском
-        .description("Աստվածաշնչի ոգեշնչող տողեր Կողպման էկրանին և Գլխավոր էկրանին:") // "Вдохновляющие стихи из Библии на экране блокировки и домашнем экране."
+        .configurationDisplayName(NSLocalizedString("widget_title", comment: ""))
+        .description(NSLocalizedString("widget_description", comment: ""))
         .supportedFamilies([
             .accessoryRectangular,
             .accessoryInline,
@@ -289,7 +292,7 @@ struct BibleWidget: Widget {
             .systemSmall,
             .systemMedium,
             .systemLarge
-        ]) // Поддерживаем Lock Screen и Home Screen виджеты
+        ])
         .disableContentMarginsIfNeeded()
     }
 }

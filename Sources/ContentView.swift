@@ -11,27 +11,101 @@ struct ContentView: View {
     @State private var showingNoKeyAlert = false
     
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
+    
+    // MARK: - Адаптивная цветовая палитра
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+    }
+    
+    private var dotGridColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.03)
+    }
+    
+    private var glowColor: Color {
+        Color(hex: "6366F1").opacity(colorScheme == .dark ? 0.08 : 0.05)
+    }
+    
+    private var settingsButtonBgColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
+    }
+    
+    private var settingsButtonBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
+    }
+    
+    private var settingsButtonIconColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.7) : Color.black.opacity(0.6)
+    }
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
+    }
+    
+    private var cardBorderColor: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+    
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : Color(hex: "1E293B")
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? Color(hex: "818CF8") : Color(hex: "4F46E5")
+    }
+    
+    private var randomButtonBgColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05)
+    }
+    
+    private var randomButtonBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
+    }
+    
+    private var randomButtonTextColor: Color {
+        colorScheme == .dark ? .white : Color(hex: "1E293B")
+    }
+    
+    private var instructionBgColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.02) : Color.black.opacity(0.015)
+    }
+    
+    private var instructionBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)
+    }
     
     var body: some View {
         ZStack {
-            // MARK: - Премиальный глубокий темный фон
-            Color(hex: "090A0F")
+            // MARK: - Фон
+            backgroundColor
                 .ignoresSafeArea()
             
             // Тонкая сетка для техно-индустриального стиля
-            StaticDotGridView(dotColor: Color.white.opacity(0.025))
+            StaticDotGridView(dotColor: dotGridColor)
                 .ignoresSafeArea()
             
-            // Легкое фоновое неоновое свечение позади текста
+            // Фоновое неоновое свечение позади текста
             Circle()
-                .fill(Color(hex: "6366F1").opacity(0.08))
+                .fill(glowColor)
                 .frame(width: 350, height: 350)
                 .blur(radius: 90)
                 .offset(y: -70)
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
-                    // MARK: - Top Header & Settings Button
+                    // MARK: - Кнопка настроек
                     HStack {
                         Spacer()
                         
@@ -41,12 +115,12 @@ struct ContentView: View {
                         } label: {
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 20))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(settingsButtonIconColor)
                                 .padding(12)
-                                .background(Color.white.opacity(0.04))
+                                .background(settingsButtonBgColor)
                                 .clipShape(Circle())
                                 .overlay(
-                                    Circle().stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                    Circle().stroke(settingsButtonBorderColor, lineWidth: 1)
                                 )
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -61,21 +135,21 @@ struct ContentView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "laurel.leading")
                             .font(.system(size: 28))
-                            .foregroundColor(Color(hex: "A5B4FC").opacity(0.6))
+                            .foregroundColor(secondaryTextColor.opacity(0.7))
                         
                         Text(manager.currentVerse.text)
                             .font(.system(size: 21, weight: .medium, design: .serif))
-                            .foregroundColor(.white)
+                            .foregroundColor(primaryTextColor)
                             .multilineTextAlignment(.center)
                             .lineSpacing(8)
                             .padding(.horizontal, 10)
-                            .fixedSize(horizontal: false, vertical: true) // Предотвращает обрезку троеточием в приложении
+                            .fixedSize(horizontal: false, vertical: true)
                             .opacity(animateVerse ? 1 : 0)
                             .offset(y: animateVerse ? 0 : 15)
                         
                         Text(manager.currentVerse.reference)
                             .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .foregroundColor(Color(hex: "818CF8"))
+                            .foregroundColor(secondaryTextColor)
                             .padding(.top, 4)
                             .opacity(animateVerse ? 0.8 : 0)
                             .offset(y: animateVerse ? 0 : 10)
@@ -83,22 +157,12 @@ struct ContentView: View {
                     .padding(26)
                     .background(
                         RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(Color.white.opacity(0.03))
+                            .fill(cardBackgroundColor)
                             .background(.ultraThinMaterial)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.12),
-                                        Color.white.opacity(0.03)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1.2
-                            )
+                            .stroke(cardBorderColor, lineWidth: 1.2)
                     )
                     .padding(.horizontal, 20)
                     .onTapGesture {
@@ -115,7 +179,6 @@ struct ContentView: View {
                             }
                         }
                     }
-                    
                     
                     // MARK: - Блок кнопок генерации
                     VStack(spacing: 12) {
@@ -137,14 +200,14 @@ struct ContentView: View {
                             } label: {
                                 Text("button_random_verse")
                                     .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(randomButtonTextColor)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 16)
-                                    .background(Color.white.opacity(0.06))
+                                    .background(randomButtonBgColor)
                                     .cornerRadius(14)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
-                                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                            .stroke(randomButtonBorderColor, lineWidth: 1)
                                     )
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -176,7 +239,7 @@ struct ContentView: View {
                                     } else {
                                         Image(systemName: "sparkles")
                                             .font(.system(size: 15))
-                                        Text("button_ai_generation") // Генерация ИИ
+                                        Text("button_ai_generation")
                                     }
                                 }
                                 .font(.system(size: 15, weight: .bold))
@@ -191,7 +254,7 @@ struct ContentView: View {
                                     )
                                 )
                                 .cornerRadius(14)
-                                .shadow(color: Color(hex: "4F46E5").opacity(0.3), radius: 8, y: 4)
+                                .shadow(color: Color(hex: "4F46E5").opacity(colorScheme == .dark ? 0.3 : 0.2), radius: 8, y: 4)
                             }
                             .disabled(manager.isGeneratingAI)
                             .buttonStyle(ScaleButtonStyle())
@@ -206,7 +269,7 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("instruction_title")
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(primaryTextColor)
                             .padding(.bottom, 2)
                         
                         InstructionRow(number: "1", text: NSLocalizedString("instruction_step_1", comment: ""))
@@ -215,11 +278,11 @@ struct ContentView: View {
                         InstructionRow(number: "4", text: NSLocalizedString("instruction_step_4", comment: ""))
                     }
                     .padding(20)
-                    .background(Color.white.opacity(0.02))
+                    .background(instructionBgColor)
                     .cornerRadius(18)
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                            .stroke(instructionBorderColor, lineWidth: 1)
                     )
                     .padding(.horizontal, 20)
                 }
@@ -289,7 +352,8 @@ struct ContentView: View {
                     animateVerse = true
                 }
             case .failure(let error):
-                errorMessage = "Գեներացման սխալ. \(error.localizedDescription)"
+                let prefix = NSLocalizedString("error_generation_prefix", comment: "")
+                errorMessage = "\(prefix)\(error.localizedDescription)"
                 showingErrorAlert = true
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     animateVerse = true
@@ -319,10 +383,36 @@ struct SettingsView: View {
     @State private var selectedInterval: UpdateInterval = .everyHour
     @State private var selectedCategory: TextCategory = .both
     
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+    }
+    
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : Color(hex: "1E293B")
+    }
+    
+    private var inputFieldBgColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
+    }
+    
+    private var inputFieldBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.08)
+    }
+    
+    private var aboutBlockBgColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.02) : Color.black.opacity(0.015)
+    }
+    
+    private var aboutBlockBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "090A0F")
+                backgroundColor
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -332,7 +422,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("ai_provider")
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(primaryTextColor)
                             
                             Text("ai_provider_description")
                                 .font(.system(size: 13))
@@ -345,7 +435,7 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
-                            .tint(.white)
+                            .tint(colorScheme == .dark ? .white : .primary)
                             .padding(.vertical, 4)
                         }
                         .padding(.horizontal, 4)
@@ -355,7 +445,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("ai_language")
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(primaryTextColor)
                             
                             Text("ai_language_description")
                                 .font(.system(size: 13))
@@ -368,7 +458,7 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
-                            .tint(.white)
+                            .tint(colorScheme == .dark ? .white : .primary)
                             .padding(.vertical, 4)
                         }
                         .padding(.horizontal, 4)
@@ -379,7 +469,7 @@ struct SettingsView: View {
                             case .gemini:
                                 Text("gemini_settings_title")
                                     .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(primaryTextColor)
                                 
                                 Text("gemini_settings_description")
                                     .font(.system(size: 13))
@@ -387,18 +477,18 @@ struct SettingsView: View {
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField("Gemini API Key (AIzaSy...)", text: $geminiKeyInput)
+                                SecureField(NSLocalizedString("placeholder_gemini_key", comment: ""), text: $geminiKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(primaryTextColor)
                                     .padding()
-                                    .background(Color.white.opacity(0.04))
+                                    .background(inputFieldBgColor)
                                     .cornerRadius(12)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                            .stroke(inputFieldBorderColor, lineWidth: 1)
                                     )
                                 
-                                if !manager.geminiApiKey.isEmpty {
+                                if !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty {
                                     Text("api_key_saved")
                                         .font(.system(size: 12))
                                         .foregroundColor(.green)
@@ -408,7 +498,7 @@ struct SettingsView: View {
                             case .chatgpt:
                                 Text("chatgpt_settings_title")
                                     .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(primaryTextColor)
                                 
                                 Text("chatgpt_settings_description")
                                     .font(.system(size: 13))
@@ -416,18 +506,18 @@ struct SettingsView: View {
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField("OpenAI API Key (sk-...)", text: $openaiKeyInput)
+                                SecureField(NSLocalizedString("placeholder_openai_key", comment: ""), text: $openaiKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(primaryTextColor)
                                     .padding()
-                                    .background(Color.white.opacity(0.04))
+                                    .background(inputFieldBgColor)
                                     .cornerRadius(12)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                            .stroke(inputFieldBorderColor, lineWidth: 1)
                                     )
                                 
-                                if !manager.openaiApiKey.isEmpty {
+                                if !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty {
                                     Text("api_key_saved")
                                         .font(.system(size: 12))
                                         .foregroundColor(.green)
@@ -437,7 +527,7 @@ struct SettingsView: View {
                             case .claude:
                                 Text("claude_settings_title")
                                     .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(primaryTextColor)
                                 
                                 Text("claude_settings_description")
                                     .font(.system(size: 13))
@@ -445,18 +535,18 @@ struct SettingsView: View {
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField("Anthropic API Key (sk-ant-...)", text: $anthropicKeyInput)
+                                SecureField(NSLocalizedString("placeholder_anthropic_key", comment: ""), text: $anthropicKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(primaryTextColor)
                                     .padding()
-                                    .background(Color.white.opacity(0.04))
+                                    .background(inputFieldBgColor)
                                     .cornerRadius(12)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                            .stroke(inputFieldBorderColor, lineWidth: 1)
                                     )
                                 
-                                if !manager.anthropicApiKey.isEmpty {
+                                if !manager.anthropicApiKey.isEmpty && !anthropicKeyInput.isEmpty {
                                     Text("api_key_saved")
                                         .font(.system(size: 12))
                                         .foregroundColor(.green)
@@ -470,7 +560,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("update_interval_title")
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(primaryTextColor)
                             
                             Text("update_interval_description")
                                 .font(.system(size: 13))
@@ -483,15 +573,15 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.menu)
-                            .tint(.white)
+                            .tint(colorScheme == .dark ? .white : .primary)
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.white.opacity(0.04))
+                            .background(inputFieldBgColor)
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    .stroke(inputFieldBorderColor, lineWidth: 1)
                             )
                         }
                         .padding(.horizontal, 4)
@@ -500,7 +590,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("content_type_title")
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(primaryTextColor)
                             
                             Text("content_type_description")
                                 .font(.system(size: 13))
@@ -513,15 +603,15 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.menu)
-                            .tint(.white)
+                            .tint(colorScheme == .dark ? .white : .primary)
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.white.opacity(0.04))
+                            .background(inputFieldBgColor)
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    .stroke(inputFieldBorderColor, lineWidth: 1)
                             )
                         }
                         .padding(.horizontal, 4)
@@ -534,9 +624,12 @@ struct SettingsView: View {
                             
                             manager.setActiveProvider(selectedProvider)
                             manager.setAILanguage(selectedLanguage)
-                            manager.geminiApiKey = geminiKeyInput
-                            manager.openaiApiKey = openaiKeyInput
-                            manager.anthropicApiKey = anthropicKeyInput
+                            
+                            // Сохраняем ключи, очищая их от лишних пробелов
+                            manager.geminiApiKey = geminiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                            manager.openaiApiKey = openaiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                            manager.anthropicApiKey = anthropicKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                            
                             manager.setUpdateInterval(selectedInterval)
                             manager.setSelectedCategory(selectedCategory)
                             isPresented = false
@@ -559,7 +652,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("about_app_title")
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(primaryTextColor)
                             
                             HStack {
                                 Text("about_app_version")
@@ -578,11 +671,11 @@ struct SettingsView: View {
                             .font(.system(size: 14))
                         }
                         .padding(18)
-                        .background(Color.white.opacity(0.02))
+                        .background(aboutBlockBgColor)
                         .cornerRadius(16)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                .stroke(aboutBlockBorderColor, lineWidth: 1)
                         )
                     }
                     .padding(20)
@@ -598,6 +691,7 @@ struct SettingsView: View {
                         generator.impactOccurred()
                         isPresented = false
                     }
+                    .foregroundColor(primaryTextColor)
                 }
             }
             .onAppear {
@@ -618,13 +712,23 @@ struct InstructionRow: View {
     let number: String
     let text: String
     
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var numberBgColor: Color {
+        colorScheme == .dark ? Color(hex: "818CF8").opacity(0.1) : Color(hex: "4F46E5").opacity(0.08)
+    }
+    
+    private var numberTextColor: Color {
+        colorScheme == .dark ? Color(hex: "818CF8") : Color(hex: "4F46E5")
+    }
+    
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Text(number)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(Color(hex: "818CF8"))
+                .foregroundColor(numberTextColor)
                 .frame(width: 20, height: 20)
-                .background(Color(hex: "818CF8").opacity(0.1))
+                .background(numberBgColor)
                 .clipShape(Circle())
                 .padding(.top, 1)
             
@@ -663,32 +767,5 @@ struct ScaleButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
             .animation(.spring(response: 0.15, dampingFraction: 0.65), value: configuration.isPressed)
-    }
-}
-
-// MARK: - Инициализация цвета по Hex
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (255, 0, 0, 0)
-        }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
-        )
     }
 }
