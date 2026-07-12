@@ -119,6 +119,30 @@ struct Provider: TimelineProvider {
     }
 }
 
+// MARK: - Вспомогательные функции локализации для виджета
+private func getSharedLanguage() -> AppLanguage {
+    let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+    if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+       let savedRaw = defaults.string(forKey: "app_language"),
+       let lang = AppLanguage(rawValue: savedRaw) {
+        return lang
+    }
+    let preferred = Bundle.main.preferredLocalizations.first ?? "hy"
+    if preferred.hasPrefix("ru") { return .russian }
+    if preferred.hasPrefix("en") { return .english }
+    return .armenian
+}
+
+extension String {
+    func localized(for language: AppLanguage) -> String {
+        guard let path = Bundle.main.path(forResource: language.localeCode, ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            return NSLocalizedString(self, comment: "")
+        }
+        return bundle.localizedString(forKey: self, value: nil, table: nil)
+    }
+}
+
 // MARK: - Интерфейс виджета (Widget View)
 struct BibleWidgetEntryView: View {
     var entry: Provider.Entry
@@ -178,7 +202,7 @@ struct BibleWidgetEntryView: View {
                     VStack(spacing: 1) {
                         Image(systemName: "book.closed.fill")
                             .font(.system(size: 16))
-                        Text(NSLocalizedString("widget_circular_text", comment: ""))
+                        Text("widget_circular_text".localized(for: getSharedLanguage()))
                             .font(.system(size: 8, weight: .bold))
                     }
                 }
@@ -283,8 +307,8 @@ struct BibleWidget: Widget {
             BibleWidgetEntryView(entry: entry)
                 .widgetBackground(.clear)
         }
-        .configurationDisplayName(NSLocalizedString("widget_title", comment: ""))
-        .description(NSLocalizedString("widget_description", comment: ""))
+        .configurationDisplayName("widget_title".localized(for: getSharedLanguage()))
+        .description("widget_description".localized(for: getSharedLanguage()))
         .supportedFamilies([
             .accessoryRectangular,
             .accessoryInline,

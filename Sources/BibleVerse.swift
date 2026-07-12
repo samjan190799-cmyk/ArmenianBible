@@ -12,20 +12,26 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     let isPrayer: Bool
     
     var text: String {
-        let lang = Bundle.main.preferredLocalizations.first ?? "hy"
-        switch lang {
-        case "ru": return textRu
-        case "en": return textEn
-        default: return textHy
+        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
+        if lang.hasPrefix("ru") || lang == "russian" {
+            return textRu
+        } else if lang.hasPrefix("en") || lang == "english" {
+            return textEn
+        } else {
+            return textHy
         }
     }
     
     var reference: String {
-        let lang = Bundle.main.preferredLocalizations.first ?? "hy"
-        switch lang {
-        case "ru": return refRu
-        case "en": return refEn
-        default: return refHy
+        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
+        if lang.hasPrefix("ru") || lang == "russian" {
+            return refRu
+        } else if lang.hasPrefix("en") || lang == "english" {
+            return refEn
+        } else {
+            return refHy
         }
     }
     
@@ -101,8 +107,8 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     }
 }
 
-// MARK: - Языки генерации ИИ
-enum AILanguage: String, CaseIterable, Identifiable, Codable {
+// MARK: - Языки приложения
+enum AppLanguage: String, CaseIterable, Identifiable, Codable {
     case armenian = "armenian"
     case russian = "russian"
     case english = "english"
@@ -114,6 +120,14 @@ enum AILanguage: String, CaseIterable, Identifiable, Codable {
         case .armenian: return "Հայերեն"
         case .russian: return "Русский"
         case .english: return "English"
+        }
+    }
+    
+    var localeCode: String {
+        switch self {
+        case .armenian: return "hy"
+        case .russian: return "ru"
+        case .english: return "en"
         }
     }
 }
@@ -206,7 +220,7 @@ extension BibleVerse {
             refEn: "John 3:16"
         ),
         BibleVerse(
-            textHy: "Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ Կանաչ մարգագետիններում նա ինձ պառկեցնում է և հանդարտ ջրերի մոտ է տանում ինձ։",
+            textHy: "Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ Կանաչ մարգագետիններում նա ինձ պառկեցնում է և հանդարտ ջрերի մոտ է տանում ինձ։",
             textRu: "Господь — Пастырь мой; я ни в чем не буду нуждаться. Он покоит меня на злачных пажитях и водит меня к водам тихим.",
             textEn: "The Lord is my shepherd; I shall not want. He maketh me to lie down in green pastures: he leadeth me beside the still waters.",
             refHy: "Սաղմոսներ 23:1-2",
@@ -215,7 +229,7 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Չէ՞ որ ես քեզ պատվիրեցի. զորացի՛ր և քա՛ջ եղիր, մի՛ վախեցիր և մի՛ զարհուրիր, որովհետև քո Տեր Աստվածը քեզ հետ է ամեն տեղ, ուր էլ որ գնաս։",
-            textRu: "Вот Я повелеваю тебе: будь тверд и мужествен, не страшись и не ужасася; ибо с тобою Господь Бог твой везде, куда ни пойдешь.",
+            textRu: "Вот Я повелеваю тебе: будь тверд и мужествен, не страшись и не ужасаяся; ибо с тобою Господь Бог твой везде, куда ни пойдешь.",
             textEn: "Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the Lord thy God is with thee whithersoever thou goest.",
             refHy: "Հեսու 1:9",
             refRu: "Иисус Навин 1:9",
@@ -254,7 +268,7 @@ extension BibleVerse {
             refEn: "Jeremiah 29:11"
         ),
         BibleVerse(
-            textHy: "Եվ մի՛ կերպարանվեք այս աշխарհի կերպարանքով, այլ նորոգվե՛ք ձեր մտքի նորոգությամբ, որպեսզի քննեք, թե ի՛նչ է Աստծու կամքը՝ բարին, հաճելին և կատարյալը։",
+            textHy: "Եվ մի՛ կերպարանվեք այս աշխարհի կերպարանքով, այլ նորոգվե՛ք ձեր մտքի նորոգությամբ, որպեսզի քննեք, թե ի՛նչ է Աստծու կամքը՝ բարին, հաճելին և կատարյալը։",
             textRu: "И не сообразуйтесь с веком сим, но преобразуйтесь обновлением ума вашего, чтобы вам познавать, что есть воля Божия, благая, угодная и совершенная.",
             textEn: "And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God.",
             refHy: "Հռոմեացիներին 12:2",
@@ -326,7 +340,7 @@ extension BibleVerse {
             refEn: "Hebrews 11:1"
         ),
         BibleVerse(
-            textHy: "Աստված մեր ապավենն ու զորությունն է, նեղությունների մեջ մեր պատրաստ օգնականը։",
+            textHy: "Աստված մեր ապավենն ու զորությունն է, նեղությունների մեջ мեր պատրաստ օգնականը։",
             textRu: "Бог нам прибежище и сила, скорый помощник в бедах.",
             textEn: "God is our refuge and strength, a very present help in trouble.",
             refHy: "Սաղմոսներ 46:1",
@@ -358,7 +372,7 @@ extension BibleVerse {
             refEn: "Matthew 6:33"
         ),
         BibleVerse(
-            textHy: "Ավելի մեծ սեր ոչ ոք չունի, քան այն, որ մեկն իր կյանքը դնի իր բարեկամների համար։",
+            textHy: "Ավելի մեծ սեր ոչ ոք ունի, քան այն, որ մեկն իր կյանքը դնի իր բարեկամների համար։",
             textRu: "Нет больше той любви, как если кто положит душу свою за друзей своих.",
             textEn: "Greater love hath no man than this, that a man lay down his life for his friends.",
             refHy: "Հովհաննես 15:13",
@@ -393,7 +407,7 @@ extension BibleVerse {
             textHy: "Ձեր ամբողջ հոգսը նրա վրա՛ գցեք, որովհետև նա հոգ է տանում ձեր մասին։",
             textRu: "Все заботы ваши возложите на Него, ибо Он печется о вас.",
             textEn: "Casting all your care upon him; for he careth for you.",
-            refHy: "Ա Պետրոս 5:7",
+            refHy: "Ա Պետրоս 5:7",
             refRu: "1 Петра 5:7",
             refEn: "1 Peter 5:7"
         ),
@@ -446,7 +460,7 @@ extension BibleVerse {
             refEn: "Matthew 19:26"
         ),
         BibleVerse(
-            textHy: "Հիսուսը նրան ասաց. «Սիրի՛ր քո Տեր Աստծուն քո ամբողջ սրտով, քո ամբողջ հոգով և քո ամբողջ մտքով»։",
+            textHy: "Հիսուսը նրան ասաց. «Սիրի՛ր քо Տեր Աստծուն քո ամբողջ սրտով, քո ամբողջ հոգով և քո ամբողջ մտքով»։",
             textRu: "Иисус сказал ему: возлюби Господа Бога твоего всем сердцем твоим и всею душею твоею и всем разумением твоим.",
             textEn: "Jesus said unto him, Thou shalt love the Lord thy God with all thy heart, and with all thy soul, and with all thy mind.",
             refHy: "Մատթեոս 22:37",
@@ -526,7 +540,7 @@ extension BibleVerse {
             refEn: "1 Corinthians 16:14"
         ),
         BibleVerse(
-            textHy: "Ուստի եթե մեկը Քրիստоսի մեջ է, նա նոր արարած է. հինն անցավ, և ահա ամեն ինչ նոր եղավ։",
+            textHy: "Ուստի եթե մեկը Քրիստոսի մեջ է, նա նոր արարած է. հինն անցավ, և ահա ամեն ինչ նոր եղավ։",
             textRu: "Итак, кто во Христе, тот новая тварь; древнее прошло, теперь все новое.",
             textEn: "Therefore if any man be in Christ, he is a new creature: old things are passed away; behold, all things are become new.",
             refHy: "Բ Կորնթացիներին 5:17",
@@ -567,9 +581,9 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Ով չի սիրում, նա չի ճանաչում Աստծուն, որովհետև Աստված սեր է։",
-            textRu: "Кто не любит, тот не познал Бога, потому что Бог есть любовь.",
+            textRu: "Кто не любит, тот не познал Boga, потому что Бог есть любовь.",
             textEn: "He that loveth not knoweth not God; for God is love.",
-            refHy: "Ա Հովհанնես 4:8",
+            refHy: "Ա Հովհաննես 4:8",
             refRu: "1 Иоанна 4:8",
             refEn: "1 John 4:8"
         ),
@@ -694,7 +708,7 @@ extension BibleVerse {
             refEn: "Psalm 139:13-14"
         ),
         BibleVerse(
-            textHy: "Սովորեցրո՛ւ ինձ կատարել Քո կամքը, որովհետև Դու ես իմ Аստվածը. Քո բարի Հոգին թող ինձ առաջնորդի դեպի ուղիղ երկիր։",
+            textHy: "Սովորեցրո՛ւ ինձ կատարել Քո կամքը, որովհետև Դու ես իմ Աստվածը. Քո բարի Հոգին թող ինձ առաջնորդի դեպի ուղիղ երկիր։",
             textRu: "Научи меня исполнять волю Твою, потому что Ты Бог мой; Дух Твой благий да ведет меня в землю правды.",
             textEn: "Teach me to do thy will; for thou art my God: thy spirit is good; lead me into the land of uprightness.",
             refHy: "Սաղմոսներ 143:10",
@@ -767,7 +781,7 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Որովհետև Աստծու համար անհնարին ոչ մի բան չկա։",
-            textRu: "Ибо у Бога не останется бессильным никакое слово.",
+            textRu: "Ибо у Boga не останется бессильным никакое слово.",
             textEn: "For with God nothing shall be impossible.",
             refHy: "Ղուկաս 1:37",
             refRu: "Луки 1:37",
@@ -799,7 +813,7 @@ extension BibleVerse {
         ),
         // --- МОЛИТВЫ ---
         BibleVerse(
-            textHy: "Հա՛յր մեր, որ երկնքում ես, սուրբ թող լինի Քո անունը. Քո արքայությունը թող գա, Քո կամքը թող լինի երկրի վրա, ինչպես երկնքում։ Մեր հանապազօրյա հացը տո՛ւր մեզ այսօր։ Եվ ներե՛ր մեզ մեր պարտքերը, ինչպես և մենք ենք ներում մեր պարտապաններին։ Եվ մի՛ տանիր մեզ փորձության, այլ փրկի՛ր մեզ չարից։ Որովհետև Քոնն է արքայությունը և զորությունը և փառքը հավիտյանս։ Ամեն։",
+            textHy: "Հա՛յր մեր, որ երկնքում ես, սուրբ թող լինի Քո անունը. Քո արքայությունը թող գա, Քո կամքը թող լինի երկրի վրա, ինչպես երկնքում։ Մեր հանապազօրյա հացը տո՛ւր մեզ այսօր։ Եվ ներե՛ր մեզ мեր պարտքերը, ինչպես և մենք ենք ներում մեր պարտապաններին։ Եվ մի՛ տանիր մեզ փորձության, այլ փրկի՛ր մեզ չարից։ Որովհետև Քոնն է արքայությունը և զորությունը և փառքը հավիտյանս։ Ամեն։",
             textRu: "Отче наш, сущий на небесах! да святится имя Твое; да приидет Царствие Твое; да будет воля Твоя и на земле, как на небе; хлеб наш насущный дай нам на сей день; и прости нам долги наши, как и мы прощаем должникам нашим; и не введи нас в искушение, но избавь нас от лукавого. Ибо Твое есть Царство и сила и слава вовеки. Аминь.",
             textEn: "Our Father which art in heaven, Hallowed be thy name. Thy kingdom come. Thy will be done in earth, as it is in heaven. Give us this day our daily bread. And forgive us our debts, as we forgive our debtors. And lead us not into temptation, but deliver us from evil: For thine is the kingdom, and the power, and the glory, for ever. Amen.",
             refHy: "Տերունական աղոթք",
@@ -853,7 +867,7 @@ extension BibleVerse {
             isPrayer: true
         ),
         BibleVerse(
-            textHy: "Տո՛ւր մեզ Քո խաղաղությունը, Տե՛ր, որը վեր է ամեն մտքից։ Խաղաղեցրու мեր սրտերը, հեռացրու մեր վախերը և տուր մեզ Քո ներկայության ապահովությունը։ Ամեն։",
+            textHy: "Տո՛ւր մեզ Քո խաղաղությունը, Տե՛ր, որը վեր է ամեն մտքից։ Խաղաղեցրու մեր սրտերը, հեռացրու մեր վախերը և տուր մեզ Քո ներկայության ապահովությունը։ Ամեն։",
             textRu: "Даруй нам мир Твой, Господи, который превыше всякого ума. Умиротвори сердца наши, отгони страхи наши и даруй нам уверенность в Твоем присутствии. Аминь.",
             textEn: "Grant us Thy peace, O Lord, which passeth all understanding. Pacify our hearts, take away our fears, and grant us the security of Thy presence. Amen.",
             refHy: "Աղոթագիրք (Խաղաղության)",

@@ -272,10 +272,10 @@ struct ContentView: View {
                             .foregroundColor(primaryTextColor)
                             .padding(.bottom, 2)
                         
-                        InstructionRow(number: "1", text: NSLocalizedString("instruction_step_1", comment: ""))
-                        InstructionRow(number: "2", text: NSLocalizedString("instruction_step_2", comment: ""))
-                        InstructionRow(number: "3", text: NSLocalizedString("instruction_step_3", comment: ""))
-                        InstructionRow(number: "4", text: NSLocalizedString("instruction_step_4", comment: ""))
+                        InstructionRow(number: "1", text: "instruction_step_1".localized(for: manager.appLanguage))
+                        InstructionRow(number: "2", text: "instruction_step_2".localized(for: manager.appLanguage))
+                        InstructionRow(number: "3", text: "instruction_step_3".localized(for: manager.appLanguage))
+                        InstructionRow(number: "4", text: "instruction_step_4".localized(for: manager.appLanguage))
                     }
                     .padding(20)
                     .background(instructionBgColor)
@@ -289,6 +289,7 @@ struct ContentView: View {
                 .padding(.bottom, 30)
             }
         }
+        .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 animateVerse = true
@@ -297,15 +298,15 @@ struct ContentView: View {
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings)
         }
-        .alert(NSLocalizedString("alert_empty_key_title", comment: ""), isPresented: $showingNoKeyAlert) {
-            Button(NSLocalizedString("alert_ok_button", comment: ""), role: .cancel) {
+        .alert("alert_empty_key_title".localized(for: manager.appLanguage), isPresented: $showingNoKeyAlert) {
+            Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {
                 isShowingSettings = true
             }
         } message: {
-            Text(String(format: NSLocalizedString("alert_empty_key_message", comment: ""), manager.activeProvider.displayName))
+            Text(String(format: "alert_empty_key_message".localized(for: manager.appLanguage), manager.activeProvider.displayName))
         }
-        .alert(NSLocalizedString("alert_error_title", comment: ""), isPresented: $showingErrorAlert) {
-            Button(NSLocalizedString("alert_ok_button", comment: ""), role: .cancel) {}
+        .alert("alert_error_title".localized(for: manager.appLanguage), isPresented: $showingErrorAlert) {
+            Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
@@ -352,7 +353,7 @@ struct ContentView: View {
                     animateVerse = true
                 }
             case .failure(let error):
-                let prefix = NSLocalizedString("error_generation_prefix", comment: "")
+                let prefix = "error_generation_prefix".localized(for: manager.appLanguage)
                 errorMessage = "\(prefix)\(error.localizedDescription)"
                 showingErrorAlert = true
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -375,7 +376,7 @@ struct SettingsView: View {
     @ObservedObject var manager = BibleManager.shared
     
     @State private var selectedProvider: AIProvider = .gemini
-    @State private var selectedLanguage: AILanguage = .armenian
+    @State private var selectedLanguage: AppLanguage = .armenian
     @State private var geminiKeyInput = ""
     @State private var openaiKeyInput = ""
     @State private var anthropicKeyInput = ""
@@ -441,9 +442,9 @@ struct SettingsView: View {
                         .padding(.horizontal, 4)
                         .padding(.top, 10)
                         
-                        // MARK: - Выбор языка генерации ИИ
+                        // MARK: - Выбор языка приложения (интерфейса и стихов)
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("ai_language")
+                            Text("ai_language") // В русской локализации это "Язык генерации ИИ", но мы переосмыслим его как язык приложения. В strings заменим название
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(primaryTextColor)
                             
@@ -453,7 +454,7 @@ struct SettingsView: View {
                                 .lineSpacing(4)
                             
                             Picker("ai_language", selection: $selectedLanguage) {
-                                ForEach(AILanguage.allCases) { language in
+                                ForEach(AppLanguage.allCases) { language in
                                     Text(language.displayName).tag(language)
                                 }
                             }
@@ -477,7 +478,7 @@ struct SettingsView: View {
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField(NSLocalizedString("placeholder_gemini_key", comment: ""), text: $geminiKeyInput)
+                                SecureField("placeholder_gemini_key".localized(for: manager.appLanguage), text: $geminiKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
                                     .foregroundColor(primaryTextColor)
                                     .padding()
@@ -506,7 +507,7 @@ struct SettingsView: View {
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField(NSLocalizedString("placeholder_openai_key", comment: ""), text: $openaiKeyInput)
+                                SecureField("placeholder_openai_key".localized(for: manager.appLanguage), text: $openaiKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
                                     .foregroundColor(primaryTextColor)
                                     .padding()
@@ -535,7 +536,7 @@ struct SettingsView: View {
                                     .lineSpacing(4)
                                     .padding(.bottom, 6)
                                 
-                                SecureField(NSLocalizedString("placeholder_anthropic_key", comment: ""), text: $anthropicKeyInput)
+                                SecureField("placeholder_anthropic_key".localized(for: manager.appLanguage), text: $anthropicKeyInput)
                                     .font(.system(size: 15, design: .monospaced))
                                     .foregroundColor(primaryTextColor)
                                     .padding()
@@ -623,7 +624,7 @@ struct SettingsView: View {
                             generator.impactOccurred()
                             
                             manager.setActiveProvider(selectedProvider)
-                            manager.setAILanguage(selectedLanguage)
+                            manager.setAppLanguage(selectedLanguage)
                             
                             // Сохраняем ключи, очищая их от лишних пробелов
                             manager.geminiApiKey = geminiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -632,6 +633,10 @@ struct SettingsView: View {
                             
                             manager.setUpdateInterval(selectedInterval)
                             manager.setSelectedCategory(selectedCategory)
+                            
+                            // Выбираем новый оффлайн стих на выбранном языке, чтобы изменения применились сразу
+                            manager.selectRandomVerse()
+                            
                             isPresented = false
                         } label: {
                             Text("save_button")
@@ -696,7 +701,7 @@ struct SettingsView: View {
             }
             .onAppear {
                 selectedProvider = manager.activeProvider
-                selectedLanguage = manager.aiLanguage
+                selectedLanguage = manager.appLanguage
                 geminiKeyInput = manager.geminiApiKey
                 openaiKeyInput = manager.openaiApiKey
                 anthropicKeyInput = manager.anthropicApiKey
@@ -704,6 +709,7 @@ struct SettingsView: View {
                 selectedCategory = manager.selectedCategory
             }
         }
+        .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
     }
 }
 
@@ -794,5 +800,16 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+}
+
+// MARK: - Расширение локализации String
+extension String {
+    func localized(for language: AppLanguage) -> String {
+        guard let path = Bundle.main.path(forResource: language.localeCode, ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            return NSLocalizedString(self, comment: "")
+        }
+        return bundle.localizedString(forKey: self, value: nil, table: nil)
     }
 }

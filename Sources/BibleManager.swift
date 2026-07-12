@@ -11,7 +11,7 @@ class BibleManager: ObservableObject {
     @Published var updateInterval: UpdateInterval = .everyHour
     @Published var selectedCategory: TextCategory = .both
     @Published var activeProvider: AIProvider = .gemini
-    @Published var aiLanguage: AILanguage = .armenian
+    @Published var appLanguage: AppLanguage = .armenian
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -24,7 +24,7 @@ class BibleManager: ObservableObject {
     private let updateIntervalKey = "widgetUpdateInterval"
     private let categoryKey = "selectedCategory"
     private let activeProviderKey = "active_ai_provider"
-    private let aiLanguageKey = "active_ai_language"
+    private let appLanguageKey = "app_language"
     
     private var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupSuiteName)
@@ -108,13 +108,13 @@ class BibleManager: ObservableObject {
             self.activeProvider = .gemini
         }
         
-        // Загрузка языка генерации ИИ
+        // Загрузка языка приложения
         if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-           let savedLanguageRaw = defaults.string(forKey: aiLanguageKey),
-           let savedLanguage = AILanguage(rawValue: savedLanguageRaw) {
-            self.aiLanguage = savedLanguage
+           let savedLanguageRaw = defaults.string(forKey: appLanguageKey),
+           let savedLanguage = AppLanguage(rawValue: savedLanguageRaw) {
+            self.appLanguage = savedLanguage
         } else {
-            self.aiLanguage = .armenian
+            self.appLanguage = .armenian
         }
     }
     
@@ -127,11 +127,11 @@ class BibleManager: ObservableObject {
         }
     }
     
-    // MARK: - Сохранение языка генерации ИИ
-    func setAILanguage(_ language: AILanguage) {
-        self.aiLanguage = language
+    // MARK: - Сохранение языка приложения
+    func setAppLanguage(_ language: AppLanguage) {
+        self.appLanguage = language
         if let defaults = sharedDefaults {
-            defaults.set(language.rawValue, forKey: aiLanguageKey)
+            defaults.set(language.rawValue, forKey: appLanguageKey)
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
@@ -214,7 +214,7 @@ class BibleManager: ObservableObject {
         
         var request: URLRequest
         let prompt: String
-        switch aiLanguage {
+        switch appLanguage {
         case .armenian:
             prompt = "Դու Աստվածաշնչի փորձագետ ես: Գեներացրու մեկ պատահական, ոգեշնչող, իմաստալից և գեղեցիկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (Արարատ թարգմանությունից): Գրիր ԱՄԲՈՂՋԱԿԱՆ տեքստը, առանց կրճատումների կամ բազմակետերի (...): Տուր միայն մեջբերման տեքստը և հղումը հետևյալ ֆորմատով՝ [Մեջբերում] | [Հղում] (օրինակ՝ Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ | Սաղմոսներ 23:1): Ոչ մի ուրիշ բան մի գրիր:"
         case .russian:

@@ -5,8 +5,8 @@
 "save_button" = "Պահպանել";
 "ai_provider" = "ԱԻ Պրովայդեր";
 "ai_provider_description" = "Ընտրեք արհեստական բանականության մոդելը տողերի գեներացման համար:";
-"ai_language" = "ԱԻ Գեներացման Լեզու";
-"ai_language_description" = "Ընտրեք լեզուն, որով ցանկանում եք գեներացնել նոր տողեր:";
+"ai_language" = "Հավելվածի լեզուն";
+"ai_language_description" = "Ընտրեք հավելվածի, տողերի և ԱԻ գեներացման լեզուն:";
 "gemini_settings_title" = "Gemini AI Կարգավորումներ";
 "gemini_settings_description" = "Մուտքագրեք ձեր Gemini API Key-ը, որպեսզի հավելվածը կարողանա գեներացնել նոր տողեր (gemini-3.5-flash):";
 "chatgpt_settings_title" = "ChatGPT (OpenAI) Կարգավորումներ";

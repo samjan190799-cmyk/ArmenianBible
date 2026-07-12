@@ -5,8 +5,8 @@
 "save_button" = "Сохранить";
 "ai_provider" = "Провайдер ИИ";
 "ai_provider_description" = "Выберите модель искусственного интеллекта для генерации строк:";
-"ai_language" = "Язык генерации ИИ";
-"ai_language_description" = "Выберите язык, на котором хотите генерировать стихи:";
+"ai_language" = "Язык приложения";
+"ai_language_description" = "Выберите язык интерфейса, оффлайн-стихов и ИИ-генерации:";
 "gemini_settings_title" = "Настройки Gemini AI";
 "gemini_settings_description" = "Введите ваш Gemini API Key для генерации стихов (gemini-3.5-flash):";
 "chatgpt_settings_title" = "Настройки ChatGPT (OpenAI)";

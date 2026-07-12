@@ -5,8 +5,8 @@
 "save_button" = "Save";
 "ai_provider" = "AI Provider";
 "ai_provider_description" = "Select the artificial intelligence model for generating verses:";
-"ai_language" = "AI Generation Language";
-"ai_language_description" = "Select the language you want to generate verses in:";
+"ai_language" = "App Language";
+"ai_language_description" = "Select the language for the application, verses, and AI generation:";
 "gemini_settings_title" = "Gemini AI Settings";
 "gemini_settings_description" = "Enter your Gemini API Key to enable AI generation (gemini-3.5-flash):";
 "chatgpt_settings_title" = "ChatGPT (OpenAI) Settings";
