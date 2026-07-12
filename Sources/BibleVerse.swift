@@ -167,12 +167,12 @@ enum TextCategory: String, CaseIterable, Identifiable, Codable {
         }
     }
     
-    var localizedTitle: String {
+    func localizedTitle(for language: AppLanguage) -> String {
         switch self {
-        case .verses: return NSLocalizedString("category_verses", comment: "")
-        case .prayers: return NSLocalizedString("category_prayers", comment: "")
-        case .favorites: return NSLocalizedString("category_favorites", comment: "")
-        case .both: return NSLocalizedString("category_both", comment: "")
+        case .verses: return "category_verses".localized(for: language)
+        case .prayers: return "category_prayers".localized(for: language)
+        case .favorites: return "category_favorites".localized(for: language)
+        case .both: return "category_both".localized(for: language)
         }
     }
 }
@@ -187,13 +187,13 @@ enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
     
     var id: String { self.rawValue }
     
-    var localizedName: String {
+    func localizedName(for language: AppLanguage) -> String {
         switch self {
-        case .indigo: return NSLocalizedString("color_indigo", comment: "")
-        case .gold: return NSLocalizedString("color_gold", comment: "")
-        case .blue: return NSLocalizedString("color_blue", comment: "")
-        case .green: return NSLocalizedString("color_green", comment: "")
-        case .purple: return NSLocalizedString("color_purple", comment: "")
+        case .indigo: return "color_indigo".localized(for: language)
+        case .gold: return "color_gold".localized(for: language)
+        case .blue: return "color_blue".localized(for: language)
+        case .green: return "color_green".localized(for: language)
+        case .purple: return "color_purple".localized(for: language)
         }
     }
     
@@ -240,14 +240,14 @@ enum UpdateInterval: String, CaseIterable, Identifiable, Codable {
         }
     }
     
-    var localizedTitle: String {
+    func localizedTitle(for language: AppLanguage) -> String {
         switch self {
-        case .everyHour: return NSLocalizedString("interval_every_hour", comment: "")
-        case .every6Hours: return NSLocalizedString("interval_every_6_hours", comment: "")
-        case .every12Hours: return NSLocalizedString("interval_every_12_hours", comment: "")
-        case .every24Hours: return NSLocalizedString("interval_every_24_hours", comment: "")
-        case .onScreenActivation: return NSLocalizedString("interval_on_screen_activation", comment: "")
-        case .onTapOnly: return NSLocalizedString("interval_on_tap_only", comment: "")
+        case .everyHour: return "interval_every_hour".localized(for: language)
+        case .every6Hours: return "interval_every_6_hours".localized(for: language)
+        case .every12Hours: return "interval_every_12_hours".localized(for: language)
+        case .every24Hours: return "interval_every_24_hours".localized(for: language)
+        case .onScreenActivation: return "interval_on_screen_activation".localized(for: language)
+        case .onTapOnly: return "interval_on_tap_only".localized(for: language)
         }
     }
 }

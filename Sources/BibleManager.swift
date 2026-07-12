@@ -488,11 +488,13 @@ class BibleManager: ObservableObject {
                     }
                     
                     if let msg = errorMsg {
-                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "\(self?.activeProvider.displayName ?? "AI") API: \(msg)"])))
+                        let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
+                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                         return
                     }
                 }
-                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])))
+                let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
+                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                 return
             }
             
@@ -686,11 +688,13 @@ class BibleManager: ObservableObject {
                         errorMsg = errorDict
                     }
                     if let msg = errorMsg {
-                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "\(self?.activeProvider.displayName ?? "AI") API: \(msg)"])))
+                        let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
+                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                         return
                     }
                 }
-                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])))
+                let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
+                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                 return
             }
             
@@ -851,11 +855,13 @@ class BibleManager: ObservableObject {
                         errorMsg = errorDict
                     }
                     if let msg = errorMsg {
-                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "\(self?.activeProvider.displayName ?? "AI") API: \(msg)"])))
+                        let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
+                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                         return
                     }
                 }
-                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])))
+                let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
+                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                 return
             }
             
@@ -926,6 +932,50 @@ class BibleManager: ObservableObject {
                 completion(.failure(error))
             }
         }.resume()
+    }
+    
+    // MARK: - Парсинг и локализация ошибок ИИ
+    func getFriendlyErrorMessage(for provider: AIProvider, statusCode: Int, rawMessage: String) -> String {
+        let msg = rawMessage.lowercased()
+        
+        // 1. Проверяем нехватку баланса (Out of Credits)
+        if msg.contains("credit balance is too low") || msg.contains("insufficient_quota") || msg.contains("billing") || msg.contains("credits") {
+            switch appLanguage {
+            case .armenian:
+                return "Ձեր \(provider.displayName) API հաշվեկշռին բավարար միջոցներ չկան: Այս սահմանաչափը ինքնաբերաբար չի վերականգնվում, անհրաժեշտ է լիցքավորել հաշիվը \(provider == .claude ? "Anthropic" : (provider == .chatgpt ? "OpenAI" : "Google")) կայքում:"
+            case .russian:
+                return "Недостаточно средств на балансе вашего аккаунта \(provider.displayName) API. Этот лимит не восстанавливается автоматически, вам нужно пополнить баланс в личном кабинете \(provider == .claude ? "Anthropic" : (provider == .chatgpt ? "OpenAI" : "Google"))."
+            case .english:
+                return "Your \(provider.displayName) API credit balance is too low. This limit does not restore automatically; you need to top up your balance in your \(provider == .claude ? "Anthropic" : (provider == .chatgpt ? "OpenAI" : "Google")) developer dashboard."
+            }
+        }
+        
+        // 2. Проверяем лимит частоты запросов (Rate Limit)
+        if msg.contains("rate limit") || msg.contains("too many requests") || msg.contains("rate_limit_exceeded") || statusCode == 429 {
+            switch appLanguage {
+            case .armenian:
+                return "Հարցումների սահմանաչափը գերազանցվել է: Այս սահմանաչափը վերականգնվում է ինքնաբերաբար: Խնդրում ենք սպասել 1-ից 5 րոպե նորից փորձելուց առաջ:"
+            case .russian:
+                return "Превышен лимит запросов. Этот лимит восстанавливается автоматически. Пожалуйста, подождите от 1 до 5 минут перед повторной попыткой."
+            case .english:
+                return "Rate limit exceeded. This limit restores automatically. Please wait 1 to 5 minutes before trying again."
+            }
+        }
+        
+        // 3. Проверяем неверный ключ (Invalid API Key)
+        if msg.contains("invalid api key") || msg.contains("invalid_api_key") || msg.contains("key is invalid") || msg.contains("authentication") || msg.contains("unauthorized") || statusCode == 401 {
+            switch appLanguage {
+            case .armenian:
+                return "Անվավեր API բանալի: Խնդրում ենք ստուգել բանալու ճշտությունը հավելվածի Կարգավորումներում:"
+            case .russian:
+                return "Неверный API-ключ. Проверьте правильность ввода ключа в Настройках приложения."
+            case .english:
+                return "Invalid API Key. Please check the correctness of the key in the app Settings."
+            }
+        }
+        
+        // По умолчанию возвращаем исходное сообщение от провайдера
+        return "\(provider.displayName) API: \(rawMessage)"
     }
 }
 

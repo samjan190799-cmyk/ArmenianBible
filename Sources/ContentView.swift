@@ -1456,7 +1456,7 @@ struct SettingsView: View {
                             
                             Picker("update_interval_title", selection: $selectedInterval) {
                                 ForEach(UpdateInterval.allCases) { interval in
-                                    Text(interval.localizedTitle).tag(interval)
+                                    Text(interval.localizedTitle(for: selectedLanguage)).tag(interval)
                                 }
                             }
                             .pickerStyle(.menu)
@@ -1486,7 +1486,7 @@ struct SettingsView: View {
                             
                             Picker("content_type_title", selection: $selectedCategory) {
                                 ForEach(TextCategory.allCases) { category in
-                                    Text(category.localizedTitle).tag(category)
+                                    Text(category.localizedTitle(for: selectedLanguage)).tag(category)
                                 }
                             }
                             .pickerStyle(.menu)
