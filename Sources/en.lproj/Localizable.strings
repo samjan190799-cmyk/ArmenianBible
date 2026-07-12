@@ -71,3 +71,31 @@
 "favorite_added" = "Added to Favorites";
 "favorite_removed" = "Removed from Favorites";
 
+/* Tabs */
+"tab_home" = "Home";
+"tab_ai_guide" = "AI Guide";
+"tab_explanation" = "Commentary";
+
+/* AI Guide screen */
+"ai_guide_title" = "Spiritual Guide";
+"ai_guide_subtitle" = "Select a state of mind or write your request to get a tailored Bible verse or prayer.";
+"ai_placeholder_prompt" = "Write your custom request (e.g. prayer for peace)...";
+"button_ask_ai" = "Ask AI";
+"mood_comfort" = "Comfort";
+"mood_gratitude" = "Gratitude";
+"mood_hope" = "Hope";
+"mood_peace" = "Peace";
+"mood_wisdom" = "Wisdom";
+"mood_strength" = "Strength";
+
+/* Explanation screen */
+"explain_title" = "Commentary";
+"explain_subtitle" = "Deep theological analysis and context of the active verse.";
+"button_generate_explanation" = "Explain Current Verse";
+"explain_depth_short" = "Summary";
+"explain_depth_history" = "Context";
+"explain_depth_life" = "Practical Use";
+"explain_loading" = "Theologian AI is reflecting...";
+"explain_no_key" = "Configure your AI API Key in Settings to get spiritual interpretations.";
+"explain_welcome" = "Tap the button below to generate a deep theological commentary for the current verse.";
+

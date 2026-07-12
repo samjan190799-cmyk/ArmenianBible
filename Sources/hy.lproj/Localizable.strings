@@ -71,3 +71,31 @@
 "favorite_added" = "Ավելացվեց ընտրյալների մեջ";
 "favorite_removed" = "Հեռացվեց ընտրյալներից";
 
+/* Tabs */
+"tab_home" = "Գլխավոր";
+"tab_ai_guide" = "Օգնական";
+"tab_explanation" = "Մեկնաբանում";
+
+/* AI Guide screen */
+"ai_guide_title" = "Հոգևոր Օգնական";
+"ai_guide_subtitle" = "Ընտրեք հոգեկան վիճակը կամ գրեք ձեր խնդրանքը, որպեսզի ԱԻ-ն ընտրի աստվածաշնչյան տող կամ գրի աղոթք:";
+"ai_placeholder_prompt" = "Մուտքագրեք ձեր հարցումը (օրինակ՝ աղոթք խաղաղության համար)...";
+"button_ask_ai" = "Հարցնել ԱԻ-ին";
+"mood_comfort" = "Մխիթարություն";
+"mood_gratitude" = "Գոհություն";
+"mood_hope" = "Հույս";
+"mood_peace" = "Խաղաղություն";
+"mood_wisdom" = "Իմաստություն";
+"mood_strength" = "Ուժ";
+
+/* Explanation screen */
+"explain_title" = "Մեկնաբանում";
+"explain_subtitle" = "Աստվածաշնչյան տողի խորը հոգևոր և աստվածաբանական վերլուծություն:";
+"button_generate_explanation" = "Մեկնաբանել տողը";
+"explain_depth_short" = "Իմաստ";
+"explain_depth_history" = "Կոնտեքստ";
+"explain_depth_life" = "Կիրառում";
+"explain_loading" = "ԱԻ-Աստվածաբանը խորհում է...";
+"explain_no_key" = "Մեկնաբանություններ ստանալու համար մուտքագրեք ձեր API բանալին Կարգավորումներում:";
+"explain_welcome" = "Սեղմեք ներքևի կոճակը՝ ընթացիկ տողի խորը աստվածաբանական մեկնաբանությունը գեներացնելու համար:";
+

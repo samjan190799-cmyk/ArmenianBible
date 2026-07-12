@@ -71,3 +71,31 @@
 "favorite_added" = "Добавлено в Избранное";
 "favorite_removed" = "Удалено из Избранного";
 
+/* Tabs */
+"tab_home" = "Главная";
+"tab_ai_guide" = "Проводник";
+"tab_explanation" = "Толкование";
+
+/* AI Guide screen */
+"ai_guide_title" = "Духовный Проводник";
+"ai_guide_subtitle" = "Выберите душевное состояние или введите запрос, чтобы ИИ подобрал библейский стих или составил молитву.";
+"ai_placeholder_prompt" = "Введите ваш запрос (например, молитва о мире)...";
+"button_ask_ai" = "Спросить ИИ";
+"mood_comfort" = "Утешение";
+"mood_gratitude" = "Благодарность";
+"mood_hope" = "Надежда";
+"mood_peace" = "Мир в душе";
+"mood_wisdom" = "Мудрость";
+"mood_strength" = "Сила духа";
+
+/* Explanation screen */
+"explain_title" = "Толкование";
+"explain_subtitle" = "Глубокий духовный и богословский анализ текущего стиха.";
+"button_generate_explanation" = "Объяснить текущий стих";
+"explain_depth_short" = "Суть";
+"explain_depth_history" = "Контекст";
+"explain_depth_life" = "Жизнь";
+"explain_loading" = "ИИ-Богослов размышляет...";
+"explain_no_key" = "Пожалуйста, введите ваш API-ключ в Настройках для получения толкования стихов.";
+"explain_welcome" = "Нажмите кнопку ниже, чтобы сгенерировать глубокое толкование для текущего библейского стиха.";
+

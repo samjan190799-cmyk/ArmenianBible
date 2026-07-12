@@ -567,4 +567,365 @@ class BibleManager: ObservableObject {
             }
         }.resume()
     }
+    
+    // MARK: - Состояние генерации текста толкования
+    @Published var isGeneratingText: Bool = false
+    
+    // MARK: - Общая генерация текста через ИИ (для толкований и свободных молитв)
+    func generateTextFromAI(prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
+        let apiKey: String
+        switch activeProvider {
+        case .gemini:
+            apiKey = geminiApiKey
+        case .chatgpt:
+            apiKey = openaiApiKey
+        case .claude:
+            apiKey = anthropicApiKey
+        }
+        
+        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is missing"])))
+            return
+        }
+        
+        var request: URLRequest
+        switch activeProvider {
+        case .gemini:
+            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=\(apiKey)") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "contents": [
+                    [
+                        "parts": [
+                            ["text": prompt]
+                        ]
+                    ]
+                ]
+            ]
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = jsonData
+            
+        case .chatgpt:
+            guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "model": "gpt-4o-mini", // более стабильная модель, т.к. gpt-5.5 не существует
+                "messages": [
+                    ["role": "user", "content": prompt]
+                ]
+            ]
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.httpBody = jsonData
+            
+        case .claude:
+            guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "model": "claude-3-5-sonnet-20241022", // реальное имя модели Claude 3.5 Sonnet
+                "max_tokens": 1024,
+                "messages": [
+                    ["role": "user", "content": prompt]
+                ]
+            ]
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            request.httpBody = jsonData
+        }
+        
+        DispatchQueue.main.async {
+            self.isGeneratingText = true
+        }
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                self?.isGeneratingText = false
+            }
+            
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                if let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    var errorMsg: String? = nil
+                    if let errorDict = errJson["error"] as? [String: Any] {
+                        errorMsg = errorDict["message"] as? String
+                    } else if let errorDict = errJson["error"] as? String {
+                        errorMsg = errorDict
+                    }
+                    if let msg = errorMsg {
+                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "\(self?.activeProvider.displayName ?? "AI") API: \(msg)"])))
+                        return
+                    }
+                }
+                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])))
+                return
+            }
+            
+            do {
+                guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    return
+                }
+                
+                var extractedText: String? = nil
+                switch self?.activeProvider {
+                case .gemini:
+                    if let candidates = jsonResponse["candidates"] as? [[String: Any]],
+                       let firstCandidate = candidates.first,
+                       let content = firstCandidate["content"] as? [String: Any],
+                       let parts = content["parts"] as? [[String: Any]],
+                       let firstPart = parts.first {
+                        extractedText = firstPart["text"] as? String
+                    }
+                case .chatgpt:
+                    if let choices = jsonResponse["choices"] as? [[String: Any]],
+                       let firstChoice = choices.first,
+                       let message = firstChoice["message"] as? [String: Any] {
+                        extractedText = message["content"] as? String
+                    }
+                case .claude:
+                    if let contentList = jsonResponse["content"] as? [[String: Any]],
+                       let firstContent = contentList.first {
+                        extractedText = firstContent["text"] as? String
+                    }
+                default:
+                    break
+                }
+                
+                if let resultText = extractedText {
+                    completion(.success(resultText.trimmingCharacters(in: .whitespacesAndNewlines)))
+                } else {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                }
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+    
+    // MARK: - Подбор библейского стиха под тему / настроение пользователя
+    func generateContextVerse(mood: String, customPrompt: String?, completion: @escaping (Result<BibleVerse, Error>) -> Void) {
+        let targetTopic = customPrompt?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? (customPrompt ?? "") : mood
+        
+        let prompt: String
+        switch appLanguage {
+        case .armenian:
+            prompt = "Դու Աստվածաշնչի փորձագետ ես: Գտիր կամ գեներացրու մեկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (Արարատ թարգմանությունից), որը լավագույնս համապատասխանում է հետևյալ թեմային կամ տրամադրությանը՝ «\(targetTopic)»։ Գրիր ԱՄԲՈՂՋԱԿԱՆ տեքստը, առանց կրճատումների: Տուր միայն մեջբերման տեքստը և հղումը հետևյալ ֆորմատով՝ [Մեջբերում] | [Հղում] (օրինակ՝ Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ | Սաղմոսներ 23:1): Ոչ մի ուրիշ բան մի գրիր:"
+        case .russian:
+            prompt = "Ты эксперт по Библии. Найди или сгенерируй одну библейскую цитату на русском языке (из Синодального перевода), которая идеально подходит под следующую тему или настроение: «\(targetTopic)». Пиши ПОЛНЫЙ текст цитаты без сокращений. Выдай только текст цитаты и ссылку на нее в следующем формате: [Цитата] | [Ссылка] (например: Господь — Пастырь мой; я ни в чем не буду нуждаться. | Псалом 22:1). Больше ничего не пиши."
+        case .english:
+            prompt = "You are a Bible expert. Find or generate a Bible quote in English (KJV or ESV translation) that perfectly fits the following theme or mood: \"\(targetTopic)\". Write the COMPLETE text of the quote without abbreviations. Return only the quote text and the reference in the following format: [Quote] | [Reference] (example: The Lord is my shepherd; I shall not want. | Psalm 23:1). Do not write anything else."
+        }
+        
+        let apiKey: String
+        switch activeProvider {
+        case .gemini:
+            apiKey = geminiApiKey
+        case .chatgpt:
+            apiKey = openaiApiKey
+        case .claude:
+            apiKey = anthropicApiKey
+        }
+        
+        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is missing"])))
+            return
+        }
+        
+        var request: URLRequest
+        switch activeProvider {
+        case .gemini:
+            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=\(apiKey)") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "contents": [["parts": [["text": prompt]]]]
+            ]
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = jsonData
+            
+        case .chatgpt:
+            guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "model": "gpt-4o-mini",
+                "messages": [["role": "user", "content": prompt]]
+            ]
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.httpBody = jsonData
+            
+        case .claude:
+            guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
+                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                return
+            }
+            let requestBody: [String: Any] = [
+                "model": "claude-3-5-sonnet-20241022",
+                "max_tokens": 1024,
+                "messages": [["role": "user", "content": prompt]]
+            ]
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                return
+            }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            request.httpBody = jsonData
+        }
+        
+        isGeneratingAI = true
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                self?.isGeneratingAI = false
+            }
+            
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                if let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    var errorMsg: String? = nil
+                    if let errorDict = errJson["error"] as? [String: Any] {
+                        errorMsg = errorDict["message"] as? String
+                    } else if let errorDict = errJson["error"] as? String {
+                        errorMsg = errorDict
+                    }
+                    if let msg = errorMsg {
+                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "\(self?.activeProvider.displayName ?? "AI") API: \(msg)"])))
+                        return
+                    }
+                }
+                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])))
+                return
+            }
+            
+            do {
+                guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    return
+                }
+                
+                var extractedText: String? = nil
+                switch self?.activeProvider {
+                case .gemini:
+                    if let candidates = jsonResponse["candidates"] as? [[String: Any]],
+                       let firstCandidate = candidates.first,
+                       let content = firstCandidate["content"] as? [String: Any],
+                       let parts = content["parts"] as? [[String: Any]],
+                       let firstPart = parts.first {
+                        extractedText = firstPart["text"] as? String
+                    }
+                case .chatgpt:
+                    if let choices = jsonResponse["choices"] as? [[String: Any]],
+                       let firstChoice = choices.first,
+                       let message = firstChoice["message"] as? [String: Any] {
+                        extractedText = message["content"] as? String
+                    }
+                case .claude:
+                    if let contentList = jsonResponse["content"] as? [[String: Any]],
+                       let firstContent = contentList.first {
+                        extractedText = firstContent["text"] as? String
+                    }
+                default:
+                    break
+                }
+                
+                guard let textResult = extractedText else {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                    return
+                }
+                
+                let cleanResult = textResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                let components = cleanResult.components(separatedBy: "|")
+                
+                if components.count >= 2 {
+                    let text = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                    let reference = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"”'«»"))
+                    
+                    let newVerse = BibleVerse(text: text, reference: reference)
+                    DispatchQueue.main.async {
+                        self?.updateCurrentVerse(newVerse)
+                    }
+                    completion(.success(newVerse))
+                } else {
+                    let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                    if !cleanText.isEmpty {
+                        let newVerse = BibleVerse(text: cleanText, reference: "Armenian Bible")
+                        DispatchQueue.main.async {
+                            self?.updateCurrentVerse(newVerse)
+                        }
+                        completion(.success(newVerse))
+                    } else {
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
+                    }
+                }
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
 }
+

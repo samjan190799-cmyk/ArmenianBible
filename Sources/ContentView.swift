@@ -2,6 +2,38 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var manager = BibleManager.shared
+    @State private var selectedTab = 0
+    
+    private var accentColor: Color {
+        Color(hex: manager.accentTheme.colorHex)
+    }
+    
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            HomeView()
+                .tabItem {
+                    Label("tab_home".localized(for: manager.appLanguage), systemImage: "house.fill")
+                }
+                .tag(0)
+            
+            AIGuideView()
+                .tabItem {
+                    Label("tab_ai_guide".localized(for: manager.appLanguage), systemImage: "sparkles")
+                }
+                .tag(1)
+            
+            ExplanationView()
+                .tabItem {
+                    Label("tab_explanation".localized(for: manager.appLanguage), systemImage: "book.fill")
+                }
+                .tag(2)
+        }
+        .tint(accentColor)
+    }
+}
+
+struct HomeView: View {
+    @ObservedObject var manager = BibleManager.shared
     @State private var animateVerse = false
     @State private var isShowingSettings = false
     
@@ -551,6 +583,607 @@ struct ActivityView: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - ЭКРАН ИИ РУКОВОДСТВА (AI Guide View)
+struct AIGuideView: View {
+    @ObservedObject var manager = BibleManager.shared
+    @State private var customPrompt = ""
+    @State private var selectedMood: String? = nil
+    @State private var generatedVerse: BibleVerse? = nil
+    
+    // Ошибки
+    @State private var showingErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var showingNoKeyAlert = false
+    
+    // Карточка
+    @State private var shareImage: UIImage? = nil
+    @State private var isShowingShareSheet = false
+    @State private var animateVerse = false
+    
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var accentColor: Color {
+        Color(hex: manager.accentTheme.colorHex)
+    }
+    private var secondaryAccentColor: Color {
+        Color(hex: manager.accentTheme.secondaryColorHex)
+    }
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+    }
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
+    }
+    private var cardBorderColor: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : Color(hex: "1E293B")
+    }
+    
+    struct MoodItem: Identifiable {
+        let id = UUID()
+        let key: String
+        let icon: String
+        let moodNameEn: String
+    }
+    
+    private let moods = [
+        MoodItem(key: "mood_comfort", icon: "heart.text.square.fill", moodNameEn: "Comfort"),
+        MoodItem(key: "mood_gratitude", icon: "hands.sparkles.fill", moodNameEn: "Gratitude"),
+        MoodItem(key: "mood_hope", icon: "sun.max.fill", moodNameEn: "Hope"),
+        MoodItem(key: "mood_peace", icon: "wind", moodNameEn: "Peace"),
+        MoodItem(key: "mood_wisdom", icon: "book.closed.fill", moodNameEn: "Wisdom"),
+        MoodItem(key: "mood_strength", icon: "shield.fill", moodNameEn: "Strength")
+    ]
+    
+    var body: some View {
+        ZStack {
+            backgroundColor.ignoresSafeArea()
+            
+            // Фоновое свечение
+            RadialGradient(
+                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.06 : 0.04), Color.clear]),
+                center: .top,
+                startRadius: 50,
+                endRadius: 350
+            )
+            .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Заголовок
+                    VStack(spacing: 6) {
+                        Text("ai_guide_title".localized(for: manager.appLanguage))
+                            .font(.system(size: 26, weight: .bold, design: .serif))
+                            .foregroundColor(primaryTextColor)
+                        Text("ai_guide_subtitle".localized(for: manager.appLanguage))
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                    }
+                    .padding(.top, 16)
+                    
+                    // Сетка настроений
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                        ForEach(moods) { mood in
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(selectedMood == mood.moodNameEn ? accentColor.opacity(0.12) : cardBackgroundColor)
+                                    .background(.ultraThinMaterial)
+                                
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(selectedMood == mood.moodNameEn ? accentColor : Color.primary.opacity(0.06), lineWidth: 1.2)
+                                
+                                HStack(spacing: 12) {
+                                    Image(systemName: mood.icon)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(selectedMood == mood.moodNameEn ? accentColor : secondaryAccentColor.opacity(0.8))
+                                    Text(mood.key.localized(for: manager.appLanguage))
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(primaryTextColor)
+                                }
+                                .padding(.vertical, 16)
+                                .padding(.horizontal, 10)
+                            }
+                            .onTapGesture {
+                                triggerHaptic(.light)
+                                selectedMood = mood.moodNameEn
+                                customPrompt = ""
+                                generatedVerse = nil
+                                startAIGeneration(mood: mood.moodNameEn, custom: nil)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Поле ввода запроса
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 10) {
+                            TextField("ai_placeholder_prompt".localized(for: manager.appLanguage), text: $customPrompt)
+                                .font(.system(size: 14))
+                                .padding()
+                                .background(cardBackgroundColor)
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(customPrompt.isEmpty ? Color.primary.opacity(0.06) : accentColor.opacity(0.5), lineWidth: 1.2)
+                                )
+                                .onChange(of: customPrompt) { _ in
+                                    if !customPrompt.isEmpty {
+                                        selectedMood = nil
+                                    }
+                                }
+                            
+                            Button {
+                                triggerHaptic(.medium)
+                                selectedMood = nil
+                                generatedVerse = nil
+                                startAIGeneration(mood: "", custom: customPrompt)
+                            } label: {
+                                Image(systemName: "arrow.right.circle.fill")
+                                    .font(.system(size: 38))
+                                    .foregroundColor(customPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .secondary.opacity(0.3) : accentColor)
+                            }
+                            .disabled(customPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || manager.isGeneratingAI)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Результат
+                    if manager.isGeneratingAI {
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .tint(accentColor)
+                            Text("explain_loading".localized(for: manager.appLanguage))
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 40)
+                    } else if let verse = generatedVerse {
+                        VStack(spacing: 20) {
+                            Image(systemName: "laurel.leading")
+                                .font(.system(size: 28))
+                                .foregroundColor(secondaryAccentColor.opacity(0.7))
+                            
+                            Text(verse.text)
+                                .font(.system(size: 19, weight: .medium, design: .serif))
+                                .foregroundColor(primaryTextColor)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(8)
+                                .padding(.horizontal, 10)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .opacity(animateVerse ? 1 : 0)
+                                .offset(y: animateVerse ? 0 : 15)
+                            
+                            Text(verse.reference)
+                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .foregroundColor(secondaryAccentColor)
+                                .padding(.top, 4)
+                                .opacity(animateVerse ? 0.8 : 0)
+                                .offset(y: animateVerse ? 0 : 10)
+                            
+                            HStack(spacing: 24) {
+                                // Лайк
+                                Button {
+                                    triggerHaptic(.light)
+                                    if manager.isFavorite(verse) {
+                                        manager.removeFromFavorites(verse)
+                                    } else {
+                                        manager.addToFavorites(verse)
+                                    }
+                                } label: {
+                                    Image(systemName: manager.isFavorite(verse) ? "heart.fill" : "heart")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(manager.isFavorite(verse) ? .red : primaryTextColor.opacity(0.4))
+                                        .padding(10)
+                                        .background(primaryTextColor.opacity(0.04))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                                
+                                // Поделиться
+                                Button {
+                                    triggerHaptic(.medium)
+                                    shareVerse(verse)
+                                } label: {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(primaryTextColor.opacity(0.4))
+                                        .padding(10)
+                                        .background(primaryTextColor.opacity(0.04))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                            .padding(.top, 8)
+                            .opacity(animateVerse ? 1 : 0)
+                        }
+                        .padding(26)
+                        .background(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(cardBackgroundColor)
+                                .background(.ultraThinMaterial)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .stroke(cardBorderColor, lineWidth: 1.2)
+                        )
+                        .padding(.horizontal, 20)
+                        .onAppear {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                animateVerse = true
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, 40)
+            }
+        }
+        .sheet(isPresented: $isShowingShareSheet) {
+            if let image = shareImage {
+                ActivityView(activityItems: [image])
+            }
+        }
+        .alert("alert_empty_key_title".localized(for: manager.appLanguage), isPresented: $showingNoKeyAlert) {
+            Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
+        } message: {
+            Text(String(format: "alert_empty_key_message".localized(for: manager.appLanguage), manager.activeProvider.displayName))
+        }
+        .alert("alert_error_title".localized(for: manager.appLanguage), isPresented: $showingErrorAlert) {
+            Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+    }
+    
+    private func startAIGeneration(mood: String, custom: String?) {
+        let key: String
+        switch manager.activeProvider {
+        case .gemini:
+            key = manager.geminiApiKey
+        case .chatgpt:
+            key = manager.openaiApiKey
+        case .claude:
+            key = manager.anthropicApiKey
+        }
+        
+        if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            triggerHaptic(.heavy)
+            showingNoKeyAlert = true
+            return
+        }
+        
+        animateVerse = false
+        manager.generateContextVerse(mood: mood, customPrompt: custom) { result in
+            switch result {
+            case .success(let verse):
+                DispatchQueue.main.async {
+                    self.generatedVerse = verse
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        self.animateVerse = true
+                    }
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    let prefix = "error_generation_prefix".localized(for: manager.appLanguage)
+                    self.errorMessage = "\(prefix)\(error.localizedDescription)"
+                    self.showingErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    @MainActor
+    private func shareVerse(_ verse: BibleVerse) {
+        let exportView = VerseCardExportView(
+            verse: verse,
+            theme: manager.accentTheme,
+            colorScheme: colorScheme
+        )
+        let hostingController = UIHostingController(rootView: exportView)
+        hostingController.view.frame = CGRect(x: 0, y: 0, width: 1080, height: 1080)
+        hostingController.view.backgroundColor = .clear
+        hostingController.view.setNeedsLayout()
+        hostingController.view.layoutIfNeeded()
+        
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1080, height: 1080))
+        let image = renderer.image { context in
+            hostingController.view.drawHierarchy(in: hostingController.view.bounds, afterScreenUpdates: true)
+        }
+        self.shareImage = image
+        self.isShowingShareSheet = true
+    }
+    
+    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
+}
+
+// MARK: - ЭКРАН ТОЛКОВАНИЯ (Explanation View)
+struct ExplanationView: View {
+    @ObservedObject var manager = BibleManager.shared
+    @State private var explanationText = ""
+    @State private var selectedDepth = 0 // 0 = суть, 1 = контекст, 2 = жизнь
+    
+    // Ошибки
+    @State private var showingErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var showingNoKeyAlert = false
+    
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var accentColor: Color {
+        Color(hex: manager.accentTheme.colorHex)
+    }
+    private var secondaryAccentColor: Color {
+        Color(hex: manager.accentTheme.secondaryColorHex)
+    }
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+    }
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
+    }
+    private var cardBorderColor: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : Color(hex: "1E293B")
+    }
+    
+    var body: some View {
+        ZStack {
+            backgroundColor.ignoresSafeArea()
+            
+            RadialGradient(
+                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.05 : 0.03), Color.clear]),
+                center: .top,
+                startRadius: 50,
+                endRadius: 300
+            )
+            .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Заголовок
+                    VStack(spacing: 6) {
+                        Text("explain_title".localized(for: manager.appLanguage))
+                            .font(.system(size: 26, weight: .bold, design: .serif))
+                            .foregroundColor(primaryTextColor)
+                        Text("explain_subtitle".localized(for: manager.appLanguage))
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                    }
+                    .padding(.top, 16)
+                    
+                    // Блок текущего стиха
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "quote.opening")
+                                .font(.system(size: 14))
+                                .foregroundColor(secondaryAccentColor)
+                            Text(manager.currentVerse.reference)
+                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .foregroundColor(secondaryAccentColor)
+                        }
+                        
+                        Text(manager.currentVerse.text)
+                            .font(.system(size: 15, weight: .medium, design: .serif))
+                            .foregroundColor(primaryTextColor.opacity(0.85))
+                            .lineSpacing(5)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(20)
+                    .background(cardBackgroundColor)
+                    .cornerRadius(18)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(cardBorderColor, lineWidth: 1.2)
+                    )
+                    .padding(.horizontal, 20)
+                    
+                    // Выбор глубины погружения
+                    VStack(alignment: .leading, spacing: 10) {
+                        Picker("Depth", selection: $selectedDepth) {
+                            Text("explain_depth_short".localized(for: manager.appLanguage)).tag(0)
+                            Text("explain_depth_history".localized(for: manager.appLanguage)).tag(1)
+                            Text("explain_depth_life".localized(for: manager.appLanguage)).tag(2)
+                        }
+                        .pickerStyle(.segmented)
+                        .tint(accentColor)
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Кнопка запуска
+                    Button {
+                        triggerHaptic(.medium)
+                        runTheologicalExplanation()
+                    } label: {
+                        HStack(spacing: 10) {
+                            if manager.isGeneratingText {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "book.pages.fill")
+                                    .font(.system(size: 15))
+                                Text("button_generate_explanation".localized(for: manager.appLanguage))
+                            }
+                        }
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(accentColor)
+                        .cornerRadius(14)
+                        .shadow(color: accentColor.opacity(colorScheme == .dark ? 0.3 : 0.2), radius: 8, y: 4)
+                    }
+                    .disabled(manager.isGeneratingText)
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.horizontal, 20)
+                    
+                    // Результат
+                    if manager.isGeneratingText {
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .tint(accentColor)
+                            Text("explain_loading".localized(for: manager.appLanguage))
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 60)
+                    } else if !explanationText.isEmpty {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "cross.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(secondaryAccentColor)
+                                Text("explain_title".localized(for: manager.appLanguage))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(secondaryAccentColor)
+                            }
+                            .padding(.bottom, 4)
+                            
+                            Text(explanationText)
+                                .font(.system(size: 15, weight: .regular))
+                                .foregroundColor(primaryTextColor)
+                                .lineSpacing(7)
+                        }
+                        .padding(24)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(cardBackgroundColor)
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(cardBorderColor, lineWidth: 1.2)
+                        )
+                        .padding(.horizontal, 20)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    } else {
+                        // Приветственное состояние
+                        VStack(spacing: 12) {
+                            Image(systemName: "book.closed")
+                                .font(.system(size: 40))
+                                .foregroundColor(secondaryAccentColor.opacity(0.4))
+                            Text("explain_welcome".localized(for: manager.appLanguage))
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                        }
+                        .padding(.vertical, 60)
+                    }
+                }
+                .padding(.bottom, 40)
+            }
+        }
+        .onChange(of: manager.currentVerse) { _ in
+            // Сбрасываем текст при смене текущего стиха
+            explanationText = ""
+        }
+        .alert("alert_empty_key_title".localized(for: manager.appLanguage), isPresented: $showingNoKeyAlert) {
+            Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
+        } message: {
+            Text(String(format: "explain_no_key".localized(for: manager.appLanguage)))
+        }
+        .alert("alert_error_title".localized(for: manager.appLanguage), isPresented: $showingErrorAlert) {
+            Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+    }
+    
+    private func runTheologicalExplanation() {
+        let key: String
+        switch manager.activeProvider {
+        case .gemini:
+            key = manager.geminiApiKey
+        case .chatgpt:
+            key = manager.openaiApiKey
+        case .claude:
+            key = manager.anthropicApiKey
+        }
+        
+        if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            triggerHaptic(.heavy)
+            showingNoKeyAlert = true
+            return
+        }
+        
+        let depthPrompt: String
+        switch selectedDepth {
+        case 0:
+            depthPrompt = "Focus on the brief spiritual summary and key theological message."
+        case 1:
+            depthPrompt = "Focus deeply on the historical context, the original Greek/Hebrew translation nuances, and background of the writing."
+        default:
+            depthPrompt = "Focus on how this verse applies directly to contemporary daily life, and how to practice its message."
+        }
+        
+        let prompt: String
+        switch manager.appLanguage {
+        case .armenian:
+            prompt = "Դու Աստվածաշնչի փորձագետ և աստվածաբան ես: Բացատրիր և մեկնաբանիր հետևյալ աստվածաշնչյան մեջբերումը՝ «\(manager.currentVerse.text)» (\(manager.currentVerse.reference)): Տուր խորը, բայց հասկանալի բացատրություն հայերեն լեզվով: \(depthPrompt) Գրիր գեղեցիկ, կառուցվածքային, բաժանված պարագրաֆների:"
+        case .russian:
+            prompt = "Ты эксперт по Библии и богословию. Объясни и истолкуй следующий библейский стих: «\(manager.currentVerse.text)» (\(manager.currentVerse.reference)). Дай глубокое, богословское, но понятное толкование на русском языке. \(depthPrompt) Пиши структурированно, разделяя текст на логические абзацы."
+        case .english:
+            prompt = "You are a Bible expert and theologian. Explain and interpret the following Bible verse: \"\(manager.currentVerse.text)\" (\(manager.currentVerse.reference)). Provide a deep theological but easy-to-understand explanation in English. \(depthPrompt) Write in clean, structured paragraphs."
+        }
+        
+        manager.generateTextFromAI(prompt: prompt) { result in
+            switch result {
+            case .success(let text):
+                DispatchQueue.main.async {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.explanationText = text
+                    }
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    let prefix = "error_generation_prefix".localized(for: manager.appLanguage)
+                    self.errorMessage = "\(prefix)\(error.localizedDescription)"
+                    self.showingErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
 }
 
 // MARK: - Экран Настроек (Settings View)
