@@ -17,7 +17,14 @@
     <key>CFBundleExecutable</key>
     <string>ArmenianBible</string>
     <key>UILaunchScreen</key>
-    <dict/>
+    <dict>
+        <key>UIColorName</key>
+        <string>LaunchBackground</string>
+        <key>UIImageName</key>
+        <string>LaunchImage</string>
+        <key>UIImageRespectsSafetyMargins</key>
+        <true/>
+    </dict>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>

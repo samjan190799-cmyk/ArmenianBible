@@ -18,7 +18,10 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
-        UILaunchScreen: {}
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: LaunchImage
+          UIImageRespectsSafetyMargins: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
 
