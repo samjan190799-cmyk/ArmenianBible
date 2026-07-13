@@ -223,8 +223,6 @@ struct BibleBookListView: View {
     }
 }
 
-}
-
 // MARK: - UIPageViewController обертка для эффекта перелистывания страниц (Page Curl)
 
 struct PageCurlReaderView<Content: View>: UIViewControllerRepresentable {
