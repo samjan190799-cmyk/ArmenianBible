@@ -513,14 +513,14 @@ struct BibleSingleChapterView: View {
         }
     }
     
-    private func copyToClipboard(verse: BibleVerse) {
+    private func copyToClipboard(verse: BibleVerseText) {
         let reference = "\(book.name) \(chapter):\(verse.verseNumber)"
         let textToCopy = "\(verse.text(for: manager.appLanguage)) (\(reference))"
         UIPasteboard.general.string = textToCopy
         triggerHaptic(.light)
     }
     
-    private func shareVerse(verse: BibleVerse) {
+    private func shareVerse(verse: BibleVerseText) {
         let reference = "\(book.name) \(chapter):\(verse.verseNumber)"
         let textToShare = "\(verse.text(for: manager.appLanguage)) (\(reference))"
         
@@ -537,7 +537,7 @@ struct BibleSingleChapterView: View {
         }
     }
     
-    private func toggleFavorite(verse: BibleVerse) {
+    private func toggleFavorite(verse: BibleVerseText) {
         triggerHaptic(.medium)
         if manager.isFavorite(verseText: verse) {
             manager.removeFromFavorites(verseText: verse)

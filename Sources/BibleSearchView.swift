@@ -205,7 +205,6 @@ struct BibleSearchView: View {
         guard !words.isEmpty else { return Text(text) }
         
         // Будем разбивать текст на фрагменты и подсвечивать те, что совпадают
-        var currentText = text
         var resultText = Text("")
         
         // Для простоты подсветим точное совпадение поискового запроса
