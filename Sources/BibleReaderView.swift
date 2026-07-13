@@ -28,7 +28,6 @@ struct BibleReaderView: View {
                        let chapter = manager.lastReadChapter,
                        let book = BibleDatabase.shared.getBook(id: bookId) {
                         navigationPath = [
-                            .chapters(book: book),
                             .reader(book: book, chapter: chapter, targetVerse: nil)
                         ]
                     }
@@ -52,8 +51,6 @@ struct BibleReaderView: View {
             }
             .navigationDestination(for: BibleNavigationState.self) { state in
                 switch state {
-                case .chapters(let book):
-                    BibleChapterSelectionView(book: book, navigationPath: $navigationPath)
                 case .reader(let book, let chapter, let targetVerse):
                     BibleChapterReaderView(book: book, initialChapter: chapter, targetVerse: targetVerse)
                 }
@@ -70,7 +67,6 @@ struct BibleReaderView: View {
                     manager.deepLinkVerse = nil
                     
                     navigationPath = [
-                        .chapters(book: book),
                         .reader(book: book, chapter: chapter, targetVerse: verse)
                     ]
                 }
@@ -82,14 +78,10 @@ struct BibleReaderView: View {
 // MARK: - Навигационные состояния
 
 enum BibleNavigationState: Hashable {
-    case chapters(book: BibleBook)
     case reader(book: BibleBook, chapter: Int, targetVerse: Int?)
     
     func hash(into hasher: inout Hasher) {
         switch self {
-        case .chapters(let book):
-            hasher.combine("chapters")
-            hasher.combine(book.id)
         case .reader(let book, let chapter, let verse):
             hasher.combine("reader")
             hasher.combine(book.id)
@@ -100,8 +92,6 @@ enum BibleNavigationState: Hashable {
     
     static func == (lhs: BibleNavigationState, rhs: BibleNavigationState) -> Bool {
         switch (lhs, rhs) {
-        case (.chapters(let b1), .chapters(let b2)):
-            return b1.id == b2.id
         case (.reader(let b1, let c1, let v1), .reader(let b2, let c2, let v2)):
             return b1.id == b2.id && c1 == c2 && v1 == v2
         default:
@@ -156,7 +146,8 @@ struct BibleBookListView: View {
                     
                     ForEach(filteredBooks) { book in
                         Button {
-                            navigationPath.append(.chapters(book: book))
+                            let savedChapter = manager.getBookLastReadChapter(bookId: book.id)
+                            navigationPath.append(.reader(book: book, chapter: savedChapter, targetVerse: nil))
                         } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -232,82 +223,6 @@ struct BibleBookListView: View {
     }
 }
 
-// MARK: - Сетка выбора глав
-
-struct BibleChapterSelectionView: View {
-    let book: BibleBook
-    @Binding var navigationPath: [BibleNavigationState]
-    @ObservedObject var manager = BibleManager.shared
-    
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
-    }
-    
-    private var cardBgColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white
-    }
-    
-    private var cardBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)
-    }
-    
-    private var gridItems: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 10), count: 5)
-    }
-    
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(book.name)
-                            .font(.system(size: 24, weight: .bold, design: .serif))
-                        Text(book.isNewTestament ? "testament_new".localized(for: manager.appLanguage) : "testament_old".localized(for: manager.appLanguage))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    Text(book.shortName)
-                        .font(.system(size: 15, weight: .bold, design: .monospaced))
-                        .foregroundColor(accentColor)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(accentColor.opacity(0.08))
-                        .cornerRadius(8)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                
-                Divider()
-                    .padding(.horizontal, 20)
-                
-                LazyVGrid(columns: gridItems, spacing: 10) {
-                    ForEach(1...book.chaptersCount, id: \.self) { chapter in
-                        Button {
-                            navigationPath.append(.reader(book: book, chapter: chapter, targetVerse: nil))
-                        } label: {
-                            Text("\(chapter)")
-                                .font(.system(size: 16, weight: .bold, design: .monospaced))
-                                .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
-                                .frame(width: 55, height: 55)
-                                .background(cardBgColor)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(cardBorderColor, lineWidth: 1.0)
-                                )
-                        }
-                        .buttonStyle(ScaleButtonStyle())
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
-            }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-    }
 }
 
 // MARK: - UIPageViewController обертка для эффекта перелистывания страниц (Page Curl)
@@ -424,6 +339,9 @@ struct BibleChapterReaderView: View {
     @State private var currentChapterIndex: Int = 0
     @State private var showNavigationHints = true
     @State private var animateHint = false
+    @State private var showingChapterSheet = false
+    
+    @Environment(\.colorScheme) private var colorScheme
     
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
@@ -473,7 +391,6 @@ struct BibleChapterReaderView: View {
                 .allowsHitTesting(false) // Чтобы стрелочки не перехватывали жесты
             }
         }
-        .navigationTitle("\(book.name) \(currentChapterIndex + 1)")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             currentChapterIndex = initialChapter - 1
@@ -490,6 +407,22 @@ struct BibleChapterReaderView: View {
             }
         }
         .toolbar {
+            // Кастомный заголовок с возможностью выбора главы
+            ToolbarItem(placement: .principal) {
+                Button {
+                    triggerHaptic(.light)
+                    showingChapterSheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("\(book.name) \(currentChapterIndex + 1)")
+                            .font(.system(size: 17, weight: .bold, design: .serif))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                }
+            }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 // Единое меню настройки размера шрифта
                 Menu {
@@ -526,6 +459,67 @@ struct BibleChapterReaderView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingChapterSheet) {
+            VStack(spacing: 0) {
+                // Заголовок шторки выбора глав
+                HStack {
+                    Text("\(book.name)")
+                        .font(.system(size: 20, weight: .bold, design: .serif))
+                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    Spacer()
+                    Button {
+                        showingChapterSheet = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 16)
+                
+                Divider()
+                    .padding(.horizontal, 24)
+                
+                ScrollView {
+                    let gridItems = Array(repeating: GridItem(.flexible(), spacing: 10), count: 5)
+                    
+                    LazyVGrid(columns: gridItems, spacing: 12) {
+                        ForEach(1...book.chaptersCount, id: \.self) { ch in
+                            Button {
+                                triggerHaptic(.light)
+                                currentChapterIndex = ch - 1
+                                showingChapterSheet = false
+                            } label: {
+                                Text("\(ch)")
+                                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                    .foregroundColor(currentChapterIndex == ch - 1 ? .white : (colorScheme == .dark ? .white : Color(hex: "1E293B")))
+                                    .frame(width: 55, height: 55)
+                                    .background(currentChapterIndex == ch - 1 ? accentColor : (colorScheme == .dark ? Color.white.opacity(0.04) : Color.white))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(currentChapterIndex == ch - 1 ? accentColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)), lineWidth: 1.0)
+                                    )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
+                    .padding(.bottom, 24)
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+    
+    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
     }
 }
 

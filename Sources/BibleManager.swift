@@ -240,9 +240,26 @@ class BibleManager: ObservableObject {
             if let defaults = sharedDefaults {
                 defaults.set(bookId, forKey: "last_read_book_id")
                 defaults.set(chapter, forKey: "last_read_chapter")
+                defaults.set(chapter, forKey: "last_read_chapter_for_book_\(bookId)")
                 defaults.synchronize()
             }
         }
+    }
+    
+    // MARK: - Сохранение и получение позиции чтения для конкретной книги
+    func saveBookLastReadChapter(bookId: Int, chapter: Int) {
+        if let defaults = sharedDefaults {
+            defaults.set(chapter, forKey: "last_read_chapter_for_book_\(bookId)")
+            defaults.synchronize()
+        }
+    }
+    
+    func getBookLastReadChapter(bookId: Int) -> Int {
+        if let defaults = sharedDefaults {
+            let chapter = defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)")
+            return chapter > 0 ? chapter : 1
+        }
+        return 1
     }
     
     // MARK: - Сохранение активного провайдера ИИ
