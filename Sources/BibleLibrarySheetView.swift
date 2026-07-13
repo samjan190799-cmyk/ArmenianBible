@@ -1,7 +1,7 @@
 import SwiftUI
 
-// MARK: - Модель для описания книги
-struct BookEdition: Identifiable {
+// MARK: - Модель для описания книги в шторке
+struct SheetBookEdition: Identifiable {
     let id: Int
     let language: AppLanguage
     let title: String
@@ -11,9 +11,10 @@ struct BookEdition: Identifiable {
     let languageName: String
 }
 
-struct BibleLibraryView: View {
+struct BibleLibrarySheetView: View {
     @ObservedObject var manager = BibleManager.shared
-    @Binding var navigationPath: [BibleNavigationState]
+    @Binding var isPresented: Bool
+    
     @State private var selectedBookIndex = 0
     @State private var dragOffset: CGSize = .zero
     
@@ -21,7 +22,7 @@ struct BibleLibraryView: View {
     
     // Список трех книг на трех языках
     private let editions = [
-        BookEdition(
+        SheetBookEdition(
             id: 0,
             language: .armenian,
             title: "Աստվածաշունչ",
@@ -30,7 +31,7 @@ struct BibleLibraryView: View {
             accentColor: Color(hex: "D4AF37"), // Золотой
             languageName: "ՀԱՅԵՐԵՆ"
         ),
-        BookEdition(
+        SheetBookEdition(
             id: 1,
             language: .russian,
             title: "Библия",
@@ -39,7 +40,7 @@ struct BibleLibraryView: View {
             accentColor: Color(hex: "E5C158"), // Золотой теплый
             languageName: "РУССКИЙ"
         ),
-        BookEdition(
+        SheetBookEdition(
             id: 2,
             language: .english,
             title: "Holy Bible",
@@ -56,40 +57,38 @@ struct BibleLibraryView: View {
     
     var body: some View {
         ZStack {
-            // Красивый мягкий градиент на фоне
+            // Фон шторки
             LinearGradient(
                 colors: colorScheme == .dark
-                    ? [Color(hex: "090E17"), Color(hex: "030508")]
-                    : [Color(hex: "F8FAFC"), Color(hex: "EEF2F6")],
+                    ? [Color(hex: "141A24"), Color(hex: "0E1219")]
+                    : [Color(hex: "F8FAFC"), Color(hex: "F1F5F9")],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Заголовок библиотеки
-                VStack(spacing: 6) {
+                // Заголовок шторки
+                VStack(spacing: 4) {
                     Text("library_title".localized(for: manager.appLanguage))
-                        .font(.system(size: 28, weight: .bold, design: .serif))
+                        .font(.system(size: 20, weight: .bold, design: .serif))
                         .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
                     
                     Text("library_subtitle".localized(for: manager.appLanguage))
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
                 }
                 .padding(.top, 24)
                 
                 Spacer()
                 
-                // 3D Карусель книг
+                // 3D Карусель книг (чуть уменьшенный масштаб для шторки)
                 ZStack {
-                    // Размытый фоновый круг под книгой для создания глубины и свечения
                     Circle()
-                        .fill(editions[selectedBookIndex].coverColors[0].opacity(0.12))
-                        .frame(width: 320, height: 320)
-                        .blur(radius: 50)
+                        .fill(editions[selectedBookIndex].coverColors[0].opacity(0.1))
+                        .frame(width: 260, height: 260)
+                        .blur(radius: 40)
                         .offset(y: -10)
                         .animation(.easeInOut(duration: 0.5), value: selectedBookIndex)
                     
@@ -98,8 +97,8 @@ struct BibleLibraryView: View {
                             let edition = editions[index]
                             let isSelected = index == selectedBookIndex
                             
-                            BookCoverContainer(isSelected: isSelected, dragOffset: isSelected ? dragOffset : .zero) {
-                                BookCoverContentView(edition: edition)
+                            SheetBookCoverContainer(isSelected: isSelected, dragOffset: isSelected ? dragOffset : .zero) {
+                                SheetBookCoverContentView(edition: edition)
                             }
                             .gesture(
                                 isSelected ? DragGesture()
@@ -117,32 +116,19 @@ struct BibleLibraryView: View {
                         }
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                    .frame(height: 340)
+                    .frame(height: 250)
                 }
                 
                 Spacer()
                 
-                // Подзаголовок издания и описание
+                // Подзаголовок издания и кнопка
                 VStack(spacing: 12) {
                     let currentEdition = editions[selectedBookIndex]
                     
                     Text(currentEdition.subtitleKey.localized(for: manager.appLanguage))
-                        .font(.system(size: 16, weight: .semibold, design: .serif))
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
                         .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : Color(hex: "334155"))
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                         .id("subtitle_\(selectedBookIndex)")
-                    
-                    // Точки навигации (Page Indicator)
-                    HStack(spacing: 6) {
-                        ForEach(0..<editions.count, id: \.self) { index in
-                            Circle()
-                                .fill(index == selectedBookIndex ? accentColor : Color.secondary.opacity(0.3))
-                                .frame(width: index == selectedBookIndex ? 8 : 6, height: index == selectedBookIndex ? 8 : 6)
-                                .scaleEffect(index == selectedBookIndex ? 1.2 : 1.0)
-                                .animation(.spring(), value: selectedBookIndex)
-                        }
-                    }
-                    .padding(.vertical, 8)
                     
                     // Кнопка Читать
                     Button {
@@ -150,23 +136,29 @@ struct BibleLibraryView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Text("button_read_bible".localized(for: manager.appLanguage))
-                                .font(.system(size: 16, weight: .bold))
-                            Image(systemName: "book.fill")
-                                .font(.system(size: 15))
+                                .font(.system(size: 15, weight: .bold))
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 14, weight: .bold))
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 48)
-                        .padding(.vertical, 14)
+                        .padding(.horizontal, 36)
+                        .padding(.vertical, 12)
                         .background(
-                            RoundedRectangle(cornerRadius: 14)
+                            RoundedRectangle(cornerRadius: 12)
                                 .fill(accentColor)
-                                .shadow(color: accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
+                                .shadow(color: accentColor.opacity(0.3), radius: 6, x: 0, y: 3)
                         )
                     }
                     .buttonStyle(ScaleButtonStyle())
-                    .padding(.top, 10)
+                    .padding(.top, 4)
                 }
-                .padding(.bottom, 48)
+                .padding(.bottom, 32)
+            }
+        }
+        .onAppear {
+            // При открытии шторки устанавливаем фокус на текущий язык
+            if let currentIndex = editions.firstIndex(where: { $0.language == manager.appLanguage }) {
+                selectedBookIndex = currentIndex
             }
         }
         .onChange(of: selectedBookIndex) { _ in
@@ -174,18 +166,17 @@ struct BibleLibraryView: View {
         }
     }
     
-    // Переход к выбору книг Библии
+    // Применение выбора и закрытие шторки
     private func triggerSelection() {
         triggerHaptic(.medium)
         let selectedEdition = editions[selectedBookIndex]
         
-        // Меняем язык в менеджере (это обновит всё приложение)
         withAnimation {
             manager.setAppLanguage(selectedEdition.language)
         }
         
-        // Переходим к списку книг
-        navigationPath.append(.bookList(language: selectedEdition.language))
+        // Закрываем шторку
+        isPresented = false
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
@@ -195,10 +186,10 @@ struct BibleLibraryView: View {
     }
 }
 
-// MARK: - 3D Контейнер Книги
-struct BookCoverContainer<Content: View>: View {
+// MARK: - 3D Контейнер Книги в шторке
+struct SheetBookCoverContainer<Content: View>: View {
     let content: Content
-    let thickness: CGFloat = 18
+    let thickness: CGFloat = 14
     let isSelected: Bool
     let dragOffset: CGSize
     
@@ -210,23 +201,20 @@ struct BookCoverContainer<Content: View>: View {
     
     var body: some View {
         ZStack(alignment: .trailing) {
-            // Боковой срез страниц (активен при развороте)
-            PagesSideShape()
-                .frame(width: thickness, height: 268)
-                .clipShape(RoundedRectangle(cornerRadius: 2))
+            // Боковой срез страниц
+            SheetPagesSideShape()
+                .frame(width: thickness, height: 188)
+                .clipShape(RoundedRectangle(cornerRadius: 1))
                 .shadow(color: .black.opacity(0.15), radius: 2, x: 2, y: 0)
-                // Поворачиваем боковой срез на 90 градусов в 3D
                 .rotation3DEffect(.degrees(90), axis: (x: 0, y: 1, z: 0), anchor: .trailing)
                 .offset(x: -thickness / 2)
             
-            // Обложка книги
+            // Обложка книги (размер уменьшен со 180x270 до 126x190)
             content
-                .frame(width: 180, height: 270)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .shadow(color: .black.opacity(isSelected ? 0.4 : 0.2), radius: isSelected ? 16 : 8, x: isSelected ? 10 : 4, y: isSelected ? 12 : 6)
+                .frame(width: 126, height: 190)
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+                .shadow(color: .black.opacity(isSelected ? 0.35 : 0.15), radius: isSelected ? 12 : 6, x: isSelected ? 8 : 3, y: isSelected ? 10 : 4)
         }
-        // 3D вращение книги:
-        // Базовый поворот -22 градуса, чтобы видеть объем среза страниц справа
         .rotation3DEffect(
             .degrees(isSelected ? Double(dragOffset.width / 5) - 22 : -10),
             axis: (x: 0, y: 1, z: 0)
@@ -242,8 +230,8 @@ struct BookCoverContainer<Content: View>: View {
     }
 }
 
-// MARK: - Имитация текстуры страниц
-struct PagesSideShape: View {
+// MARK: - Имитация текстуры страниц в шторке
+struct SheetPagesSideShape: View {
     var body: some View {
         ZStack {
             Rectangle()
@@ -253,9 +241,8 @@ struct PagesSideShape: View {
                     endPoint: .trailing
                 ))
             
-            // Мелкие горизонтальные полосы для симуляции стопки страниц
             VStack(spacing: 2) {
-                ForEach(0..<65) { _ in
+                ForEach(0..<45) { _ in
                     Rectangle()
                         .fill(Color.black.opacity(0.05))
                         .frame(height: 1)
@@ -265,79 +252,66 @@ struct PagesSideShape: View {
     }
 }
 
-// MARK: - Внутреннее оформление обложки
-struct BookCoverContentView: View {
-    let edition: BookEdition
+// MARK: - Внутреннее оформление обложки в шторке
+struct SheetBookCoverContentView: View {
+    let edition: SheetBookEdition
     
     var body: some View {
         ZStack {
-            // Цвет обложки
             LinearGradient(
                 colors: edition.coverColors,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             
-            // Текстура кожи
             Color.black.opacity(0.12)
                 .blendMode(.overlay)
             
-            // Золотая тисненая рамка
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 5)
                 .stroke(
                     LinearGradient(
                         colors: [edition.accentColor.opacity(0.85), edition.accentColor.opacity(0.2)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 1.5
+                    lineWidth: 1.2
                 )
-                .padding(10)
+                .padding(7)
             
-            // Тиснение элементов обложки
-            VStack(spacing: 16) {
+            VStack(spacing: 10) {
                 Spacer()
                 
-                // Декоративный элемент сверху
-                Image(systemName: "crown")
-                    .font(.system(size: 16))
-                    .foregroundColor(edition.accentColor)
-                    .opacity(0.7)
-                
-                // Золотой крест
                 Image(systemName: "cross.fill")
-                    .font(.system(size: 44))
+                    .font(.system(size: 30))
                     .foregroundColor(edition.accentColor)
-                    .shadow(color: edition.accentColor.opacity(0.4), radius: 5)
+                    .shadow(color: edition.accentColor.opacity(0.4), radius: 3)
                 
                 Spacer()
                 
-                // Тексты на обложке
-                VStack(spacing: 8) {
+                VStack(spacing: 4) {
                     Text(edition.title)
-                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .font(.system(size: 15, weight: .bold, design: .serif))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 10)
                         .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
                     
                     Text("HOLY SCRIPTURES")
-                        .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 6, weight: .semibold, design: .monospaced))
                         .foregroundColor(edition.accentColor.opacity(0.85))
-                        .tracking(2)
+                        .tracking(1.5)
                 }
                 
                 Spacer()
                 
-                // Языковой тег снизу
                 Text(edition.languageName)
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
                     .foregroundColor(.white.opacity(0.6))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
                     .background(Color.white.opacity(0.08))
-                    .cornerRadius(4)
-                    .padding(.bottom, 12)
+                    .cornerRadius(3)
+                    .padding(.bottom, 8)
             }
             .frame(maxWidth: .infinity)
         }
