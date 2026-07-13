@@ -187,7 +187,6 @@ struct BibleSearchView: View {
             // Задержка, чтобы дать закрыться sheet
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 navigationPath = [
-                    .chapters(book: book),
                     .reader(book: book, chapter: result.chapter, targetVerse: result.verseNumber)
                 ]
             }
