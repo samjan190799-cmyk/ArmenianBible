@@ -8,6 +8,7 @@ struct BibleSearchView: View {
     @State private var searchQuery = ""
     @State private var searchResults: [BibleSearchResult] = []
     @State private var isSearching = false
+    @State private var searchTask: Task<Void, Never>? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isSearchFieldFocused: Bool
@@ -143,11 +144,13 @@ struct BibleSearchView: View {
                 }
             }
             .onChange(of: searchQuery) { newValue in
-                // Запускаем поиск по мере ввода текста, если введено 3+ символа
+                searchTask?.cancel()
                 if newValue.count >= 3 {
-                    // Дебаунс для избежания лишней нагрузки
-                    NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(performSearchDebounced), object: nil)
-                    self.performSelector(#selector(performSearchDebounced), with: nil, afterDelay: 0.3)
+                    searchTask = Task {
+                        try? await Task.sleep(nanoseconds: 300_000_000)
+                        guard !Task.isCancelled else { return }
+                        performSearch()
+                    }
                 } else if newValue.isEmpty {
                     searchResults = []
                 }
@@ -157,10 +160,7 @@ struct BibleSearchView: View {
             }
         }
     }
-    
-    @objc private func performSearchDebounced() {
-        performSearch()
-    }
+
     
     private func performSearch() {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)

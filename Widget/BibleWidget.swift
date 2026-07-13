@@ -159,10 +159,29 @@ struct Provider: AppIntentTimelineProvider {
             return BibleVerse.database.filter { $0.isPrayer }
         case .favorites:
             if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-               let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
-               let decoded = try? JSONDecoder().decode([BibleVerse].self, from: savedFavoritesData),
-               !decoded.isEmpty {
-                return decoded
+               let savedFavoritesData = defaults.data(forKey: "favorite_verses") {
+                if let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
+                   !decoded.isEmpty {
+                    // Конвертируем FavoriteItem (только те, которые применимы к виджетам) в BibleVerse
+                    let dailyFavorites = decoded.filter { $0.isDailyVerse }
+                    if !dailyFavorites.isEmpty {
+                        return dailyFavorites.map { item in
+                            BibleVerse(
+                                id: item.id,
+                                textHy: item.textHy,
+                                textRu: item.textRu,
+                                textEn: item.textEn,
+                                refHy: item.refHy,
+                                refRu: item.refRu,
+                                refEn: item.refEn,
+                                isPrayer: false
+                            )
+                        }
+                    }
+                } else if let decodedOld = try? JSONDecoder().decode([BibleVerse].self, from: savedFavoritesData),
+                          !decodedOld.isEmpty {
+                    return decodedOld
+                }
             }
             return BibleVerse.database
         case .both:
