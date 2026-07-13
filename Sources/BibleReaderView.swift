@@ -411,15 +411,56 @@ struct BibleChapterReaderView: View {
     
     @ObservedObject var manager = BibleManager.shared
     @State private var currentChapterIndex: Int = 0
+    @State private var showNavigationHints = true
+    @State private var animateHint = false
+    
+    private var accentColor: Color {
+        Color(hex: manager.accentTheme.colorHex)
+    }
     
     var body: some View {
-        PageCurlReaderView(
-            book: book,
-            currentChapterIndex: $currentChapterIndex,
-            initialChapter: initialChapter,
-            targetVerse: targetVerse
-        ) { book, chapter, targetV in
-            BibleSingleChapterView(book: book, chapter: chapter, targetVerse: targetV)
+        ZStack {
+            PageCurlReaderView(
+                book: book,
+                currentChapterIndex: $currentChapterIndex,
+                initialChapter: initialChapter,
+                targetVerse: targetVerse
+            ) { book, chapter, targetV in
+                BibleSingleChapterView(book: book, chapter: chapter, targetVerse: targetV)
+            }
+            
+            // Анимированные стрелки-подсказки перелистывания
+            if showNavigationHints {
+                HStack {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 24, weight: .light))
+                        .foregroundColor(accentColor.opacity(0.45))
+                        .padding(.leading, 12)
+                        .offset(x: animateHint ? -6 : 0)
+                        .shadow(color: .black.opacity(0.15), radius: 2)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 24, weight: .light))
+                        .foregroundColor(accentColor.opacity(0.45))
+                        .padding(.trailing, 12)
+                        .offset(x: animateHint ? 6 : 0)
+                        .shadow(color: .black.opacity(0.15), radius: 2)
+                }
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                        animateHint = true
+                    }
+                    // Плавно скрываем стрелочки через 4.5 секунды
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.5) {
+                        withAnimation(.easeOut(duration: 0.8)) {
+                            showNavigationHints = false
+                        }
+                    }
+                }
+                .allowsHitTesting(false) // Чтобы стрелочки не перехватывали жесты
+            }
         }
         .navigationTitle("\(book.name) \(currentChapterIndex + 1)")
         .navigationBarTitleDisplayMode(.inline)
@@ -430,6 +471,49 @@ struct BibleChapterReaderView: View {
         .onChange(of: currentChapterIndex) { newValue in
             let newChapter = newValue + 1
             manager.saveLastReadLocation(bookId: book.id, chapter: newChapter)
+            // Если пользователь перелистнул сам, скрываем подсказки
+            if showNavigationHints {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    showNavigationHints = false
+                }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                // Единое меню настройки размера шрифта
+                Menu {
+                    Button {
+                        manager.setBibleFontSize(15.0)
+                    } label: {
+                        HStack {
+                            Text("font_size_small".localized(for: manager.appLanguage))
+                            if manager.bibleFontSize == 15.0 { Image(systemName: "checkmark") }
+                        }
+                    }
+                    
+                    Button {
+                        manager.setBibleFontSize(18.0)
+                    } label: {
+                        HStack {
+                            Text("font_size_medium".localized(for: manager.appLanguage))
+                            if manager.bibleFontSize == 18.0 { Image(systemName: "checkmark") }
+                        }
+                    }
+                    
+                    Button {
+                        manager.setBibleFontSize(22.0)
+                    } label: {
+                        HStack {
+                            Text("font_size_large".localized(for: manager.appLanguage))
+                            if manager.bibleFontSize == 22.0 { Image(systemName: "checkmark") }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "textformat.size")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(accentColor)
+                }
+            }
         }
     }
 }
@@ -476,14 +560,16 @@ struct BibleSingleChapterView: View {
                 .blendMode(.overlay)
                 .ignoresSafeArea()
             
-            // Мягкая тень корешка книги слева
+            // Эффект вогнутости страницы (тень у корешка слева и изгиб у внешнего края справа)
             LinearGradient(
-                colors: [Color.black.opacity(colorScheme == .dark ? 0.28 : 0.09), Color.clear],
+                colors: [
+                    Color.black.opacity(colorScheme == .dark ? 0.26 : 0.08),
+                    Color.clear,
+                    Color.black.opacity(colorScheme == .dark ? 0.07 : 0.02)
+                ],
                 startPoint: .leading,
                 endPoint: .trailing
             )
-            .frame(width: 20)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .ignoresSafeArea()
             
             if let text = chapterText {
@@ -534,8 +620,9 @@ struct BibleSingleChapterView: View {
                                 VStack(alignment: .leading, spacing: 0) {
                                     (
                                         Text("\(verse.verseNumber) ")
-                                            .font(.system(size: manager.bibleFontSize - 4, weight: .bold, design: fontDesign))
-                                            .foregroundColor(accentColor.opacity(0.85))
+                                            .font(.system(size: 10, weight: .semibold, design: .serif))
+                                            .foregroundColor(accentColor.opacity(0.65))
+                                            .baselineOffset(6)
                                         +
                                         Text(verse.text(for: manager.appLanguage))
                                             .font(.system(size: manager.bibleFontSize, weight: .regular, design: fontDesign))
@@ -638,44 +725,7 @@ struct BibleSingleChapterView: View {
         .onAppear {
             loadChapterText()
         }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                // Кнопка настройки шрифта
-                Menu {
-                    Button {
-                        manager.setBibleFontSize(15.0)
-                    } label: {
-                        HStack {
-                            Text("font_size_small".localized(for: manager.appLanguage))
-                            if manager.bibleFontSize == 15.0 { Image(systemName: "checkmark") }
-                        }
-                    }
-                    
-                    Button {
-                        manager.setBibleFontSize(18.0)
-                    } label: {
-                        HStack {
-                            Text("font_size_medium".localized(for: manager.appLanguage))
-                            if manager.bibleFontSize == 18.0 { Image(systemName: "checkmark") }
-                        }
-                    }
-                    
-                    Button {
-                        manager.setBibleFontSize(22.0)
-                    } label: {
-                        HStack {
-                            Text("font_size_large".localized(for: manager.appLanguage))
-                            if manager.bibleFontSize == 22.0 { Image(systemName: "checkmark") }
-                        }
-                    }
-                } label: {
-                    Image(systemName: "textformat.size")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(accentColor)
-                }
-            }
         }
-    }
     
     private func loadChapterText() {
         DispatchQueue.global(qos: .userInitiated).async {
