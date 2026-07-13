@@ -299,7 +299,110 @@ struct BibleChapterSelectionView: View {
     }
 }
 
-// MARK: - Экран чтения стихов главы (с поддержкой свайпов)
+// MARK: - UIPageViewController обертка для эффекта перелистывания страниц (Page Curl)
+
+struct PageCurlReaderView<Content: View>: UIViewControllerRepresentable {
+    let book: BibleBook
+    @Binding var currentChapterIndex: Int
+    let initialChapter: Int
+    let targetVerse: Int?
+    let contentBuilder: (BibleBook, Int, Int?) -> Content
+    
+    func makeUIViewController(context: Context) -> UIPageViewController {
+        let pageViewController = UIPageViewController(
+            transitionStyle: .pageCurl,
+            navigationOrientation: .horizontal,
+            options: nil
+        )
+        pageViewController.dataSource = context.coordinator
+        pageViewController.delegate = context.coordinator
+        pageViewController.view.backgroundColor = .clear
+        
+        let initialVC = context.coordinator.viewController(for: currentChapterIndex)
+        pageViewController.setViewControllers([initialVC], direction: .forward, animated: false, completion: nil)
+        
+        return pageViewController
+    }
+    
+    func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
+        let displayedVC = uiViewController.viewControllers?.first as? PageViewControllerContainer<Content>
+        if let currentChapter = displayedVC?.chapter, currentChapter - 1 != currentChapterIndex {
+            let direction: UIPageViewController.NavigationDirection = (currentChapter - 1 < currentChapterIndex) ? .forward : .reverse
+            let targetVC = context.coordinator.viewController(for: currentChapterIndex)
+            uiViewController.setViewControllers([targetVC], direction: direction, animated: true, completion: nil)
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate {
+        var parent: PageCurlReaderView
+        var controllersMap: [Int: PageViewControllerContainer<Content>] = [:]
+        
+        init(_ parent: PageCurlReaderView) {
+            self.parent = parent
+        }
+        
+        func viewController(for index: Int) -> UIViewController {
+            if let cached = controllersMap[index] {
+                return cached
+            }
+            
+            let targetV = (index + 1 == parent.initialChapter) ? parent.targetVerse : nil
+            let contentView = parent.contentBuilder(parent.book, index + 1, targetV)
+            
+            let hostVC = PageViewControllerContainer(rootView: contentView, chapter: index + 1)
+            controllersMap[index] = hostVC
+            return hostVC
+        }
+        
+        // MARK: - UIPageViewControllerDataSource
+        
+        func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+            guard let currentVC = viewController as? PageViewControllerContainer<Content> else { return nil }
+            let index = currentVC.chapter - 1
+            guard index > 0 else { return nil }
+            return self.viewController(for: index - 1)
+        }
+        
+        func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+            guard let currentVC = viewController as? PageViewControllerContainer<Content> else { return nil }
+            let index = currentVC.chapter - 1
+            guard index < parent.book.chaptersCount - 1 else { return nil }
+            return self.viewController(for: index + 1)
+        }
+        
+        // MARK: - UIPageViewControllerDelegate
+        
+        func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
+            if completed,
+               let visibleVC = pageViewController.viewControllers?.first as? PageViewControllerContainer<Content> {
+                let newIndex = visibleVC.chapter - 1
+                if parent.currentChapterIndex != newIndex {
+                    parent.currentChapterIndex = newIndex
+                }
+            }
+        }
+    }
+}
+
+class PageViewControllerContainer<Content: View>: UIHostingController<Content> {
+    var chapter: Int
+    
+    init(rootView: Content, chapter: Int) {
+        self.chapter = chapter
+        super.init(rootView: rootView)
+        self.view.backgroundColor = .clear
+    }
+    
+    @MainActor required dynamic init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
+// MARK: - Экран чтения стихов главы (с поддержкой свайпов и перелистывания)
 
 struct BibleChapterReaderView: View {
     let book: BibleBook
@@ -310,14 +413,14 @@ struct BibleChapterReaderView: View {
     @State private var currentChapterIndex: Int = 0
     
     var body: some View {
-        // Мы используем TabView с PageTabViewStyle для реализации свайпов по главам
-        TabView(selection: $currentChapterIndex) {
-            ForEach(1...book.chaptersCount, id: \.self) { chapter in
-                BibleSingleChapterView(book: book, chapter: chapter, targetVerse: chapter == initialChapter ? targetVerse : nil)
-                    .tag(chapter - 1)
-            }
+        PageCurlReaderView(
+            book: book,
+            currentChapterIndex: $currentChapterIndex,
+            initialChapter: initialChapter,
+            targetVerse: targetVerse
+        ) { book, chapter, targetV in
+            BibleSingleChapterView(book: book, chapter: chapter, targetVerse: targetV)
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         .navigationTitle("\(book.name) \(currentChapterIndex + 1)")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -349,7 +452,7 @@ struct BibleSingleChapterView: View {
     }
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        colorScheme == .dark ? Color(hex: "121316") : Color(hex: "F4EFEB")
     }
     
     private var rowBgColor: Color {
@@ -368,6 +471,21 @@ struct BibleSingleChapterView: View {
         ZStack {
             backgroundColor.ignoresSafeArea()
             
+            // Текстура бумаги
+            Color.black.opacity(colorScheme == .dark ? 0.03 : 0.015)
+                .blendMode(.overlay)
+                .ignoresSafeArea()
+            
+            // Мягкая тень корешка книги слева
+            LinearGradient(
+                colors: [Color.black.opacity(colorScheme == .dark ? 0.28 : 0.09), Color.clear],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: 20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .ignoresSafeArea()
+            
             if let text = chapterText {
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -382,10 +500,31 @@ struct BibleSingleChapterView: View {
                                     .font(.system(size: 18, weight: .medium, design: .serif))
                                     .foregroundColor(accentColor)
                                 
-                                Rectangle()
-                                    .fill(accentColor.opacity(0.2))
-                                    .frame(width: 60, height: 2)
-                                    .padding(.top, 4)
+                                // Изящная классическая виньетка
+                                HStack(spacing: 12) {
+                                    Image(systemName: "leaf.fill")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(accentColor.opacity(0.5))
+                                        .rotationEffect(.degrees(-45))
+                                    
+                                    Rectangle()
+                                        .fill(accentColor.opacity(0.2))
+                                        .frame(width: 35, height: 1)
+                                    
+                                    Image(systemName: "cross.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(accentColor.opacity(0.7))
+                                    
+                                    Rectangle()
+                                        .fill(accentColor.opacity(0.2))
+                                        .frame(width: 35, height: 1)
+                                    
+                                    Image(systemName: "leaf.fill")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(accentColor.opacity(0.5))
+                                        .rotationEffect(.degrees(45))
+                                }
+                                .padding(.top, 4)
                             }
                             .padding(.top, 36)
                             .padding(.bottom, 28)
@@ -447,6 +586,20 @@ struct BibleSingleChapterView: View {
                                 }
                                 .id(verse.verseNumber)
                             }
+                            
+                            // Номер страницы (номер текущей главы)
+                            VStack(spacing: 8) {
+                                Divider()
+                                    .background(accentColor.opacity(0.15))
+                                    .padding(.horizontal, 48)
+                                
+                                Text("— \(chapter) —")
+                                    .font(.system(size: 14, weight: .bold, design: .serif))
+                                    .foregroundColor(accentColor.opacity(0.6))
+                                    .padding(.top, 4)
+                            }
+                            .padding(.vertical, 24)
+                            .frame(maxWidth: .infinity)
                         }
                         .padding(.bottom, 32)
                     }
