@@ -2,14 +2,13 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var manager = BibleManager.shared
-    @State private var selectedTab = 0
     
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
     }
     
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $manager.activeTabSelection) {
             HomeView()
                 .tabItem {
                     Label("tab_home".localized(for: manager.appLanguage), systemImage: "house.fill")
@@ -27,6 +26,12 @@ struct ContentView: View {
                     Label("tab_explanation".localized(for: manager.appLanguage), systemImage: "book.fill")
                 }
                 .tag(2)
+            
+            BibleReaderView()
+                .tabItem {
+                    Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages.fill")
+                }
+                .tag(3)
         }
         .tint(accentColor)
     }
@@ -395,15 +400,39 @@ struct HomeView: View {
             Text(errorMessage)
         }
         .onOpenURL { url in
-            if url.scheme == "armenianbible" && url.host == "next-verse" {
-                triggerHaptic(.medium)
-                withAnimation(.easeOut(duration: 0.18)) {
-                    animateVerse = false
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                    manager.selectRandomVerse()
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        animateVerse = true
+            if url.scheme == "armenianbible" {
+                if url.host == "next-verse" {
+                    triggerHaptic(.medium)
+                    manager.activeTabSelection = 0
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        animateVerse = false
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                        manager.selectRandomVerse()
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            animateVerse = true
+                        }
+                    }
+                } else if url.host == "read" {
+                    // Парсим параметры: armenianbible://read?bookId=43&chapter=3&verse=16
+                    guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+                          let queryItems = components.queryItems else { return }
+                    
+                    let bookIdStr = queryItems.first(where: { $0.name == "bookId" })?.value
+                    let chapterStr = queryItems.first(where: { $0.name == "chapter" })?.value
+                    let verseStr = queryItems.first(where: { $0.name == "verse" })?.value
+                    
+                    if let bIdStr = bookIdStr, let bId = Int(bIdStr),
+                       let cStr = chapterStr, let chapter = Int(cStr) {
+                        triggerHaptic(.medium)
+                        
+                        manager.deepLinkBookId = bId
+                        manager.deepLinkChapter = chapter
+                        if let vStr = verseStr, let verse = Int(vStr) {
+                            manager.deepLinkVerse = verse
+                        }
+                        
+                        manager.activeTabSelection = 3 // Переключаем на вкладку "Библия"
                     }
                 }
             }

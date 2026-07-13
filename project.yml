@@ -40,6 +40,7 @@ targets:
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: "YES"
     dependencies:
       - target: BibleWidget
+      - sdk: libsqlite3.tbd
 
   BibleWidget:
     type: app-extension

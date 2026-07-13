@@ -102,3 +102,20 @@
 /* Widget Settings */
 "widget_settings_header" = "Widget Settings";
 "widget_language_title" = "Widget Language";
+
+/* Bible Reader */
+"tab_bible" = "Bible";
+"testament_old" = "Old Testament";
+"testament_new" = "New Testament";
+"chapters_count_label" = "chapters";
+"search_placeholder" = "Search the Bible...";
+"search_cancel" = "Cancel";
+"search_title" = "Bible Search";
+"search_loading" = "Searching...";
+"search_no_results" = "No results found";
+"search_instruction" = "Enter at least 3 characters to search";
+"font_size_small" = "Small Font";
+"font_size_medium" = "Medium Font";
+"font_size_large" = "Large Font";
+"loading_label" = "Loading...";
+

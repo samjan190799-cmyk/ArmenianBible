@@ -102,3 +102,20 @@
 /* Widget Settings */
 "widget_settings_header" = "Վիդջեթի Կարգավորումներ";
 "widget_language_title" = "Վիդջեթի լեզուն";
+
+/* Bible Reader */
+"tab_bible" = "Աստվածաշունչ";
+"testament_old" = "Հին Կտակարան";
+"testament_new" = "Նոր Կտակարան";
+"chapters_count_label" = "գլուխ";
+"search_placeholder" = "Որոնել Աստվածաշնչում...";
+"search_cancel" = "Չեղարկել";
+"search_title" = "Որոնում";
+"search_loading" = "Որոնում...";
+"search_no_results" = "Ոչինչ չի գտնվել";
+"search_instruction" = "Մուտքագրեք առնվազն 3 նիշ որոնման համար";
+"font_size_small" = "Փոքր տառատեսակ";
+"font_size_medium" = "Միջին տառատեսակ";
+"font_size_large" = "Խոշոր տառատեսակ";
+"loading_label" = "Բեռնում...";
+

@@ -1164,3 +1164,60 @@ extension String {
             .joined()
     }
 }
+
+// MARK: - Элемент Избранного (Объединенная модель для стихов дня и стихов из Библии)
+struct FavoriteItem: Identifiable, Codable, Hashable {
+    let id: UUID
+    let isDailyVerse: Bool            // True — если это стих дня/виджета, False — если стих из Библии
+    let bookId: Int?                  // ID книги в SQLite (для стихов из Библии)
+    let chapter: Int?                 // Номер главы (для стихов из Библии)
+    let verseNumber: Int?             // Номер стиха (для стихов из Библии)
+    
+    let textHy: String
+    let textRu: String
+    let textEn: String
+    let refHy: String
+    let refRu: String
+    let refEn: String
+    
+    var text: String {
+        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
+        if lang.hasPrefix("ru") || lang == "russian" {
+            return textRu
+        } else if lang.hasPrefix("en") || lang == "english" {
+            return textEn
+        } else {
+            return textHy
+        }
+    }
+    
+    var reference: String {
+        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
+        if lang.hasPrefix("ru") || lang == "russian" {
+            return refRu
+        } else if lang.hasPrefix("en") || lang == "english" {
+            return refEn
+        } else {
+            return refHy
+        }
+    }
+    
+    func text(for language: AppLanguage) -> String {
+        switch language {
+        case .armenian: return textHy
+        case .russian: return textRu
+        case .english: return textEn
+        }
+    }
+    
+    func reference(for language: AppLanguage) -> String {
+        switch language {
+        case .armenian: return refHy
+        case .russian: return refRu
+        case .english: return refEn
+        }
+    }
+}
+

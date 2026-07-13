@@ -13,11 +13,18 @@ class BibleManager: ObservableObject {
     @Published var selectedCategory: TextCategory = .both
     @Published var activeProvider: AIProvider = .gemini
     @Published var appLanguage: AppLanguage = .armenian
-    @Published var favoriteVerses: [BibleVerse] = []
+    @Published var favoriteVerses: [FavoriteItem] = []
     @Published var accentTheme: AccentColorTheme = .indigo
     @Published var dailyNotificationsEnabled: Bool = false
     @Published var dailyNotificationTime: Date = Date()
     @Published var widgetLanguage: WidgetLanguage = .followApp
+    
+    // Переменные для полной Библии и Deep Link
+    @Published var bibleFontSize: Double = 18.0
+    @Published var activeTabSelection: Int = 0
+    @Published var deepLinkBookId: Int? = nil
+    @Published var deepLinkChapter: Int? = nil
+    @Published var deepLinkVerse: Int? = nil
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -144,9 +151,34 @@ class BibleManager: ObservableObject {
         // Загрузка Избранного
         if let defaults = sharedDefaults,
            let savedFavoritesData = defaults.data(forKey: favoritesKey) {
-            if let decoded = try? JSONDecoder().decode([BibleVerse].self, from: savedFavoritesData) {
+            if let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData) {
                 self.favoriteVerses = decoded
+            } else if let decodedOld = try? JSONDecoder().decode([BibleVerse].self, from: savedFavoritesData) {
+                // Конвертируем старый формат в новый
+                self.favoriteVerses = decodedOld.map { verse in
+                    FavoriteItem(
+                        id: verse.id,
+                        isDailyVerse: true,
+                        bookId: nil,
+                        chapter: nil,
+                        verseNumber: nil,
+                        textHy: verse.textHy,
+                        textRu: verse.textRu,
+                        textEn: verse.textEn,
+                        refHy: verse.refHy,
+                        refRu: verse.refRu,
+                        refEn: verse.refEn
+                    )
+                }
             }
+        }
+        
+        // Загрузка размера шрифта Библии
+        if let defaults = sharedDefaults {
+            let savedFontSize = defaults.double(forKey: "bible_font_size")
+            self.bibleFontSize = savedFontSize > 0 ? savedFontSize : 18.0
+        } else {
+            self.bibleFontSize = 18.0
         }
         
         // Загрузка Цветовой темы
@@ -239,7 +271,7 @@ class BibleManager: ObservableObject {
         }
     }
     
-    // MARK: - Получение отфильтрованной базы данных стихов/молитв
+    // MARK: - Получение отфильтрованной базы данных стихов/молитв (для виджета и PUSH)
     func getFilteredDatabase(for category: TextCategory) -> [BibleVerse] {
         switch category {
         case .verses:
@@ -247,7 +279,23 @@ class BibleManager: ObservableObject {
         case .prayers:
             return BibleVerse.database.filter { $0.isPrayer }
         case .favorites:
-            return favoriteVerses.isEmpty ? BibleVerse.database : favoriteVerses
+            // Фильтруем элементы избранного, которые применимы к виджетам (isDailyVerse = true)
+            let dailyFavorites = favoriteVerses.filter { $0.isDailyVerse }
+            if dailyFavorites.isEmpty {
+                return BibleVerse.database
+            }
+            return dailyFavorites.map { item in
+                BibleVerse(
+                    id: item.id,
+                    textHy: item.textHy,
+                    textRu: item.textRu,
+                    textEn: item.textEn,
+                    refHy: item.refHy,
+                    refRu: item.refRu,
+                    refEn: item.refEn,
+                    isPrayer: false
+                )
+            }
         case .both:
             return BibleVerse.database
         }
@@ -255,19 +303,70 @@ class BibleManager: ObservableObject {
     
     // MARK: - Управление Избранным
     func addToFavorites(_ verse: BibleVerse) {
-        if !favoriteVerses.contains(where: { $0.text == verse.text }) {
-            favoriteVerses.append(verse)
+        if !favoriteVerses.contains(where: { $0.textHy == verse.textHy || $0.textRu == verse.textRu }) {
+            let favorite = FavoriteItem(
+                id: verse.id,
+                isDailyVerse: true,
+                bookId: nil,
+                chapter: nil,
+                verseNumber: nil,
+                textHy: verse.textHy,
+                textRu: verse.textRu,
+                textEn: verse.textEn,
+                refHy: verse.refHy,
+                refRu: verse.refRu,
+                refEn: verse.refEn
+            )
+            favoriteVerses.append(favorite)
+            saveFavorites()
+        }
+    }
+    
+    func addToFavorites(verseText: BibleVerseText, bookName: String) {
+        if !favoriteVerses.contains(where: { $0.bookId == verseText.bookId && $0.chapter == verseText.chapter && $0.verseNumber == verseText.verseNumber }) {
+            let refHy = "\(bookName) \(verseText.chapter):\(verseText.verseNumber)"
+            let refRu = "\(bookName) \(verseText.chapter):\(verseText.verseNumber)"
+            let refEn = "\(bookName) \(verseText.chapter):\(verseText.verseNumber)"
+            
+            let favorite = FavoriteItem(
+                id: UUID(),
+                isDailyVerse: false,
+                bookId: verseText.bookId,
+                chapter: verseText.chapter,
+                verseNumber: verseText.verseNumber,
+                textHy: verseText.textHy,
+                textRu: verseText.textRu,
+                textEn: verseText.textEn,
+                refHy: refHy,
+                refRu: refRu,
+                refEn: refEn
+            )
+            favoriteVerses.append(favorite)
             saveFavorites()
         }
     }
     
     func removeFromFavorites(_ verse: BibleVerse) {
-        favoriteVerses.removeAll(where: { $0.text == verse.text })
+        favoriteVerses.removeAll(where: { $0.textHy == verse.textHy || $0.textRu == verse.textRu })
+        saveFavorites()
+    }
+    
+    func removeFromFavorites(verseText: BibleVerseText) {
+        favoriteVerses.removeAll(where: { $0.bookId == verseText.bookId && $0.chapter == verseText.chapter && $0.verseNumber == verseText.verseNumber })
+        saveFavorites()
+    }
+    
+    func removeFromFavorites(id: UUID) {
+        favoriteVerses.removeAll(where: { $0.id == id })
         saveFavorites()
     }
     
     func isFavorite(_ verse: BibleVerse) -> Bool {
-        favoriteVerses.contains(where: { $0.text == verse.text })
+        favoriteVerses.contains(where: { $0.textHy == verse.textHy || $0.textRu == verse.textRu })
+    }
+    
+    func isFavorite(verseText: BibleVerseText) -> Bool {
+        favoriteVerses.contains(where: { $0.bookId == verseText.bookId && $0.chapter == verseText.chapter && $0.verseNumber == verseText.verseNumber })
     }
     
     private func saveFavorites() {
@@ -275,6 +374,14 @@ class BibleManager: ObservableObject {
            let encoded = try? JSONEncoder().encode(favoriteVerses) {
             defaults.set(encoded, forKey: favoritesKey)
             WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Управление шрифтом Библии
+    func setBibleFontSize(_ size: Double) {
+        self.bibleFontSize = size
+        if let defaults = sharedDefaults {
+            defaults.set(size, forKey: "bible_font_size")
         }
     }
     

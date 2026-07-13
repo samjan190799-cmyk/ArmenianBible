@@ -102,3 +102,20 @@
 /* Widget Settings */
 "widget_settings_header" = "Настройки Виджета";
 "widget_language_title" = "Язык виджета";
+
+/* Bible Reader */
+"tab_bible" = "Библия";
+"testament_old" = "Ветхий Завет";
+"testament_new" = "Новый Завет";
+"chapters_count_label" = "глав";
+"search_placeholder" = "Поиск по Библии...";
+"search_cancel" = "Отмена";
+"search_title" = "Поиск по Библии";
+"search_loading" = "Поиск...";
+"search_no_results" = "Ничего не найдено";
+"search_instruction" = "Введите не менее 3 символов для поиска";
+"font_size_small" = "Мелкий шрифт";
+"font_size_medium" = "Средний шрифт";
+"font_size_large" = "Крупный шрифт";
+"loading_label" = "Загрузка...";
+
