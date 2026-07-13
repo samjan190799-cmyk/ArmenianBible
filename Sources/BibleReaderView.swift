@@ -4,6 +4,7 @@ struct BibleReaderView: View {
     @ObservedObject var manager = BibleManager.shared
     @State private var navigationPath: [BibleNavigationState] = []
     @State private var showingSearch = false
+    @State private var hasRestoredLocation = false
     
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
@@ -19,6 +20,16 @@ struct BibleReaderView: View {
                 backgroundColor.ignoresSafeArea()
                 
                 BibleBookListView(navigationPath: $navigationPath)
+            }
+            .onAppear {
+                if !hasRestoredLocation {
+                    hasRestoredLocation = true
+                    if let bookId = manager.lastReadBookId,
+                       let chapter = manager.lastReadChapter,
+                       let book = BibleDatabase.shared.getBook(id: bookId) {
+                        navigationPath = [.chapters(book: book), .reader(book: book, chapter: chapter, targetVerse: nil)]
+                    }
+                }
             }
             .navigationTitle("tab_bible".localized(for: manager.appLanguage))
             .navigationBarTitleDisplayMode(.inline)
@@ -291,6 +302,11 @@ struct BibleChapterReaderView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             currentChapterIndex = initialChapter - 1
+            manager.saveLastReadLocation(bookId: book.id, chapter: initialChapter)
+        }
+        .onChange(of: currentChapterIndex) { newValue in
+            let newChapter = newValue + 1
+            manager.saveLastReadLocation(bookId: book.id, chapter: newChapter)
         }
     }
 }
@@ -336,62 +352,83 @@ struct BibleSingleChapterView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 0) {
+                            // Книжный заголовок главы
+                            VStack(spacing: 8) {
+                                Text(book.name)
+                                    .font(.system(size: 28, weight: .bold, design: .serif))
+                                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                                
+                                Text("\("chapter_title_label".localized(for: manager.appLanguage)) \(chapter)")
+                                    .font(.system(size: 18, weight: .medium, design: .serif))
+                                    .foregroundColor(accentColor)
+                                
+                                Rectangle()
+                                    .fill(accentColor.opacity(0.2))
+                                    .frame(width: 60, height: 2)
+                                    .padding(.top, 4)
+                            }
+                            .padding(.top, 36)
+                            .padding(.bottom, 28)
+                            .frame(maxWidth: .infinity)
+                            
                             ForEach(text.verses) { verse in
-                                HStack(alignment: .top, spacing: 14) {
-                                    // Номер стиха
-                                    Text("\(verse.verseNumber)")
-                                        .font(.system(size: manager.bibleFontSize - 3, weight: .bold, design: .monospaced))
-                                        .foregroundColor(accentColor.opacity(0.8))
-                                        .frame(width: 28, alignment: .trailing)
-                                        .padding(.top, 2)
-                                    
-                                    // Текст стиха
-                                    Text(verse.text(for: manager.appLanguage))
-                                        .font(.system(size: manager.bibleFontSize, weight: .regular, design: fontDesign))
-                                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : Color(hex: "1E293B"))
-                                        .lineSpacing(6)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    
-                                    // Кнопка избранного
-                                    Button {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    (
+                                        Text("\(verse.verseNumber) ")
+                                            .font(.system(size: manager.bibleFontSize - 4, weight: .bold, design: fontDesign))
+                                            .foregroundColor(accentColor.opacity(0.85))
+                                        +
+                                        Text(verse.text(for: manager.appLanguage))
+                                            .font(.system(size: manager.bibleFontSize, weight: .regular, design: fontDesign))
+                                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : Color(hex: "1E293B"))
+                                    )
+                                    .lineSpacing(7)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 8)
+                                    .background(highlightedVerseId == verse.verseNumber ? highlightColor : Color.clear)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
                                         triggerHaptic(.light)
-                                        if manager.isFavorite(verseText: verse) {
-                                            manager.removeFromFavorites(verseText: verse)
-                                        } else {
-                                            manager.addToFavorites(verseText: verse, bookName: book.name)
+                                        withAnimation(.easeOut(duration: 0.3)) {
+                                            highlightedVerseId = verse.verseNumber
                                         }
-                                    } label: {
-                                        Image(systemName: manager.isFavorite(verseText: verse) ? "heart.fill" : "heart")
-                                            .font(.system(size: 15))
-                                            .foregroundColor(manager.isFavorite(verseText: verse) ? .red : .secondary.opacity(0.4))
-                                            .padding(6)
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                            if highlightedVerseId == verse.verseNumber {
+                                                withAnimation(.easeInOut(duration: 0.8)) {
+                                                    highlightedVerseId = nil
+                                                }
+                                            }
+                                        }
                                     }
-                                    .buttonStyle(ScaleButtonStyle())
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
-                                .background(highlightedVerseId == verse.verseNumber ? highlightColor : Color.clear)
-                                .id(verse.verseNumber)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    // При тапе можно подсветить стих
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        highlightedVerseId = verse.verseNumber
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                        if highlightedVerseId == verse.verseNumber {
-                                            withAnimation(.easeInOut(duration: 0.8)) {
-                                                highlightedVerseId = nil
+                                    .contextMenu {
+                                        Button {
+                                            copyToClipboard(verse: verse)
+                                        } label: {
+                                            Label("context_menu_copy".localized(for: manager.appLanguage), systemImage: "doc.on.doc")
+                                        }
+                                        
+                                        Button {
+                                            shareVerse(verse: verse)
+                                        } label: {
+                                            Label("context_menu_share".localized(for: manager.appLanguage), systemImage: "square.and.arrow.up")
+                                        }
+                                        
+                                        Button {
+                                            toggleFavorite(verse: verse)
+                                        } label: {
+                                            if manager.isFavorite(verseText: verse) {
+                                                Label("context_menu_remove_favorite".localized(for: manager.appLanguage), systemImage: "heart.slash.fill")
+                                            } else {
+                                                Label("context_menu_add_favorite".localized(for: manager.appLanguage), systemImage: "heart")
                                             }
                                         }
                                     }
                                 }
-                                
-                                Divider()
-                                    .padding(.leading, 58)
+                                .id(verse.verseNumber)
                             }
                         }
-                        .padding(.vertical, 12)
+                        .padding(.bottom, 32)
                     }
                     .onAppear {
                         // Скроллим к целевому стиху, если он передан (для Deep Link и поиска)
@@ -473,6 +510,39 @@ struct BibleSingleChapterView: View {
             DispatchQueue.main.async {
                 self.chapterText = data
             }
+        }
+    }
+    
+    private func copyToClipboard(verse: BibleVerse) {
+        let reference = "\(book.name) \(chapter):\(verse.verseNumber)"
+        let textToCopy = "\(verse.text(for: manager.appLanguage)) (\(reference))"
+        UIPasteboard.general.string = textToCopy
+        triggerHaptic(.light)
+    }
+    
+    private func shareVerse(verse: BibleVerse) {
+        let reference = "\(book.name) \(chapter):\(verse.verseNumber)"
+        let textToShare = "\(verse.text(for: manager.appLanguage)) (\(reference))"
+        
+        let activityVC = UIActivityViewController(activityItems: [textToShare], applicationActivities: nil)
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = rootVC.view
+                popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            rootVC.present(activityVC, animated: true, completion: nil)
+        }
+    }
+    
+    private func toggleFavorite(verse: BibleVerse) {
+        triggerHaptic(.medium)
+        if manager.isFavorite(verseText: verse) {
+            manager.removeFromFavorites(verseText: verse)
+        } else {
+            manager.addToFavorites(verseText: verse, bookName: book.name)
         }
     }
     

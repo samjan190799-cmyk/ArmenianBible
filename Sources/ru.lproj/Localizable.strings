@@ -119,3 +119,9 @@
 "font_size_large" = "Крупный шрифт";
 "loading_label" = "Загрузка...";
 
+/* Bible Context Menu & E-Reader */
+"context_menu_copy" = "Скопировать";
+"context_menu_share" = "Поделиться";
+"context_menu_add_favorite" = "В Избранное";
+"context_menu_remove_favorite" = "Удалить из Избранного";
+"chapter_title_label" = "Глава";

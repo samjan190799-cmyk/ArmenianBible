@@ -119,3 +119,9 @@
 "font_size_large" = "Խոշոր տառատեսակ";
 "loading_label" = "Բեռնում...";
 
+/* Bible Context Menu & E-Reader */
+"context_menu_copy" = "Պատճենել";
+"context_menu_share" = "Կիսվել";
+"context_menu_add_favorite" = "Ավելացնել Ընտրյալներում";
+"context_menu_remove_favorite" = "Հեռացնել Ընտրյալներից";
+"chapter_title_label" = "Գլուխ";

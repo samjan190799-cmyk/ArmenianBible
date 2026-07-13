@@ -25,6 +25,8 @@ class BibleManager: ObservableObject {
     @Published var deepLinkBookId: Int? = nil
     @Published var deepLinkChapter: Int? = nil
     @Published var deepLinkVerse: Int? = nil
+    @Published var lastReadBookId: Int? = nil
+    @Published var lastReadChapter: Int? = nil
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -216,6 +218,30 @@ class BibleManager: ObservableObject {
             self.widgetLanguage = savedWidgetLang
         } else {
             self.widgetLanguage = .followApp
+        }
+        
+        // Загрузка последнего места чтения
+        if let defaults = sharedDefaults {
+            let savedBookId = defaults.integer(forKey: "last_read_book_id")
+            let savedChapter = defaults.integer(forKey: "last_read_chapter")
+            if savedBookId != 0 && savedChapter != 0 {
+                self.lastReadBookId = savedBookId
+                self.lastReadChapter = savedChapter
+            }
+        }
+    }
+    
+    // MARK: - Сохранение последней позиции чтения
+    func saveLastReadLocation(bookId: Int, chapter: Int) {
+        if lastReadBookId != bookId || lastReadChapter != chapter {
+            lastReadBookId = bookId
+            lastReadChapter = chapter
+            
+            if let defaults = sharedDefaults {
+                defaults.set(bookId, forKey: "last_read_book_id")
+                defaults.set(chapter, forKey: "last_read_chapter")
+                defaults.synchronize()
+            }
         }
     }
     

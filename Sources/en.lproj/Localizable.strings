@@ -119,3 +119,9 @@
 "font_size_large" = "Large Font";
 "loading_label" = "Loading...";
 
+/* Bible Context Menu & E-Reader */
+"context_menu_copy" = "Copy";
+"context_menu_share" = "Share";
+"context_menu_add_favorite" = "Add to Favorites";
+"context_menu_remove_favorite" = "Remove from Favorites";
+"chapter_title_label" = "Chapter";
