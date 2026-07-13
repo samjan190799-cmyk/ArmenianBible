@@ -19,7 +19,7 @@ struct BibleReaderView: View {
             ZStack {
                 backgroundColor.ignoresSafeArea()
                 
-                BibleBookListView(navigationPath: $navigationPath)
+                BibleLibraryView(navigationPath: $navigationPath)
             }
             .onAppear {
                 if !hasRestoredLocation {
@@ -27,7 +27,12 @@ struct BibleReaderView: View {
                     if let bookId = manager.lastReadBookId,
                        let chapter = manager.lastReadChapter,
                        let book = BibleDatabase.shared.getBook(id: bookId) {
-                        navigationPath = [.chapters(book: book), .reader(book: book, chapter: chapter, targetVerse: nil)]
+                        // Восстанавливаем с шагом bookList для правильного стэка переходов "Назад"
+                        navigationPath = [
+                            .bookList(language: manager.appLanguage),
+                            .chapters(book: book),
+                            .reader(book: book, chapter: chapter, targetVerse: nil)
+                        ]
                     }
                 }
             }
@@ -49,6 +54,8 @@ struct BibleReaderView: View {
             }
             .navigationDestination(for: BibleNavigationState.self) { state in
                 switch state {
+                case .bookList(let language):
+                    BibleBookListView(language: language, navigationPath: $navigationPath)
                 case .chapters(let book):
                     BibleChapterSelectionView(book: book, navigationPath: $navigationPath)
                 case .reader(let book, let chapter, let targetVerse):
@@ -67,8 +74,12 @@ struct BibleReaderView: View {
                     manager.deepLinkChapter = nil
                     manager.deepLinkVerse = nil
                     
-                    // Переходим напрямую в ридер
-                    navigationPath = [.chapters(book: book), .reader(book: book, chapter: chapter, targetVerse: verse)]
+                    // Переходим напрямую в ридер с правильной вложенностью
+                    navigationPath = [
+                        .bookList(language: manager.appLanguage),
+                        .chapters(book: book),
+                        .reader(book: book, chapter: chapter, targetVerse: verse)
+                    ]
                 }
             }
         }
@@ -78,11 +89,15 @@ struct BibleReaderView: View {
 // MARK: - Навигационные состояния
 
 enum BibleNavigationState: Hashable {
+    case bookList(language: AppLanguage)
     case chapters(book: BibleBook)
     case reader(book: BibleBook, chapter: Int, targetVerse: Int?)
     
     func hash(into hasher: inout Hasher) {
         switch self {
+        case .bookList(let language):
+            hasher.combine("bookList")
+            hasher.combine(language.rawValue)
         case .chapters(let book):
             hasher.combine("chapters")
             hasher.combine(book.id)
@@ -96,6 +111,8 @@ enum BibleNavigationState: Hashable {
     
     static func == (lhs: BibleNavigationState, rhs: BibleNavigationState) -> Bool {
         switch (lhs, rhs) {
+        case (.bookList(let l1), .bookList(let l2)):
+            return l1 == l2
         case (.chapters(let b1), .chapters(let b2)):
             return b1.id == b2.id
         case (.reader(let b1, let c1, let v1), .reader(let b2, let c2, let v2)):
@@ -109,6 +126,7 @@ enum BibleNavigationState: Hashable {
 // MARK: - Список книг Библии
 
 struct BibleBookListView: View {
+    let language: AppLanguage
     @ObservedObject var manager = BibleManager.shared
     @Binding var navigationPath: [BibleNavigationState]
     @State private var books: [BibleBook] = []
@@ -193,6 +211,8 @@ struct BibleBookListView: View {
                 .padding(.bottom, 24)
             }
         }
+        .navigationTitle(language.displayName)
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if books.isEmpty {
                 books = BibleDatabase.shared.getBooks()

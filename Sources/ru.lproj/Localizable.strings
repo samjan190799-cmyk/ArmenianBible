@@ -125,3 +125,11 @@
 "context_menu_add_favorite" = "В Избранное";
 "context_menu_remove_favorite" = "Удалить из Избранного";
 "chapter_title_label" = "Глава";
+
+/* Bible Library */
+"library_title" = "Библиотека";
+"library_subtitle" = "Выберите издание для чтения";
+"button_read_bible" = "Читать";
+"edition_armenian_subtitle" = "Восточноармянский перевод";
+"edition_russian_subtitle" = "Синодальный перевод";
+"edition_english_subtitle" = "King James Version (KJV)";

@@ -125,3 +125,11 @@
 "context_menu_add_favorite" = "Ավելացնել Ընտրյալներում";
 "context_menu_remove_favorite" = "Հեռացնել Ընտրյալներից";
 "chapter_title_label" = "Գլուխ";
+
+/* Bible Library */
+"library_title" = "Գրադարան";
+"library_subtitle" = "Ընտրեք հրատարակությունը կարդալու համար";
+"button_read_bible" = "Կարդալ";
+"edition_armenian_subtitle" = "Արևելահայերեն թարգմանություն";
+"edition_russian_subtitle" = "Սինոդալ թարգմանություն";
+"edition_english_subtitle" = "King James Version (KJV)";
