@@ -83,7 +83,7 @@ jobs:
 
       - name: Generate Xcode Project
         run: |
-          xcodegen generate
+          xcogen generate
 
       - name: Build for iOS Device (Signed)
         run: |
@@ -95,9 +95,6 @@ jobs:
             -derivedDataPath build \
             build
 
-          # Проверка бинарного файла приложения
-          ls -l build/Build/Products/Release-iphoneos/ArmenianBible.app/ArmenianBible
-
       - name: Package as IPA
         run: |
           mkdir -p build/Payload
@@ -107,6 +104,7 @@ jobs:
           cd build
           zip -r ArmenianBible.ipa Payload/
           echo "IPA size: $(du -h ArmenianBible.ipa | cut -f1)"
+
       - name: Upload IPA as Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -114,15 +112,16 @@ jobs:
           path: build/ArmenianBible.ipa
           if-no-files-found: error
           retention-days: 30
+
       - name: Upload to App Store Connect
+        env:
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
+          mkdir -p ~/private_keys
           mkdir -p ~/.private_keys
-          echo "${{ secrets.APPSTORE_PRIVATE_KEY }}" > ~/.private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
-          xcrun altool --upload-app \
-            -f build/ArmenianBible.ipa \
-            -t ios \
-            --apiKey "${{ secrets.APPSTORE_KEY_ID }}" \
-            --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}"
+          echo "$APPSTORE_PRIVATE_KEY" > ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
+          echo "$APPSTORE_PRIVATE_KEY" > ~/.private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
+          xcrun altool --upload-app -f build/ArmenianBible.ipa -t ios --apiKey "${{ secrets.APPSTORE_KEY_ID }}" --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}"
 
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
