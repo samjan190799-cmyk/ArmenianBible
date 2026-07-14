@@ -87,14 +87,26 @@ jobs:
 
       - name: Build for iOS Device (Signed)
         run: |
-          set -o pipefail
           xcodebuild \
             -project ArmenianBible.xcodeproj \
             -scheme ArmenianBible \
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -derivedDataPath build \
-            build 2>&1 | xcpretty
+            build
+
+          # Проверка бинарного файла приложения
+          ls -l build/Build/Products/Release-iphoneos/ArmenianBible.app/ArmenianBible
+
+      - name: Package as IPA
+        run: |
+          mkdir -p build/Payload
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -1)
+          echo "App path: $APP_PATH"
+          cp -r "$APP_PATH" build/Payload/ArmenianBible.app
+          cd build
+          zip -r ArmenianBible.ipa Payload/
+          echo "IPA size: $(du -h ArmenianBible.ipa | cut -f1)"
 
           # Проверка бинарного файла приложения
           ls -l build/Build/Products/Release-iphoneos/ArmenianBible.app/ArmenianBible
