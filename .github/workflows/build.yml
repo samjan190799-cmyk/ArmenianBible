@@ -83,7 +83,7 @@ jobs:
 
       - name: Generate Xcode Project
         run: |
-          xcogen generate
+          xcodegen generate
 
       - name: Build for iOS Device (Signed)
         run: |
@@ -137,7 +137,7 @@ jobs:
             2. Բացեք AltStore-ը ձեր iPhone-ում → "My Apps" → "+" → ընտրեք ներբեռնված IPA ֆայլը: (Откройте AltStore на iPhone → "My Apps" → "+" → выберите скачанный IPA.)
             3. Պատրաստ է: (Готово!)
 
-            **Փոփոхоություններ / Изменения:**
+            **Փոփոխություններ / Изменения:**
             - Первоначальный релиз приложения на армянском языке с виджетом для экрана блокировки.
           files: build/ArmenianBible.ipa
           draft: false
