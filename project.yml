@@ -68,7 +68,7 @@ targets:
       base:
         SWIFT_VERSION: "5.9"
         PRODUCT_NAME: BibleWidget
-        PRODUCT_BUNDLE_IDENTIFIER: com.samvel.armenianbible.BibleWidget
+        PRODUCT_BUNDLE_IDENTIFIER: com.samvel.app.BibleWidget
         CODE_SIGN_ENTITLEMENTS: Widget/BibleWidget.entitlements
         GENERATE_INFOPLIST_FILE: "NO"
         DEVELOPMENT_TEAM: ""
