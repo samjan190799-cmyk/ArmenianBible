@@ -115,15 +115,14 @@ jobs:
 
       - name: Upload to App Store Connect
         env:
-          APPSTORE_PRIVATE_KEY_BASE64: ${{ secrets.APPSTORE_PRIVATE_KEY_BASE64 }}
+          APPSTORE_PRIVATE_KEY: |
+            ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
           mkdir -p ~/private_keys
           mkdir -p ~/.private_keys
           
-          # Очищаем Base64-строку от виндовых переносов и безопасно декодируем
-          echo "$APPSTORE_PRIVATE_KEY_BASE64" | tr -d '\n\r ' | base64 --decode > ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
-          
-          # Дублируем ключ в скрытую папку для 100% надежности
+          # Записываем оригинальный PEM-ключ из секрета с сохранением структуры строк
+          echo "$APPSTORE_PRIVATE_KEY" > ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
           cp ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8 ~/.private_keys/
           
           # Запускаем загрузку
