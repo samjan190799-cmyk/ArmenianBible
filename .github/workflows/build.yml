@@ -73,6 +73,9 @@ jobs:
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$MAIN_UUID.mobileprovision
           cp $WIDGET_PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$WIDGET_UUID.mobileprovision
 
+          echo "MAIN_PROVISIONING_PROFILE=$MAIN_UUID" >> $GITHUB_ENV
+          echo "WIDGET_PROVISIONING_PROFILE=$WIDGET_UUID" >> $GITHUB_ENV
+
           echo "Подпись успешно импортирована!"
 
       - name: Generate Xcode Project
@@ -87,6 +90,8 @@ jobs:
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -derivedDataPath build \
+            PROVISIONING_PROFILE_SPECIFIER_ArmenianBible="${{ env.MAIN_PROVISIONING_PROFILE }}" \
+            PROVISIONING_PROFILE_SPECIFIER_BibleWidget="${{ env.WIDGET_PROVISIONING_PROFILE }}" \
             build
 
       - name: Package as IPA
