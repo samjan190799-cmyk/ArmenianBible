@@ -1,6 +1,6 @@
 name: ArmenianBible
 options:
-  bundleIdPrefix: com.samvel
+  bundleIdPrefix: com.samvel.armenianbible
 targets:
   ArmenianBible:
     type: application
@@ -34,7 +34,7 @@ targets:
         GENERATE_INFOPLIST_FILE: "NO"
         DEVELOPMENT_TEAM: "V7J345DY58"
         CODE_SIGN_STYLE: "Manual"
-        COM_APPLE_SECURITY_APPLICATION_GROUPS: "group.com.samvel.armenianbible"
+        COM_APPLE_SECURITY_APPLICATION_GROUPS: "group.com.rileytestut.AltStore.V7J345DY58"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_PRIMARY_APPICON_SET_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: "YES"
@@ -73,4 +73,4 @@ targets:
         GENERATE_INFOPLIST_FILE: "NO"
         DEVELOPMENT_TEAM: "V7J345DY58"
         CODE_SIGN_STYLE: "Manual"
-        COM_APPLE_SECURITY_APPLICATION_GROUPS: "group.com.samvel.armenianbible"
+        COM_APPLE_SECURITY_APPLICATION_GROUPS: "group.com.rileytestut.AltStore.V7J345DY58"
