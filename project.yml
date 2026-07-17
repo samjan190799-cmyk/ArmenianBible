@@ -34,12 +34,12 @@ targets:
         GENERATE_INFOPLIST_FILE: "NO"
         DEVELOPMENT_TEAM: "V7J345DY58"
         CODE_SIGN_STYLE: "Manual"
+        COM_APPLE_SECURITY_APPLICATION_GROUPS: "group.com.samvel.armenianbible"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_PRIMARY_APPICON_SET_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: "YES"
     dependencies:
       - target: BibleWidget
-        # corrected from .tbd to match correct system library naming convention
       - sdk: libsqlite3.dylib
 
   BibleWidget:
@@ -73,3 +73,4 @@ targets:
         GENERATE_INFOPLIST_FILE: "NO"
         DEVELOPMENT_TEAM: "V7J345DY58"
         CODE_SIGN_STYLE: "Manual"
+        COM_APPLE_SECURITY_APPLICATION_GROUPS: "group.com.samvel.armenianbible"
