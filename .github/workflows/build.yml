@@ -77,7 +77,7 @@ jobs:
 
       - name: Generate Xcode Project
         run: |
-          xcogen generate
+          xcodegen generate
 
       - name: Build for iOS Device (Signed)
         run: |
