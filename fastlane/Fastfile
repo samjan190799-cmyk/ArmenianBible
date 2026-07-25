@@ -1,0 +1,19 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Автоматическая сборка и отправка ArmenianBible в TestFlight / App Store Connect"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APPSTORE_KEY_ID"],
+      issuer_id: ENV["APPSTORE_ISSUER_ID"],
+      key_content: ENV["APPSTORE_API_KEY_BASE64"],
+      is_key_content_base64: true
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+  end
+end
