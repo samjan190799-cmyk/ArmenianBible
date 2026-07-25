@@ -1,0 +1,14 @@
+name: AB Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-14
+    steps:
+      - name: Hello
+        run: echo Hello ArmenianBible
