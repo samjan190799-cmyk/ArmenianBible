@@ -44,21 +44,16 @@ jobs:
           security find-identity -v -p codesigning "$KCHAIN"
           echo "KCHAIN=$KCHAIN" >> $GITHUB_ENV
 
-      - name: Install Profiles
+      - name: Install Profile
         env:
           MAIN_PROFILE_BASE64: ${{ secrets.MAIN_PROFILE_BASE64 }}
-          WIDGET_PROFILE_BASE64: ${{ secrets.WIDGET_PROFILE_BASE64 }}
         run: |
           PPDIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PPDIR"
           echo "$MAIN_PROFILE_BASE64" | base64 -d > "$RUNNER_TEMP/main.mobileprovision"
-          echo "$WIDGET_PROFILE_BASE64" | base64 -d > "$RUNNER_TEMP/widget.mobileprovision"
           MUUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< $(security cms -D -i "$RUNNER_TEMP/main.mobileprovision"))
-          WUUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< $(security cms -D -i "$RUNNER_TEMP/widget.mobileprovision"))
           cp "$RUNNER_TEMP/main.mobileprovision" "$PPDIR/$MUUID.mobileprovision"
-          cp "$RUNNER_TEMP/widget.mobileprovision" "$PPDIR/$WUUID.mobileprovision"
           echo "Main UUID: $MUUID"
-          echo "Widget UUID: $WUUID"
 
       - name: Setup ASC Key
         env:
@@ -78,11 +73,7 @@ jobs:
             -scheme ArmenianBible \
             -destination 'generic/platform=iOS' \
             -configuration Release \
-            -archivePath "$RUNNER_TEMP/AB.xcarchive" \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM=V7J345DY58 \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-             2>&1 | tail -80
+            -archivePath "$RUNNER_TEMP/AB.xcarchive" 2>&1 | tail -80
           echo "Archive complete!"
 
       - name: Write ExportOptions
@@ -96,8 +87,7 @@ jobs:
           echo '  <key>signingStyle</key><string>manual</string>' >> "$PLIST"
           echo '  <key>uploadSymbols</key><true/>' >> "$PLIST"
           echo '  <key>provisioningProfiles</key><dict>' >> "$PLIST"
-          echo '    <key>com.samvel.armenianbible.V7J345DY58</key><string>Samvel_Main_App_Profile</string>' >> "$PLIST"
-          echo '    <key>com.samvel.armenianbible.V7J345DY58.BibleWidget</key><string>Samvel_Widget_Profile</string>' >> "$PLIST"
+          echo '    <key>com.samvel.app</key><string>Samvel_App_Profile</string>' >> "$PLIST"
           echo '  </dict>' >> "$PLIST"
           echo '</dict></plist>' >> "$PLIST"
           cat "$PLIST"
