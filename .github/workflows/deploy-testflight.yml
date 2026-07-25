@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Build & Upload ArmenianBible to TestFlight
+    name: Build & Sign & Upload ArmenianBible to TestFlight
     runs-on: macos-14
 
     steps:
@@ -45,6 +45,69 @@ jobs:
         run: |
           xcodegen generate
 
+      - name: Import Distribution Certificate
+        env:
+          DIST_CERT_P12_BASE64: ${{ secrets.DIST_CERT_P12_BASE64 }}
+          DIST_CERT_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
+        run: |
+          echo "Импортируем сертификат дистрибуции..."
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
+
+          # Создаём временный keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Декодируем и импортируем p12
+          echo "$DIST_CERT_P12_BASE64" | base64 -d > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12"             -k "$KEYCHAIN_PATH"             -P "$DIST_CERT_PASSWORD"             -T /usr/bin/codesign             -T /usr/bin/security
+
+          # Добавляем keychain в список поиска
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list             -S apple-tool:,apple:,codesign:             -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          echo "Сертификат импортирован успешно!"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Install Provisioning Profiles
+        env:
+          MAIN_PROFILE_BASE64: ${{ secrets.MAIN_PROFILE_BASE64 }}
+          WIDGET_PROFILE_BASE64: ${{ secrets.WIDGET_PROFILE_BASE64 }}
+        run: |
+          echo "Устанавливаем provisioning profiles..."
+          PP_DIR=~/Library/MobileDevice/Provisioning\ Profiles
+          mkdir -p "$PP_DIR"
+
+          # Основной профиль
+          echo "$MAIN_PROFILE_BASE64" | base64 -d > "$RUNNER_TEMP/main.mobileprovision"
+          MAIN_UUID=$(python3 -c "
+import plistlib, re, sys
+with open('$RUNNER_TEMP/main.mobileprovision', 'rb') as f:
+    content = f.read()
+start = content.find(b'<?xml')
+end = content.find(b'</plist>') + 8
+plist = plistlib.loads(content[start:end])
+print(plist['UUID'])
+")
+          cp "$RUNNER_TEMP/main.mobileprovision" "$PP_DIR/${MAIN_UUID}.mobileprovision"
+          echo "Main profile UUID: $MAIN_UUID"
+
+          # Widget профиль
+          echo "$WIDGET_PROFILE_BASE64" | base64 -d > "$RUNNER_TEMP/widget.mobileprovision"
+          WIDGET_UUID=$(python3 -c "
+import plistlib, re, sys
+with open('$RUNNER_TEMP/widget.mobileprovision', 'rb') as f:
+    content = f.read()
+start = content.find(b'<?xml')
+end = content.find(b'</plist>') + 8
+plist = plistlib.loads(content[start:end])
+print(plist['UUID'])
+")
+          cp "$RUNNER_TEMP/widget.mobileprovision" "$PP_DIR/${WIDGET_UUID}.mobileprovision"
+          echo "Widget profile UUID: $WIDGET_UUID"
+          echo "Profiles installed successfully!"
+
       - name: Setup App Store Connect Auth
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
@@ -52,46 +115,65 @@ jobs:
           APPSTORE_API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_BASE64 }}
         run: |
           if [ -z "$APPSTORE_KEY_ID" ] || [ -z "$APPSTORE_ISSUER_ID" ] || [ -z "$APPSTORE_API_KEY_BASE64" ]; then
-            echo "::error::Не найдены ключи секретов GitHub Secrets (APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_API_KEY_BASE64)."
+            echo "::error::Не заданы GitHub Secrets (APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_API_KEY_BASE64)."
             exit 1
           fi
-          
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$APPSTORE_API_KEY_BASE64" | base64 -d > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
-          echo "Ключ авторизации App Store Connect успешно развернут!"
+          echo "App Store Connect ключ установлен!"
 
-      - name: Build ArmenianBible Unsigned Release IPA
+      - name: Build & Sign ArmenianBible IPA
         run: |
           set -o pipefail
-          xcodebuild \
-            -project ArmenianBible.xcodeproj \
-            -scheme ArmenianBible \
-            -destination 'generic/platform=iOS' \
-            -configuration Release \
-            -derivedDataPath build \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            SWIFT_OPTIMIZATION_LEVEL="-O" \
-            build 2>&1 | tee build_log.txt
-          
-          mkdir -p build/Payload
-          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -1)
-          cp -r "$APP_PATH" build/Payload/ArmenianBible.app
-          cd build
-          zip -r ArmenianBible.ipa Payload/
-          echo "ArmenianBible IPA файл успешно собран: $(du -h ArmenianBible.ipa | cut -f1)"
 
-      - name: Upload ArmenianBible to App Store Connect / TestFlight
+          # Создаём ExportOptions.plist
+          cat > /tmp/ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>V7J345DY58</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.samvel.armenianbible</key>
+              <string>Samvel_Main_App_Profile</string>
+              <key>com.samvel.armenianbible.BibleWidget</key>
+              <string>Samvel_Widget_Profile</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+
+          # Архивируем приложение
+          xcodebuild archive             -project ArmenianBible.xcodeproj             -scheme ArmenianBible             -destination 'generic/platform=iOS'             -configuration Release             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive"             CODE_SIGN_STYLE=Manual             DEVELOPMENT_TEAM=V7J345DY58             CODE_SIGN_IDENTITY="Apple Distribution"             PROVISIONING_PROFILE_SPECIFIER="Samvel_Main_App_Profile"             SWIFT_OPTIMIZATION_LEVEL="-O"             2>&1 | tee build_log.txt
+
+          echo "Архив создан успешно!"
+
+          # Экспортируем подписанный IPA
+          xcodebuild -exportArchive             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive"             -exportPath "$RUNNER_TEMP/export"             -exportOptionsPlist /tmp/ExportOptions.plist             2>&1
+
+          IPA_PATH=$(find "$RUNNER_TEMP/export" -name "*.ipa" | head -1)
+          echo "IPA создан: $IPA_PATH ($(du -h "$IPA_PATH" | cut -f1))"
+          echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
+
+      - name: Upload to TestFlight via xcrun notarytool
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
         run: |
-          echo "Отправка ArmenianBible.ipa в App Store Connect..."
-          xcrun altool --upload-app \
-            -f build/ArmenianBible.ipa \
-            -t ios \
-            --apiKey "$APPSTORE_KEY_ID" \
-            --apiIssuer "$APPSTORE_ISSUER_ID"
-          echo "Армянская Библия успешно отправлена в App Store Connect!"
+          echo "Загружаем ArmenianBible в App Store Connect / TestFlight..."
+          xcrun altool --upload-app             -f "$IPA_PATH"             -t ios             --apiKey "$APPSTORE_KEY_ID"             --apiIssuer "$APPSTORE_ISSUER_ID"             --verbose
+          echo "Готово! Приложение отправлено в TestFlight!"
+
+      - name: Cleanup Keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" 2>/dev/null || true
+          echo "Keychain очищен"
