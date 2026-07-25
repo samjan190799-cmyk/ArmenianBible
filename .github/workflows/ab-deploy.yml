@@ -73,6 +73,10 @@ jobs:
             -scheme ArmenianBible \
             -destination 'generic/platform=iOS' \
             -configuration Release \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=V7J345DY58 \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="Samvel_App_Profile" \
             -archivePath "$RUNNER_TEMP/AB.xcarchive" 2>&1 | tail -80
           echo "Archive complete!"
 
