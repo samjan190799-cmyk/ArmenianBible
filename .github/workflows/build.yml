@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Signed IPA
+    name: Build & Upload to TestFlight
     runs-on: macos-14
 
     steps:
@@ -27,7 +27,7 @@ jobs:
             ~/Library/Caches/Homebrew
             /opt/homebrew/Cellar
             /opt/homebrew/bin/xcodegen
-          key: ${{ runner.os }}-homebrew-xcodegen
+          key: ${{ runner.os }}-homebrew-xcodegen-v3
 
       - name: Install XcodeGen
         if: steps.cache-homebrew.outputs.cache-hit != 'true'
@@ -37,47 +37,40 @@ jobs:
 
       - name: Select Latest Xcode
         run: |
-          LATEST_XCODE=$(ls -d /Applications/Xcode_*.app | sort -V | tail -n 1)
-          echo "Using: $LATEST_XCODE"
+          LATEST_XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n 1)
+          if [ -z "$LATEST_XCODE" ]; then
+            LATEST_XCODE="/Applications/Xcode.app"
+          fi
+          echo "Используем: $LATEST_XCODE"
           sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
           xcodebuild -version
 
-      - name: Install iOS Certificate and Provisioning Profiles
+      # ─── Разворачиваем App Store Connect API ключ ──────────────────
+      - name: Setup App Store Connect API Key
         env:
-          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_BASE64 }}
         run: |
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          if [ -z "$APPSTORE_KEY_ID" ] || [ -z "$APPSTORE_ISSUER_ID" ] || [ -z "$APPSTORE_API_KEY_BASE64" ]; then
+            echo "::error::Отсутствуют секреты APPSTORE_KEY_ID / APPSTORE_ISSUER_ID / APPSTORE_API_KEY_BASE64"
+            exit 1
+          fi
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APPSTORE_API_KEY_BASE64" | base64 --decode \
+            > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
+          echo "AUTH_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8" >> $GITHUB_ENV
+          echo "APPSTORE_KEY_ID=$APPSTORE_KEY_ID" >> $GITHUB_ENV
+          echo "APPSTORE_ISSUER_ID=$APPSTORE_ISSUER_ID" >> $GITHUB_ENV
+          echo "✅ App Store Connect API ключ развёрнут"
 
-          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
-          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
-
-          # Создаём временный keychain с паролем (пустой keychain вызывает ошибки в Xcode 16)
-          security create-keychain -p "temp_build_password" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "temp_build_password" $KEYCHAIN_PATH
-
-          # Импортируем сертификат
-          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          # Разрешаем xcodebuild использовать ключ без диалога
-          security set-key-partition-list -S apple-tool:,apple: -s -k "temp_build_password" $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
-
-          # Устанавливаем профиль провижининга
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          PP_UUID=$(security cms -D -i $PP_PATH | plutil -extract UUID raw -)
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PP_UUID.mobileprovision
-
-          echo "PROVISIONING_PROFILE_UUID=$PP_UUID" >> $GITHUB_ENV
-          echo "✅ Сертификат установлен, UUID профиля: $PP_UUID"
-
+      # ─── Генерация Xcode проекта ────────────────────────────────────
       - name: Generate Xcode Project
         run: |
           xcodegen generate
+          echo "✅ Xcode проект сгенерирован"
 
+      # ─── Архивация с Automatic Signing (ASC API) ────────────────────
       - name: Archive ArmenianBible
         run: |
           set -o pipefail
@@ -87,17 +80,25 @@ jobs:
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            -authenticationKeyPath "$AUTH_KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            -allowProvisioningUpdates \
+            CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM="V7J345DY58" \
-            PROVISIONING_PROFILE="$PROVISIONING_PROFILE_UUID" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
             2>&1 | tee "$RUNNER_TEMP/archive_log.txt"
+
+          if [ ! -d "$RUNNER_TEMP/ArmenianBible.xcarchive" ]; then
+            echo "::error::Архив не создан! Лог архивации:"
+            cat "$RUNNER_TEMP/archive_log.txt"
+            exit 1
+          fi
           echo "✅ Архив создан: $RUNNER_TEMP/ArmenianBible.xcarchive"
 
+      # ─── ExportOptions.plist ────────────────────────────────────────
       - name: Create ExportOptions.plist
         run: |
-          cat > $RUNNER_TEMP/ExportOptions.plist << PLIST_EOF
+          cat > "$RUNNER_TEMP/ExportOptions.plist" << 'PLIST_EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -105,16 +106,11 @@ jobs:
             <key>method</key>
             <string>app-store-connect</string>
             <key>destination</key>
-            <string>export</string>
+            <string>upload</string>
             <key>teamID</key>
             <string>V7J345DY58</string>
             <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.samvel.app</key>
-              <string>$PROVISIONING_PROFILE_UUID</string>
-            </dict>
+            <string>automatic</string>
             <key>stripSwiftSymbols</key>
             <true/>
             <key>uploadBitcode</key>
@@ -126,55 +122,54 @@ jobs:
           PLIST_EOF
           echo "✅ ExportOptions.plist создан"
 
-      - name: Export IPA
+      # ─── Экспорт и загрузка в TestFlight ───────────────────────────
+      - name: Export & Upload to TestFlight
         run: |
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive" \
             -exportPath "$RUNNER_TEMP/Export" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -authenticationKeyPath "$AUTH_KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            -allowProvisioningUpdates \
             2>&1 | tee "$RUNNER_TEMP/export_log.txt"
 
           IPA_PATH=$(find "$RUNNER_TEMP/Export" -name "*.ipa" | head -1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "::error::IPA не найден! Лог экспорта:"
+            cat "$RUNNER_TEMP/export_log.txt"
+            exit 1
+          fi
           echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
-          echo "✅ IPA создан: $IPA_PATH"
+          echo "✅ IPA успешно отправлен в TestFlight: $IPA_PATH"
 
+      # ─── Сохраняем IPA как артефакт ────────────────────────────────
       - name: Upload IPA as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ArmenianBible-IPA
+          name: ArmenianBible-IPA-${{ github.run_number }}
           path: ${{ env.IPA_PATH }}
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
-      - name: Upload to App Store Connect
-        env:
-          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
-          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-        run: |
-          mkdir -p ~/.private_keys
-          printf "%s" "$APPSTORE_PRIVATE_KEY" > ~/.private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
-
-          xcrun altool --upload-app \
-            -f "$IPA_PATH" \
-            -t ios \
-            --apiKey "$APPSTORE_KEY_ID" \
-            --apiIssuer "$APPSTORE_ISSUER_ID"
-          echo "✅ Приложение отправлено в TestFlight!"
-
+      # ─── GitHub Release (только main при push) ──────────────────────
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: "Armenian Bible LockScreen v1.0 (Сборка ${{ github.run_number }})"
+          name: "Armenian Bible v1.0 (Сборка ${{ github.run_number }})"
           body: |
-            ## Armenian Bible LockScreen IPA (Աստvածաshunч Կողпман Эkran)
+            ## 📖 Armenian Bible — Армянская Библия
 
-            **Ինчпес тeghадрел AltStore-и миджоцов / Как установить через AltStore:**
+            **Как установить через AltStore:**
             1. Скачайте файл `ArmenianBible.ipa` ниже
             2. Откройте AltStore на iPhone → "My Apps" → "+" → выберите скачанный IPA
             3. Готово!
+
+            ---
+            Собрано автоматически через GitHub Actions | Сборка №${{ github.run_number }}
           files: ${{ env.IPA_PATH }}
           draft: false
           prerelease: false
