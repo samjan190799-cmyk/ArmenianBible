@@ -61,7 +61,7 @@ jobs:
           KEY_PATH="$KEY_DIR/AuthKey_${KEY_ID}.p8"
           
           # Декодируем .p8 ключ и ставим строго обязательные права 600
-          echo "$API_KEY_B64" | base64 --decode > "$KEY_PATH"
+          echo "$API_KEY_B64" | tr -d '\r\n ' | base64 --decode | tr -d '\r' > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
 
           # Записываем в ENV

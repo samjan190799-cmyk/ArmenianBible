@@ -35,8 +35,9 @@ payload = {
 }
 
 with open(key_path, "rb") as f:
+    key_bytes = f.read().replace(b"\r\n", b"\n").replace(b"\r", b"\n").strip()
     from cryptography.hazmat.primitives import serialization
-    pk_obj = serialization.load_pem_private_key(f.read(), password=None)
+    pk_obj = serialization.load_pem_private_key(key_bytes, password=None)
 
 token = jwt.encode(payload, pk_obj, algorithm="ES256", headers=headers)
 if isinstance(token, bytes): token = token.decode("utf-8")
