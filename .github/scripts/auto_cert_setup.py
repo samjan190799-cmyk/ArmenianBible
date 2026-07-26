@@ -70,7 +70,12 @@ def api_request(method, path, body=None):
     )
     try:
         with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
+            if r.status == 204:
+                return {"status": "success"}
+            res_content = r.read()
+            if not res_content or not res_content.strip():
+                return {"status": "success"}
+            return json.loads(res_content)
     except urllib.error.HTTPError as e:
         err_b = e.read().decode("utf-8", errors="ignore")
         print(f"⚠️ Apple API Answer [{e.code}]: {err_b}")
