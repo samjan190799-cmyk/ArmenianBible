@@ -39,9 +39,9 @@ def get_env_var(keys, name_for_err):
     print("="*60)
     sys.exit(1)
 
-key_id      = get_env_var(["APPSTORE_KEY_ID", "APP_STORE_CONNECT_KEY_ID", "APP_STORE_KEY_ID", "KEY_ID"], "Key ID")
-issuer_id   = get_env_var(["APPSTORE_ISSUER_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_ISSUER_ID", "ISSUER_ID"], "Issuer ID")
-api_key_b64 = get_env_var(["APPSTORE_API_KEY_BASE64", "APP_STORE_CONNECT_API_KEY_BASE64", "APPSTORE_API_KEY", "APPSTORE_PRIVATE_KEY"], "API Key Base64")
+key_id      = get_env_var(["APPSTORE_KEY_ID", "APP_STORE_CONNECT_KEY_ID", "APP_STORE_KEY_ID", "KEY_ID", "APPSTORE_KEYID"], "Key ID")
+issuer_id   = get_env_var(["APPSTORE_ISSUER_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_ISSUER_ID", "ISSUER_ID", "APPSTORE_ISSUERID"], "Issuer ID")
+api_key_b64 = get_env_var(["APPSTORE_API_KEY_BASE64", "APP_STORE_CONNECT_API_KEY_BASE64", "APPSTORE_KEY_BASE64", "APP_STORE_KEY_BASE64", "P8_BASE64", "P8_KEY", "APPSTORE_API_KEY", "APPSTORE_PRIVATE_KEY"], "API Key Base64")
 runner_tmp  = os.environ.get("RUNNER_TEMP", "/tmp")
 github_env  = os.environ.get("GITHUB_ENV", "/tmp/env")
 

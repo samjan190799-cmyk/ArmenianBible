@@ -40,9 +40,9 @@ jobs:
 
       - name: Generate Certificate and Provisioning Profile
         env:
-          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID || secrets.APP_STORE_CONNECT_KEY_ID || secrets.APP_STORE_KEY_ID || secrets.KEY_ID }}
-          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID || secrets.APP_STORE_CONNECT_ISSUER_ID || secrets.APP_STORE_ISSUER_ID || secrets.ISSUER_ID }}
-          APPSTORE_API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_BASE64 || secrets.APP_STORE_CONNECT_API_KEY_BASE64 || secrets.APPSTORE_API_KEY || secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID || secrets.APP_STORE_CONNECT_KEY_ID || secrets.APP_STORE_KEY_ID || secrets.KEY_ID || secrets.APPSTORE_KEYID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID || secrets.APP_STORE_CONNECT_ISSUER_ID || secrets.APP_STORE_ISSUER_ID || secrets.ISSUER_ID || secrets.APPSTORE_ISSUERID }}
+          APPSTORE_API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_BASE64 || secrets.APP_STORE_CONNECT_API_KEY_BASE64 || secrets.APPSTORE_KEY_BASE64 || secrets.APP_STORE_KEY_BASE64 || secrets.P8_BASE64 || secrets.P8_KEY || secrets.APPSTORE_API_KEY || secrets.APPSTORE_PRIVATE_KEY }}
         run: python3 .github/scripts/generate_certs.py
 
       - name: Install Certificate into Keychain
