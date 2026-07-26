@@ -68,12 +68,12 @@ subprocess.run([
 
 csr_pem = csr_path.read_text().replace("\r\n", "\n").replace("\n", "").replace("-----BEGIN CERTIFICATE REQUEST-----", "").replace("-----END CERTIFICATE REQUEST-----", "")
 
-print("🍎 [2/4] Запрос на создание Distribution сертификата в Apple...")
+print("🍎 [2/4] Запрос на создание iOS Distribution сертификата в Apple...")
 create_payload = {
     "data": {
         "type": "certificates",
         "attributes": {
-            "certificateType": "DISTRIBUTION",
+            "certificateType": "IOS_DISTRIBUTION",
             "csrContent": csr_pem
         }
     }
@@ -81,15 +81,18 @@ create_payload = {
 
 res = api_request("POST", "/certificates", create_payload)
 
-if "error_code" in res:
-    print("⚠️ Пробуем тип IOS_DISTRIBUTION...")
-    create_payload["data"]["attributes"]["certificateType"] = "IOS_DISTRIBUTION"
+if "errors" in res or "error_code" in res:
+    print(f"⚠️ Ответ Apple: {res}")
+    print("⚠️ Пробуем универсальный тип DISTRIBUTION...")
+    create_payload["data"]["attributes"]["certificateType"] = "DISTRIBUTION"
     res = api_request("POST", "/certificates", create_payload)
 
 cer_b64 = None
 if "data" in res and "attributes" in res["data"]:
     cer_b64 = res["data"]["attributes"]["certificateContent"]
     print("✅ Сертификат подписи успешно сгенерирован Apple API!")
+else:
+    print(f"❌ Не удалось получить сертификат от Apple: {res}")
 
 if cer_b64:
     # Сохраняем .cer и собираем .p12
