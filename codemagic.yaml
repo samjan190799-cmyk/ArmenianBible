@@ -4,32 +4,26 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
-      app_store_connect: App Store Connect # Имя интеграции в UI Codemagic
+      app_store_connect: App Store Connect # Название интеграции в UI Codemagic
     environment:
       xcode: latest
       cocoapods: default
       ios_signing:
-        distribution_type: app_store
+        distribution_type: app_store # Тип подписи: app_store, ad_hoc или development
         bundle_identifier: com.samvel.armenianbible
     scripts:
       - name: Install XcodeGen & Generate Project
         script: |
           brew install xcodegen
           xcodegen generate
-      - name: Automatic code signing
+      - name: Set up code signing settings on Xcode project
         script: |
-          # ⚠️ Важно: подтягивает профили подписи от Apple перед сборкой
           xcode-project use-profiles
-      - name: Increment build number
+      - name: Build iOS App
         script: |
-          # ⚠️ Важно: увеличивает номер сборки, чтобы Apple приняла новый билд
-          agvtool new-version -all $BUILD_NUMBER
-      - name: Build IPA
-        script: |
-          # ⚠️ Сборка готового .ipa файла для загрузки в App Store
           xcode-project build-ipa \
-            --project ArmenianBible.xcodeproj \
-            --scheme ArmenianBible
+            --project "ArmenianBible.xcodeproj" \
+            --scheme "ArmenianBible"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
