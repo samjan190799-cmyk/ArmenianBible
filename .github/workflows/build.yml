@@ -56,10 +56,13 @@ jobs:
           # Нативный путь для Xcode API ключей
           KEY_DIR="$HOME/.appstoreconnect/private_keys"
           mkdir -p "$KEY_DIR"
+          chmod 700 "$KEY_DIR"
+          
           KEY_PATH="$KEY_DIR/AuthKey_${KEY_ID}.p8"
           
-          # Декодируем .p8 ключ
+          # Декодируем .p8 ключ и ставим строго обязательные права 600
           echo "$API_KEY_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
 
           # Записываем в ENV
           echo "APPSTORE_KEY_ID=$KEY_ID" >> $GITHUB_ENV
@@ -85,8 +88,8 @@ jobs:
       - name: Generate Xcode Project
         run: xcodegen generate
 
-      # ─── Нативная Архивация через Xcode Automatic Signing ─────────
-      - name: Archive with Xcode Automatic Signing
+      # ─── Архивация релиза ──────────────────────────────────────────
+      - name: Archive Project
         run: |
           set -o pipefail
           xcodebuild archive \
@@ -95,10 +98,8 @@ jobs:
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive" \
-            -authenticationKeyPath "$AUTH_KEY_PATH" \
-            -authenticationKeyID "$APPSTORE_KEY_ID" \
-            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
-            -allowProvisioningUpdates \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM="V7J345DY58" \
             2>&1 | tee "$RUNNER_TEMP/archive.log"
 
@@ -107,7 +108,7 @@ jobs:
             tail -50 "$RUNNER_TEMP/archive.log"
             exit 1
           fi
-          echo "✅ Архив сгенерирован!"
+          echo "✅ Архив приложения успешно создан!"
 
       # ─── ExportOptions.plist для App Store Connect ────────────────
       - name: Create ExportOptions.plist
@@ -131,8 +132,8 @@ jobs:
           </plist>
           PLIST_EOF
 
-      # ─── Нативный Экспорт IPA через xcodebuild ─────────────────────
-      - name: Export IPA
+      # ─── Подпись и Экспорт IPA через App Store Connect API ──────────
+      - name: Export & Sign IPA
         run: |
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive" \
@@ -147,11 +148,11 @@ jobs:
           IPA=$(find "$RUNNER_TEMP/Export" -name "*.ipa" | head -1)
           if [ -z "$IPA" ]; then
             echo "::error::IPA файл не найден. Лог экспорта:"
-            tail -30 "$RUNNER_TEMP/export.log"
+            tail -50 "$RUNNER_TEMP/export.log"
             exit 1
           fi
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
-          echo "✅ IPA успешно создан: $IPA"
+          echo "✅ IPA успешно создан и подписан: $IPA"
 
       # ─── Загрузка IPA в TestFlight ────────────────────────────────
       - name: Upload to TestFlight
