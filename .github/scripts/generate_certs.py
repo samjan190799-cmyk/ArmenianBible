@@ -103,17 +103,16 @@ try:
     cert_content = resp["data"]["attributes"]["certificateContent"]
     print(f"[3/6] Сертификат создан, ID: {cert_id}")
 except Exception as e:
-    print(f"[3/6] Создание не удалось ({e}), ищем существующий...")
-    certs = api("GET", "/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=1")
-    if not certs.get("data"):
-        print("ОШИБКА: Нет Distribution сертификатов!")
-        sys.exit(1)
-    cert_id = certs["data"][0]["id"]
-    cert_content = certs["data"][0]["attributes"]["certificateContent"]
-    # Нам нужен ключ из secrets если переиспользуем старый cert
-    print(f"[3/6] Используем существующий сертификат ID: {cert_id}")
-    print("ПРЕДУПРЕЖДЕНИЕ: Используется существующий cert без приватного ключа!")
-    print("Для правильной подписи необходимо создать новый сертификат.")
+    print(f"\n{'='*60}")
+    print("ОШИБКА 403: API ключ не имеет прав создавать Distribution сертификаты!")
+    print("="*60)
+    print("Решение:")
+    print("1. Открой App Store Connect → Users and Access → Integrations → API Keys")
+    print("2. Измени роль API ключа на 'Admin' или 'Account Holder'")
+    print("3. Либо создай новый API ключ с ролью 'Admin'")
+    print("4. Обнови GitHub Secrets: APPSTORE_KEY_ID, APPSTORE_API_KEY_BASE64")
+    print("="*60)
+    sys.exit(1)
 
 # Сохраняем .cer
 cer_path = Path(runner_tmp) / "distribution.cer"
