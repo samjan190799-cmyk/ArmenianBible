@@ -170,30 +170,32 @@ if cer_b64:
 
     if cert_id_new:
         print("🔄 Проверка и привязка нового сертификата к профилям провижининга...")
-        p_list = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
+        p_list = api_request("GET", "/profiles?include=bundleId&filter[profileType]=IOS_APP_STORE")
         for p_item in p_list.get("data", []):
             p_id = p_item["id"]
             p_name = p_item["attributes"]["name"]
             if "ArmenianBible_Clean_AppStore" in p_name or "Widget" in p_name:
                 print(f"⚙️ Перепривязка сертификата к профилю [{p_name}]...")
                 # Пересоздаем активный профиль с новыми сертификатами
-                b_id = p_item["relationships"]["bundleId"]["data"]["id"]
-                api_request("DELETE", f"/profiles/{p_id}")
-                new_p_payload = {
-                    "data": {
-                        "type": "profiles",
-                        "attributes": {
-                            "name": p_name,
-                            "profileType": "IOS_APP_STORE"
-                        },
-                        "relationships": {
-                            "bundleId": {"data": {"type": "bundleIds", "id": b_id}},
-                            "certificates": {"data": [{"type": "certificates", "id": cert_id_new}]}
+                b_rel = p_item.get("relationships", {}).get("bundleId", {}).get("data", {})
+                b_id = b_rel.get("id") if isinstance(b_rel, dict) else None
+                if b_id:
+                    api_request("DELETE", f"/profiles/{p_id}")
+                    new_p_payload = {
+                        "data": {
+                            "type": "profiles",
+                            "attributes": {
+                                "name": p_name,
+                                "profileType": "IOS_APP_STORE"
+                            },
+                            "relationships": {
+                                "bundleId": {"data": {"type": "bundleIds", "id": b_id}},
+                                "certificates": {"data": [{"type": "certificates", "id": cert_id_new}]}
+                            }
                         }
                     }
-                }
-                api_request("POST", "/profiles", new_p_payload)
-                print(f"✅ Профиль {p_name} успешно обновлен с новым сертификатом!")
+                    api_request("POST", "/profiles", new_p_payload)
+                    print(f"✅ Профиль {p_name} успешно обновлен с новым сертификатом!")
 
 print("📲 [3/4] Скачивание профилей для приложения и виджета...")
 profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
