@@ -91,8 +91,9 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM="V7J345DY58" \
             PROVISIONING_PROFILE="$PROVISIONING_PROFILE_UUID" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             2>&1 | tee "$RUNNER_TEMP/archive_log.txt"
-          echo "✅ Архив создан"
+          echo "✅ Архив создан: $RUNNER_TEMP/ArmenianBible.xcarchive"
 
       - name: Create ExportOptions.plist
         run: |
