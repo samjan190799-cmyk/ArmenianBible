@@ -25,16 +25,30 @@ except ImportError:
     import urllib.request
     import urllib.error
 
-key_id      = os.environ["APPSTORE_KEY_ID"]
-issuer_id   = os.environ["APPSTORE_ISSUER_ID"]
-api_key_b64 = os.environ["APPSTORE_API_KEY_BASE64"]
+def get_env_var(keys, name_for_err):
+    for k in keys:
+        val = os.environ.get(k, "").strip()
+        if val:
+            return val
+    print(f"\n{'='*60}")
+    print(f"❌ ОШИБКА: Переменная {name_for_err} не найдена или пустая!")
+    print("="*60)
+    print("Проверены секреты/переменные:", ", ".join(keys))
+    print("Убедитесь, что в GitHub Repository Settings -> Secrets and variables -> Actions")
+    print(f"задан секрет {keys[0]} (или один из альтернативных).")
+    print("="*60)
+    sys.exit(1)
+
+key_id      = get_env_var(["APPSTORE_KEY_ID", "APP_STORE_CONNECT_KEY_ID", "APP_STORE_KEY_ID", "KEY_ID"], "Key ID")
+issuer_id   = get_env_var(["APPSTORE_ISSUER_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_ISSUER_ID", "ISSUER_ID"], "Issuer ID")
+api_key_b64 = get_env_var(["APPSTORE_API_KEY_BASE64", "APP_STORE_CONNECT_API_KEY_BASE64", "APPSTORE_API_KEY", "APPSTORE_PRIVATE_KEY"], "API Key Base64")
 runner_tmp  = os.environ.get("RUNNER_TEMP", "/tmp")
-github_env  = os.environ["GITHUB_ENV"]
+github_env  = os.environ.get("GITHUB_ENV", "/tmp/env")
 
 # 1. Разворачиваем ASC API ключ
 api_key_path = Path(runner_tmp) / f"AuthKey_{key_id}.p8"
 api_key_path.write_bytes(base64.b64decode(api_key_b64))
-print(f"[1/6] ASC API ключ сохранён: {api_key_path}")
+print(f"[1/6] ASC API ключ сохранён: {api_key_path} (Key ID: {key_id})")
 
 # 2. JWT генерация (ES256 R||S формат)
 def make_jwt():
