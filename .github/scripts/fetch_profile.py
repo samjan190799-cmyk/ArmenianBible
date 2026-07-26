@@ -26,10 +26,11 @@ now = int(time.time())
 headers = {"alg": "ES256", "kid": key_id, "typ": "JWT"}
 payload = {"iss": issuer_id, "iat": now, "exp": now + 1100, "aud": "appstoreconnect-v1"}
 
-with open(key_path, "r", encoding="utf-8") as f:
-    pk_pem = f.read()
+with open(key_path, "rb") as f:
+    from cryptography.hazmat.primitives import serialization
+    pk_obj = serialization.load_pem_private_key(f.read(), password=None)
 
-token = jwt.encode(payload, pk_pem, algorithm="ES256", headers=headers)
+token = jwt.encode(payload, pk_obj, algorithm="ES256", headers=headers)
 if isinstance(token, bytes): token = token.decode("utf-8")
 
 def api(method, path):
