@@ -13,15 +13,17 @@ try:
     from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
     from cryptography import x509
     from cryptography.x509.oid import NameOID
+    import jwt
     import urllib.request
     import urllib.error
 except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "cryptography"], check=True)
+    subprocess.run([sys.executable, "-m", "pip", "install", "cryptography", "pyjwt", "pyjwt[crypto]"], check=True)
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ec, rsa
     from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
     from cryptography import x509
     from cryptography.x509.oid import NameOID
+    import jwt
     import urllib.request
     import urllib.error
 
@@ -39,9 +41,10 @@ def get_env_var(keys, name_for_err):
     print("="*60)
     sys.exit(1)
 
-key_id      = get_env_var(["APPSTORE_KEY_ID", "APP_STORE_CONNECT_KEY_ID", "APP_STORE_KEY_ID", "KEY_ID", "APPSTORE_KEYID"], "Key ID")
-issuer_id   = get_env_var(["APPSTORE_ISSUER_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_ISSUER_ID", "ISSUER_ID", "APPSTORE_ISSUERID"], "Issuer ID")
-api_key_b64 = get_env_var(["APPSTORE_API_KEY_BASE64", "APP_STORE_CONNECT_API_KEY_BASE64", "APPSTORE_KEY_BASE64", "APP_STORE_KEY_BASE64", "P8_BASE64", "P8_KEY", "APPSTORE_API_KEY", "APPSTORE_PRIVATE_KEY"], "API Key Base64")
+key_id      = get_env_var(["APPSTORE_KEY_ID", "APP_STORE_CONNECT_KEY_ID", "APP_STORE_KEY_ID", "KEY_ID", "APPSTORE_KEYID"], "Key ID").strip()
+issuer_id   = get_env_var(["APPSTORE_ISSUER_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_ISSUER_ID", "ISSUER_ID", "APPSTORE_ISSUERID"], "Issuer ID").strip()
+api_key_b64 = get_env_var(["APPSTORE_API_KEY_BASE64", "APP_STORE_CONNECT_API_KEY_BASE64", "APPSTORE_KEY_BASE64", "APP_STORE_KEY_BASE64", "P8_BASE64", "P8_KEY", "APPSTORE_API_KEY", "APPSTORE_PRIVATE_KEY"], "API Key Base64").strip()
+
 runner_tmp  = os.environ.get("RUNNER_TEMP", "/tmp")
 github_env  = os.environ.get("GITHUB_ENV", "/tmp/env")
 out_dir     = Path(runner_tmp) / "secrets_output"
@@ -63,40 +66,33 @@ class Logger:
 sys.stdout = Logger(log_file)
 sys.stderr = Logger(log_file)
 
-key_id      = key_id.strip()
-issuer_id   = issuer_id.strip()
-
 # 1. Разворачиваем ASC API ключ
-api_key_bytes = base64.b64decode(api_key_b64.strip())
+api_key_bytes = base64.b64decode(api_key_b64)
 api_key_path = Path(runner_tmp) / f"AuthKey_{key_id}.p8"
 api_key_path.write_bytes(api_key_bytes)
 print(f"[1/6] ASC API ключ сохранён: {api_key_path} (Key ID: {key_id}, Размер: {len(api_key_bytes)} байт)")
 
-# 2. JWT генерация (ES256 R||S формат по спецификации Apple)
+# 2. Эталонная JWT генерация через PyJWT (ES256)
 def make_jwt():
-    with open(api_key_path, "rb") as f:
-        pk = serialization.load_pem_private_key(f.read(), password=None)
-    
     now = int(time.time())
-    hdr = {"alg": "ES256", "kid": key_id, "typ": "JWT"}
-    pld = {
+    headers = {
+        "alg": "ES256",
+        "kid": key_id,
+        "typ": "JWT"
+    }
+    payload = {
         "iss": issuer_id,
-        "iat": now - 30, # Небольшой запас на рассинхрон времени часов
+        "iat": now,
         "exp": now + 1100,
         "aud": "appstoreconnect-v1"
     }
-    def b64u(d):
-        if isinstance(d, str): d = d.encode()
-        return base64.urlsafe_b64encode(d).rstrip(b"=").decode()
+    with open(api_key_path, "r", encoding="utf-8") as f:
+        private_key_pem = f.read()
     
-    h = b64u(json.dumps(hdr, separators=(",", ":")))
-    p = b64u(json.dumps(pld, separators=(",", ":")))
-    signing_input = f"{h}.{p}"
-    
-    sig_der = pk.sign(signing_input.encode(), ec.ECDSA(hashes.SHA256()))
-    r, s = decode_dss_signature(sig_der)
-    sig_raw = r.to_bytes(32, "big") + s.to_bytes(32, "big")
-    return f"{signing_input}.{b64u(sig_raw)}"
+    token = jwt.encode(payload, private_key_pem, algorithm="ES256", headers=headers)
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
+    return token
 
 def api(method, path, body=None):
     jwt = make_jwt()
