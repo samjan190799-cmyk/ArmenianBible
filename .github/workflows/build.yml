@@ -95,7 +95,7 @@ jobs:
           fi
           echo "✅ Архив создан: $RUNNER_TEMP/ArmenianBible.xcarchive"
 
-      # ─── ExportOptions.plist ────────────────────────────────────────
+      # ─── ExportOptions.plist (export локально, не upload) ──────────
       - name: Create ExportOptions.plist
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" << 'PLIST_EOF'
@@ -106,7 +106,7 @@ jobs:
             <key>method</key>
             <string>app-store-connect</string>
             <key>destination</key>
-            <string>upload</string>
+            <string>export</string>
             <key>teamID</key>
             <string>V7J345DY58</string>
             <key>signingStyle</key>
@@ -120,10 +120,10 @@ jobs:
           </dict>
           </plist>
           PLIST_EOF
-          echo "✅ ExportOptions.plist создан"
+          echo "✅ ExportOptions.plist создан (destination=export)"
 
-      # ─── Экспорт и загрузка в TestFlight ───────────────────────────
-      - name: Export & Upload to TestFlight
+      # ─── Шаг 1: Экспорт IPA локально ─────────────────────────────────
+      - name: Export IPA
         run: |
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive" \
@@ -142,7 +142,24 @@ jobs:
             exit 1
           fi
           echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
-          echo "✅ IPA успешно отправлен в TestFlight: $IPA_PATH"
+          echo "✅ IPA создан: $IPA_PATH"
+
+      # ─── Шаг 2: Загрузка IPA в TestFlight через xcrun altool ─────────
+      - name: Upload to TestFlight
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/upload_log.txt"
+
+          if grep -q "No errors uploading" "$RUNNER_TEMP/upload_log.txt"; then
+            echo "✅ Приложение успешно загружено в TestFlight!"
+          else
+            echo "::warning::Проверь лог загрузки:"
+            cat "$RUNNER_TEMP/upload_log.txt"
+          fi
 
       # ─── Сохраняем IPA как артефакт ────────────────────────────────
       - name: Upload IPA as Artifact
