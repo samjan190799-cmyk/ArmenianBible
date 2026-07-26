@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Автоматическое создание и импорт iOS Distribution Certificate (.p12) и Provisioning Profile напрямую через App Store Connect API на GitHub Actions runner.
+Официальный нативный генератор JWT токенов для Apple App Store Connect API (RFC 7515 ES256 / IEEE P1363 standard).
 """
 import os, sys, base64, json, urllib.request, urllib.error, subprocess, time
 from pathlib import Path
@@ -16,25 +16,45 @@ if not key_id or not issuer_id or not key_path:
     sys.exit(1)
 
 try:
-    import jwt
-    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives import serialization, hashes
+    from cryptography.hazmat.primitives.asymmetric import ec, utils
 except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages", "pyjwt", "cryptography"], check=True)
-    import jwt
-    from cryptography.hazmat.primitives import serialization
+    subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages", "cryptography"], check=True)
+    from cryptography.hazmat.primitives import serialization, hashes
+    from cryptography.hazmat.primitives.asymmetric import ec, utils
 
-# Генерируем 100% валидный JWT токен по стандарту Apple
-now = int(time.time())
-headers = {"kid": key_id, "typ": "JWT"}
-payload = {"iss": issuer_id, "iat": now - 10, "exp": now + 1100, "aud": "appstoreconnect-v1"}
-
+# Читаем .p8 ключ
 with open(key_path, "rb") as f:
     key_bytes = f.read().replace(b"\r\n", b"\n").replace(b"\r", b"\n").strip()
-    pk_obj = serialization.load_pem_private_key(key_bytes, password=None)
+    pk = serialization.load_pem_private_key(key_bytes, password=None)
 
-token = jwt.encode(payload, pk_obj, algorithm="ES256", headers=headers)
-if isinstance(token, bytes): token = token.decode("utf-8")
-token = token.strip()
+def base64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode('utf-8')
+
+# Генерируем RFC 7515 JWS ES256 токен вручную для 100% совместимости с Apple API
+now = int(time.time())
+header = {"alg": "ES256", "kid": key_id, "typ": "JWT"}
+payload = {
+    "iss": issuer_id,
+    "iat": now - 10,
+    "exp": now + 1100,
+    "aud": "appstoreconnect-v1"
+}
+
+header_b64 = base64url_encode(json.dumps(header, separators=(',', ':')).encode('utf-8'))
+payload_b64 = base64url_encode(json.dumps(payload, separators=(',', ':')).encode('utf-8'))
+
+signing_input = f"{header_b64}.{payload_b64}".encode('utf-8')
+
+# DER подпись из cryptography
+der_signature = pk.sign(signing_input, ec.ECDSA(hashes.SHA256()))
+
+# Конвертируем DER подпись (ASN.1) в формат IEEE P1363 (ровно 64 байта R+S), требуемый Apple API
+r, s = utils.decode_dss_signature(der_signature)
+raw_signature = r.to_bytes(32, byteorder='big') + s.to_bytes(32, byteorder='big')
+sig_b64 = base64url_encode(raw_signature)
+
+token = f"{header_b64}.{payload_b64}.{sig_b64}"
 
 def api_request(method, path, body=None):
     url = f"https://api.appstoreconnect.apple.com/v1{path}"
@@ -53,7 +73,7 @@ def api_request(method, path, body=None):
             return json.loads(r.read())
     except urllib.error.HTTPError as e:
         err_b = e.read().decode("utf-8", errors="ignore")
-        print(f"⚠️ API Answer [{e.code}]: {err_b}")
+        print(f"⚠️ Apple API Answer [{e.code}]: {err_b}")
         return {"error_code": e.code, "body": err_b}
 
 print("🔑 [1/4] Генерация локальной парной пары ключей и CSR...")
@@ -81,18 +101,16 @@ create_payload = {
 }
 
 res = api_request("POST", "/certificates", create_payload)
-print(f"DEBUG Apple Response: {json.dumps(res)}")
 
 cer_b64 = None
 if "data" in res and "attributes" in res["data"]:
     cer_b64 = res["data"]["attributes"]["certificateContent"]
     print("✅ Сертификат подписи успешно сгенерирован Apple API!")
 else:
-    print(f"⚠️ Ошибка создания сертификата: {res}")
+    print(f"⚠️ Ответ при создании: {res}")
     # Пробуем DISTRIBUTION
     create_payload["data"]["attributes"]["certificateType"] = "DISTRIBUTION"
     res2 = api_request("POST", "/certificates", create_payload)
-    print(f"DEBUG Apple Response 2: {json.dumps(res2)}")
     if "data" in res2 and "attributes" in res2["data"]:
         cer_b64 = res2["data"]["attributes"]["certificateContent"]
         print("✅ Сертификат подписи (DISTRIBUTION) успешно сгенерирован Apple API!")
