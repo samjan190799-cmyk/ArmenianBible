@@ -1,0 +1,245 @@
+name: 🔑 Setup — Создание Distribution сертификата (ЗАПУСКАТЬ ОДИН РАЗ)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-certificate:
+    name: Создание Apple Distribution Certificate
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup App Store Connect API Key
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_BASE64 }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APPSTORE_API_KEY_BASE64" | base64 --decode \
+            > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
+          echo "AUTH_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8" >> $GITHUB_ENV
+          echo "APPSTORE_KEY_ID=$APPSTORE_KEY_ID" >> $GITHUB_ENV
+          echo "APPSTORE_ISSUER_ID=$APPSTORE_ISSUER_ID" >> $GITHUB_ENV
+
+      - name: Генерация приватного ключа и CSR
+        run: |
+          mkdir -p $RUNNER_TEMP/certs
+          cd $RUNNER_TEMP/certs
+
+          # Генерируем приватный ключ RSA 2048
+          openssl genrsa -out distribution_private_key.pem 2048
+          echo "✅ Приватный ключ сгенерирован"
+
+          # Генерируем Certificate Signing Request (CSR)
+          openssl req -new \
+            -key distribution_private_key.pem \
+            -out distribution_request.csr \
+            -subj "/emailAddress=samvel@example.com/CN=Samvel Hayrapetyan/C=US"
+          echo "✅ CSR сгенерирован"
+
+          # Кодируем CSR в base64 (без переносов строк — нужно для API)
+          CSR_CONTENT=$(base64 -i distribution_request.csr | tr -d '\n')
+          echo "CSR_CONTENT=$CSR_CONTENT" >> $GITHUB_ENV
+          echo "CERTS_DIR=$RUNNER_TEMP/certs" >> $GITHUB_ENV
+
+      - name: Получение JWT токена для Apple API
+        run: |
+          KEY_ID="$APPSTORE_KEY_ID"
+          ISSUER_ID="$APPSTORE_ISSUER_ID"
+          KEY_PATH="$AUTH_KEY_PATH"
+
+          # Генерируем JWT токен для App Store Connect API
+          # Header
+          HEADER=$(echo -n '{"alg":"ES256","kid":"'"$KEY_ID"'"}' | base64 | tr -d '=' | tr '+/' '-_' | tr -d '\n')
+          # Payload (exp = now + 20 min)
+          NOW=$(date +%s)
+          EXP=$((NOW + 1200))
+          PAYLOAD=$(echo -n '{"iss":"'"$ISSUER_ID"'","iat":'"$NOW"',"exp":'"$EXP"',"aud":"appstoreconnect-v1"}' | base64 | tr -d '=' | tr '+/' '-_' | tr -d '\n')
+          # Signature
+          SIGNING_INPUT="$HEADER.$PAYLOAD"
+          SIGNATURE=$(echo -n "$SIGNING_INPUT" | openssl dgst -sha256 -sign "$KEY_PATH" | base64 | tr -d '=' | tr '+/' '-_' | tr -d '\n')
+          JWT="$HEADER.$PAYLOAD.$SIGNATURE"
+
+          echo "JWT=$JWT" >> $GITHUB_ENV
+          echo "✅ JWT токен получен"
+
+      - name: Создание Distribution Certificate через Apple API
+        run: |
+          cd $CERTS_DIR
+
+          # Создаём сертификат через App Store Connect API
+          RESPONSE=$(curl -s -X POST \
+            "https://api.appstoreconnect.apple.com/v1/certificates" \
+            -H "Authorization: Bearer $JWT" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"data\": {
+                \"type\": \"certificates\",
+                \"attributes\": {
+                  \"certificateType\": \"IOS_DISTRIBUTION\",
+                  \"csrContent\": \"$CSR_CONTENT\"
+                }
+              }
+            }")
+
+          echo "API Response: $RESPONSE"
+
+          # Извлекаем base64 сертификата из ответа
+          CERT_CONTENT=$(echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          if 'data' in data:
+              print(data['data']['attributes']['certificateContent'])
+          else:
+              print('ERROR: ' + str(data))
+              sys.exit(1)
+          ")
+
+          if [[ "$CERT_CONTENT" == ERROR* ]]; then
+            echo "::error::Ошибка API Apple: $CERT_CONTENT"
+            exit 1
+          fi
+
+          # Декодируем и сохраняем .cer файл
+          echo "$CERT_CONTENT" | base64 --decode > distribution.cer
+          echo "✅ Сертификат получен от Apple API"
+
+          # Конвертируем .cer в .pem
+          openssl x509 -inform DER -in distribution.cer -out distribution.pem
+          echo "✅ Сертификат сконвертирован в PEM"
+
+          # Объединяем сертификат + приватный ключ в .p12
+          P12_PASSWORD="ArmenianBibleCI2026"
+          openssl pkcs12 -export \
+            -inkey distribution_private_key.pem \
+            -in distribution.pem \
+            -out distribution.p12 \
+            -passout pass:"$P12_PASSWORD" \
+            -legacy 2>/dev/null || \
+          openssl pkcs12 -export \
+            -inkey distribution_private_key.pem \
+            -in distribution.pem \
+            -out distribution.p12 \
+            -passout pass:"$P12_PASSWORD"
+          echo "✅ .p12 файл создан (пароль: $P12_PASSWORD)"
+
+          # Кодируем в base64 для GitHub Secret
+          P12_BASE64=$(base64 -i distribution.p12 | tr -d '\n')
+
+          echo ""
+          echo "════════════════════════════════════════════════════════════"
+          echo "  📋 СКОПИРУЙ ЭТИ ЗНАЧЕНИЯ В GITHUB SECRETS:"
+          echo "════════════════════════════════════════════════════════════"
+          echo ""
+          echo "  Secret Name: BUILD_CERTIFICATE_BASE64"
+          echo "  Secret Value (ниже):"
+          echo ""
+          echo "$P12_BASE64"
+          echo ""
+          echo "  Secret Name: P12_PASSWORD"
+          echo "  Secret Value: $P12_PASSWORD"
+          echo "════════════════════════════════════════════════════════════"
+
+          # Сохраняем как артефакт
+          echo "$P12_BASE64" > /tmp/BUILD_CERTIFICATE_BASE64.txt
+          echo "$P12_PASSWORD" > /tmp/P12_PASSWORD.txt
+
+      - name: Также создаём Provisioning Profile через API
+        run: |
+          cd $CERTS_DIR
+
+          # Получаем ID только что созданного сертификата
+          CERTS_RESPONSE=$(curl -s \
+            "https://api.appstoreconnect.apple.com/v1/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=1&sort=-id" \
+            -H "Authorization: Bearer $JWT")
+
+          CERT_ID=$(echo "$CERTS_RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          if data.get('data'):
+              print(data['data'][0]['id'])
+          else:
+              print('ERROR')
+              sys.exit(1)
+          ")
+
+          echo "Cert ID: $CERT_ID"
+
+          # Получаем список bundle IDs
+          BUNDLEID_RESPONSE=$(curl -s \
+            "https://api.appstoreconnect.apple.com/v1/bundleIds?filter[identifier]=com.samvel.armenianbible" \
+            -H "Authorization: Bearer $JWT")
+
+          echo "Bundle IDs: $BUNDLEID_RESPONSE"
+
+          BUNDLE_ID=$(echo "$BUNDLEID_RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          if data.get('data') and len(data['data']) > 0:
+              print(data['data'][0]['id'])
+          else:
+              print('NOT_FOUND')
+          ")
+
+          echo "Bundle ID resource: $BUNDLE_ID"
+
+          if [ "$BUNDLE_ID" == "NOT_FOUND" ]; then
+            echo "⚠️ Bundle ID com.samvel.armenianbible не найден в Apple Developer Portal"
+            echo "Создание профиля пропущено — создай его вручную на developer.apple.com"
+          else
+            # Создаём App Store provisioning profile
+            PROFILE_RESPONSE=$(curl -s -X POST \
+              "https://api.appstoreconnect.apple.com/v1/profiles" \
+              -H "Authorization: Bearer $JWT" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"data\": {
+                  \"type\": \"profiles\",
+                  \"attributes\": {
+                    \"name\": \"ArmenianBible_CI_AppStore\",
+                    \"profileType\": \"IOS_APP_STORE\"
+                  },
+                  \"relationships\": {
+                    \"bundleId\": {
+                      \"data\": { \"type\": \"bundleIds\", \"id\": \"$BUNDLE_ID\" }
+                    },
+                    \"certificates\": {
+                      \"data\": [{ \"type\": \"certificates\", \"id\": \"$CERT_ID\" }]
+                    }
+                  }
+                }
+              }")
+
+            echo "Profile Response: $PROFILE_RESPONSE"
+
+            PROFILE_CONTENT=$(echo "$PROFILE_RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          if data.get('data'):
+              print(data['data']['attributes']['profileContent'])
+          else:
+              print('ERROR: ' + str(data))
+          ")
+
+            if [[ "$PROFILE_CONTENT" != ERROR* ]]; then
+              echo "$PROFILE_CONTENT" > /tmp/PROVISIONING_PROFILE_BASE64.txt
+              echo ""
+              echo "  Secret Name: PROVISIONING_PROFILE_BASE64"
+              echo "  Secret Value:"
+              echo "$PROFILE_CONTENT"
+            fi
+          fi
+
+      - name: Сохраняем артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-signing-secrets
+          path: |
+            /tmp/BUILD_CERTIFICATE_BASE64.txt
+            /tmp/P12_PASSWORD.txt
+            /tmp/PROVISIONING_PROFILE_BASE64.txt
+          retention-days: 1
