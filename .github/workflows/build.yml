@@ -102,6 +102,7 @@ jobs:
             -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
             -allowProvisioningUpdates \
             CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM="V7J345DY58" \
             2>&1 | tee "$RUNNER_TEMP/archive_log.txt"
 
