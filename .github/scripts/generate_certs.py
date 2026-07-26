@@ -106,27 +106,46 @@ print("[2/6] CSR готов")
 print("[3/6] Создание Distribution Certificate через Apple API...")
 cert_id = None
 cert_content = None
-try:
+
+def try_create_cert():
     resp = api("POST", "/certificates", {
         "data": {
             "type": "certificates",
             "attributes": {"certificateType": "IOS_DISTRIBUTION", "csrContent": csr_b64}
         }
     })
-    cert_id = resp["data"]["id"]
-    cert_content = resp["data"]["attributes"]["certificateContent"]
-    print(f"[3/6] Сертификат создан, ID: {cert_id}")
+    return resp["data"]["id"], resp["data"]["attributes"]["certificateContent"]
+
+try:
+    cert_id, cert_content = try_create_cert()
+    print(f"[3/6] Новый сертификат успешно создан, ID: {cert_id}")
 except Exception as e:
-    print(f"\n{'='*60}")
-    print("ОШИБКА 403: API ключ не имеет прав создавать Distribution сертификаты!")
-    print("="*60)
-    print("Решение:")
-    print("1. Открой App Store Connect → Users and Access → Integrations → API Keys")
-    print("2. Измени роль API ключа на 'Admin' или 'Account Holder'")
-    print("3. Либо создай новый API ключ с ролью 'Admin'")
-    print("4. Обнови GitHub Secrets: APPSTORE_KEY_ID, APPSTORE_API_KEY_BASE64")
-    print("="*60)
-    sys.exit(1)
+    print(f"[3/6] Первичная попытка создания не удалась: {e}")
+    print("[3/6] Проверяем существующие сертификаты для освобождения слота...")
+    try:
+        old_certs = api("GET", "/certificates?filter[certificateType]=IOS_DISTRIBUTION")
+        if old_certs.get("data"):
+            for old in old_certs["data"]:
+                old_id = old["id"]
+                old_name = old["attributes"].get("displayName", old_id)
+                print(f"[3/6] Отображаем/отзываем устаревший сертификат ID: {old_id} ({old_name})...")
+                try:
+                    api("DELETE", f"/certificates/{old_id}")
+                    print(f"✅ Старый сертификат {old_id} успешно отозван!")
+                except Exception as del_err:
+                    print(f"⚠️ Не удалось отозвать {old_id}: {del_err}")
+            
+            # Повторная попытка после отзыва
+            print("[3/6] Повторная попытка создания сертификата...")
+            cert_id, cert_content = try_create_cert()
+            print(f"✅ Новый сертификат создан после отзыва старых, ID: {cert_id}")
+        else:
+            raise e
+    except Exception as retry_err:
+        print(f"\n{'='*60}")
+        print(f"❌ Не удалось создать Distribution сертификат: {retry_err}")
+        print("="*60)
+        sys.exit(1)
 
 # Сохраняем .cer
 cer_path = Path(runner_tmp) / "distribution.cer"
