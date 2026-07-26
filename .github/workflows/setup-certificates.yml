@@ -48,24 +48,48 @@ jobs:
 
       - name: Получение JWT токена для Apple API
         run: |
-          KEY_ID="$APPSTORE_KEY_ID"
-          ISSUER_ID="$APPSTORE_ISSUER_ID"
-          KEY_PATH="$AUTH_KEY_PATH"
+          python3 << 'PYTHON_EOF'
+import os, time, base64, json
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
-          # Генерируем JWT токен для App Store Connect API
-          # Header
-          HEADER=$(echo -n '{"alg":"ES256","kid":"'"$KEY_ID"'"}' | base64 | tr -d '=' | tr '+/' '-_' | tr -d '\n')
-          # Payload (exp = now + 20 min)
-          NOW=$(date +%s)
-          EXP=$((NOW + 1200))
-          PAYLOAD=$(echo -n '{"iss":"'"$ISSUER_ID"'","iat":'"$NOW"',"exp":'"$EXP"',"aud":"appstoreconnect-v1"}' | base64 | tr -d '=' | tr '+/' '-_' | tr -d '\n')
-          # Signature
-          SIGNING_INPUT="$HEADER.$PAYLOAD"
-          SIGNATURE=$(echo -n "$SIGNING_INPUT" | openssl dgst -sha256 -sign "$KEY_PATH" | base64 | tr -d '=' | tr '+/' '-_' | tr -d '\n')
-          JWT="$HEADER.$PAYLOAD.$SIGNATURE"
+key_id      = os.environ["APPSTORE_KEY_ID"]
+issuer_id   = os.environ["APPSTORE_ISSUER_ID"]
+key_path    = os.environ["AUTH_KEY_PATH"]
 
-          echo "JWT=$JWT" >> $GITHUB_ENV
-          echo "✅ JWT токен получен"
+with open(key_path, "rb") as f:
+    private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+header  = {"alg": "ES256", "kid": key_id}
+payload = {
+    "iss": issuer_id,
+    "iat": int(time.time()),
+    "exp": int(time.time()) + 1200,
+    "aud": "appstoreconnect-v1"
+}
+
+def b64url(data):
+    if isinstance(data, str): data = data.encode()
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+h = b64url(json.dumps(header,  separators=(",", ":")))
+p = b64url(json.dumps(payload, separators=(",", ":")))
+signing_input = f"{h}.{p}"
+
+# ES256: подпись в формате R||S (не DER)
+sig_der = private_key.sign(signing_input.encode(), ec.ECDSA(hashes.SHA256()))
+r, s = decode_dss_signature(sig_der)
+sig_raw = r.to_bytes(32, "big") + s.to_bytes(32, "big")
+
+jwt = f"{signing_input}.{b64url(sig_raw)}"
+
+# Записываем в GITHUB_ENV
+with open(os.environ["GITHUB_ENV"], "a") as f:
+    f.write(f"JWT={jwt}\n")
+
+print("✅ JWT токен успешно сгенерирован")
+PYTHON_EOF
 
       - name: Создание Distribution Certificate через Apple API
         run: |
