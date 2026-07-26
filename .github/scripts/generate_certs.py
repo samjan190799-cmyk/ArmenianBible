@@ -110,8 +110,13 @@ def api(method, path, body=None):
         with urllib.request.urlopen(req) as r:
             return json.loads(r.read())
     except urllib.error.HTTPError as e:
-        err = json.loads(e.read())
-        print(f"API Error {e.code}: {json.dumps(err, indent=2)}")
+        err_body = e.read().decode("utf-8", errors="ignore")
+        print(f"::error::Apple API Error {e.code} on {method} {path}: {err_body}")
+        try:
+            err = json.loads(err_body)
+            print(f"API Error Details: {json.dumps(err, indent=2)}")
+        except Exception:
+            pass
         raise
 
 # 3. Генерируем RSA ключ + CSR
