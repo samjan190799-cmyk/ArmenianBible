@@ -17,7 +17,7 @@ try:
     import urllib.request
     import urllib.error
 except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "cryptography", "pyjwt", "pyjwt[crypto]"], check=True)
+    subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages", "cryptography", "pyjwt", "pyjwt[crypto]"], check=True)
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ec, rsa
     from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature

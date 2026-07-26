@@ -38,6 +38,9 @@ jobs:
           sudo xcode-select -s "$XCODE/Contents/Developer"
           xcodebuild -version
 
+      - name: Install Python Dependencies
+        run: python3 -m pip install --break-system-packages pyjwt cryptography
+
       - name: Generate Certificate and Provisioning Profile
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID || secrets.APP_STORE_CONNECT_KEY_ID || secrets.APP_STORE_KEY_ID || secrets.KEY_ID || secrets.APPSTORE_KEYID }}
