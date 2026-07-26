@@ -107,13 +107,21 @@ if "data" in res and "attributes" in res["data"]:
     cer_b64 = res["data"]["attributes"]["certificateContent"]
     print("✅ Сертификат подписи успешно сгенерирован Apple API!")
 else:
-    print(f"⚠️ Ответ при создании: {res}")
-    # Пробуем DISTRIBUTION
-    create_payload["data"]["attributes"]["certificateType"] = "DISTRIBUTION"
-    res2 = api_request("POST", "/certificates", create_payload)
-    if "data" in res2 and "attributes" in res2["data"]:
-        cer_b64 = res2["data"]["attributes"]["certificateContent"]
-        print("✅ Сертификат подписи (DISTRIBUTION) успешно сгенерирован Apple API!")
+    print("⚠️ Лимит сертификатов исчерпан. Выполняем авто-освобождение слота через API...")
+    certs_res = api_request("GET", "/certificates?filter[certificateType]=IOS_DISTRIBUTION")
+    if not certs_res.get("data"):
+        certs_res = api_request("GET", "/certificates?filter[certificateType]=DISTRIBUTION")
+        
+    for old_cert in certs_res.get("data", []):
+        cert_id = old_cert["id"]
+        print(f"🗑 Авто-отзыв старого сертификата {cert_id}...")
+        api_request("DELETE", f"/certificates/{cert_id}")
+        
+    print("🔄 Повторная генерация свежего сертификата подписи...")
+    res_retry = api_request("POST", "/certificates", create_payload)
+    if "data" in res_retry and "attributes" in res_retry["data"]:
+        cer_b64 = res_retry["data"]["attributes"]["certificateContent"]
+        print("✅ Свежий сертификат подписи успешно сгенерирован!")
 
 if cer_b64:
     # Сохраняем .cer и собираем .p12
