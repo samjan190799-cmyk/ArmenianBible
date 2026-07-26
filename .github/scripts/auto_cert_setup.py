@@ -66,7 +66,8 @@ subprocess.run([
     "-out", str(csr_path), "-subj", "/CN=iOS Distribution/O=ArmenianBible/C=US"
 ], check=True)
 
-csr_pem = csr_path.read_text().replace("\r\n", "\n").replace("\n", "").replace("-----BEGIN CERTIFICATE REQUEST-----", "").replace("-----END CERTIFICATE REQUEST-----", "")
+csr_raw = csr_path.read_text()
+csr_pem = csr_raw.replace("-----BEGIN CERTIFICATE REQUEST-----", "").replace("-----END CERTIFICATE REQUEST-----", "").replace("\r", "").replace("\n", "").strip()
 
 print("🍎 [2/4] Запрос на создание iOS Distribution сертификата в Apple...")
 create_payload = {
@@ -80,19 +81,21 @@ create_payload = {
 }
 
 res = api_request("POST", "/certificates", create_payload)
-
-if "errors" in res or "error_code" in res:
-    print(f"⚠️ Ответ Apple: {res}")
-    print("⚠️ Пробуем универсальный тип DISTRIBUTION...")
-    create_payload["data"]["attributes"]["certificateType"] = "DISTRIBUTION"
-    res = api_request("POST", "/certificates", create_payload)
+print(f"DEBUG Apple Response: {json.dumps(res)}")
 
 cer_b64 = None
 if "data" in res and "attributes" in res["data"]:
     cer_b64 = res["data"]["attributes"]["certificateContent"]
     print("✅ Сертификат подписи успешно сгенерирован Apple API!")
 else:
-    print(f"❌ Не удалось получить сертификат от Apple: {res}")
+    print(f"⚠️ Ошибка создания сертификата: {res}")
+    # Пробуем DISTRIBUTION
+    create_payload["data"]["attributes"]["certificateType"] = "DISTRIBUTION"
+    res2 = api_request("POST", "/certificates", create_payload)
+    print(f"DEBUG Apple Response 2: {json.dumps(res2)}")
+    if "data" in res2 and "attributes" in res2["data"]:
+        cer_b64 = res2["data"]["attributes"]["certificateContent"]
+        print("✅ Сертификат подписи (DISTRIBUTION) успешно сгенерирован Apple API!")
 
 if cer_b64:
     # Сохраняем .cer и собираем .p12
