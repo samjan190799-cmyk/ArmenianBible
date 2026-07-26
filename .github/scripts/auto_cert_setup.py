@@ -175,7 +175,7 @@ for p in profiles_res.get("data", []):
     if "Widget" in name and not widget_uuid:
         widget_uuid = uuid
         print(f"✅ Профиль виджета смонтирован [{name}]: {uuid}")
-    elif ("AppStore" in name or "Final" in name or "Main" in name) and not main_uuid:
+    elif ("ArmenianBible_AppStore_Final" in name or "ArmenianBible_Clean_AppStore" in name) and not main_uuid:
         main_uuid = uuid
         print(f"✅ Профиль основного приложения смонтирован [{name}]: {uuid}")
 
