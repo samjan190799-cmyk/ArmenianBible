@@ -68,9 +68,22 @@ sys.stderr = Logger(log_file)
 
 # 1. Разворачиваем ASC API ключ
 api_key_bytes = base64.b64decode(api_key_b64)
+api_key_text  = api_key_bytes.decode("utf-8", errors="ignore").strip()
+
+# Если в закодированной строке не было PEM заголовка — добавим нормализацию
+if "-----BEGIN PRIVATE KEY-----" not in api_key_text:
+    print("⚠️ PEM заголовок не найден в текстеключа. Добавляем стандартное обрамление PKCS#8...")
+    clean_body = "".join(api_key_text.split())
+    api_key_text = f"-----BEGIN PRIVATE KEY-----\n{clean_body}\n-----END PRIVATE KEY-----"
+
 api_key_path = Path(runner_tmp) / f"AuthKey_{key_id}.p8"
-api_key_path.write_bytes(api_key_bytes)
-print(f"[1/6] ASC API ключ сохранён: {api_key_path} (Key ID: {key_id}, Размер: {len(api_key_bytes)} байт)")
+api_key_path.write_text(api_key_text, encoding="utf-8")
+
+first_few_chars = api_key_text[:30].replace('\n', ' ')
+print(f"[1/6] ASC API ключ сохранён: {api_key_path}")
+print(f"      - Key ID: {key_id[:3]}*** (длина: {len(key_id)})")
+print(f"      - Issuer ID: {issuer_id[:4]}*** (длина: {len(issuer_id)})")
+print(f"      - Начало файла ключа: {first_few_chars}...")
 
 # 2. Эталонная JWT генерация через PyJWT (ES256)
 def make_jwt():
