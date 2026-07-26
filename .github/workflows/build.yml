@@ -1,4 +1,4 @@
-name: Build & Deploy to TestFlight (Полностью автономный)
+name: Build & Deploy to TestFlight
 
 on:
   push:
@@ -38,275 +38,13 @@ jobs:
           sudo xcode-select -s "$XCODE/Contents/Developer"
           xcodebuild -version
 
-      # ═══════════════════════════════════════════════════════════════
-      # STEP: Генерация сертификата и профиля через Apple API (Python)
-      # ═══════════════════════════════════════════════════════════════
-      - name: Generate Certificate & Provisioning Profile
+      - name: Generate Certificate and Provisioning Profile
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           APPSTORE_API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_BASE64 }}
-        run: |
-          python3 << 'PYTHON_EOF'
-import os, time, base64, json, subprocess, tempfile, sys
-from pathlib import Path
+        run: python3 .github/scripts/generate_certs.py
 
-# ─── Импорты ──────────────────────────────────────────────────
-try:
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import ec, rsa, padding
-    from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
-    from cryptography import x509
-    from cryptography.x509.oid import NameOID
-    import datetime
-    import urllib.request
-    import urllib.error
-except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "cryptography"], check=True)
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import ec, rsa
-    from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
-    from cryptography import x509
-    from cryptography.x509.oid import NameOID
-    import datetime
-    import urllib.request
-    import urllib.error
-
-key_id     = os.environ["APPSTORE_KEY_ID"]
-issuer_id  = os.environ["APPSTORE_ISSUER_ID"]
-api_key_b64= os.environ["APPSTORE_API_KEY_BASE64"]
-runner_tmp = os.environ.get("RUNNER_TEMP", "/tmp")
-github_env = os.environ["GITHUB_ENV"]
-
-# ─── Разворачиваем App Store Connect API ключ ─────────────────
-api_key_path = Path(runner_tmp) / f"AuthKey_{key_id}.p8"
-api_key_path.write_bytes(base64.b64decode(api_key_b64))
-print(f"✅ ASC API ключ сохранён: {api_key_path}")
-
-# ─── JWT генерация (ES256, правильный формат R||S) ────────────
-def make_jwt(key_id, issuer_id, key_path):
-    with open(key_path, "rb") as f:
-        private_key = serialization.load_pem_private_key(f.read(), password=None)
-    header  = {"alg": "ES256", "kid": key_id}
-    payload = {
-        "iss": issuer_id,
-        "iat": int(time.time()),
-        "exp": int(time.time()) + 1100,
-        "aud": "appstoreconnect-v1"
-    }
-    def b64url(data):
-        if isinstance(data, str): data = data.encode()
-        return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
-    h = b64url(json.dumps(header,  separators=(",", ":")))
-    p = b64url(json.dumps(payload, separators=(",", ":")))
-    signing_input = f"{h}.{p}"
-    sig_der = private_key.sign(signing_input.encode(), ec.ECDSA(hashes.SHA256()))
-    r, s = decode_dss_signature(sig_der)
-    sig_raw = r.to_bytes(32, "big") + s.to_bytes(32, "big")
-    return f"{signing_input}.{b64url(sig_raw)}"
-
-# ─── API вызов ────────────────────────────────────────────────
-def api_call(method, path, body=None):
-    jwt = make_jwt(key_id, issuer_id, api_key_path)
-    url = f"https://api.appstoreconnect.apple.com/v1{path}"
-    headers = {
-        "Authorization": f"Bearer {jwt}",
-        "Content-Type": "application/json"
-    }
-    data = json.dumps(body).encode() if body else None
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        err = json.loads(e.read())
-        print(f"API Error {e.code}: {json.dumps(err, indent=2)}")
-        raise
-
-# ─── Шаг 1: Генерируем RSA private key для Distribution cert ──
-print("\n📋 Шаг 1: Генерация приватного ключа и CSR...")
-dist_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-dist_key_path = Path(runner_tmp) / "dist_private.pem"
-dist_key_path.write_bytes(dist_key.private_bytes(
-    serialization.Encoding.PEM,
-    serialization.PrivateFormat.TraditionalOpenSSL,
-    serialization.NoEncryption()
-))
-
-# ─── Создаём CSR ──────────────────────────────────────────────
-csr = (
-    x509.CertificateSigningRequestBuilder()
-    .subject_name(x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, "Samvel Hayrapetyan"),
-        x509.NameAttribute(NameOID.EMAIL_ADDRESS, "samvel@example.com"),
-        x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-    ]))
-    .sign(dist_key, hashes.SHA256())
-)
-csr_path = Path(runner_tmp) / "dist_request.csr"
-csr_path.write_bytes(csr.public_bytes(serialization.Encoding.DER))
-csr_b64 = base64.b64encode(csr_path.read_bytes()).decode()
-print("✅ CSR сгенерирован")
-
-# ─── Шаг 2: Создаём Distribution сертификат через Apple API ───
-print("\n📋 Шаг 2: Создание Distribution Certificate через Apple API...")
-try:
-    resp = api_call("POST", "/certificates", {
-        "data": {
-            "type": "certificates",
-            "attributes": {
-                "certificateType": "IOS_DISTRIBUTION",
-                "csrContent": csr_b64
-            }
-        }
-    })
-    cert_id      = resp["data"]["id"]
-    cert_content = resp["data"]["attributes"]["certificateContent"]
-    print(f"✅ Сертификат создан, ID: {cert_id}")
-except Exception as e:
-    # Если не удалось создать — пробуем использовать первый существующий
-    print(f"⚠️  Ошибка создания: {e}")
-    print("Пробуем использовать существующий Distribution сертификат...")
-    certs = api_call("GET", "/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=1")
-    if not certs.get("data"):
-        print("❌ Нет доступных Distribution сертификатов!")
-        sys.exit(1)
-    cert_id      = certs["data"][0]["id"]
-    cert_content = certs["data"][0]["attributes"]["certificateContent"]
-    print(f"✅ Используем существующий сертификат, ID: {cert_id}")
-
-# Декодируем .cer файл
-cer_path = Path(runner_tmp) / "distribution.cer"
-cer_path.write_bytes(base64.b64decode(cert_content))
-print(f"✅ Сертификат сохранён: {cer_path}")
-
-# ─── Шаг 3: Конвертируем в .p12 ──────────────────────────────
-print("\n📋 Шаг 3: Создание .p12 файла...")
-p12_password = "ArmenianBibleCI2026"
-p12_path = Path(runner_tmp) / "distribution.p12"
-
-# Конвертируем .cer → .pem
-pem_path = Path(runner_tmp) / "distribution.pem"
-subprocess.run(
-    ["openssl", "x509", "-inform", "DER", "-in", str(cer_path), "-out", str(pem_path)],
-    check=True
-)
-
-# Создаём .p12 из ключа + сертификата
-result = subprocess.run(
-    ["openssl", "pkcs12", "-export",
-     "-inkey", str(dist_key_path),
-     "-in", str(pem_path),
-     "-out", str(p12_path),
-     "-passout", f"pass:{p12_password}",
-     "-legacy"],
-    capture_output=True, text=True
-)
-if result.returncode != 0:
-    # Без -legacy (для старых версий openssl)
-    subprocess.run(
-        ["openssl", "pkcs12", "-export",
-         "-inkey", str(dist_key_path),
-         "-in", str(pem_path),
-         "-out", str(p12_path),
-         "-passout", f"pass:{p12_password}"],
-        check=True
-    )
-print(f"✅ .p12 создан (пароль: {p12_password})")
-
-# ─── Шаг 4: Получаем/создаём Provisioning Profile ─────────────
-print("\n📋 Шаг 4: Получение Provisioning Profile...")
-
-# Ищем Bundle ID
-bundles = api_call("GET", "/bundleIds?filter[identifier]=com.samvel.armenianbible")
-if not bundles.get("data"):
-    print("❌ Bundle ID com.samvel.armenianbible не найден в Apple Developer Portal!")
-    print("   Зарегистрируй его на https://developer.apple.com/account/resources/identifiers/list")
-    sys.exit(1)
-bundle_id = bundles["data"][0]["id"]
-print(f"✅ Bundle ID найден: {bundle_id}")
-
-# Ищем существующий App Store профиль
-profiles = api_call(
-    "GET",
-    f"/profiles?filter[profileType]=IOS_APP_STORE&filter[bundleId]={bundle_id}"
-)
-
-profile_content = None
-profile_name = None
-
-if profiles.get("data"):
-    # Берём первый активный профиль
-    for p in profiles["data"]:
-        if p["attributes"]["profileState"] == "ACTIVE":
-            profile_content = p["attributes"]["profileContent"]
-            profile_name    = p["attributes"]["name"]
-            print(f"✅ Используем существующий профиль: {profile_name}")
-            break
-
-if not profile_content:
-    # Создаём новый профиль
-    print("Создаём новый Provisioning Profile...")
-    try:
-        prof_resp = api_call("POST", "/profiles", {
-            "data": {
-                "type": "profiles",
-                "attributes": {
-                    "name": "ArmenianBible_CI_AppStore",
-                    "profileType": "IOS_APP_STORE"
-                },
-                "relationships": {
-                    "bundleId": {
-                        "data": {"type": "bundleIds", "id": bundle_id}
-                    },
-                    "certificates": {
-                        "data": [{"type": "certificates", "id": cert_id}]
-                    }
-                }
-            }
-        })
-        profile_content = prof_resp["data"]["attributes"]["profileContent"]
-        profile_name    = prof_resp["data"]["attributes"]["name"]
-        print(f"✅ Профиль создан: {profile_name}")
-    except Exception as e:
-        print(f"❌ Не удалось создать профиль: {e}")
-        sys.exit(1)
-
-# Сохраняем .mobileprovision
-pp_path = Path(runner_tmp) / "app_store.mobileprovision"
-pp_path.write_bytes(base64.b64decode(profile_content))
-print(f"✅ Профиль сохранён: {pp_path}")
-
-# ─── Записываем переменные для следующих шагов ────────────────
-with open(github_env, "a") as f:
-    f.write(f"DIST_P12_PATH={p12_path}\n")
-    f.write(f"DIST_P12_PASSWORD={p12_password}\n")
-    f.write(f"PP_PATH={pp_path}\n")
-    f.write(f"AUTH_KEY_PATH={api_key_path}\n")
-    f.write(f"APPSTORE_KEY_ID={key_id}\n")
-    f.write(f"APPSTORE_ISSUER_ID={issuer_id}\n")
-
-# ─── Выводим base64 значения для GitHub Secrets ───────────────
-p12_b64 = base64.b64encode(p12_path.read_bytes()).decode()
-pp_b64  = base64.b64encode(pp_path.read_bytes()).decode()
-print("\n" + "="*60)
-print("💾 СОХРАНИ ЭТИ ЗНАЧЕНИЯ КАК GITHUB SECRETS (для будущих сборок):")
-print("="*60)
-print(f"\nBUILD_CERTIFICATE_BASE64:\n{p12_b64}\n")
-print(f"P12_PASSWORD:\n{p12_password}\n")
-print(f"PROVISIONING_PROFILE_BASE64:\n{pp_b64}\n")
-print("="*60)
-
-# Сохраняем файлы для артефакта
-out_dir = Path(runner_tmp) / "secrets_output"
-out_dir.mkdir(exist_ok=True)
-(out_dir / "BUILD_CERTIFICATE_BASE64.txt").write_text(p12_b64)
-(out_dir / "P12_PASSWORD.txt").write_text(p12_password)
-(out_dir / "PROVISIONING_PROFILE_BASE64.txt").write_text(pp_b64)
-print("✅ Все файлы готовы к сборке!")
-PYTHON_EOF
-
-      # ─── Устанавливаем сертификат и профиль в keychain ────────────
       - name: Install Certificate into Keychain
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
@@ -327,13 +65,11 @@ PYTHON_EOF
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$PP_UUID".mobileprovision
 
           echo "PROVISIONING_PROFILE_UUID=$PP_UUID" >> $GITHUB_ENV
-          echo "✅ Сертификат и профиль установлены, UUID: $PP_UUID"
+          echo "Установлен UUID профиля: $PP_UUID"
 
-      # ─── Генерация Xcode проекта ───────────────────────────────────
       - name: Generate Xcode Project
         run: xcodegen generate
 
-      # ─── Архивация ────────────────────────────────────────────────
       - name: Archive
         run: |
           set -o pipefail
@@ -351,13 +87,12 @@ PYTHON_EOF
             2>&1 | tee "$RUNNER_TEMP/archive.log"
 
           if [ ! -d "$RUNNER_TEMP/ArmenianBible.xcarchive" ]; then
-            echo "::error::Архивация не удалась. Лог:"
+            echo "::error::Архивация не удалась. Последние строки лога:"
             tail -50 "$RUNNER_TEMP/archive.log"
             exit 1
           fi
-          echo "✅ Архив создан"
+          echo "Архив создан успешно"
 
-      # ─── ExportOptions.plist ───────────────────────────────────────
       - name: Create ExportOptions.plist
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" << PLIST_EOF
@@ -384,7 +119,6 @@ PYTHON_EOF
           </plist>
           PLIST_EOF
 
-      # ─── Экспорт IPA ───────────────────────────────────────────────
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \
@@ -400,9 +134,8 @@ PYTHON_EOF
             exit 1
           fi
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
-          echo "✅ IPA создан: $IPA"
+          echo "IPA создан: $IPA"
 
-      # ─── Загрузка в TestFlight ─────────────────────────────────────
       - name: Upload to TestFlight
         run: |
           xcrun altool --upload-app \
@@ -411,19 +144,18 @@ PYTHON_EOF
             --apiKey "$APPSTORE_KEY_ID" \
             --apiIssuer "$APPSTORE_ISSUER_ID" \
             --apiKeyPath "$AUTH_KEY_PATH" \
-            2>&1 | tee "$RUNNER_TEMP/upload.log"
-          echo "✅ Отправлено в TestFlight!"
+            2>&1
+          echo "Отправлено в TestFlight!"
 
-      # ─── Сохраняем Secrets как артефакт ───────────────────────────
-      - name: Save Secrets as Artifact
+      - name: Save Signing Secrets as Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ios-signing-secrets-${{ github.run_number }}
-          path: ${{ env.RUNNER_TEMP }}/secrets_output/
+          path: ${{ runner.temp }}/secrets_output/
           retention-days: 3
+          if-no-files-found: warn
 
-      # ─── Сохраняем IPA как артефакт ───────────────────────────────
       - name: Upload IPA Artifact
         if: success()
         uses: actions/upload-artifact@v4
