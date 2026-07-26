@@ -147,28 +147,20 @@ if cer_b64:
         ], check=True)
         print("✅ Сертификат подписи успешно импортирован в Keychain!")
 
-print("📲 [3/4] Скачивание профиля ArmenianBible_AppStore_Final...")
+print("📲 [3/4] Скачивание профилей для приложения и виджета...")
 profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
-profile_data = None
+pp_dir = Path.home() / "Library/MobileDevice/Provisioning Profiles"
+pp_dir.mkdir(parents=True, exist_ok=True)
+
+main_uuid = None
+widget_uuid = None
 
 for p in profiles_res.get("data", []):
     name = p["attributes"]["name"]
-    if "ArmenianBible" in name or "Final" in name:
-        profile_data = p
-        print(f"✅ Выбран профиль: {name}")
-        break
-
-if not profile_data and profiles_res.get("data"):
-    profile_data = profiles_res["data"][0]
-    print(f"✅ Использован профиль: {profile_data['attributes']['name']}")
-
-if profile_data:
-    pp_b64 = profile_data["attributes"]["profileContent"]
+    pp_b64 = p["attributes"]["profileContent"]
     pp_bytes = base64.b64decode(pp_b64)
-    pp_dir = Path.home() / "Library/MobileDevice/Provisioning Profiles"
-    pp_dir.mkdir(parents=True, exist_ok=True)
     
-    tmp_pp = Path(runner_tmp) / "temp.mobileprovision"
+    tmp_pp = runner_tmp / f"temp_{p['id']}.mobileprovision"
     tmp_pp.write_bytes(pp_bytes)
     
     try:
@@ -179,9 +171,23 @@ if profile_data:
         
     dest_pp = pp_dir / f"{uuid}.mobileprovision"
     dest_pp.write_bytes(pp_bytes)
-    print(f"✅ Профиль провижининга {uuid} смонтирован в систему!")
     
-    with open(github_env, "a", encoding="utf-8") as f:
-        f.write(f"PROVISIONING_PROFILE_UUID={uuid}\n")
+    if "Widget" in name and not widget_uuid:
+        widget_uuid = uuid
+        print(f"✅ Профиль виджета смонтирован [{name}]: {uuid}")
+    elif ("AppStore" in name or "Final" in name or "Main" in name) and not main_uuid:
+        main_uuid = uuid
+        print(f"✅ Профиль основного приложения смонтирован [{name}]: {uuid}")
+
+# Если один из профилей не разделился по имени, берем логические доступные
+if not main_uuid and profiles_res.get("data"):
+    main_uuid = uuid
+    print(f"✅ Назначен основной профиль: {main_uuid}")
+
+with open(github_env, "a", encoding="utf-8") as f:
+    if main_uuid:
+        f.write(f"MAIN_APP_PROFILE_UUID={main_uuid}\n")
+    if widget_uuid:
+        f.write(f"WIDGET_PROFILE_UUID={widget_uuid}\n")
 
 print("✨ [4/4] Подготовка завершена!")

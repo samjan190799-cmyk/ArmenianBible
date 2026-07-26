@@ -136,7 +136,9 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>com.samvel.armenianbible</key>
-              <string>${PROVISIONING_PROFILE_UUID}</string>
+              <string>${MAIN_APP_PROFILE_UUID}</string>
+              <key>com.samvel.armenianbible.BibleWidget</key>
+              <string>${WIDGET_PROFILE_UUID}</string>
             </dict>
             <key>stripSwiftSymbols</key>
             <true/>
