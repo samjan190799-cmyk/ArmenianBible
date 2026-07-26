@@ -90,7 +90,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -configuration Release \
             -derivedDataPath build \
-            PROVISIONING_PROFILE_SPECIFIER_ArmenianBible="${{ env.MAIN_PROVISIONING_PROFILE }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.MAIN_PROVISIONING_PROFILE }}" \
             PROVISIONING_PROFILE_SPECIFIER_BibleWidget="${{ env.WIDGET_PROVISIONING_PROFILE }}" \
             build
 
