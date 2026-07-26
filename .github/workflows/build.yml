@@ -113,14 +113,7 @@ jobs:
           fi
           echo "✅ Архив приложения успешно создан!"
 
-      # ─── Скачивание актуального Provisioning Profile из Apple API ─
-      - name: Install Python Dependencies
-        run: python3 -m pip install --break-system-packages pyjwt cryptography
-
-      - name: Fetch & Install Provisioning Profile
-        run: python3 .github/scripts/fetch_profile.py
-
-      # ─── ExportOptions.plist для App Store Connect (Manual/UUID) ──
+      # ─── ExportOptions.plist для App Store Connect (Automatic) ──────
       - name: Create ExportOptions.plist
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" << PLIST_EOF
@@ -135,12 +128,7 @@ jobs:
             <key>teamID</key>
             <string>V7J345DY58</string>
             <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.samvel.armenianbible</key>
-              <string>${PROVISIONING_PROFILE_UUID}</string>
-            </dict>
+            <string>automatic</string>
             <key>stripSwiftSymbols</key>
             <true/>
           </dict>
