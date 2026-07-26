@@ -84,16 +84,39 @@ res = api_request("POST", "/certificates", create_payload)
 cer_b64 = None
 if "data" in res and "attributes" in res["data"]:
     cer_b64 = res["data"]["attributes"]["certificateContent"]
-    print("✅ Сертификат успешно создан Apple!")
-else:
-    print("⚠️ Лимит сертификатов исчерпан, запрашиваем список имеющихся...")
-    certs_res = api_request("GET", "/certificates?filter[certificateType]=IOS_DISTRIBUTION")
-    if certs_res.get("data"):
-        print(f"✅ Найдено {len(certs_res['data'])} дистрибутивных сертификатов в аккаунте!")
+    print("✅ Сертификат успешно сгенерирован Apple API!")
 
-if not cer_b64:
-    # Если сертификат создан ранее, используем локальный экспорт или готовый сертификат
-    print("ℹ️ Готово к использованию имеющихся профилей!")
+if cer_b64:
+    # Сохраняем .cer и собираем .p12
+    cer_path = Path(runner_tmp) / "dist.cer"
+    p12_path = Path(runner_tmp) / "dist.p12"
+    cer_path.write_bytes(base64.b64decode(cer_b64))
+    
+    # Собираем .p12 через openssl
+    subprocess.run([
+        "openssl", "x509", "-inform", "DER", "-in", str(cer_path), "-out", str(runner_tmp / "dist.pem")
+    ], check=True)
+    subprocess.run([
+        "openssl", "pkcs12", "-export", "-out", str(p12_path),
+        "-inkey", str(csr_key_path), "-in", str(runner_tmp / "dist.pem"),
+        "-passout", "pass:123456"
+    ], check=True)
+    
+    keychain_path = os.environ.get("KEYCHAIN_PATH", "")
+    if keychain_path and Path(keychain_path).exists():
+        print(f"🔑 Импорт .p12 сертификата в Keychain: {keychain_path}")
+        subprocess.run([
+            "security", "import", str(p12_path),
+            "-k", keychain_path,
+            "-P", "123456",
+            "-A", "-T", "/usr/bin/codesign"
+        ], check=True)
+        subprocess.run([
+            "security", "set-key-partition-list",
+            "-S", "apple-tool:,apple:,codesign:",
+            "-s", "-k", "123456", keychain_path
+        ], check=True)
+        print("✅ Сертификат подписи успешно импортирован в Keychain!")
 
 print("📲 [3/4] Скачивание профиля ArmenianBible_AppStore_Final...")
 profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
