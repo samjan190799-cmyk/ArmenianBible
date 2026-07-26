@@ -68,7 +68,10 @@ jobs:
           echo "APPSTORE_KEY_ID=$KEY_ID" >> $GITHUB_ENV
           echo "APPSTORE_ISSUER_ID=$ISSUER_ID" >> $GITHUB_ENV
           echo "AUTH_KEY_PATH=$KEY_PATH" >> $GITHUB_ENV
-          echo "✅ API Ключ развёрнут по пути: $KEY_PATH (Key ID: $KEY_ID)"
+          echo "=========================================================="
+          echo "🔑 ИСПОЛЬЗУЕМЫЙ KEY ID: $KEY_ID"
+          echo "=========================================================="
+          echo "✅ API Ключ развёрнут по пути: $KEY_PATH"
 
       # ─── Временный Keychain для сохранения сертификатов Xcode ─────
       - name: Setup Keychain for Xcode
