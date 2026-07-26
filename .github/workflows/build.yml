@@ -113,6 +113,10 @@ jobs:
           fi
           echo "✅ Архив приложения успешно создан!"
 
+      # ─── Автоматическая настройка профилей и сертификатов Apple API ─
+      - name: Auto Setup Certificates & Profiles
+        run: python3 .github/scripts/auto_cert_setup.py
+
       # ─── ExportOptions.plist для App Store Connect (Automatic) ──────
       - name: Create ExportOptions.plist
         run: |
