@@ -114,6 +114,9 @@ jobs:
           echo "✅ Архив приложения успешно создан!"
 
       # ─── Скачивание актуального Provisioning Profile из Apple API ─
+      - name: Install Python Dependencies
+        run: python3 -m pip install --break-system-packages pyjwt cryptography
+
       - name: Fetch & Install Provisioning Profile
         run: python3 .github/scripts/fetch_profile.py
 
