@@ -44,6 +44,24 @@ issuer_id   = get_env_var(["APPSTORE_ISSUER_ID", "APP_STORE_CONNECT_ISSUER_ID", 
 api_key_b64 = get_env_var(["APPSTORE_API_KEY_BASE64", "APP_STORE_CONNECT_API_KEY_BASE64", "APPSTORE_KEY_BASE64", "APP_STORE_KEY_BASE64", "P8_BASE64", "P8_KEY", "APPSTORE_API_KEY", "APPSTORE_PRIVATE_KEY"], "API Key Base64")
 runner_tmp  = os.environ.get("RUNNER_TEMP", "/tmp")
 github_env  = os.environ.get("GITHUB_ENV", "/tmp/env")
+out_dir     = Path(runner_tmp) / "secrets_output"
+out_dir.mkdir(exist_ok=True)
+log_file    = out_dir / "cert_log.txt"
+
+class Logger:
+    def __init__(self, filepath):
+        self.terminal = sys.stdout
+        self.log = open(filepath, "w", encoding="utf-8")
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        self.log.flush()
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+
+sys.stdout = Logger(log_file)
+sys.stderr = Logger(log_file)
 
 # 1. Разворачиваем ASC API ключ
 api_key_path = Path(runner_tmp) / f"AuthKey_{key_id}.p8"
