@@ -8,7 +8,7 @@ from pathlib import Path
 key_id     = os.environ.get("APPSTORE_KEY_ID", "").strip()
 issuer_id  = os.environ.get("APPSTORE_ISSUER_ID", "").strip()
 key_path   = os.environ.get("AUTH_KEY_PATH", "").strip()
-runner_tmp = os.environ.get("RUNNER_TEMP", "/tmp")
+runner_tmp = Path(os.environ.get("RUNNER_TEMP", "/tmp"))
 github_env = os.environ.get("GITHUB_ENV", "/tmp/env")
 
 if not key_id or not issuer_id or not key_path:
