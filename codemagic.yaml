@@ -4,7 +4,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
-      app_store_connect: App Store Connect # Название интеграции в Codemagic
+      app_store_connect: App Store Connect # Имя интеграции в UI Codemagic
     environment:
       xcode: latest
       cocoapods: default
@@ -16,13 +16,23 @@ workflows:
         script: |
           brew install xcodegen
           xcodegen generate
-      - name: Build Archive
+      - name: Automatic code signing
         script: |
-          xcodebuild archive \
-            -project ArmenianBible.xcodeproj \
-            -scheme ArmenianBible \
-            -destination 'generic/platform=iOS' \
-            -archivePath build/ArmenianBible.xcarchive
+          # ⚠️ Важно: подтягивает профили подписи от Apple перед сборкой
+          xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          # ⚠️ Важно: увеличивает номер сборки, чтобы Apple приняла новый билд
+          agvtool new-version -all $BUILD_NUMBER
+      - name: Build IPA
+        script: |
+          # ⚠️ Сборка готового .ipa файла для загрузки в App Store
+          xcode-project build-ipa \
+            --project ArmenianBible.xcodeproj \
+            --scheme ArmenianBible
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
         auth: integration
