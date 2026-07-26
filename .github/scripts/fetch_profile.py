@@ -21,10 +21,18 @@ if not key_id or not issuer_id or not key_path:
     print("❌ Ошибка: не заданы переменные ключа API!")
     sys.exit(1)
 
-# Генерируем JWT токен
+# Генерируем JWT токен по официальной спецификации Apple
 now = int(time.time())
-headers = {"alg": "ES256", "kid": key_id, "typ": "JWT"}
-payload = {"iss": issuer_id, "iat": now, "exp": now + 1100, "aud": "appstoreconnect-v1"}
+headers = {
+    "kid": key_id,
+    "typ": "JWT"
+}
+payload = {
+    "iss": issuer_id,
+    "iat": now - 10,
+    "exp": now + 1100,
+    "aud": "appstoreconnect-v1"
+}
 
 with open(key_path, "rb") as f:
     from cryptography.hazmat.primitives import serialization
@@ -32,6 +40,7 @@ with open(key_path, "rb") as f:
 
 token = jwt.encode(payload, pk_obj, algorithm="ES256", headers=headers)
 if isinstance(token, bytes): token = token.decode("utf-8")
+token = token.strip()
 
 def api(method, path):
     req = urllib.request.Request(
