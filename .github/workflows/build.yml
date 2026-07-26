@@ -110,7 +110,7 @@ jobs:
           fi
           echo "✅ Архив приложения успешно создан!"
 
-      # ─── ExportOptions.plist для App Store Connect ────────────────
+      # ─── ExportOptions.plist для App Store Connect (Xcode 16) ──────
       - name: Create ExportOptions.plist
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" << PLIST_EOF
@@ -119,13 +119,19 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store</string>
+            <string>app-store-connect</string>
             <key>destination</key>
             <string>export</string>
             <key>teamID</key>
             <string>V7J345DY58</string>
             <key>signingStyle</key>
             <string>automatic</string>
+            <key>apiPrivateKeyPath</key>
+            <string>${AUTH_KEY_PATH}</string>
+            <key>apiKeyID</key>
+            <string>${APPSTORE_KEY_ID}</string>
+            <key>apiIssuerID</key>
+            <string>${APPSTORE_ISSUER_ID}</string>
             <key>stripSwiftSymbols</key>
             <true/>
           </dict>
