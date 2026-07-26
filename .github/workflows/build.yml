@@ -64,7 +64,24 @@ jobs:
           echo "APPSTORE_ISSUER_ID=$APPSTORE_ISSUER_ID" >> $GITHUB_ENV
           echo "✅ App Store Connect API ключ развёрнут"
 
-      # ─── Генерация Xcode проекта ────────────────────────────────────
+      # ─── Создаём временный keychain для подписи ────────────────────
+      - name: Setup Temporary Keychain
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          KEYCHAIN_PASSWORD="temp_ci_build_password"
+
+          # Создаём keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Делаем его search keychain для xcodebuild
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | tr -d '"')
+
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
+          echo "✅ Временный keychain создан"
+
       - name: Generate Xcode Project
         run: |
           xcodegen generate
