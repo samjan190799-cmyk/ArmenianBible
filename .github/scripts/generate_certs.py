@@ -99,13 +99,14 @@ def make_jwt():
         "exp": now + 1100,
         "aud": "appstoreconnect-v1"
     }
-    with open(api_key_path, "r", encoding="utf-8") as f:
-        private_key_pem = f.read()
     
-    token = jwt.encode(payload, private_key_pem, algorithm="ES256", headers=headers)
+    with open(api_key_path, "rb") as f:
+        private_key = serialization.load_pem_private_key(f.read(), password=None)
+    
+    token = jwt.encode(payload, private_key, algorithm="ES256", headers=headers)
     if isinstance(token, bytes):
         token = token.decode("utf-8")
-    return token
+    return token.strip()
 
 def api(method, path, body=None):
     jwt = make_jwt()
