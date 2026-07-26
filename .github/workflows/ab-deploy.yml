@@ -19,12 +19,16 @@ jobs:
         run: brew install xcodegen
 
       - name: Select Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: 'latest-stable'
-
-      - name: Verify Xcode Version
-        run: xcodebuild -version
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode_*.app | sort -V | tail -n 1)
+          if [ -d "/Applications/Xcode_26.0.app" ]; then
+            XCODE_PATH="/Applications/Xcode_26.0.app"
+          elif [ -d "/Applications/Xcode_26.app" ]; then
+            XCODE_PATH="/Applications/Xcode_26.app"
+          fi
+          echo "Selected Xcode: $XCODE_PATH"
+          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+          xcodebuild -version
 
       - name: Generate Project
         run: xcodegen generate
@@ -118,7 +122,6 @@ jobs:
             -f "$IPA_PATH" -t ios \
             --apiKey "$APPSTORE_KEY_ID" \
             --apiIssuer "$APPSTORE_ISSUER_ID" --verbose
-          echo "Uploaded to TestFlight!"
 
       - name: Cleanup
         if: always()
