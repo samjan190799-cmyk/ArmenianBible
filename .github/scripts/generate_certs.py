@@ -63,25 +63,40 @@ class Logger:
 sys.stdout = Logger(log_file)
 sys.stderr = Logger(log_file)
 
-# 1. Разворачиваем ASC API ключ
-api_key_path = Path(runner_tmp) / f"AuthKey_{key_id}.p8"
-api_key_path.write_bytes(base64.b64decode(api_key_b64))
-print(f"[1/6] ASC API ключ сохранён: {api_key_path} (Key ID: {key_id})")
+key_id      = key_id.strip()
+issuer_id   = issuer_id.strip()
 
-# 2. JWT генерация (ES256 R||S формат)
+# 1. Разворачиваем ASC API ключ
+api_key_bytes = base64.b64decode(api_key_b64.strip())
+api_key_path = Path(runner_tmp) / f"AuthKey_{key_id}.p8"
+api_key_path.write_bytes(api_key_bytes)
+print(f"[1/6] ASC API ключ сохранён: {api_key_path} (Key ID: {key_id}, Размер: {len(api_key_bytes)} байт)")
+
+# 2. JWT генерация (ES256 R||S формат по спецификации Apple)
 def make_jwt():
     with open(api_key_path, "rb") as f:
         pk = serialization.load_pem_private_key(f.read(), password=None)
-    hdr = {"alg": "ES256", "kid": key_id}
-    pld = {"iss": issuer_id, "iat": int(time.time()), "exp": int(time.time()) + 1100, "aud": "appstoreconnect-v1"}
+    
+    now = int(time.time())
+    hdr = {"alg": "ES256", "kid": key_id, "typ": "JWT"}
+    pld = {
+        "iss": issuer_id,
+        "iat": now - 30, # Небольшой запас на рассинхрон времени часов
+        "exp": now + 1100,
+        "aud": "appstoreconnect-v1"
+    }
     def b64u(d):
         if isinstance(d, str): d = d.encode()
         return base64.urlsafe_b64encode(d).rstrip(b"=").decode()
+    
     h = b64u(json.dumps(hdr, separators=(",", ":")))
     p = b64u(json.dumps(pld, separators=(",", ":")))
-    sig_der = pk.sign(f"{h}.{p}".encode(), ec.ECDSA(hashes.SHA256()))
+    signing_input = f"{h}.{p}"
+    
+    sig_der = pk.sign(signing_input.encode(), ec.ECDSA(hashes.SHA256()))
     r, s = decode_dss_signature(sig_der)
-    return f"{h}.{p}.{b64u(r.to_bytes(32,'big') + s.to_bytes(32,'big'))}"
+    sig_raw = r.to_bytes(32, "big") + s.to_bytes(32, "big")
+    return f"{signing_input}.{b64u(sig_raw)}"
 
 def api(method, path, body=None):
     jwt = make_jwt()
