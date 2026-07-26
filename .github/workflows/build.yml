@@ -117,7 +117,7 @@ jobs:
       - name: Auto Setup Certificates & Profiles
         run: python3 .github/scripts/auto_cert_setup.py
 
-      # ─── ExportOptions.plist для App Store Connect (Automatic) ──────
+      # ─── ExportOptions.plist для App Store Connect (Manual/UUID) ──
       - name: Create ExportOptions.plist
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" << PLIST_EOF
@@ -132,7 +132,12 @@ jobs:
             <key>teamID</key>
             <string>V7J345DY58</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.samvel.armenianbible</key>
+              <string>${PROVISIONING_PROFILE_UUID}</string>
+            </dict>
             <key>stripSwiftSymbols</key>
             <true/>
           </dict>
