@@ -133,6 +133,8 @@ jobs:
             <string>V7J345DY58</string>
             <key>signingStyle</key>
             <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
             <key>provisioningProfiles</key>
             <dict>
               <key>com.samvel.armenianbible</key>

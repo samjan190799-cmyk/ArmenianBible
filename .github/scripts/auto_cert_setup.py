@@ -141,11 +141,14 @@ if cer_b64:
             "-A", "-T", "/usr/bin/codesign"
         ], check=True)
         subprocess.run([
+            "security", "list-keychains", "-d", "user", "-s", keychain_path, "login.keychain-db"
+        ], check=True)
+        subprocess.run([
             "security", "set-key-partition-list",
             "-S", "apple-tool:,apple:,codesign:",
             "-s", "-k", "123456", keychain_path
         ], check=True)
-        print("✅ Сертификат подписи успешно импортирован в Keychain!")
+        print("✅ Сертификат подписи успешно импортирован и зарегистирован в Keychain!")
 
 print("📲 [3/4] Скачивание профилей для приложения и виджета...")
 profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
