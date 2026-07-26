@@ -176,7 +176,7 @@ jobs:
             --apiIssuer "$APPSTORE_ISSUER_ID" \
             2>&1 | tee "$RUNNER_TEMP/upload.log"
 
-          echo "🚀 Приложение отправлено в TestFlight!"
+          echo "🚀 Приложение успешно отправлено в TestFlight!"
 
       # ─── Сохранение готового IPA файла в Артефакты ────────────────
       - name: Upload IPA Artifact
