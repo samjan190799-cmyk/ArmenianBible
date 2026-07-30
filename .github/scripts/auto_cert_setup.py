@@ -228,10 +228,11 @@ for p in profiles_res.get("data", []):
     dest_pp = pp_dir / f"{uuid}.mobileprovision"
     dest_pp.write_bytes(pp_bytes)
     
+    is_exact_app_bundle = (app_id.endswith(".com.samvel.armenianbible") or app_id == "com.samvel.armenianbible" or name == "ArmenianBible_Clean_AppStore")
     if "Widget" in name and not widget_uuid:
         widget_uuid = uuid
         print(f"✅ Профиль виджета смонтирован [{name}]: {uuid}")
-    elif ("com.samvel.armenianbible" in app_id or name == "ArmenianBible_Clean_AppStore" or "Clean_AppStore" in name) and not main_uuid:
+    elif is_exact_app_bundle and not main_uuid:
         main_uuid = uuid
         print(f"✅ Профиль основного приложения смонтирован [{name}] (App ID: {app_id}): {uuid}")
 
