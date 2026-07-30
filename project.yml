@@ -18,6 +18,7 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
+        ITSAppUsesNonExemptEncryption: "NO"
         UILaunchScreen:
           UIColorName: LaunchBackground
           UIImageName: LaunchImage

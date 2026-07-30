@@ -194,6 +194,10 @@ jobs:
 
           echo "🚀 Приложение успешно отправлено в TestFlight!"
 
+      # ─── Автоматическое приглашение бета-тестировщиков ────────────
+      - name: Add & Invite Beta Testers
+        run: python3 .github/scripts/add_beta_testers.py
+
       # ─── Сохранение готового IPA файла в Артефакты ────────────────
       - name: Upload IPA Artifact
         if: success()
