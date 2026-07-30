@@ -204,6 +204,7 @@ pp_dir.mkdir(parents=True, exist_ok=True)
 
 main_uuid = None
 widget_uuid = None
+last_uuid = None
 
 for p in profiles_res.get("data", []):
     name = p["attributes"]["name"]
@@ -221,17 +222,18 @@ for p in profiles_res.get("data", []):
         
     dest_pp = pp_dir / f"{uuid}.mobileprovision"
     dest_pp.write_bytes(pp_bytes)
+    last_uuid = uuid
     
     if "Widget" in name and not widget_uuid:
         widget_uuid = uuid
         print(f"✅ Профиль виджета смонтирован [{name}]: {uuid}")
-    elif ("ArmenianBible_Clean_AppStore" in name) and not main_uuid:
+    elif ("ArmenianBible_Clean_AppStore" in name or "ArmenianBible" in name) and not main_uuid:
         main_uuid = uuid
         print(f"✅ Профиль основного приложения смонтирован [{name}]: {uuid}")
 
 # Если один из профилей не разделился по имени, берем логические доступные
-if not main_uuid and profiles_res.get("data"):
-    main_uuid = uuid
+if not main_uuid and last_uuid:
+    main_uuid = last_uuid
     print(f"✅ Назначен основной профиль: {main_uuid}")
 
 with open(github_env, "a", encoding="utf-8") as f:

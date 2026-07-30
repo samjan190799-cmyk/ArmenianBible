@@ -14,7 +14,7 @@ targets:
         CFBundleName: ArmenianBible
         CFBundleDisplayName: ArmenianBible
         CFBundleIdentifier: com.samvel.armenianbible
-        CFBundleVersion: "1"
+        CFBundleVersion: "${BUILD_NUMBER:1}"
         CFBundleShortVersionString: "1.0"
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible

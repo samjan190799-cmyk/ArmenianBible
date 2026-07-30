@@ -89,10 +89,14 @@ jobs:
 
       # ─── Генерация Xcode Проекта ─────────────────────────────────
       - name: Generate Xcode Project
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
         run: xcodegen generate
 
       # ─── Архивация релиза ──────────────────────────────────────────
       - name: Archive Project
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           set -o pipefail
           xcodebuild archive \
@@ -120,6 +124,13 @@ jobs:
       # ─── ExportOptions.plist для App Store Connect (Manual/UUID) ──
       - name: Create ExportOptions.plist
         run: |
+          set -o pipefail
+
+          PROFILES_DICT="<key>com.samvel.armenianbible</key><string>${MAIN_APP_PROFILE_UUID}</string>"
+          if [ -n "$WIDGET_PROFILE_UUID" ]; then
+            PROFILES_DICT="${PROFILES_DICT}<key>com.samvel.armenianbible.BibleWidget</key><string>${WIDGET_PROFILE_UUID}</string>"
+          fi
+
           cat > "$RUNNER_TEMP/ExportOptions.plist" << PLIST_EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -137,20 +148,19 @@ jobs:
             <string>iPhone Distribution</string>
             <key>provisioningProfiles</key>
             <dict>
-              <key>com.samvel.armenianbible</key>
-              <string>${MAIN_APP_PROFILE_UUID}</string>
-              <key>com.samvel.armenianbible.BibleWidget</key>
-              <string>${WIDGET_PROFILE_UUID}</string>
+              ${PROFILES_DICT}
             </dict>
             <key>stripSwiftSymbols</key>
             <true/>
           </dict>
           </plist>
           PLIST_EOF
+          echo "✅ ExportOptions.plist успешно сформирован"
 
       # ─── Подпись и Экспорт IPA ─────────────────────────────────────
       - name: Export & Sign IPA
         run: |
+          set -o pipefail
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive" \
             -exportPath "$RUNNER_TEMP/Export" \
@@ -173,6 +183,8 @@ jobs:
       # ─── Загрузка IPA в TestFlight ────────────────────────────────
       - name: Upload to TestFlight
         run: |
+          set -o pipefail
+          echo "🚀 Отправка сборки №${{ github.run_number }} в TestFlight..."
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_PATH" \
