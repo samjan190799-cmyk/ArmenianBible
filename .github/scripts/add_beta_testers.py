@@ -85,7 +85,8 @@ if apps_res.get("data"):
 emails_to_add = [
     ("manneee.999@gmail.com", "Mane", "Tester"),
     ("lilit998899@gmail.com", "Lilit", "Tester"),
-    ("Karus700550@icloud.com", "Karus", "Tester")
+    ("Karus700550@icloud.com", "Karus", "Tester"),
+    ("karen55O@icloud.com", "Karen", "Tester")
 ]
 
 print("📩 Добавление бета-тестировщиков в TestFlight...")
