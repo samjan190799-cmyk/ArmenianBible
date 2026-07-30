@@ -198,6 +198,10 @@ jobs:
       - name: Add & Invite Beta Testers
         run: python3 .github/scripts/add_beta_testers.py
 
+      # ─── Вывод кодов и публичных ссылок ─────────────────────────────
+      - name: Get TestFlight Invite Codes & Links
+        run: python3 .github/scripts/get_invite_codes.py
+
       # ─── Сохранение готового IPA файла в Артефакты ────────────────
       - name: Upload IPA Artifact
         if: success()
