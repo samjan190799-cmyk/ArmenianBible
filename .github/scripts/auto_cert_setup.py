@@ -219,17 +219,21 @@ for p in profiles_res.get("data", []):
     except Exception:
         import uuid as u_lib
         uuid = str(u_lib.uuid4())
+
+    try:
+        app_id = subprocess.check_output(f"security cms -D -i '{tmp_pp}' | plutil -extract Entitlements.application-identifier raw -", shell=True, text=True).strip()
+    except Exception:
+        app_id = ""
         
     dest_pp = pp_dir / f"{uuid}.mobileprovision"
     dest_pp.write_bytes(pp_bytes)
-    last_uuid = uuid
     
     if "Widget" in name and not widget_uuid:
         widget_uuid = uuid
         print(f"✅ Профиль виджета смонтирован [{name}]: {uuid}")
-    elif ("ArmenianBible_Clean_AppStore" in name or "ArmenianBible" in name) and not main_uuid:
+    elif ("com.samvel.armenianbible" in app_id or name == "ArmenianBible_Clean_AppStore" or "Clean_AppStore" in name) and not main_uuid:
         main_uuid = uuid
-        print(f"✅ Профиль основного приложения смонтирован [{name}]: {uuid}")
+        print(f"✅ Профиль основного приложения смонтирован [{name}] (App ID: {app_id}): {uuid}")
 
 # Если один из профилей не разделился по имени, берем логические доступные
 if not main_uuid and last_uuid:
