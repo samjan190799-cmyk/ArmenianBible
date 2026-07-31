@@ -169,33 +169,75 @@ if cer_b64:
         cert_id_new = res_retry["data"]["id"]
 
     if cert_id_new:
-        print("🔄 Проверка и привязка нового сертификата к профилям провижининга...")
-        p_list = api_request("GET", "/profiles?include=bundleId&filter[profileType]=IOS_APP_STORE")
+        print("🔄 Проверка и генерация точных профилей провижининга для приложения и виджета...")
+        b_list = api_request("GET", "/bundleIds")
+        main_b_id = None
+        widget_b_id = None
+        
+        for b in b_list.get("data", []):
+            bid_identifier = b.get("attributes", {}).get("identifier")
+            if bid_identifier == "com.samvel.armenianbible":
+                main_b_id = b.get("id")
+            elif bid_identifier == "com.samvel.armenianbible.BibleWidget":
+                widget_b_id = b.get("id")
+                
+        if not widget_b_id:
+            print("⚙️ Регистрация нового Bundle ID [com.samvel.armenianbible.BibleWidget]...")
+            create_bid_res = api_request("POST", "/bundleIds", {
+                "data": {
+                    "type": "bundleIds",
+                    "attributes": {
+                        "identifier": "com.samvel.armenianbible.BibleWidget",
+                        "name": "ArmenianBible Widget Extension",
+                        "platform": "IOS"
+                    }
+                }
+            })
+            if "data" in create_bid_res:
+                widget_b_id = create_bid_res["data"]["id"]
+                print(f"✅ Bundle ID виджета зарегистрирован: {widget_b_id}")
+
+        p_list = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
         for p_item in p_list.get("data", []):
             p_id = p_item["id"]
             p_name = p_item["attributes"]["name"]
-            if "ArmenianBible_Clean_AppStore" in p_name or "Widget" in p_name:
-                print(f"⚙️ Перепривязка сертификата к профилю [{p_name}]...")
-                # Пересоздаем активный профиль с новыми сертификатами
-                b_rel = p_item.get("relationships", {}).get("bundleId", {}).get("data", {})
-                b_id = b_rel.get("id") if isinstance(b_rel, dict) else None
-                if b_id:
-                    api_request("DELETE", f"/profiles/{p_id}")
-                    new_p_payload = {
-                        "data": {
-                            "type": "profiles",
-                            "attributes": {
-                                "name": p_name,
-                                "profileType": "IOS_APP_STORE"
-                            },
-                            "relationships": {
-                                "bundleId": {"data": {"type": "bundleIds", "id": b_id}},
-                                "certificates": {"data": [{"type": "certificates", "id": cert_id_new}]}
-                            }
-                        }
+            if "ArmenianBible" in p_name or "Widget" in p_name:
+                print(f"🗑 Очистка старого профиля [{p_name}] ({p_id})...")
+                api_request("DELETE", f"/profiles/{p_id}")
+
+        if main_b_id:
+            print("⚙️ Создание профиля провижининга для основного приложения...")
+            api_request("POST", "/profiles", {
+                "data": {
+                    "type": "profiles",
+                    "attributes": {
+                        "name": "ArmenianBible_Clean_AppStore",
+                        "profileType": "IOS_APP_STORE"
+                    },
+                    "relationships": {
+                        "bundleId": {"data": {"type": "bundleIds", "id": main_b_id}},
+                        "certificates": {"data": [{"type": "certificates", "id": cert_id_new}]}
                     }
-                    api_request("POST", "/profiles", new_p_payload)
-                    print(f"✅ Профиль {p_name} успешно обновлен с новым сертификатом!")
+                }
+            })
+            print("✅ Профиль ArmenianBible_Clean_AppStore создан!")
+
+        if widget_b_id:
+            print("⚙️ Создание профиля провижининга для виджета...")
+            api_request("POST", "/profiles", {
+                "data": {
+                    "type": "profiles",
+                    "attributes": {
+                        "name": "ArmenianBible_Widget_AppStore",
+                        "profileType": "IOS_APP_STORE"
+                    },
+                    "relationships": {
+                        "bundleId": {"data": {"type": "bundleIds", "id": widget_b_id}},
+                        "certificates": {"data": [{"type": "certificates", "id": cert_id_new}]}
+                    }
+                }
+            })
+            print("✅ Профиль ArmenianBible_Widget_AppStore создан!")
 
 print("📲 [3/4] Скачивание профилей для приложения и виджета...")
 profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
@@ -204,7 +246,6 @@ pp_dir.mkdir(parents=True, exist_ok=True)
 
 main_uuid = None
 widget_uuid = None
-last_uuid = None
 
 for p in profiles_res.get("data", []):
     name = p["attributes"]["name"]
@@ -228,11 +269,10 @@ for p in profiles_res.get("data", []):
     dest_pp = pp_dir / f"{uuid}.mobileprovision"
     dest_pp.write_bytes(pp_bytes)
     
-    is_exact_app_bundle = (app_id.endswith(".com.samvel.armenianbible") or app_id == "com.samvel.armenianbible" or name == "ArmenianBible_Clean_AppStore")
-    if "Widget" in name and not widget_uuid:
+    if ("Widget" in name or app_id.endswith(".com.samvel.armenianbible.BibleWidget")) and not widget_uuid:
         widget_uuid = uuid
-        print(f"✅ Профиль виджета смонтирован [{name}]: {uuid}")
-    elif is_exact_app_bundle and not main_uuid:
+        print(f"✅ Профиль виджета смонтирован [{name}] (App ID: {app_id}): {uuid}")
+    elif ("ArmenianBible_Clean_AppStore" in name or app_id.endswith(".com.samvel.armenianbible")) and not main_uuid:
         main_uuid = uuid
         print(f"✅ Профиль основного приложения смонтирован [{name}] (App ID: {app_id}): {uuid}")
 
