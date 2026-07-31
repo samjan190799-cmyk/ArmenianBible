@@ -128,7 +128,7 @@ jobs:
 
           PROFILES_DICT="<key>com.samvel.armenianbible</key><string>${MAIN_APP_PROFILE_UUID}</string>"
           if [ -n "$WIDGET_PROFILE_UUID" ]; then
-            PROFILES_DICT="${PROFILES_DICT}<key>com.samvel.armenianbible.BibleWidget</key><string>${WIDGET_PROFILE_UUID}</string>"
+            PROFILES_DICT="${PROFILES_DICT}<key>com.samvel.armenianbible.V7J345DY58.BibleWidget</key><string>${WIDGET_PROFILE_UUID}</string>"
           fi
 
           cat > "$RUNNER_TEMP/ExportOptions.plist" << PLIST_EOF
