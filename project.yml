@@ -38,4 +38,36 @@ targets:
         ASSETCATALOG_COMPILER_PRIMARY_APPICON_SET_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: "YES"
     dependencies:
+      - target: BibleWidget
       - sdk: libsqlite3.dylib
+
+  BibleWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: Widget
+      - path: Sources/BibleVerse.swift
+      - path: Sources/en.lproj
+      - path: Sources/ru.lproj
+      - path: Sources/hy.lproj
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleName: BibleWidget
+        CFBundleDisplayName: BibleWidget
+        CFBundleIdentifier: com.samvel.armenianbible.BibleWidget
+        CFBundleVersion: "${BUILD_NUMBER:1}"
+        CFBundleShortVersionString: "1.0"
+        CFBundlePackageType: XPC!
+        CFBundleExecutable: BibleWidget
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        SWIFT_VERSION: "5.9"
+        PRODUCT_NAME: BibleWidget
+        PRODUCT_BUNDLE_IDENTIFIER: com.samvel.armenianbible.BibleWidget
+        GENERATE_INFOPLIST_FILE: "NO"
+        DEVELOPMENT_TEAM: "V7J345DY58"
+        CODE_SIGN_STYLE: "Automatic"
