@@ -8,7 +8,9 @@ data class NarekPrayer(
     val titleEn: String,
     val textHy: String,
     val textRu: String,
-    val textEn: String
+    val textEn: String,
+    val audioUrlHy: String? = null,
+    val audioUrlRu: String? = null
 ) {
     fun title(language: AppLanguage): String = when (language) {
         AppLanguage.ARMENIAN -> titleHy
@@ -60,7 +62,9 @@ object NarekatsiDatabase {
                 And reject not my tearful plea,
                 But look upon me with Your abundant mercy
                 And grant me healing and divine peace.
-            """.trimIndent()
+            """.trimIndent(),
+            audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_1.mp3",
+            audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_1.mp3"
         ),
         NarekPrayer(
             id = 2,
@@ -97,7 +101,9 @@ object NarekatsiDatabase {
                 Save me from the darkness of sin and fear,
                 Fill my heart with Your holy love,
                 That I may praise You forever and ever.
-            """.trimIndent()
+            """.trimIndent(),
+            audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_12.mp3",
+            audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_12.mp3"
         ),
         NarekPrayer(
             id = 3,
@@ -134,7 +140,9 @@ object NarekatsiDatabase {
                 Lo, with faith I draw near to You,
                 Grant me strength in the hour of trial,
                 And keep me with Your holy right hand.
-            """.trimIndent()
+            """.trimIndent(),
+            audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_40.mp3",
+            audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_40.mp3"
         ),
         NarekPrayer(
             id = 4,
@@ -165,7 +173,9 @@ object NarekatsiDatabase {
                 
                 Grant me wisdom, peace, and steadfast hope,
                 That I may live according to Your will each day.
-            """.trimIndent()
+            """.trimIndent(),
+            audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_80.mp3",
+            audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_80.mp3"
         )
     )
 }

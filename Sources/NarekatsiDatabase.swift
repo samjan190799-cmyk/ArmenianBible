@@ -10,6 +10,8 @@ struct NarekPrayer: Identifiable, Codable, Hashable {
     let textHy: String
     let textRu: String
     let textEn: String
+    let audioUrlHy: String?
+    let audioUrlRu: String?
     
     func title(for language: AppLanguage) -> String {
         switch language {
@@ -68,7 +70,9 @@ class NarekatsiDatabase {
             And reject not my tearful plea,
             But look upon me with Your abundant mercy
             And grant me healing and divine peace.
-            """
+            """,
+            audioUrlHy: "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_1.mp3",
+            audioUrlRu: "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_1.mp3"
         ),
         NarekPrayer(
             id: 2,
@@ -105,7 +109,9 @@ class NarekatsiDatabase {
             Save me from the darkness of sin and fear,
             Fill my heart with Your holy love,
             That I may praise You forever and ever.
-            """
+            """,
+            audioUrlHy: "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_12.mp3",
+            audioUrlRu: "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_12.mp3"
         ),
         NarekPrayer(
             id: 3,
@@ -142,7 +148,9 @@ class NarekatsiDatabase {
             Lo, with faith I draw near to You,
             Grant me strength in the hour of trial,
             And keep me with Your holy right hand.
-            """
+            """,
+            audioUrlHy: "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_40.mp3",
+            audioUrlRu: "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_40.mp3"
         ),
         NarekPrayer(
             id: 4,
@@ -173,7 +181,9 @@ class NarekatsiDatabase {
             
             Grant me wisdom, peace, and steadfast hope,
             That I may live according to Your will each day.
-            """
+            """,
+            audioUrlHy: "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_80.mp3",
+            audioUrlRu: "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_80.mp3"
         )
     ]
 }
