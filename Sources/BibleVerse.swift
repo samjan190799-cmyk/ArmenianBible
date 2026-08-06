@@ -1152,6 +1152,87 @@ extension BibleVerse {
             refRu: "Вечерняя молитва",
             refEn: "Evening Prayer",
             isPrayer: true
+        ),
+        BibleVerse(
+            textHy: "Մի՛ վախեցիր, որովհետև ես քեզ հետ եմ. մի՛ զարհուրիր, որովհետև ես քո Աստվածն եմ. ես քեզ կզորացնեմ և քեզ օգնություն կհասնեմ։",
+            textRu: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой; Я укреплю тебя, и помогу тебе, и поддержу тебя десницею правды Моей.",
+            textEn: "Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee; yea, I will uphold thee with the right hand of my righteousness.",
+            refHy: "Եսայի 41:10",
+            refRu: "Исаия 41:10",
+            refEn: "Isaiah 41:10"
+        ),
+        BibleVerse(
+            textHy: "Հանդարտվեցե՛ք և ճանաչեցե՛ք, որ ես եմ Աստված. ես բարձր կլինեմ ազգերի մեջ, բարձր կլինեմ երկրի վրա։",
+            textRu: "Остановитесь и познайте, что Я — Бог: буду превознесен в народах, превознесен на земле.",
+            textEn: "Be still, and know that I am God: I will be exalted among the heathen, I will be exalted in the earth.",
+            refHy: "Սաղմոսներ 46:10",
+            refRu: "Псалом 45:11",
+            refEn: "Psalm 46:10"
+        ),
+        BibleVerse(
+            textHy: "Ամեն ինչ կարող եմ ինձ զորացնող Քրիստոսով։",
+            textRu: "Все могу в укрепляющем меня Иисусе Христе.",
+            textEn: "I can do all things through Christ which strengtheneth me.",
+            refHy: "Փիլիպեցիս 4:13",
+            refRu: "Филиппийцам 4:13",
+            refEn: "Philippians 4:13"
+        ),
+        BibleVerse(
+            textHy: "Եվ գիտենք, որ Աստծուն սիրողներին ամեն ինչ գործակից է լինում բարու համար։",
+            textRu: "Притом знаем, что любящим Бога, призванным по Его изволению, все содействует ко благу.",
+            textEn: "And we know that all things work together for good to them that love God, to them who are the called according to his purpose.",
+            refHy: "Հռոմեացիս 8:28",
+            refRu: "Римлянам 8:28",
+            refEn: "Romans 8:28"
+        ),
+        BibleVerse(
+            textHy: "Ամեն պահպանվող բանից առավել պահպանիր քո սիրտը, որովհետև նրանից են բխում կյանքի աղբյուրները։",
+            textRu: "Больше всего хранимого храни сердце твое, потому что из него источники жизни.",
+            textEn: "Keep thy heart with all diligence; for out of it are the issues of life.",
+            refHy: "Առակաց 4:23",
+            refRu: "Притчи 4:23",
+            refEn: "Proverbs 4:23"
+        ),
+        BibleVerse(
+            textHy: "Որովհետև ես գիտեմ այն խորհուրդները, որ խորհում եմ ձեր մասին,- ասում է Տերը,- խաղաղության խորհուրդներ և ոչ թե չարիքի, որ ձեզ ապագա և հույս տամ։",
+            textRu: "Ибо только Я знаю намерения, какие имею о вас, говорит Господь, намерения во благо, а не на зло, чтобы дать вам будущность и надежду.",
+            textEn: "For I know the thoughts that I think toward you, saith the Lord, thoughts of peace, and not of evil, to give you an expected end.",
+            refHy: "Երեմիա 29:11",
+            refRu: "Иеремия 29:11",
+            refEn: "Jeremiah 29:11"
+        ),
+        BibleVerse(
+            textHy: "Բարձրյալի ծածկոցի տակ բնակվողը Ամենակարողի հովանու տակ կհանգստանա։ Կասեմ Տիրոջը. «Իմ ապավենն ու իմ ամրոցն ես, իմ Աստվածը, որին ապավինում եմ»։",
+            textRu: "Живущий под кровом Всевышнего под сенью Всемогущего покоится, говорит Господу: «Прибежище мое и защита моя, Бог мой, на Которого я уповаю!»",
+            textEn: "He that dwelleth in the secret place of the most High shall abide under the shadow of the Almighty. I will say of the Lord, He is my refuge and my fortress: my God; in him will I trust.",
+            refHy: "Սաղմոսներ 91:1-2",
+            refRu: "Псалом 90:1-2",
+            refEn: "Psalm 91:1-2"
+        ),
+        BibleVerse(
+            textHy: "Սիրո մեջ երկյուղ չկա, այլ կատարյալ սերը հեռու է վանում երկյուղը։",
+            textRu: "В любви нет страха, но совершенная любовь прогоняет страх.",
+            textEn: "There is no fear in love; but perfect love casteth out fear.",
+            refHy: "Ա Հովհաննես 4:18",
+            refRu: "1 Иоанна 4:18",
+            refEn: "1 John 4:18"
+        ),
+        BibleVerse(
+            textHy: "Իսկ Հոգու պտուղն է՝ սեր, ուրախություն, խաղաղություն, համբերատարություն, քաղցրություն, բարություն, հավատարմություն, հեզություն, ժուժկալություն։",
+            textRu: "Плод же духа: любовь, радость, мир, долготерпение, благость, милосердие, вера, кротость, воздержание.",
+            textEn: "But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, meekness, temperance.",
+            refHy: "Գաղատացիս 5:22-23",
+            refRu: "Галатам 5:22-23",
+            refEn: "Galatians 5:22-23"
+        ),
+        BibleVerse(
+            textHy: "Ընկալ, քաղցրութեամբ, Տէր Աստուած զօրաւոր, զհայցողիս զաղաչանս. մատիր գթութեամբ առ պատկառեալս դիմօք. փարատեա՛, ամենապարգև, զամօթական տխրութիւնս... Ամեն։",
+            textRu: "Прими с благосклонностью, Господи Боже Всемогущий, моление молящегося Тебе; обрати с милосердием взор Твой к молящемуся с трепетом. Прогони, Вседарующий, печаль... Аминь.",
+            textEn: "Accept with sweetness, O Lord Almighty God, the supplication of Thy humble servant. Look with mercy upon the one who stands before Thee with reverence. Dispel, O All-Giver, my sorrow... Amen.",
+            refHy: "Սուրբ Գրիգոր Նարեկացի",
+            refRu: "Св. Григор Нарекаци",
+            refEn: "St. Grigor Narekatsi",
+            isPrayer: true
         )
     ]
 }

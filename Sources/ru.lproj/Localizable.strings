@@ -78,15 +78,16 @@
 
 /* AI Guide screen */
 "ai_guide_title" = "Духовный Проводник";
-"ai_guide_subtitle" = "Выберите душевное состояние или введите запрос, чтобы ИИ подобрал библейский стих или составил молитву.";
-"ai_placeholder_prompt" = "Введите ваш запрос (например, молитва о мире)...";
+"ai_guide_subtitle" = "Задайте любой вопрос о жизни, вере или испытаниях — ИИ найдет ответ и приведет стих из Священного Писания.";
+"ai_placeholder_prompt" = "Задайте ваш вопрос (например: как справиться со страхом?)...";
 "button_ask_ai" = "Спросить ИИ";
-"mood_comfort" = "Утешение";
-"mood_gratitude" = "Благодарность";
-"mood_hope" = "Надежда";
-"mood_peace" = "Мир в душе";
-"mood_wisdom" = "Мудрость";
-"mood_strength" = "Сила духа";
+"suggested_questions_title" = "Частые вопросы:";
+"ai_searching_answer" = "ИИ ищет ответ в Священном Писании...";
+"q_fear" = "Как справиться со страхом?";
+"q_forgive" = "Как научиться прощать?";
+"q_peace" = "Как обрести мир в душе?";
+"q_hope" = "О надежде и будущем";
+"q_trials" = "О вере в испытаниях";
 
 /* Explanation screen */
 "explain_title" = "Толкование";
@@ -133,3 +134,16 @@
 "edition_armenian_subtitle" = "Восточноармянский перевод";
 "edition_russian_subtitle" = "Синодальный перевод";
 "edition_english_subtitle" = "King James Version (KJV)";
+
+/* Favorites Tab */
+"tab_favorites" = "Избранное";
+"favorites_title" = "Избранные цитаты";
+"favorites_count_format" = "сохранённых цитат";
+"favorites_empty_title" = "Избранных цитат пока нет";
+"favorites_empty_subtitle" = "Нажимайте на сердечко у любой цитаты, чтобы сохранить её в этот раздел.";
+"favorites_search_placeholder" = "Поиск по избранному...";
+"favorites_clear_all" = "Очистить всё";
+"favorites_clear_confirm" = "Вы уверены, что хотите удалить все сохранённые цитаты?";
+"copied_to_clipboard" = "Скопировано в буфер обмена";
+"open_in_bible" = "Открыть в Библии";
+

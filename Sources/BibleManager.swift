@@ -1162,5 +1162,59 @@ class BibleManager: ObservableObject {
         // По умолчанию возвращаем исходное сообщение от провайдера
         return "\(provider.displayName) API: \(rawMessage)"
     }
+    
+    // MARK: - Духовный ответчик ИИ по Библии
+    func askBibleAI(question: String, completion: @escaping (Result<BibleAnswer, Error>) -> Void) {
+        let prompt: String
+        switch appLanguage {
+        case .armenian:
+            prompt = "Դու Աստվածաշնչի փորձագետ և հոգևոր առաջնորդ ես: Օգտատերը հարցնում է. «\(question)»: Տուր մանրամասն, իմաստուն և մխիթարական պատասխան հայերեն լեզվով՝ հիմնված Սուրբ Գրքի վրա: Պատասխանի վերջում անպայման բեր մեկ հիմնական աստվածաշնչյան տող հետևյալ ճշգրիտ ֆորմատով՝\nVERSE_START\n[Տեքստ] | [Հղում]\nVERSE_END"
+        case .russian:
+            prompt = "Ты эксперт по Библии и духовный наставник. Пользователь спрашивает: «\(question)». Дай подробный, мудрый и поддерживающий ответ на русском языке, основанный на Священном Писании. В самом конце ответа обязательно приведи один ключевой библейский стих в следующем точном формате:\nVERSE_START\n[Текст стиха] | [Ссылка на стих]\nVERSE_END"
+        case .english:
+            prompt = "You are a Bible expert and spiritual guide. The user asks: \"\(question)\". Provide a detailed, wise, and comforting answer in English based on the Holy Scriptures. At the very end of your response, include one key Bible verse in the following exact format:\nVERSE_START\n[Verse Text] | [Reference]\nVERSE_END"
+        }
+        
+        generateTextFromAI(prompt: prompt) { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .success(let fullText):
+                var answerText = fullText
+                var verse: BibleVerse? = nil
+                
+                if let startRange = fullText.range(of: "VERSE_START"),
+                   let endRange = fullText.range(of: "VERSE_END") {
+                    
+                    answerText = String(fullText[..<startRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    let verseContent = String(fullText[startRange.upperBound..<endRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    let components = verseContent.components(separatedBy: "|")
+                    if components.count >= 2 {
+                        let vText = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                        let vRef = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                        verse = BibleVerse(
+                            textHy: self.appLanguage == .armenian ? vText : "",
+                            textRu: self.appLanguage == .russian ? vText : "",
+                            textEn: self.appLanguage == .english ? vText : "",
+                            refHy: self.appLanguage == .armenian ? vRef : "",
+                            refRu: self.appLanguage == .russian ? vRef : "",
+                            refEn: self.appLanguage == .english ? vRef : ""
+                        )
+                    }
+                }
+                completion(.success(BibleAnswer(answerText: answerText, verse: verse)))
+                
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 }
+
+// MARK: - Ответ Библейского ИИ
+struct BibleAnswer {
+    let answerText: String
+    let verse: BibleVerse?
+}
+
 

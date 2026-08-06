@@ -78,15 +78,16 @@
 
 /* AI Guide screen */
 "ai_guide_title" = "Spiritual Guide";
-"ai_guide_subtitle" = "Select a state of mind or write your request to get a tailored Bible verse or prayer.";
-"ai_placeholder_prompt" = "Write your custom request (e.g. prayer for peace)...";
+"ai_guide_subtitle" = "Ask any question about life, faith, or trials — AI will find answers in the Holy Bible.";
+"ai_placeholder_prompt" = "Ask your question (e.g. how to overcome fear?)...";
 "button_ask_ai" = "Ask AI";
-"mood_comfort" = "Comfort";
-"mood_gratitude" = "Gratitude";
-"mood_hope" = "Hope";
-"mood_peace" = "Peace";
-"mood_wisdom" = "Wisdom";
-"mood_strength" = "Strength";
+"suggested_questions_title" = "Frequent questions:";
+"ai_searching_answer" = "AI is searching for answers in the Scriptures...";
+"q_fear" = "How to overcome fear?";
+"q_forgive" = "How to learn to forgive?";
+"q_peace" = "How to find peace of mind?";
+"q_hope" = "About hope and future";
+"q_trials" = "About faith in trials";
 
 /* Explanation screen */
 "explain_title" = "Commentary";
@@ -133,3 +134,16 @@
 "edition_armenian_subtitle" = "Eastern Armenian Translation";
 "edition_russian_subtitle" = "Synodal Translation";
 "edition_english_subtitle" = "King James Version (KJV)";
+
+/* Favorites Tab */
+"tab_favorites" = "Favorites";
+"favorites_title" = "Favorite Quotes";
+"favorites_count_format" = "saved quotes";
+"favorites_empty_title" = "No favorite quotes yet";
+"favorites_empty_subtitle" = "Tap the heart icon on any verse to save it to this section.";
+"favorites_search_placeholder" = "Search in favorites...";
+"favorites_clear_all" = "Clear All";
+"favorites_clear_confirm" = "Are you sure you want to remove all saved quotes?";
+"copied_to_clipboard" = "Copied to clipboard";
+"open_in_bible" = "Open in Bible";
+

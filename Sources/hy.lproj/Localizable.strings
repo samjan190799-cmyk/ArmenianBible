@@ -78,15 +78,16 @@
 
 /* AI Guide screen */
 "ai_guide_title" = "Հոգևոր Օգնական";
-"ai_guide_subtitle" = "Ընտրեք հոգեկան վիճակը կամ գրեք ձեր խնդրանքը, որպեսզի ԱԻ-ն ընտրի աստվածաշնչյան տող կամ գրի աղոթք:";
-"ai_placeholder_prompt" = "Մուտքագրեք ձեր հարցումը (օրինակ՝ աղոթք խաղաղության համար)...";
+"ai_guide_subtitle" = "Տվեք ցանկացած հարց կյանքի, հավատքի կամ փորձությունների մասին — ԱԻ-ն պատասխան կգտնի Սուրբ Գրքում:";
+"ai_placeholder_prompt" = "Տվեք ձեր հարցը (օրինակ՝ ինչպես հաղթահարել վախը)...";
 "button_ask_ai" = "Հարցնել ԱԻ-ին";
-"mood_comfort" = "Մխիթարություն";
-"mood_gratitude" = "Գոհություն";
-"mood_hope" = "Հույս";
-"mood_peace" = "Խաղաղություն";
-"mood_wisdom" = "Իմաստություն";
-"mood_strength" = "Ուժ";
+"suggested_questions_title" = "Հաճախ տրվող հարցեր.";
+"ai_searching_answer" = "ԱԻ-ն պատասխան է փնտրում Սուրբ Գրքում...";
+"q_fear" = "Ինչպե՞ս հաղթահարել վախը:";
+"q_forgive" = "Ինչպե՞ս սովորել ներել:";
+"q_peace" = "Ինչպե՞ս գտնել խաղաղություն:";
+"q_hope" = "Հույսի և ապագայի մասին";
+"q_trials" = "Հավատքը փորձություններում";
 
 /* Explanation screen */
 "explain_title" = "Մեկնաբանում";
@@ -133,3 +134,16 @@
 "edition_armenian_subtitle" = "Արևելահայերեն թարգմանություն";
 "edition_russian_subtitle" = "Սինոդալ թարգմանություն";
 "edition_english_subtitle" = "King James Version (KJV)";
+
+/* Favorites Tab */
+"tab_favorites" = "Ընտրյալներ";
+"favorites_title" = "Ընտրյալ մեջբերումներ";
+"favorites_count_format" = "պահպանված մեջբերում";
+"favorites_empty_title" = "Ընտրյալ մեջբերումներ դեռ չկան";
+"favorites_empty_subtitle" = "Սեղմեք սրտիկի վրա ցանկացած մեջբերման մոտ, այն այստեղ պահպանելու համար:";
+"favorites_search_placeholder" = "Որոնում ընտրյալներում...";
+"favorites_clear_all" = "Մաքրել բոլորը";
+"favorites_clear_confirm" = "Վստա՞հ եք, որ ցանկանում եք հեռացնել բոլոր պահպանված մեջբերումները:";
+"copied_to_clipboard" = "Պատճենված է";
+"open_in_bible" = "Բացել Աստվածաշնչում";
+
