@@ -147,3 +147,31 @@
 "copied_to_clipboard" = "Copied to clipboard";
 "open_in_bible" = "Open in Bible";
 
+/* Quiz Strings */
+"quiz_title" = "Bible Trivia Quiz";
+"quiz_card_subtitle" = "Test your knowledge of Holy Scriptures in an engaging quiz.";
+"quiz_button_start" = "Start Quiz";
+"quiz_start_title" = "Bible Trivia Quiz";
+"quiz_start_subtitle" = "Select a question category and test the depth of your knowledge.";
+"quiz_best_score" = "Your Best Score";
+"quiz_select_category" = "Question Category:";
+"quiz_cat_all" = "All Topics";
+"quiz_cat_old" = "Old Testament";
+"quiz_cat_new" = "New Testament";
+"quiz_cat_gospels" = "Gospels";
+"quiz_next_question" = "Next Question";
+"quiz_result_expert" = "Excellent Score! 🏆";
+"quiz_result_good" = "Good Score! 👍";
+"quiz_result_try_again" = "Keep Studying the Bible! 📖";
+"quiz_result_subtitle" = "Correct answers in this round:";
+"quiz_button_play_again" = "Play Again";
+
+/* Widget Instruction Sheet */
+"widget_instruction_title" = "How to Add Widget";
+"widget_instruction_subtitle" = "Guide to setting verse of the day on your iOS Lock Screen:";
+"widget_step_1" = "Touch and hold your Lock Screen, then tap Customize.";
+"widget_step_2" = "Select your Lock Screen and tap Add Widgets.";
+"widget_step_3" = "Find ArmenianBible in the app list.";
+"widget_step_4" = "Choose a quote or prayer widget and tap Done.";
+
+

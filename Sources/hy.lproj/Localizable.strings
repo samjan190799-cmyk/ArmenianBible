@@ -147,3 +147,31 @@
 "copied_to_clipboard" = "Պատճենված է";
 "open_in_bible" = "Բացել Աստվածաշնչում";
 
+/* Quiz Strings */
+"quiz_title" = "Աստվածաշնչյան Վիկտորինա";
+"quiz_card_subtitle" = "Ստուգեք Սուրբ Գրքի ձեր գիտելիքները հետաքրքիր թեստում:";
+"quiz_button_start" = "Սկսել վիկտորինան";
+"quiz_start_title" = "Աստվածաշնչյան Վիկտորինա";
+"quiz_start_subtitle" = "Ընտրեք հարցերի կատեգորիան և ստուգեք ձեր գիտելիքները:";
+"quiz_best_score" = "Ձեր լավագույն արդյունքը";
+"quiz_select_category" = "Հարցերի կատեգորիա.";
+"quiz_cat_all" = "Բոլոր թեմաները";
+"quiz_cat_old" = "Հին Կտակարան";
+"quiz_cat_new" = "Նոր Կտակարան";
+"quiz_cat_gospels" = "Ավետարաններ";
+"quiz_next_question" = "Հաջորդ հարցը";
+"quiz_result_expert" = "Գերազանց արդյունք! 🏆";
+"quiz_result_good" = "Լավ արդյունք! 👍";
+"quiz_result_try_again" = "Շարունակեք ուսումնասիրել Աստվածաշունչը: 📖";
+"quiz_result_subtitle" = "Ճիշտ պատասխաններ այս փուլում.";
+"quiz_button_play_again" = "Խաղալ նորից";
+
+/* Widget Instruction Sheet */
+"widget_instruction_title" = "Ինչպես ավելացնել վիդջեթը";
+"widget_instruction_subtitle" = "iOS-ի Կողպման Էկրանին օրվա տողը տեղադրելու ուղեցույց.";
+"widget_step_1" = "Պահեք մատը Կողպման Էկրանի վրա և սեղմեք «Անհատականացնել»:";
+"widget_step_2" = "Ընտրեք Կողպման Էկրանը և սեղմեք «Ավելացնել վիդջեթներ»:";
+"widget_step_3" = "Գտեք ArmenianBible հավելվածների ցանկում:";
+"widget_step_4" = "Ընտրեք մեջբերման կամ աղոթքի վիդջեթը և սեղմեք «Կատարված է»:";
+
+

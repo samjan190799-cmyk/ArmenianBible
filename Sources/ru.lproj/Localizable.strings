@@ -147,3 +147,31 @@
 "copied_to_clipboard" = "Скопировано в буфер обмена";
 "open_in_bible" = "Открыть в Библии";
 
+/* Quiz Strings */
+"quiz_title" = "Викторина по Библии";
+"quiz_card_subtitle" = "Проверьте знания Священного Писания в увлекательном тесте.";
+"quiz_button_start" = "Начать викторину";
+"quiz_start_title" = "Библейская Викторина";
+"quiz_start_subtitle" = "Выберите категорию вопросов и проверьте глубину ваших знаний.";
+"quiz_best_score" = "Ваш лучший результат";
+"quiz_select_category" = "Категория вопросов:";
+"quiz_cat_all" = "Все темы";
+"quiz_cat_old" = "Ветхий Завет";
+"quiz_cat_new" = "Новый Завет";
+"quiz_cat_gospels" = "Евангелия";
+"quiz_next_question" = "Следующий вопрос";
+"quiz_result_expert" = "Отличный результат! 🏆";
+"quiz_result_good" = "Хороший результат! 👍";
+"quiz_result_try_again" = "Продолжайте изучать Библию! 📖";
+"quiz_result_subtitle" = "Правильных ответов в этом раунде:";
+"quiz_button_play_again" = "Сыграть снова";
+
+/* Widget Instruction Sheet */
+"widget_instruction_title" = "Как добавить виджет";
+"widget_instruction_subtitle" = "Инструкция по установке стиха дня на Экран Блокировки iOS:";
+"widget_step_1" = "Зажмите палец на Экране Блокировки и нажмите «Настроить».";
+"widget_step_2" = "Выберите Экран Блокировки и нажмите «Добавить виджеты».";
+"widget_step_3" = "Найдите ArmenianBible в списке приложений.";
+"widget_step_4" = "Выберите виджет цитаты или молитвы и нажмите «Готово».";
+
+

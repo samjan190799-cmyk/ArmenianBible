@@ -47,6 +47,7 @@ struct HomeView: View {
     @ObservedObject var manager = BibleManager.shared
     @State private var animateVerse = false
     @State private var isShowingSettings = false
+    @State private var isShowingQuiz = false
     
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
@@ -356,26 +357,20 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 10)
                     
-                    // MARK: - Блок инструкций для экрана блокировки
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("instruction_title".localized(for: manager.appLanguage))
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(primaryTextColor)
-                            .padding(.bottom, 2)
-                        
-                        InstructionRow(number: "1", text: "instruction_step_1".localized(for: manager.appLanguage))
-                        InstructionRow(number: "2", text: "instruction_step_2".localized(for: manager.appLanguage))
-                        InstructionRow(number: "3", text: "instruction_step_3".localized(for: manager.appLanguage))
-                        InstructionRow(number: "4", text: "instruction_step_4".localized(for: manager.appLanguage))
-                    }
-                    .padding(20)
-                    .background(instructionBgColor)
-                    .cornerRadius(18)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(instructionBorderColor, lineWidth: 1)
+                    // MARK: - Карточка Библейской Викторины
+                    BibleQuizCardView(
+                        bestScore: manager.quizBestScore,
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        cardBackgroundColor: cardBackgroundColor,
+                        cardBorderColor: cardBorderColor,
+                        primaryTextColor: primaryTextColor,
+                        onStartQuiz: {
+                            triggerHaptic(.medium)
+                            isShowingQuiz = true
+                        }
                     )
-                    .padding(.horizontal, 20)
                 }
                 .padding(.bottom, 30)
             }
@@ -390,6 +385,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings)
+        }
+        .sheet(isPresented: $isShowingQuiz) {
+            BibleQuizView()
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
@@ -1285,6 +1283,9 @@ struct SettingsView: View {
     @State private var notificationsEnabled = false
     @State private var notificationTime = Date()
     
+    // Всплывающая инструкция по виджетам
+    @State private var isShowingWidgetInstruction = false
+    
     @Environment(\.colorScheme) private var colorScheme
     
     private var backgroundColor: Color {
@@ -1525,9 +1526,30 @@ struct SettingsView: View {
                         
                         // MARK: - Частота смены стихов
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("update_interval_title".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
+                            HStack {
+                                Text("update_interval_title".localized(for: selectedLanguage))
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(primaryTextColor)
+                                
+                                Spacer()
+                                
+                                Button {
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    isShowingWidgetInstruction = true
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "questionmark.circle.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                        Text("widget_instruction_title".localized(for: selectedLanguage))
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                    }
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
                             
                             Text("update_interval_description".localized(for: selectedLanguage))
                                 .font(.system(size: 13))
@@ -1716,6 +1738,15 @@ struct SettingsView: View {
                 notificationTime = manager.dailyNotificationTime
                 selectedWidgetLanguage = manager.widgetLanguage
             }
+            .sheet(isPresented: $isShowingWidgetInstruction) {
+                WidgetInstructionSheetView(
+                    language: selectedLanguage,
+                    accentColor: Color(hex: selectedTheme.colorHex),
+                    cardBackgroundColor: cardBackgroundColor,
+                    cardBorderColor: cardBorderColor,
+                    primaryTextColor: primaryTextColor
+                )
+            }
         }
         .environment(\.locale, Locale(identifier: selectedLanguage.localeCode))
     }
@@ -1822,5 +1853,176 @@ extension String {
             return NSLocalizedString(self, comment: "")
         }
         return bundle.localizedString(forKey: self, value: nil, table: nil)
+    }
+}
+
+// MARK: - Карточка Викторины для Главного Экрана
+struct BibleQuizCardView: View {
+    let bestScore: Int
+    let language: AppLanguage
+    let accentColor: Color
+    let secondaryAccentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    let onStartQuiz: () -> Void
+    
+    var body: some View {
+        Button {
+            onStartQuiz()
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(accentColor.opacity(0.12))
+                        .frame(width: 52, height: 52)
+                    
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(accentColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("quiz_title".localized(for: language))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Spacer()
+                        
+                        if bestScore > 0 {
+                            HStack(spacing: 3) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.orange)
+                                Text("\(bestScore)/10")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .foregroundColor(primaryTextColor)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.orange.opacity(0.12))
+                            .cornerRadius(10)
+                        }
+                    }
+                    
+                    Text("quiz_card_subtitle".localized(for: language))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                }
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(secondaryAccentColor.opacity(0.6))
+            }
+            .padding(18)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(cardBackgroundColor)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(cardBorderColor, lineWidth: 1.2)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .padding(.horizontal, 20)
+    }
+}
+
+// MARK: - Всплывающий Экран Инструкции Виджета
+struct WidgetInstructionSheetView: View {
+    let language: AppLanguage
+    let accentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        ZStack {
+            cardBackgroundColor.ignoresSafeArea()
+            
+            VStack(spacing: 20) {
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(primaryTextColor.opacity(0.4))
+                    }
+                }
+                .padding(.top, 16)
+                .padding(.horizontal, 20)
+                
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(accentColor.opacity(0.12))
+                            .frame(width: 64, height: 64)
+                        
+                        Image(systemName: "square.stack.3d.up.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(accentColor)
+                    }
+                    
+                    Text("widget_instruction_title".localized(for: language))
+                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .foregroundColor(primaryTextColor)
+                    
+                    Text("widget_instruction_subtitle".localized(for: language))
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                }
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    InstructionRow(number: "1", text: "widget_step_1".localized(for: language))
+                    InstructionRow(number: "2", text: "widget_step_2".localized(for: language))
+                    InstructionRow(number: "3", text: "widget_step_3".localized(for: language))
+                    InstructionRow(number: "4", text: "widget_step_4".localized(for: language))
+                }
+                .padding(20)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(cardBorderColor, lineWidth: 1)
+                )
+                .padding(.horizontal, 20)
+                
+                Spacer()
+                
+                Button {
+                    dismiss()
+                } label: {
+                    Text("alert_ok_button".localized(for: language))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(accentColor)
+                        .cornerRadius(14)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
+            }
+        }
     }
 }

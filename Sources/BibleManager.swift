@@ -22,6 +22,9 @@ class BibleManager: ObservableObject {
     // Переменные для полной Библии и Deep Link
     @Published var bibleFontSize: Double = 18.0
     @Published var activeTabSelection: Int = 0
+    @Published var quizBestScore: Int = 0
+    
+    // Глубокие ссылки для чтения Библии
     @Published var deepLinkBookId: Int? = nil
     @Published var deepLinkChapter: Int? = nil
     @Published var deepLinkVerse: Int? = nil
@@ -181,6 +184,11 @@ class BibleManager: ObservableObject {
             self.bibleFontSize = savedFontSize > 0 ? savedFontSize : 18.0
         } else {
             self.bibleFontSize = 18.0
+        }
+        
+        // Загрузка рекорда викторины
+        if let defaults = sharedDefaults {
+            self.quizBestScore = defaults.integer(forKey: "quiz_best_score")
         }
         
         // Загрузка Цветовой темы
@@ -1206,6 +1214,15 @@ class BibleManager: ObservableObject {
                 
             case .failure(let error):
                 completion(.failure(error))
+        }
+    }
+    
+    // MARK: - Управление рекордами Викторины
+    func updateQuizBestScore(_ score: Int) {
+        if score > quizBestScore {
+            quizBestScore = score
+            if let defaults = sharedDefaults {
+                defaults.set(score, forKey: "quiz_best_score")
             }
         }
     }
