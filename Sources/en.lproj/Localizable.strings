@@ -174,4 +174,23 @@
 "widget_step_3" = "Find ArmenianBible in the app list.";
 "widget_step_4" = "Choose a quote or prayer widget and tap Done.";
 
+/* Highlighter & Widget Pin */
+"pin_to_widget" = "Pin to Widget";
+"toast_pinned_to_widget" = "Verse pinned to Lock Screen widget!";
+"highlight_color_title" = "Highlight:";
+
+/* Armenian Bible Editions */
+"edition_ararat_title" = "Արարատյան (Araratian)";
+"edition_echmiadzin_title" = "Էջմիածնական (Echmiadzin)";
+"menu_translation_title" = "Translation";
+
+/* Narekatsi & Audio Player */
+"narekatsi_title" = "St. Grigor Narekatsi";
+"narekatsi_subtitle" = "Book of Lamentations (From the Depths of the Heart)";
+"button_listen_audio" = "Listen";
+"button_pause_audio" = "Pause";
+
+
+
+
 

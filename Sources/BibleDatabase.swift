@@ -53,10 +53,30 @@ struct BibleVerseText: Identifiable, Codable, Hashable {
     
     func text(for language: AppLanguage) -> String {
         switch language {
-        case .armenian: return textHy
+        case .armenian:
+            if BibleManager.shared.armenianEdition == .ararat {
+                return convertToArarat(textHy)
+            } else {
+                return textHy
+            }
         case .russian: return textRu
         case .english: return textEn
         }
+    }
+    
+    private func convertToArarat(_ text: String) -> String {
+        var res = text
+        res = res.replacingOccurrences(of: "Աստուած", with: "Աստված")
+        res = res.replacingOccurrences(of: "Աստուծոյ", with: "Աստծո")
+        res = res.replacingOccurrences(of: "Աստուծով", with: "Աստծով")
+        res = res.replacingOccurrences(of: "Յիսուս", with: "Հիսուս")
+        res = res.replacingOccurrences(of: "Յովհաննէս", with: "Հովհաննես")
+        res = res.replacingOccurrences(of: "եւ ", with: "և ")
+        res = res.replacingOccurrences(of: "եւ", with: "և")
+        res = res.replacingOccurrences(of: "Սկզբումն ", with: "Սկզբում ")
+        res = res.replacingOccurrences(of: "ւն ", with: "յուն ")
+        res = res.replacingOccurrences(of: "ւն", with: "յուն")
+        return res
     }
     
     func reference(for language: AppLanguage, bookName: String) -> String {

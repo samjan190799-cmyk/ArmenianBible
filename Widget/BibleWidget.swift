@@ -334,8 +334,8 @@ struct BibleWidgetEntryView: View {
                 // Прямоугольный виджет на экране блокировки
                 Text(entry.verse.text(for: getLanguage()))
                     .font(.system(size: 13, weight: .bold, design: .serif))
-                    .lineLimit(7)
-                    .minimumScaleFactor(0.4)
+                    .lineLimit(9)
+                    .minimumScaleFactor(0.35)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .padding(0)
@@ -358,7 +358,7 @@ struct BibleWidgetEntryView: View {
                 
             case .systemSmall:
                 // Маленький виджет на домашнем экране (System Small)
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "quote.opening")
                             .font(.system(size: 13, weight: .bold))
@@ -367,54 +367,54 @@ struct BibleWidgetEntryView: View {
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 13.5, weight: .medium, design: .serif))
-                        .lineLimit(6)
-                        .minimumScaleFactor(0.68)
-                        .lineSpacing(3)
+                        .font(.system(size: 13.0, weight: .medium, design: .serif))
+                        .lineLimit(9)
+                        .minimumScaleFactor(0.42)
+                        .lineSpacing(2)
                         .foregroundColor(primaryTextColor)
                     
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 2)
                     
                     Text(entry.verse.reference(for: getLanguage()))
                         .font(.system(size: 9.0, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(12)
+                .padding(11)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .widgetBackground(widgetBackgroundGradient)
                 
             case .systemMedium:
                 // Средний виджет на домашнем экране (System Medium)
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Image(systemName: "quote.opening")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundColor(quoteIconColor)
                         Spacer()
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 15.0, weight: .medium, design: .serif))
-                        .lineLimit(5)
-                        .minimumScaleFactor(0.70)
-                        .lineSpacing(4)
+                        .font(.system(size: 14.5, weight: .medium, design: .serif))
+                        .lineLimit(9)
+                        .minimumScaleFactor(0.45)
+                        .lineSpacing(2.5)
                         .foregroundColor(primaryTextColor)
                     
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 2)
                     
                     Text(entry.verse.reference(for: getLanguage()))
-                        .font(.system(size: 10.0, weight: .bold, design: .monospaced))
+                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(15)
+                .padding(13)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .widgetBackground(widgetBackgroundGradient)
                 
             case .systemLarge:
                 // Большой виджет на домашнем экране (System Large)
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "quote.opening")
                             .font(.system(size: 18, weight: .bold))
@@ -423,18 +423,20 @@ struct BibleWidgetEntryView: View {
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 17.5, weight: .medium, design: .serif))
-                        .lineSpacing(5)
+                        .font(.system(size: 17.0, weight: .medium, design: .serif))
+                        .lineLimit(16)
+                        .minimumScaleFactor(0.50)
+                        .lineSpacing(4)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 4)
                     
                     Text(entry.verse.reference(for: getLanguage()))
-                        .font(.system(size: 12.0, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11.5, weight: .bold, design: .monospaced))
                         .foregroundColor(secondaryTextColor)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(18)
+                .padding(16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .widgetBackground(widgetBackgroundGradient)
                 

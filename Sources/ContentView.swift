@@ -21,9 +21,9 @@ struct ContentView: View {
                 }
                 .tag(1)
             
-            ExplanationView()
+            NarekatsiView()
                 .tabItem {
-                    Label("tab_explanation".localized(for: manager.appLanguage), systemImage: "book.fill")
+                    Label("narekatsi_title".localized(for: manager.appLanguage), systemImage: "flame.fill")
                 }
                 .tag(2)
             
@@ -357,6 +357,20 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 10)
                     
+                    // MARK: - Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
+                    NarekatsiBannerCardView(
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        cardBackgroundColor: cardBackgroundColor,
+                        cardBorderColor: cardBorderColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpenNarek: {
+                            triggerHaptic(.medium)
+                            manager.activeTabSelection = 2
+                        }
+                    )
+                    
                     // MARK: - Карточка Библейской Викторины
                     BibleQuizCardView(
                         bestScore: manager.quizBestScore,
@@ -511,6 +525,67 @@ struct HomeView: View {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
+    }
+}
+
+// MARK: - Баннерная Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
+struct NarekatsiBannerCardView: View {
+    let language: AppLanguage
+    let accentColor: Color
+    let secondaryAccentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    let onOpenNarek: () -> Void
+    
+    var body: some View {
+        Button {
+            onOpenNarek()
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(accentColor.opacity(0.12))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(accentColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("narekatsi_title".localized(for: language))
+                        .font(.system(size: 16, weight: .bold, design: .serif))
+                        .foregroundColor(primaryTextColor)
+                    
+                    Text("narekatsi_subtitle".localized(for: language))
+                        .font(.system(size: 12, weight: .medium, design: .serif))
+                        .foregroundColor(secondaryAccentColor)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(primaryTextColor.opacity(0.3))
+            }
+            .padding(16)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(cardBackgroundColor)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(cardBorderColor, lineWidth: 1)
+            )
+            .padding(.horizontal, 20)
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
@@ -1340,6 +1415,9 @@ struct SettingsView: View {
                             .pickerStyle(.segmented)
                             .tint(colorScheme == .dark ? .white : .primary)
                             .padding(.vertical, 4)
+                            .onChange(of: selectedProvider) { newProvider in
+                                manager.setActiveProvider(newProvider)
+                            }
                         }
                         .padding(.horizontal, 4)
                         .padding(.top, 10)
@@ -1363,6 +1441,10 @@ struct SettingsView: View {
                             .pickerStyle(.segmented)
                             .tint(colorScheme == .dark ? .white : .primary)
                             .padding(.vertical, 4)
+                            .onChange(of: selectedLanguage) { newLang in
+                                manager.setAppLanguage(newLang)
+                                manager.forceRefreshUI()
+                            }
                         }
                         .padding(.horizontal, 4)
                         
@@ -1393,6 +1475,7 @@ struct SettingsView: View {
                                         generator.prepare()
                                         generator.impactOccurred()
                                         selectedTheme = theme
+                                        manager.setAccentTheme(theme)
                                     }
                                 }
                             }
@@ -1424,6 +1507,9 @@ struct SettingsView: View {
                                         RoundedRectangle(cornerRadius: 12)
                                             .stroke(inputFieldBorderColor, lineWidth: 1)
                                     )
+                                    .onChange(of: geminiKeyInput) { val in
+                                        manager.geminiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    }
                                 
                                 if !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty {
                                     Text("api_key_saved".localized(for: selectedLanguage))
@@ -1453,6 +1539,9 @@ struct SettingsView: View {
                                         RoundedRectangle(cornerRadius: 12)
                                             .stroke(inputFieldBorderColor, lineWidth: 1)
                                     )
+                                    .onChange(of: openaiKeyInput) { val in
+                                        manager.openaiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    }
                                 
                                 if !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty {
                                     Text("api_key_saved".localized(for: selectedLanguage))
@@ -1482,6 +1571,9 @@ struct SettingsView: View {
                                         RoundedRectangle(cornerRadius: 12)
                                             .stroke(inputFieldBorderColor, lineWidth: 1)
                                     )
+                                    .onChange(of: anthropicKeyInput) { val in
+                                        manager.anthropicApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    }
                                 
                                 if !manager.anthropicApiKey.isEmpty && !anthropicKeyInput.isEmpty {
                                     Text("api_key_saved".localized(for: selectedLanguage))
@@ -1506,10 +1598,12 @@ struct SettingsView: View {
                             }
                             .tint(Color(hex: selectedTheme.colorHex))
                             .onChange(of: notificationsEnabled) { newValue in
+                                manager.setDailyNotificationsEnabled(newValue)
                                 if newValue {
                                     manager.requestNotificationPermission { granted in
                                         if !granted {
                                             self.notificationsEnabled = false
+                                            manager.setDailyNotificationsEnabled(false)
                                         }
                                     }
                                 }
@@ -1520,6 +1614,9 @@ struct SettingsView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(primaryTextColor)
                                     .padding(.vertical, 4)
+                                    .onChange(of: notificationTime) { newTime in
+                                        manager.setDailyNotificationTime(newTime)
+                                    }
                             }
                         }
                         .padding(.horizontal, 4)
@@ -1572,6 +1669,9 @@ struct SettingsView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(inputFieldBorderColor, lineWidth: 1)
                             )
+                            .onChange(of: selectedInterval) { newInt in
+                                manager.setUpdateInterval(newInt)
+                            }
                         }
                         .padding(.horizontal, 4)
                         
@@ -1602,6 +1702,9 @@ struct SettingsView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(inputFieldBorderColor, lineWidth: 1)
                             )
+                            .onChange(of: selectedCategory) { newCat in
+                                manager.setSelectedCategory(newCat)
+                            }
                         }
                         .padding(.horizontal, 4)
                         
@@ -1627,53 +1730,11 @@ struct SettingsView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(inputFieldBorderColor, lineWidth: 1)
                             )
+                            .onChange(of: selectedWidgetLanguage) { newLang in
+                                manager.setWidgetLanguage(newLang)
+                            }
                         }
                         .padding(.horizontal, 4)
-                        
-                        // MARK: - Кнопка сохранения
-                        Button {
-                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                            generator.prepare()
-                            generator.impactOccurred()
-                            
-                            manager.setActiveProvider(selectedProvider)
-                            manager.setAppLanguage(selectedLanguage)
-                            manager.setAccentTheme(selectedTheme)
-                            manager.setDailyNotificationsEnabled(notificationsEnabled)
-                            manager.setDailyNotificationTime(notificationTime)
-                            manager.setWidgetLanguage(selectedWidgetLanguage)
-                            
-                            // Сохраняем ключи, очищая их от лишних пробелов
-                            manager.geminiApiKey = geminiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                            manager.openaiApiKey = openaiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                            manager.anthropicApiKey = anthropicKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                            
-                            manager.setUpdateInterval(selectedInterval)
-                            manager.setSelectedCategory(selectedCategory)
-                            
-                            // Выбираем новый оффлайн стих на выбранном языке
-                            manager.selectRandomVerse()
-                            
-                            // Принудительно обновляем UI: BibleVerse — struct, и при смене языка
-                            // stored properties не меняются, поэтому SwiftUI может "не заметить" изменение.
-                            // forceRefreshUI() вызывает objectWillChange.send() для перерисовки.
-                            manager.forceRefreshUI()
-                            
-                            // Закрываем настройки с задержкой, чтобы SwiftUI успел обработать
-                            // все изменения state до начала анимации закрытия sheet
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                isPresented = false
-                            }
-                        } label: {
-                            Text("save_button".localized(for: selectedLanguage))
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(Color(hex: selectedTheme.colorHex))
-                                .cornerRadius(12)
-                        }
-                        .buttonStyle(ScaleButtonStyle())
                         
                         Divider()
                             .opacity(0.1)

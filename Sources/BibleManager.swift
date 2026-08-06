@@ -23,6 +23,8 @@ class BibleManager: ObservableObject {
     @Published var bibleFontSize: Double = 18.0
     @Published var activeTabSelection: Int = 0
     @Published var quizBestScore: Int = 0
+    @Published var highlightedVerses: [String: String] = [:]
+    @Published var armenianEdition: ArmenianBibleEdition = .ararat
     
     // Глубокие ссылки для чтения Библии
     @Published var deepLinkBookId: Int? = nil
@@ -186,9 +188,16 @@ class BibleManager: ObservableObject {
             self.bibleFontSize = 18.0
         }
         
-        // Загрузка рекорда викторины
+        // Загрузка рекорда викторины и цветных маркеров
         if let defaults = sharedDefaults {
             self.quizBestScore = defaults.integer(forKey: "quiz_best_score")
+            if let savedHighlights = defaults.dictionary(forKey: "highlighted_verses_map") as? [String: String] {
+                self.highlightedVerses = savedHighlights
+            }
+            if let savedEdRaw = defaults.string(forKey: "armenian_bible_edition"),
+               let ed = ArmenianBibleEdition(rawValue: savedEdRaw) {
+                self.armenianEdition = ed
+            }
         }
         
         // Загрузка Цветовой темы
@@ -1224,6 +1233,86 @@ class BibleManager: ObservableObject {
             if let defaults = sharedDefaults {
                 defaults.set(score, forKey: "quiz_best_score")
             }
+        }
+    }
+    
+    // MARK: - Цветные Маркеры (Highlighters)
+    func setHighlight(bookId: Int, chapter: Int, verseNumber: Int, colorHex: String?) {
+        let key = "\(bookId)_\(chapter)_\(verseNumber)"
+        if let colorHex = colorHex {
+            highlightedVerses[key] = colorHex
+        } else {
+            highlightedVerses.removeValue(forKey: key)
+        }
+        if let defaults = sharedDefaults {
+            defaults.set(highlightedVerses, forKey: "highlighted_verses_map")
+            defaults.synchronize()
+        }
+        objectWillChange.send()
+    }
+    
+    func highlightColor(bookId: Int, chapter: Int, verseNumber: Int) -> String? {
+        let key = "\(bookId)_\(chapter)_\(verseNumber)"
+        return highlightedVerses[key]
+    }
+    
+    // MARK: - Закрепление стиха на Виджете
+    func pinVerseToWidget(textHy: String, textRu: String, textEn: String, refHy: String, refRu: String, refEn: String) {
+        guard let defaults = sharedDefaults else { return }
+        
+        defaults.set(textHy, forKey: "currentVerseTextHy")
+        defaults.set(textRu, forKey: "currentVerseTextRu")
+        defaults.set(textEn, forKey: "currentVerseTextEn")
+        
+        defaults.set(refHy, forKey: "currentVerseReferenceHy")
+        defaults.set(refRu, forKey: "currentVerseReferenceRu")
+        defaults.set(refEn, forKey: "currentVerseReferenceEn")
+        
+        // Устанавливаем текущий текст в зависимости от языка приложения
+        switch appLanguage {
+        case .armenian:
+            defaults.set(textHy, forKey: textKey)
+            defaults.set(refHy, forKey: referenceKey)
+            currentVerse = BibleVerse(textHy: textHy, textRu: textRu, textEn: textEn, refHy: refHy, refRu: refRu, refEn: refEn)
+        case .russian:
+            defaults.set(textRu, forKey: textKey)
+            defaults.set(refRu, forKey: referenceKey)
+            currentVerse = BibleVerse(textHy: textHy, textRu: textRu, textEn: textEn, refHy: refHy, refRu: refRu, refEn: refEn)
+        case .english:
+            defaults.set(textEn, forKey: textKey)
+            defaults.set(refEn, forKey: referenceKey)
+            currentVerse = BibleVerse(textHy: textHy, textRu: textRu, textEn: textEn, refHy: refHy, refRu: refRu, refEn: refEn)
+        }
+        
+        defaults.synchronize()
+        WidgetCenter.shared.reloadAllTimelines()
+        objectWillChange.send()
+    }
+    
+    // MARK: - Армянский перевод Библии
+    func setArmenianEdition(_ edition: ArmenianBibleEdition) {
+        armenianEdition = edition
+        if let defaults = sharedDefaults {
+            defaults.set(edition.rawValue, forKey: "armenian_bible_edition")
+            defaults.synchronize()
+        }
+        objectWillChange.send()
+    }
+}
+
+// MARK: - Армянский редактор текста Библии
+enum ArmenianBibleEdition: String, CaseIterable, Identifiable, Codable {
+    case ararat = "ararat"
+    case echmiadzin = "echmiadzin"
+    
+    var id: String { rawValue }
+    
+    func localizedTitle(for language: AppLanguage) -> String {
+        switch self {
+        case .ararat:
+            return "edition_ararat_title".localized(for: language)
+        case .echmiadzin:
+            return "edition_echmiadzin_title".localized(for: language)
         }
     }
 }

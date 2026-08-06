@@ -422,38 +422,95 @@ struct BibleChapterReaderView: View {
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                // Единое меню настройки размера шрифта
-                Menu {
-                    Button {
-                        manager.setBibleFontSize(15.0)
-                    } label: {
-                        HStack {
-                            Text("font_size_small".localized(for: manager.appLanguage))
-                            if manager.bibleFontSize == 15.0 { Image(systemName: "checkmark") }
+                HStack(spacing: 14) {
+                    // Меню выбора перевода Библии
+                    Menu {
+                        Section("menu_translation_title".localized(for: manager.appLanguage)) {
+                            Button {
+                                manager.setAppLanguage(.armenian)
+                                manager.setArmenianEdition(.ararat)
+                            } label: {
+                                HStack {
+                                    Text("edition_ararat_title".localized(for: manager.appLanguage))
+                                    if manager.appLanguage == .armenian && manager.armenianEdition == .ararat {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            
+                            Button {
+                                manager.setAppLanguage(.armenian)
+                                manager.setArmenianEdition(.echmiadzin)
+                            } label: {
+                                HStack {
+                                    Text("edition_echmiadzin_title".localized(for: manager.appLanguage))
+                                    if manager.appLanguage == .armenian && manager.armenianEdition == .echmiadzin {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            
+                            Button {
+                                manager.setAppLanguage(.russian)
+                            } label: {
+                                HStack {
+                                    Text("edition_russian".localized(for: manager.appLanguage))
+                                    if manager.appLanguage == .russian {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            
+                            Button {
+                                manager.setAppLanguage(.english)
+                            } label: {
+                                HStack {
+                                    Text("edition_english".localized(for: manager.appLanguage))
+                                    if manager.appLanguage == .english {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
                         }
+                    } label: {
+                        Image(systemName: "character.book.closed.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(accentColor)
                     }
                     
-                    Button {
-                        manager.setBibleFontSize(18.0)
-                    } label: {
-                        HStack {
-                            Text("font_size_medium".localized(for: manager.appLanguage))
-                            if manager.bibleFontSize == 18.0 { Image(systemName: "checkmark") }
+                    // Единое меню настройки размера шрифта
+                    Menu {
+                        Button {
+                            manager.setBibleFontSize(15.0)
+                        } label: {
+                            HStack {
+                                Text("font_size_small".localized(for: manager.appLanguage))
+                                if manager.bibleFontSize == 15.0 { Image(systemName: "checkmark") }
+                            }
                         }
-                    }
-                    
-                    Button {
-                        manager.setBibleFontSize(22.0)
-                    } label: {
-                        HStack {
-                            Text("font_size_large".localized(for: manager.appLanguage))
-                            if manager.bibleFontSize == 22.0 { Image(systemName: "checkmark") }
+                        
+                        Button {
+                            manager.setBibleFontSize(18.0)
+                        } label: {
+                            HStack {
+                                Text("font_size_medium".localized(for: manager.appLanguage))
+                                if manager.bibleFontSize == 18.0 { Image(systemName: "checkmark") }
+                            }
                         }
+                        
+                        Button {
+                            manager.setBibleFontSize(22.0)
+                        } label: {
+                            HStack {
+                                Text("font_size_large".localized(for: manager.appLanguage))
+                                if manager.bibleFontSize == 22.0 { Image(systemName: "checkmark") }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "textformat.size")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(accentColor)
                     }
-                } label: {
-                    Image(systemName: "textformat.size")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(accentColor)
                 }
             }
         }
@@ -531,6 +588,8 @@ struct BibleSingleChapterView: View {
     @ObservedObject var manager = BibleManager.shared
     @State private var chapterText: BibleChapterText? = nil
     @State private var highlightedVerseId: Int? = nil
+    @State private var selectedVerseForSheet: BibleVerseText? = nil
+    @State private var toastMessage: String? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -620,6 +679,9 @@ struct BibleSingleChapterView: View {
                             .frame(maxWidth: .infinity)
                             
                             ForEach(text.verses) { verse in
+                                let savedColorHex = manager.highlightColor(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
+                                let isDeepLinkTarget = (highlightedVerseId == verse.verseNumber)
+                                
                                 VStack(alignment: .leading, spacing: 0) {
                                     (
                                         Text("\(verse.verseNumber) ")
@@ -635,22 +697,35 @@ struct BibleSingleChapterView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.horizontal, 24)
                                     .padding(.vertical, 8)
-                                    .background(highlightedVerseId == verse.verseNumber ? highlightColor : Color.clear)
+                                    .background(
+                                        ZStack {
+                                            if let hex = savedColorHex {
+                                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                    .fill(Color(hex: hex).opacity(colorScheme == .dark ? 0.28 : 0.22))
+                                            } else if isDeepLinkTarget {
+                                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                    .fill(highlightColor)
+                                            }
+                                        }
+                                    )
                                     .contentShape(Rectangle())
                                     .onTapGesture {
                                         triggerHaptic(.light)
-                                        withAnimation(.easeOut(duration: 0.3)) {
-                                            highlightedVerseId = verse.verseNumber
-                                        }
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                            if highlightedVerseId == verse.verseNumber {
-                                                withAnimation(.easeInOut(duration: 0.8)) {
-                                                    highlightedVerseId = nil
-                                                }
-                                            }
-                                        }
+                                        selectedVerseForSheet = verse
                                     }
                                     .contextMenu {
+                                        Button {
+                                            selectedVerseForSheet = verse
+                                        } label: {
+                                            Label("highlight_color_title".localized(for: manager.appLanguage), systemImage: "paintbrush.fill")
+                                        }
+                                        
+                                        Button {
+                                            pinToWidget(verse: verse)
+                                        } label: {
+                                            Label("pin_to_widget".localized(for: manager.appLanguage), systemImage: "square.stack.3d.up.fill")
+                                        }
+                                        
                                         Button {
                                             copyToClipboard(verse: verse)
                                         } label: {
@@ -728,7 +803,89 @@ struct BibleSingleChapterView: View {
         .onAppear {
             loadChapterText()
         }
+        .sheet(item: $selectedVerseForSheet) { v in
+            VerseActionSheetView(
+                book: book,
+                chapter: chapter,
+                verse: v,
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                cardBackgroundColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.white,
+                cardBorderColor: LinearGradient(colors: [Color.primary.opacity(0.1), Color.primary.opacity(0.02)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                primaryTextColor: colorScheme == .dark ? .white : Color(hex: "1E293B"),
+                onHighlight: { colorHex in
+                    manager.setHighlight(bookId: book.id, chapter: chapter, verseNumber: v.verseNumber, colorHex: colorHex)
+                },
+                onPinToWidget: {
+                    pinToWidget(verse: v)
+                },
+                onToggleFavorite: {
+                    toggleFavorite(verse: v)
+                },
+                onCopy: {
+                    copyToClipboard(verse: v)
+                },
+                onShare: {
+                    shareVerse(verse: v)
+                }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
+        .overlay(
+            VStack {
+                if let msg = toastMessage {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(msg)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.black.opacity(0.85))
+                    .cornerRadius(20)
+                    .shadow(radius: 6)
+                    .padding(.top, 10)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                Spacer()
+            }
+            .animation(.easeInOut(duration: 0.3), value: toastMessage != nil)
+        )
+    }
+    
+    private func pinToWidget(verse: BibleVerseText) {
+        let nameHy = book.nameHy
+        let nameRu = book.nameRu
+        let nameEn = book.nameEn
+        
+        let refHy = "\(nameHy) \(chapter):\(verse.verseNumber)"
+        let refRu = "\(nameRu) \(chapter):\(verse.verseNumber)"
+        let refEn = "\(nameEn) \(chapter):\(verse.verseNumber)"
+        
+        manager.pinVerseToWidget(
+            textHy: verse.textHy,
+            textRu: verse.textRu,
+            textEn: verse.textEn,
+            refHy: refHy,
+            refRu: refRu,
+            refEn: refEn
+        )
+        
+        triggerHaptic(.medium)
+        showToast(message: "toast_pinned_to_widget".localized(for: manager.appLanguage))
+    }
+    
+    private func showToast(message: String) {
+        toastMessage = message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            if toastMessage == message {
+                toastMessage = nil
+            }
+        }
+    }
     
     private func loadChapterText() {
         DispatchQueue.global(qos: .userInitiated).async {
@@ -776,5 +933,123 @@ struct BibleSingleChapterView: View {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
+    }
+}
+
+// MARK: - Плашка действий над стихом (Маркеры + Закрепить на виджет)
+struct VerseActionSheetView: View {
+    let book: BibleBook
+    let chapter: Int
+    let verse: BibleVerseText
+    let language: AppLanguage
+    let accentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    let onHighlight: (String?) -> Void
+    let onPinToWidget: () -> Void
+    let onToggleFavorite: () -> Void
+    let onCopy: () -> Void
+    let onShare: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    private let colors: [(name: String, hex: String)] = [
+        ("Gold", "FACC15"),
+        ("Green", "4ADE80"),
+        ("Blue", "38BDF8"),
+        ("Purple", "C084FC"),
+        ("Coral", "FB7185")
+    ]
+    
+    var body: some View {
+        VStack(spacing: 18) {
+            HStack {
+                Text("\(book.name) \(chapter):\(verse.verseNumber)")
+                    .font(.system(size: 18, weight: .bold, design: .serif))
+                    .foregroundColor(primaryTextColor)
+                
+                Spacer()
+                
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            
+            Text(verse.text(for: language))
+                .font(.system(size: 15, weight: .medium, design: .serif))
+                .foregroundColor(primaryTextColor)
+                .lineSpacing(5)
+                .lineLimit(3)
+                .padding(14)
+                .background(cardBackgroundColor)
+                .cornerRadius(14)
+                .padding(.horizontal, 20)
+            
+            // Выбор цвета маркера
+            VStack(alignment: .leading, spacing: 10) {
+                Text("highlight_color_title".localized(for: language))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 14) {
+                    ForEach(colors, id: \.hex) { c in
+                        Circle()
+                            .fill(Color(hex: c.hex))
+                            .frame(width: 36, height: 36)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
+                            )
+                            .onTapGesture {
+                                onHighlight(c.hex)
+                                dismiss()
+                            }
+                    }
+                    
+                    Spacer()
+                    
+                    // Снять маркер
+                    Button {
+                        onHighlight(nil)
+                        dismiss()
+                    } label: {
+                        Image(systemName: "slash.circle")
+                            .font(.system(size: 24))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            
+            Divider()
+                .padding(.horizontal, 20)
+            
+            // Действие 1: Закрепить на виджете
+            Button {
+                onPinToWidget()
+                dismiss()
+            } label: {
+                HStack {
+                    Image(systemName: "square.stack.3d.up.fill")
+                        .foregroundColor(accentColor)
+                    Text("pin_to_widget".localized(for: language))
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                    Spacer()
+                }
+                .padding(14)
+                .background(accentColor.opacity(0.12))
+                .cornerRadius(14)
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .padding(.horizontal, 20)
+            .padding(.bottom, 16)
+        }
     }
 }

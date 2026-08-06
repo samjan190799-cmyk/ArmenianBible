@@ -172,6 +172,9 @@ struct FavoritesView: View {
                                     onCopy: {
                                         copyFavorite(item)
                                     },
+                                    onPinToWidget: {
+                                        pinFavoriteToWidget(item)
+                                    },
                                     onOpenBible: {
                                         openInBible(item)
                                     }
@@ -254,6 +257,26 @@ struct FavoritesView: View {
         manager.activeTabSelection = 3 // Переход во вкладку "Библия"
     }
     
+    private func pinFavoriteToWidget(_ item: FavoriteItem) {
+        triggerHaptic(.medium)
+        manager.pinVerseToWidget(
+            textHy: item.textHy,
+            textRu: item.textRu,
+            textEn: item.textEn,
+            refHy: item.refHy,
+            refRu: item.refRu,
+            refEn: item.refEn
+        )
+        withAnimation {
+            showCopiedToast = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            withAnimation {
+                showCopiedToast = false
+            }
+        }
+    }
+    
     @MainActor
     private func shareFavorite(_ item: FavoriteItem) {
         triggerHaptic(.medium)
@@ -303,6 +326,7 @@ struct FavoriteCardView: View {
     let onRemove: () -> Void
     let onShare: () -> Void
     let onCopy: () -> Void
+    let onPinToWidget: () -> Void
     let onOpenBible: () -> Void
     
     var body: some View {
@@ -343,14 +367,14 @@ struct FavoriteCardView: View {
                 
                 Spacer()
                 
-                // Кнопки управления (Скопировать, Поделиться, Открыть в Библии)
-                HStack(spacing: 12) {
+                // Кнопки управления (Скопировать, Закрепить на виджете, Поделиться, Открыть в Библии)
+                HStack(spacing: 10) {
                     if item.bookId != nil && item.chapter != nil {
                         Button {
                             onOpenBible()
                         } label: {
                             Image(systemName: "book.pages.fill")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(secondaryAccentColor)
                                 .padding(8)
                                 .background(secondaryAccentColor.opacity(0.1))
@@ -360,10 +384,22 @@ struct FavoriteCardView: View {
                     }
                     
                     Button {
+                        onPinToWidget()
+                    } label: {
+                        Image(systemName: "square.stack.3d.up.fill")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(secondaryAccentColor)
+                            .padding(8)
+                            .background(secondaryAccentColor.opacity(0.1))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    
+                    Button {
                         onCopy()
                     } label: {
                         Image(systemName: "doc.on.doc")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(primaryTextColor.opacity(0.6))
                             .padding(8)
                             .background(primaryTextColor.opacity(0.05))
@@ -375,7 +411,7 @@ struct FavoriteCardView: View {
                         onShare()
                     } label: {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(primaryTextColor.opacity(0.6))
                             .padding(8)
                             .background(primaryTextColor.opacity(0.05))

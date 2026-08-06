@@ -174,4 +174,23 @@
 "widget_step_3" = "Найдите ArmenianBible в списке приложений.";
 "widget_step_4" = "Выберите виджет цитаты или молитвы и нажмите «Готово».";
 
+/* Highlighter & Widget Pin */
+"pin_to_widget" = "Закрепить на виджете";
+"toast_pinned_to_widget" = "Стих закреплен на виджете!";
+"highlight_color_title" = "Маркер:";
+
+/* Armenian Bible Editions */
+"edition_ararat_title" = "Արարատյան (Араратский)";
+"edition_echmiadzin_title" = "Էջմիածնական (Эчмиадзинский)";
+"menu_translation_title" = "Перевод";
+
+/* Narekatsi & Audio Player */
+"narekatsi_title" = "Св. Григор Нарекаци";
+"narekatsi_subtitle" = "Книга скорбных песнопений (Из глубины сердца)";
+"button_listen_audio" = "Слушать";
+"button_pause_audio" = "Пауза";
+
+
+
+
 

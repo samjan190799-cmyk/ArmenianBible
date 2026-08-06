@@ -3,10 +3,10 @@
 "settings_title" = "Կարգավորումներ";
 "close_button" = "Փակել";
 "save_button" = "Պահպանել";
-"ai_provider" = "ԱԻ Պրովայդեր";
+"ai_provider" = "ԱԲ Պրովայդեր";
 "ai_provider_description" = "Ընտրեք արհեստական բանականության մոդելը տողերի գեներացման համար:";
 "ai_language" = "Հավելվածի լեզուն";
-"ai_language_description" = "Ընտրեք հավելվածի, տողերի և ԱԻ գեներացման լեզուն:";
+"ai_language_description" = "Ընտրեք հավելվածի, տողերի և ԱԲ գեներացման լեզուն:";
 "gemini_settings_title" = "Gemini AI Կարգավորումներ";
 "gemini_settings_description" = "Մուտքագրեք ձեր Gemini API Key-ը, որպեսզի հավելվածը կարողանա գեներացնել նոր տողեր (gemini-3.5-flash):";
 "chatgpt_settings_title" = "ChatGPT (OpenAI) Կարգավորումներ";
@@ -21,15 +21,15 @@
 "about_app_title" = "Հավելվածի մասին";
 "about_app_version" = "Տարբերակ";
 "about_app_developer" = "Մշակող";
-"instruction_title" = "Ինչպե՞ս ավելացնել Կողպման էկրանին.";
-"instruction_step_1" = "Հպեք և պահեք Կողպման էկրանը:";
-"instruction_step_2" = "Ընտրեք «Կարգավորել» (Customize), ապա «Կողպման էկրան»:";
+"instruction_title" = "Ինչպե՞ս ավելացնել Կողպեքրանին";
+"instruction_step_1" = "Հպեք և պահեք Կողպեքրանը:";
+"instruction_step_2" = "Ընտրեք «Անհատականացնել» (Customize), ապա «Կողպեքրան»:";
 "instruction_step_3" = "Հպեք «Ավելացնել վիդջեթներ» բաժնին:";
 "instruction_step_4" = "Գտեք «ArmenianBible» հավելվածը և ավելացրեք վիդջեթը:";
 "button_random_verse" = "Պատահական տող";
-"button_ai_generation" = "ԱԻ Գեներացում";
+"button_ai_generation" = "ԱԲ Գեներացում";
 "alert_empty_key_title" = "Մուտքագրեք API բանալին";
-"alert_empty_key_message" = "ԱԻ գեներացման համար անհրաժեշտ է կարգավորումներում ավելացնել %1$@ API բանալին (API Key):";
+"alert_empty_key_message" = "ԱԲ գեներացման համար անհրաժեշտ է կարգավորումներում ավելացնել %1$@ API բանալին (API Key):";
 "alert_error_title" = "Սխալ";
 "alert_ok_button" = "Լավ";
 
@@ -48,7 +48,7 @@
 
 /* Widget & Placeholders */
 "widget_title" = "Աստվածաշունչ";
-"widget_description" = "Աստվածաշնչի ոգեշնչող տողեր Կողպման էկրանին և Գլխավոր էկրանին:";
+"widget_description" = "Աստվածաշնչի ոգեշնչող տողեր Կողպեքրանին և Գլխավոր էկրանին:";
 "widget_circular_text" = "ԱՍՏ";
 "placeholder_gemini_key" = "Gemini API Key (AIzaSy...)";
 "placeholder_openai_key" = "OpenAI API Key (sk-...)";
@@ -67,7 +67,7 @@
 "notification_enable_title" = "Օրվա տողը ամեն առավոտ";
 "notification_time_title" = "Ծանուցման ժամը";
 "share_button" = "Կիսվել";
-"save_image_success" = "Բացիկը պահպանվեց պատկերասրահում:";
+"save_image_success" = "Բացիկը պահպանվեց պատկերասրահում";
 "favorite_added" = "Ավելացվեց ընտրյալների մեջ";
 "favorite_removed" = "Հեռացվեց ընտրյալներից";
 
@@ -78,11 +78,11 @@
 
 /* AI Guide screen */
 "ai_guide_title" = "Հոգևոր Օգնական";
-"ai_guide_subtitle" = "Տվեք ցանկացած հարց կյանքի, հավատքի կամ փորձությունների մասին — ԱԻ-ն պատասխան կգտնի Սուրբ Գրքում:";
+"ai_guide_subtitle" = "Տվեք ցանկացած հարց կյանքի, հավատքի կամ փորձությունների մասին — ԱԲ-ն պատասխան կգտնի Սուրբ Գրքում:";
 "ai_placeholder_prompt" = "Տվեք ձեր հարցը (օրինակ՝ ինչպես հաղթահարել վախը)...";
-"button_ask_ai" = "Հարցնել ԱԻ-ին";
+"button_ask_ai" = "Հարցնել ԱԲ-ին";
 "suggested_questions_title" = "Հաճախ տրվող հարցեր.";
-"ai_searching_answer" = "ԱԻ-ն պատասխան է փնտրում Սուրբ Գրքում...";
+"ai_searching_answer" = "ԱԲ-ն պատասխան է փնտրում Սուրբ Գրքում...";
 "q_fear" = "Ինչպե՞ս հաղթահարել վախը:";
 "q_forgive" = "Ինչպե՞ս սովորել ներել:";
 "q_peace" = "Ինչպե՞ս գտնել խաղաղություն:";
@@ -96,7 +96,7 @@
 "explain_depth_short" = "Իմաստ";
 "explain_depth_history" = "Կոնտեքստ";
 "explain_depth_life" = "Կիրառում";
-"explain_loading" = "ԱԻ-Աստվածաբանը խորհում է...";
+"explain_loading" = "ԱԲ-Աստվածաբանը խորհում է...";
 "explain_no_key" = "Մեկնաբանություններ ստանալու համար մուտքագրեք ձեր API բանալին Կարգավորումներում:";
 "explain_welcome" = "Սեղմեք ներքևի կոճակը՝ ընթացիկ տողի խորը աստվածաբանական մեկնաբանությունը գեներացնելու համար:";
 
@@ -132,24 +132,24 @@
 "library_subtitle" = "Ընտրեք հրատարակությունը կարդալու համար";
 "button_read_bible" = "Կարդալ";
 "edition_armenian_subtitle" = "Արևելահայերեն թարգմանություն";
-"edition_russian_subtitle" = "Սինոդալ թարգմանություն";
+"edition_russian_subtitle" = "Սինոդալ (ռուսերեն) թարգմանություն";
 "edition_english_subtitle" = "King James Version (KJV)";
 
 /* Favorites Tab */
 "tab_favorites" = "Ընտրյալներ";
-"favorites_title" = "Ընտրյալ մեջբերումներ";
-"favorites_count_format" = "պահպանված մեջբերում";
-"favorites_empty_title" = "Ընտրյալ մեջբերումներ դեռ չկան";
-"favorites_empty_subtitle" = "Սեղմեք սրտիկի վրա ցանկացած մեջբերման մոտ, այն այստեղ պահպանելու համար:";
+"favorites_title" = "Ընտրյալ տողեր";
+"favorites_count_format" = "պահպանված տող";
+"favorites_empty_title" = "Ընտրյալ տողեր դեռ չկան";
+"favorites_empty_subtitle" = "Հպեք սրտիկի վրա ցանկացած տողի մոտ՝ այն այստեղ պահպանելու համար:";
 "favorites_search_placeholder" = "Որոնում ընտրյալներում...";
 "favorites_clear_all" = "Մաքրել բոլորը";
-"favorites_clear_confirm" = "Վստա՞հ եք, որ ցանկանում եք հեռացնել բոլոր պահպանված մեջբերումները:";
+"favorites_clear_confirm" = "Վստա՞հ եք, որ ցանկանում եք հեռացնել բոլոր պահպանված տողերը:";
 "copied_to_clipboard" = "Պատճենված է";
 "open_in_bible" = "Բացել Աստվածաշնչում";
 
 /* Quiz Strings */
 "quiz_title" = "Աստվածաշնչյան Վիկտորինա";
-"quiz_card_subtitle" = "Ստուգեք Սուրբ Գրքի ձեր գիտելիքները հետաքրքիր թեստում:";
+"quiz_card_subtitle" = "Ստուգեք Սուրբ Գրքի ձեր գիտելիքները հետաքրքիր հարցաշարում:";
 "quiz_button_start" = "Սկսել վիկտորինան";
 "quiz_start_title" = "Աստվածաշնչյան Վիկտորինա";
 "quiz_start_subtitle" = "Ընտրեք հարցերի կատեգորիան և ստուգեք ձեր գիտելիքները:";
@@ -168,10 +168,29 @@
 
 /* Widget Instruction Sheet */
 "widget_instruction_title" = "Ինչպես ավելացնել վիդջեթը";
-"widget_instruction_subtitle" = "iOS-ի Կողպման Էկրանին օրվա տողը տեղադրելու ուղեցույց.";
-"widget_step_1" = "Պահեք մատը Կողպման Էկրանի վրա և սեղմեք «Անհատականացնել»:";
-"widget_step_2" = "Ընտրեք Կողպման Էկրանը և սեղմեք «Ավելացնել վիդջեթներ»:";
+"widget_instruction_subtitle" = "iOS-ի Կողպեքրանին օրվա տողը տեղադրելու ուղեցույց.";
+"widget_step_1" = "Պահեք մատը Կողպեքրանի վրա և սեղմեք «Անհատականացնել»:";
+"widget_step_2" = "Ընտրեք Կողպեքրանը և սեղմեք «Ավելացնել վիդջեթներ»:";
 "widget_step_3" = "Գտեք ArmenianBible հավելվածների ցանկում:";
-"widget_step_4" = "Ընտրեք մեջբերման կամ աղոթքի վիդջեթը և սեղմեք «Կատարված է»:";
+"widget_step_4" = "Ընտրեք տողի կամ աղոթքի վիդջեթը և սեղմեք «Կատարված է»:";
+
+/* Highlighter & Widget Pin */
+"pin_to_widget" = "Ամրացնել վիդջեթում";
+"toast_pinned_to_widget" = "Տողը ամրացվեց վիդջեթում";
+"highlight_color_title" = "Գունանշում";
+
+/* Armenian Bible Editions */
+"edition_ararat_title" = "Արարատյան թարգմանություն";
+"edition_echmiadzin_title" = "Էջմիածնական թարգմանություն";
+"menu_translation_title" = "Թարգմանություն";
+
+/* Narekatsi & Audio Player */
+"narekatsi_title" = "Գրիգոր Նարեկացի";
+"narekatsi_subtitle" = "Մատյան Ողբերգության (Ի խորոց սրտի)";
+"button_listen_audio" = "Լսել աղոթքը";
+"button_pause_audio" = "Դադար";
+
+
+
 
 

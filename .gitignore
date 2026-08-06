@@ -7,3 +7,12 @@ DerivedData/
 *.mode1v3
 *.mode2v3
 *.perspectivev3
+
+# Android build artifacts
+android_test/
+android_app/build/
+android_app/.gradle/
+android_app/local.properties
+android_app/app/build/
+*.apk
+
