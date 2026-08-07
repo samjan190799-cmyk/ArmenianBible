@@ -46,6 +46,21 @@ struct NarekatsiView: View {
         colorScheme == .dark ? .white : Color(hex: "1E293B")
     }
     
+    @State private var searchText: String = ""
+    
+    private var filteredPrayers: [NarekPrayer] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if trimmed.isEmpty {
+            return NarekatsiDatabase.shared.prayers
+        }
+        return NarekatsiDatabase.shared.prayers.filter { prayer in
+            prayer.banNumber.lowercased().contains(trimmed) ||
+            prayer.title(for: manager.appLanguage).lowercased().contains(trimmed) ||
+            prayer.text(for: manager.appLanguage).lowercased().contains(trimmed) ||
+            "\(prayer.id)".contains(trimmed)
+        }
+    }
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 22) {
@@ -83,9 +98,31 @@ struct NarekatsiView: View {
                 .padding(.top, 16)
                 .padding(.horizontal, 20)
                 
-                // MARK: - Список молитв Нарекаци
+                // Поиск по 95 главаմ
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("Поиск по 95 главам (напр. Բան Ժ или Глава 10)...", text: $searchText)
+                        .font(.system(size: 14))
+                        .foregroundColor(primaryTextColor)
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(cardBackgroundColor)
+                .cornerRadius(14)
+                .padding(.horizontal, 20)
+                
+                // MARK: - Список 95 молитв Нарекаци
                 LazyVStack(spacing: 18) {
-                    ForEach(NarekatsiDatabase.shared.prayers) { prayer in
+                    ForEach(filteredPrayers) { prayer in
                         NarekCardView(
                             prayer: prayer,
                             language: manager.appLanguage,
