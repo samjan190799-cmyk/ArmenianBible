@@ -134,15 +134,24 @@ if cer_b64:
     p12_path = runner_tmp / "dist.p12"
     cer_path.write_bytes(base64.b64decode(cer_b64))
     
-    # Собираем .p12 через openssl
+    # Конвертируем DER сертификат в PEM
     subprocess.run([
         "openssl", "x509", "-inform", "DER", "-in", str(cer_path), "-out", str(runner_tmp / "dist.pem")
     ], check=True)
-    subprocess.run([
-        "openssl", "pkcs12", "-export", "-out", str(p12_path),
+    
+    # Собираем .p12 через openssl (используем -legacy для совместимости OpenSSL 3.x с macOS Keychain)
+    p12_cmd = [
+        "openssl", "pkcs12", "-export", "-legacy", "-out", str(p12_path),
         "-inkey", str(csr_key_path), "-in", str(runner_tmp / "dist.pem"),
         "-passout", "pass:123456"
-    ], check=True)
+    ]
+    res_p12 = subprocess.run(p12_cmd)
+    if res_p12.returncode != 0:
+        subprocess.run([
+            "openssl", "pkcs12", "-export", "-out", str(p12_path),
+            "-inkey", str(csr_key_path), "-in", str(runner_tmp / "dist.pem"),
+            "-passout", "pass:123456"
+        ], check=True)
     
     keychain_path = os.environ.get("KEYCHAIN_PATH", "")
     if keychain_path and Path(keychain_path).exists():
@@ -151,7 +160,7 @@ if cer_b64:
             "security", "import", str(p12_path),
             "-k", keychain_path,
             "-P", "123456",
-            "-A", "-T", "/usr/bin/codesign"
+            "-A", "-T", "/usr/bin/codesign", "-T", "/usr/bin/security"
         ], check=True)
         subprocess.run([
             "security", "list-keychains", "-d", "user", "-s", keychain_path, "login.keychain-db"
