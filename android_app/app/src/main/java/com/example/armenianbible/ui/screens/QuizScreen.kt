@@ -225,6 +225,36 @@ val extendedQuizQuestions = listOf(
         listOf("5 хлебов и 2 рыбы", "7 хлебов и 3 рыбы", "3 хлеба и 5 рыб", "12 хлебов и 2 рыбы"),
         listOf("5 loaves and 2 fish", "7 loaves and 3 fish", "3 loaves and 5 fish", "12 loaves and 2 fish"),
         0, "Հիսուս օրհնեց 5 նկանակն ու 2 ձուկը:", "Иисус благословил 5 хлебов и 2 рыбы.", "Jesus blessed 5 loaves and 2 fish.", "Մատթեոս 14:19"
+    ),
+    FullQuizQuestion(
+        13, "old",
+        "Ո՞ր լեռան վրա կանգ առավ Նոյան Տապանը ջրհեղեղից հետո։",
+        "На какой горе остановился Ноев Ковчег после потопа?",
+        "Upon which mountain did Noah's Ark come to rest after the flood?",
+        listOf("Սինա", "Արարատ", "Ձիթենյաց", "Թաբոր"),
+        listOf("Синай", "Арарат", "Елеонская", "Фавор"),
+        listOf("Sinai", "Ararat", "Mount Olivet", "Tabor"),
+        1, "Տապանը կանգ առավ Արարատ լեռան վրա:", "Ковчег остановился на горах Араратских.", "The ark rested upon the mountains of Ararat.", "Ծննդոց 8:4"
+    ),
+    FullQuizQuestion(
+        14, "new",
+        "Ո՞վ էր Առաջին Քրիստոնյա Նահատակը (Նախասարկավագը)։",
+        "Кто был первым христианским мучеником (перводиаконом)?",
+        "Who was the first Christian martyr (first deacon)?",
+        listOf("Սուրբ Ստեփանոսը", "Սուրբ Պետրոսը", "Սուրբ Հակոբոսը", "Սուրբ Պողոսը"),
+        listOf("Святой Стефан", "Святой Пётр", "Святой Иаков", "Святой Павел"),
+        listOf("Saint Stephen", "Saint Peter", "Saint James", "Saint Paul"),
+        0, "Սուրբ Ստեփանոս Նախավկան քարկոծվեց Քրիստոսի վկայության համար:", "Святой Стефан был побит камнями за вероисповедание Христа.", "Saint Stephen was stoned for witnessing to Christ.", "Գործք 7:59"
+    ),
+    FullQuizQuestion(
+        15, "new",
+        "Ո՞վ էր Հայաստանում Քրիստոնեության առաջին Լուսավորիչն ու Հայրապետը։",
+        "Кто был первым Просветителем и Крестителем Армении?",
+        "Who was the Illuminator and Baptizer of Armenia?",
+        listOf("Սուրբ Գրիգոր Լուսավորիչը", "Սուրբ Սահակ Պարթևը", "Սուրբ Մեսրոպ Մաշտոցը", "Սուրբ Ներսեսը"),
+        listOf("Святой Григорий Просветитель", "Святой Саак Партев", "Святой Месроп Маштоц", "Святой Нерсес"),
+        listOf("Saint Gregory the Illuminator", "Saint Sahak Partev", "Saint Mesrop Mashtots", "Saint Nerses"),
+        0, "Սուրբ Գրիգոր Լուսավորիչը դարձրեց Հայաստանը աշխարհում առաջին քրիստոնյա պետությունը 301թ․:", "Святой Григорий Просветитель крестил Армению в 301 году как первую христианскую страну в мире.", "Saint Gregory the Illuminator guided Armenia to accept Christianity in 301 AD.", "Պատմություն Հայոց 301թ."
     )
 )
 

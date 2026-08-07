@@ -2,21 +2,24 @@ import Foundation
 import AVFoundation
 import Combine
 
-// MARK: - Аудиоплеер озвучки молитв Нарекаци (Apple Speech Synthesizer)
-class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+// MARK: - Аудиоплеер официальной студийной декламации молитв Нарекаци (Сос Саргсян / Олег Моленко)
+class NarekAudioPlayer: NSObject, ObservableObject {
     static let shared = NarekAudioPlayer()
     
-    private let synthesizer = AVSpeechSynthesizer()
+    private var player: AVPlayer?
     
     @Published var isPlaying: Bool = false
     @Published var currentlyPlayingId: Int? = nil
     
     override private init() {
         super.init()
-        synthesizer.delegate = self
     }
     
     func speak(prayer: NarekPrayer, language: AppLanguage) {
+        play(prayer: prayer, language: language)
+    }
+    
+    func play(prayer: NarekPrayer, language: AppLanguage) {
         if isPlaying && currentlyPlayingId == prayer.id {
             stop()
             return
@@ -24,57 +27,52 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         
         stop()
         
-        let textToSpeak = "\(prayer.title(for: language)). \(prayer.text(for: language))"
-        let utterance = AVSpeechUtterance(string: textToSpeak)
+        // Армянская декламация: Сос Саргсян, Русская/Английская декламация: Олег Моленко
+        let urlString: String? = (language == .armenian) ? prayer.audioUrlHy : (prayer.audioUrlRu ?? prayer.audioUrlHy)
         
-        let localeCode: String
-        switch language {
-        case .armenian:
-            localeCode = "hy-AM"
-        case .russian:
-            localeCode = "ru-RU"
-        case .english:
-            localeCode = "en-US"
+        guard let validUrlString = urlString, let url = URL(string: validUrlString) else {
+            print("⚠️ URL аудиоисточника не найден для молитвы: \(prayer.banNumber)")
+            return
         }
         
-        utterance.voice = AVSpeechSynthesisVoice(language: localeCode) ?? AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.92 // Слегка спокойный размеренный темп для духовных молитв
-        utterance.pitchMultiplier = 0.98
-        
-        // Настройка AVAudioSession для воспроизведения звука через динамик даже в бесшумном режиме
+        // Настройка AVAudioSession для аудиопотока через фоновый плеер
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.duckOthers])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Failed to set AVAudioSession category: \(error)")
         }
         
+        let playerItem = AVPlayerItem(url: url)
+        let newPlayer = AVPlayer(playerItem: playerItem)
+        self.player = newPlayer
+        
         currentlyPlayingId = prayer.id
         isPlaying = true
-        synthesizer.speak(utterance)
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerItemDidFinishPlaying),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: playerItem
+        )
+        
+        newPlayer.play()
     }
     
     func stop() {
-        if synthesizer.isSpeaking {
-            synthesizer.stopSpeaking(at: .immediate)
+        if let player = player {
+            player.pause()
+            NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: player.currentItem)
         }
+        player = nil
         isPlaying = false
         currentlyPlayingId = nil
     }
     
-    // MARK: - AVSpeechSynthesizerDelegate
-    
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+    @objc private func playerItemDidFinishPlaying(notification: Notification) {
         DispatchQueue.main.async {
-            self.isPlaying = false
-            self.currentlyPlayingId = nil
-        }
-    }
-    
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async {
-            self.isPlaying = false
-            self.currentlyPlayingId = nil
+            self.stop()
         }
     }
 }

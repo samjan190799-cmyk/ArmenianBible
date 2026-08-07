@@ -15,15 +15,15 @@ struct ContentView: View {
                 }
                 .tag(0)
             
-            AIGuideView()
+            FavoritesView()
                 .tabItem {
-                    Label("tab_ai_guide".localized(for: manager.appLanguage), systemImage: "sparkles")
+                    Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart.fill")
                 }
                 .tag(1)
             
-            NarekatsiView()
+            AIGuideView()
                 .tabItem {
-                    Label("narekatsi_title".localized(for: manager.appLanguage), systemImage: "flame.fill")
+                    Label("tab_ai_guide".localized(for: manager.appLanguage), systemImage: "sparkles")
                 }
                 .tag(2)
             
@@ -32,12 +32,6 @@ struct ContentView: View {
                     Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages.fill")
                 }
                 .tag(3)
-            
-            FavoritesView()
-                .tabItem {
-                    Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart.fill")
-                }
-                .tag(4)
         }
         .tint(accentColor)
     }

@@ -6,6 +6,8 @@ struct BibleReaderView: View {
     @State private var showingSearch = false
     @State private var hasRestoredLocation = false
     
+    @State private var selectedSection: Int = 0 // 0: Библия, 1: Нарекаци
+    
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
     }
@@ -19,7 +21,21 @@ struct BibleReaderView: View {
             ZStack {
                 backgroundColor.ignoresSafeArea()
                 
-                BibleBookListView(navigationPath: $navigationPath)
+                VStack(spacing: 0) {
+                    Picker("", selection: $selectedSection) {
+                        Text("tab_bible".localized(for: manager.appLanguage)).tag(0)
+                        Text("narekatsi_title".localized(for: manager.appLanguage)).tag(1)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    
+                    if selectedSection == 0 {
+                        BibleBookListView(navigationPath: $navigationPath)
+                    } else {
+                        NarekatsiView()
+                    }
+                }
             }
             .onAppear {
                 if !hasRestoredLocation {
