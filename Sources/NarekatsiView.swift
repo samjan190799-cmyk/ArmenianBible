@@ -323,3 +323,51 @@ struct NarekCardView: View {
         )
     }
 }
+
+// MARK: - Рендер открытки молитв Нарекаци для экспорта
+struct PostcardRenderView: View {
+    let text: String
+    let reference: String
+    let themeHex: String
+    
+    private var accentColor: Color {
+        Color(hex: themeHex)
+    }
+    
+    var body: some View {
+        ZStack {
+            Color(hex: "090A0F")
+            
+            RadialGradient(
+                gradient: Gradient(colors: [accentColor.opacity(0.18), Color.clear]),
+                center: .center,
+                startRadius: 50,
+                endRadius: 450
+            )
+            
+            VStack(spacing: 32) {
+                Image(systemName: "book.closed.fill")
+                    .font(.system(size: 52))
+                    .foregroundColor(accentColor)
+                
+                Text(text)
+                    .font(.system(size: 26, weight: .medium, design: .serif))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(12)
+                    .padding(.horizontal, 48)
+                
+                Text(reference)
+                    .font(.system(size: 20, weight: .bold, design: .monospaced))
+                    .foregroundColor(accentColor)
+                
+                Text("Armenian Bible App • Գրիգոր Նարեկացի")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+            .padding(48)
+        }
+        .frame(width: 800, height: 800)
+    }
+}
+
