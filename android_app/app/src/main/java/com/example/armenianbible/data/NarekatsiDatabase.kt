@@ -176,6 +176,132 @@ object NarekatsiDatabase {
             """.trimIndent(),
             audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_80.mp3",
             audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_80.mp3"
+        ),
+        NarekPrayer(
+            id = 5,
+            banNumber = "Բան Գ",
+            titleHy = "Սրտի խորին զղջում",
+            titleRu = "Глубокое сокрушение сердца (Глава 3)",
+            titleEn = "Deep Contrition of the Heart (Chapter 3)",
+            textHy = """
+                Արդ, ես՝ աղբս մարդկային, փոշիս հողեղէն,
+                Ինչպէ՞ս համարձակուեմ կանգնել քո առաջ,
+                Ով Ամենասուրբ և Անհասանելի Աստուած:
+                
+                Բայց քո քաղցրութիւնն է ինձ ձգում առ քեզ,
+                Եւ քո խոստումն է տալիս ինձ յոյս,
+                Որ չես մերժի զղջացող հոգուն:
+            """.trimIndent(),
+            textRu = """
+                И ныне я, прах и пепел земной,
+                Как дерзну предстать пред ликом Твоим,
+                О Пресвятый и Непостижимый Боже!
+                
+                Но благость Твоя влечет меня к Тебе,
+                И обещание Твое дарует мне надежду,
+                Что не отвергнешь сердце сокрушенное.
+            """.trimIndent(),
+            textEn = """
+                And now I, dust and ashes of the earth,
+                How shall I dare to stand before Your face,
+                O Most Holy and Incomprehensible God!
+                
+                Yet Your loving-kindness draws me to You,
+                And Your promise gives me steadfast hope,
+                That You will not reject a contrite heart.
+            """.trimIndent(),
+            audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_3.mp3",
+            audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_3.mp3"
+        ),
+        NarekPrayer(
+            id = 6,
+            banNumber = "Բան Է",
+            titleHy = "Ապավինում Աստծո ողորմությանը",
+            titleRu = "Упование на милосердие Божие (Глава 7)",
+            titleEn = "Relying on Divine Mercy (Chapter 7)",
+            textHy = """
+                Քո ողորմութեան ծովն է անհուն, ով Տէր,
+                Եւ քո գթութիւնը՝ անսպառ:
+                Լուա իմ մեղքերը քո արեամբ,
+                Եւ նորոգիր ինձ քո շնորհով:
+            """.trimIndent(),
+            textRu = """
+                Океан милосердия Твоего безграничен, о Господи,
+                И сострадание Твое неистощимо.
+                Омывай грехи мои святой Твоей кровью
+                И обновляй меня благодатью Твоею.
+            """.trimIndent(),
+            textEn = """
+                The ocean of Your mercy is infinite, O Lord,
+                And Your compassion is inexhaustible.
+                Wash away my sins with Your holy blood,
+                And renew me by Your grace.
+            """.trimIndent(),
+            audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_7.mp3",
+            audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_7.mp3"
+        ),
+        NarekPrayer(
+            id = 7,
+            banNumber = "Բան Ծ",
+            titleHy = "Խոստովանություն և աղերս",
+            titleRu = "Исповедь и усердное моление (Глава 50)",
+            titleEn = "Confession and Earnest Plea (Chapter 50)",
+            textHy = """
+                Տէր իմ և Աստուած իմ,
+                Դու գիտես իմ բոլոր թերութիւնները,
+                Բայց դու նաև գիտես իմ սէրը առ քեզ:
+                
+                Տուր ինձ լոյս ճանապարհին,
+                Եւ մի թողնիր ինձ խաւարի մէջ:
+            """.trimIndent(),
+            textRu = """
+                Господь мой и Бог мой,
+                Ты ведаешь все немощи мои,
+                Но Ты ведаешь и любовь мою к Тебе.
+                
+                Даруй мне свет на жизненном пути
+                И не оставь меня во тьме душевной.
+            """.trimIndent(),
+            textEn = """
+                My Lord and my God,
+                You know all my weaknesses,
+                Yet You also know my love for You.
+                
+                Grant me light upon my path,
+                And leave me not in spiritual darkness.
+            """.trimIndent(),
+            audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_50.mp3",
+            audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_50.mp3"
+        ),
+        NarekPrayer(
+            id = 8,
+            banNumber = "Բան Ղ",
+            titleHy = "Օրհնություն Սուրբ Աստվածածնին",
+            titleRu = "Гимн Пресвятой Богородице (Глава 90)",
+            titleEn = "Hymn to the Holy Mother of God (Chapter 90)",
+            textHy = """
+                Ով Սուրբ Աստուածածին, մայր լուսոյ,
+                Բարեխօսիր առ Որդին քո միածին
+                Վասն փրկութեան հոգւոց մերոց:
+                
+                Պահպանիր մեզ քո սուրբ հովանեաւ:
+            """.trimIndent(),
+            textRu = """
+                О Пресвятая Богородица, Матерь Света,
+                Ходатайствуй пред Сыном Твоим Единородным
+                О спасении душ наших.
+                
+                Сохрани нас под святым Твоим покровом.
+            """.trimIndent(),
+            textEn = """
+                O Holy Mother of God, Mother of Light,
+                Intercede before Your only-begotten Son
+                For the salvation of our souls.
+                
+                Keep us under Your holy protection.
+            """.trimIndent(),
+            audioUrlHy = "https://archive.org/download/narekatsi-audio/sos_sargsyan_ban_90.mp3",
+            audioUrlRu = "https://archive.org/download/narekatsi-audio/oleg_molenko_ban_90.mp3"
         )
     )
 }
