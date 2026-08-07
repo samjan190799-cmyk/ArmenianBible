@@ -282,9 +282,6 @@ struct FavoritesView: View {
         triggerHaptic(.medium)
         let verse = BibleVerse(
             id: item.id,
-            category: .favorites,
-            reference: item.reference(for: manager.appLanguage),
-            text: item.text(for: manager.appLanguage),
             textHy: item.textHy,
             textRu: item.textRu,
             textEn: item.textEn,
@@ -301,7 +298,7 @@ struct FavoritesView: View {
         
         let hostingController = UIHostingController(rootView: exportView)
         hostingController.view.frame = CGRect(x: 0, y: 0, width: 1080, height: 1080)
-        hostingController.view.backgroundColor = .clear
+        hostingController.view.backgroundColor = UIColor.clear
         hostingController.view.setNeedsLayout()
         hostingController.view.layoutIfNeeded()
         

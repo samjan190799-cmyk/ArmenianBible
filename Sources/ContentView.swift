@@ -507,7 +507,7 @@ struct HomeView: View {
         // ImageRenderer(content:).uiImage часто возвращает nil при наличии blur/gradient
         let hostingController = UIHostingController(rootView: exportView)
         hostingController.view.frame = CGRect(x: 0, y: 0, width: 1080, height: 1080)
-        hostingController.view.backgroundColor = .clear
+        hostingController.view.backgroundColor = UIColor.clear
         
         // Принудительный layout
         hostingController.view.setNeedsLayout()
@@ -1051,7 +1051,7 @@ struct AIGuideView: View {
         )
         let hostingController = UIHostingController(rootView: exportView)
         hostingController.view.frame = CGRect(x: 0, y: 0, width: 1080, height: 1080)
-        hostingController.view.backgroundColor = .clear
+        hostingController.view.backgroundColor = UIColor.clear
         hostingController.view.setNeedsLayout()
         hostingController.view.layoutIfNeeded()
         
@@ -1385,6 +1385,26 @@ struct SettingsView: View {
     
     private var aboutBlockBorderColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)
+    }
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
+    }
+    
+    private var cardBorderColor: LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
     }
     
     var body: some View {
