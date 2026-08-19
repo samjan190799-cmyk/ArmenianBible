@@ -776,39 +776,38 @@ struct BibleSingleChapterView: View {
                                     triggerHaptic(.light)
                                     selectedVerseForSheet = verse
                                 }
-                                    .contextMenu {
-                                        Button {
-                                            selectedVerseForSheet = verse
-                                        } label: {
-                                            Label("highlight_color_title".localized(for: manager.appLanguage), systemImage: "paintbrush.fill")
-                                        }
-                                        
-                                        Button {
-                                            pinToWidget(verse: verse)
-                                        } label: {
-                                            Label("pin_to_widget".localized(for: manager.appLanguage), systemImage: "square.stack.3d.up.fill")
-                                        }
-                                        
-                                        Button {
-                                            copyToClipboard(verse: verse)
-                                        } label: {
-                                            Label("context_menu_copy".localized(for: manager.appLanguage), systemImage: "doc.on.doc")
-                                        }
-                                        
-                                        Button {
-                                            shareVerse(verse: verse)
-                                        } label: {
-                                            Label("context_menu_share".localized(for: manager.appLanguage), systemImage: "square.and.arrow.up")
-                                        }
-                                        
-                                        Button {
-                                            toggleFavorite(verse: verse)
-                                        } label: {
-                                            if manager.isFavorite(verseText: verse) {
-                                                Label("context_menu_remove_favorite".localized(for: manager.appLanguage), systemImage: "heart.slash.fill")
-                                            } else {
-                                                Label("context_menu_add_favorite".localized(for: manager.appLanguage), systemImage: "heart")
-                                            }
+                                .contextMenu {
+                                    Button {
+                                        selectedVerseForSheet = verse
+                                    } label: {
+                                        Label("highlight_color_title".localized(for: manager.appLanguage), systemImage: "paintbrush.fill")
+                                    }
+                                    
+                                    Button {
+                                        pinToWidget(verse: verse)
+                                    } label: {
+                                        Label("pin_to_widget".localized(for: manager.appLanguage), systemImage: "square.stack.3d.up.fill")
+                                    }
+                                    
+                                    Button {
+                                        copyToClipboard(verse: verse)
+                                    } label: {
+                                        Label("context_menu_copy".localized(for: manager.appLanguage), systemImage: "doc.on.doc")
+                                    }
+                                    
+                                    Button {
+                                        shareVerse(verse: verse)
+                                    } label: {
+                                        Label("context_menu_share".localized(for: manager.appLanguage), systemImage: "square.and.arrow.up")
+                                    }
+                                    
+                                    Button {
+                                        toggleFavorite(verse: verse)
+                                    } label: {
+                                        if manager.isFavorite(verseText: verse) {
+                                            Label("context_menu_remove_favorite".localized(for: manager.appLanguage), systemImage: "heart.slash.fill")
+                                        } else {
+                                            Label("context_menu_add_favorite".localized(for: manager.appLanguage), systemImage: "heart")
                                         }
                                     }
                                 }
