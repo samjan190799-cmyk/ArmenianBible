@@ -228,7 +228,7 @@ struct NarekatsiView: View {
                                         // Индикатор воспроизведения
                                         ZStack {
                                             Circle()
-                                                .fill(isCurrent ? accentColor.opacity(0.15) : Color(hex: "FEF3C7"))
+                                                .fill(isCurrent ? accentColor.opacity(0.2) : (colorScheme == .dark ? Color.white.opacity(0.06) : Color(hex: "F1F5F9")))
                                                 .frame(width: 42, height: 42)
                                             
                                             if isThisPlaying {
@@ -238,7 +238,7 @@ struct NarekatsiView: View {
                                             } else {
                                                 Text("\(prayer.id)")
                                                     .font(.system(size: 14, weight: .bold, design: .monospaced))
-                                                    .foregroundColor(isCurrent ? accentColor : Color(hex: "D97706"))
+                                                    .foregroundColor(isCurrent ? accentColor : (colorScheme == .dark ? Color(hex: "94A3B8") : Color(hex: "64748B")))
                                             }
                                         }
                                         
@@ -250,28 +250,28 @@ struct NarekatsiView: View {
                                                 
                                                 Text("• \(prayer.formattedTimestamp)")
                                                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                                    .foregroundColor(isCurrent ? accentColor : .secondary)
+                                                    .foregroundColor(isCurrent ? accentColor.opacity(0.9) : .secondary)
                                             }
                                             
                                             Text(prayer.title(for: audioPlayer.voiceLanguage))
                                                 .font(.system(size: 12, weight: .medium))
-                                                .foregroundColor(.secondary)
+                                                .foregroundColor(isCurrent ? primaryTextColor : .secondary)
                                                 .lineLimit(1)
                                         }
                                         
                                         Spacer()
                                         
-                                        Image(systemName: isThisPlaying ? "pause.circle.fill" : "play.circle.fill")
+                                        Image(systemName: isThisPlaying ? "pause.circle.fill" : (isCurrent ? "play.circle.fill" : "play.circle"))
                                             .font(.system(size: 24))
-                                            .foregroundColor(isThisPlaying ? accentColor : Color.secondary.opacity(0.6))
+                                            .foregroundColor(isCurrent ? accentColor : Color.secondary.opacity(0.5))
                                     }
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 10)
-                                    .background(cardBackgroundColor)
+                                    .background(isCurrent ? accentColor.opacity(0.08) : cardBackgroundColor)
                                     .cornerRadius(14)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
-                                            .stroke(isCurrent ? accentColor.opacity(0.3) : cardBorderColor, lineWidth: isCurrent ? 1.5 : 1)
+                                            .stroke(isCurrent ? accentColor.opacity(0.8) : cardBorderColor, lineWidth: isCurrent ? 1.5 : 1)
                                     )
                                 }
                                 .buttonStyle(ScaleButtonStyle())

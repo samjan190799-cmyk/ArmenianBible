@@ -823,15 +823,17 @@ fun BibleReaderScreen(
                                         .shadow(0.5.dp, RoundedCornerShape(14.dp))
                                         .clip(RoundedCornerShape(14.dp))
                                         .border(
-                                            1.dp,
-                                            if (isCurrent) Color(0xFFD97706).copy(alpha = 0.5f) else Color(0xFFE2E8F0),
+                                            if (isCurrent) 1.5.dp else 1.dp,
+                                            if (isCurrent) Color(0xFFD97706).copy(alpha = 0.8f) else Color(0xFFE2E8F0),
                                             RoundedCornerShape(14.dp)
                                         )
                                         .clickable {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             narekPlayer.playPrayer(prayer, narekPlayer.voiceLanguage.value)
                                         },
-                                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (isCurrent) Color(0xFFFEF3C7).copy(alpha = 0.35f) else Color.White
+                                    )
                                 ) {
                                     Row(
                                         modifier = Modifier
