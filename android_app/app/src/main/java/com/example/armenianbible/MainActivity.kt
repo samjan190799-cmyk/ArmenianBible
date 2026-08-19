@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
 
             var isShowingSettings by remember { mutableStateOf(false) }
             var isShowingQuiz by remember { mutableStateOf(false) }
+            var isShowingCalendar by remember { mutableStateOf(false) }
 
             var deepLinkBookId by remember { mutableStateOf<Int?>(null) }
             var deepLinkChapter by remember { mutableStateOf<Int?>(null) }
@@ -152,7 +153,9 @@ class MainActivity : ComponentActivity() {
                                 onOpenNarek = {
                                     bibleSubTab = 2
                                     selectedTabScreen = 3 // Switch to Bible screen with Narek tab
-                                }
+                                },
+                                onOpenCalendar = { isShowingCalendar = true },
+                                onOpenAIGuide = { selectedTabScreen = 2 }
                             )
                             1 -> FavoritesScreen(
                                 prefs = prefs,
@@ -192,6 +195,15 @@ class MainActivity : ComponentActivity() {
                                 prefs = prefs,
                                 appLanguage = currentLanguage,
                                 onDismiss = { isShowingQuiz = false }
+                            )
+                        }
+
+                        // Church Calendar Fullscreen Modal
+                        if (isShowingCalendar) {
+                            ChurchCalendarScreen(
+                                appLanguage = currentLanguage,
+                                accentTheme = activeAccentTheme,
+                                onBack = { isShowingCalendar = false }
                             )
                         }
                     }

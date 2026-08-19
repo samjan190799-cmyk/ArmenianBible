@@ -81,6 +81,10 @@ fun BibleReaderScreen(
     var explanationResult by remember { mutableStateOf<String?>(null) }
     var isExplainingAI by remember { mutableStateOf(false) }
 
+    // Verse Annotation (Note / Highlight / Tags) Sheet
+    var selectedVerseForAction by remember { mutableStateOf<BibleVerseText?>(null) }
+    var annotationsVersion by remember { mutableIntStateOf(0) }
+
     var isSpeakingBible by remember { mutableStateOf(false) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
 
@@ -1096,14 +1100,41 @@ fun BibleReaderScreen(
                         val text = v.text(appLanguage, currentEdition)
                         val ref = v.reference(appLanguage, selectedBook!!.name(appLanguage))
                         var isFav by remember(v) { mutableStateOf(prefs.isFavorite(ref)) }
+                        val annotation = remember(v, annotationsVersion) {
+                            prefs.getAnnotation(selectedBook!!.id, selectedChapter!!, v.verseNumber)
+                        }
+
+                        val cardBgColor = if (annotation?.colorHex != null) {
+                            try {
+                                Color(android.graphics.Color.parseColor(annotation.colorHex)).copy(alpha = 0.22f)
+                            } catch (e: Exception) {
+                                Color.White
+                            }
+                        } else {
+                            Color.White
+                        }
 
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .shadow(0.5.dp, RoundedCornerShape(14.dp))
                                 .clip(RoundedCornerShape(14.dp))
-                                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp)),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                                .border(
+                                    if (annotation?.colorHex != null) 1.5.dp else 1.dp,
+                                    if (annotation?.colorHex != null) {
+                                        try {
+                                            Color(android.graphics.Color.parseColor(annotation.colorHex))
+                                        } catch (e: Exception) {
+                                            Color(0xFFE2E8F0)
+                                        }
+                                    } else Color(0xFFE2E8F0),
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    selectedVerseForAction = v
+                                },
+                            colors = CardDefaults.cardColors(containerColor = cardBgColor)
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Row(
@@ -1111,20 +1142,43 @@ fun BibleReaderScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = Color(0xFFE0F2FE)
-                                    ) {
-                                        Text(
-                                            text = "${v.verseNumber}",
-                                            color = Color(0xFF0284C7),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 2.dp)
-                                        )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = Color(0xFFE0F2FE)
+                                        ) {
+                                            Text(
+                                                text = "${v.verseNumber}",
+                                                color = Color(0xFF0284C7),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        if (annotation?.note?.isNotEmpty() == true) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("📝", fontSize = 12.sp)
+                                        }
                                     }
 
                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                        // Edit Note / Marker Action Button
+                                        IconButton(
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                selectedVerseForAction = v
+                                            },
+                                            modifier = Modifier.size(30.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Edit,
+                                                contentDescription = "Edit Note",
+                                                tint = Color(0xFF0284C7),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+
                                         // AI Explain button
                                         IconButton(
                                             onClick = {
@@ -1228,6 +1282,60 @@ fun BibleReaderScreen(
                                     lineHeight = (fontSize * 1.45f).sp,
                                     fontFamily = FontFamily.Serif
                                 )
+
+                                // Personal Note snippet if present
+                                if (annotation?.note?.isNotEmpty() == true) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFF0284C7).copy(alpha = 0.08f),
+                                        border = ButtonDefaults.outlinedButtonBorder().copy(
+                                            brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF0284C7).copy(alpha = 0.2f))
+                                        )
+                                    ) {
+                                        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                                            Text(
+                                                text = "📝 ${annotation.note}",
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF0369A1),
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Tags chips if present
+                                if (annotation?.tags?.isNotEmpty() == true) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        annotation.tags.forEach { tag ->
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = try {
+                                                    Color(android.graphics.Color.parseColor(tag.colorHex)).copy(alpha = 0.18f)
+                                                } catch (e: Exception) {
+                                                    Color(0xFFE2E8F0)
+                                                }
+                                            ) {
+                                                Text(
+                                                    text = "${tag.icon} ${tag.localizedTitle(appLanguage)}",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = try {
+                                                        Color(android.graphics.Color.parseColor(tag.colorHex))
+                                                    } catch (e: Exception) {
+                                                        Color(0xFF0F172A)
+                                                    },
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -1280,59 +1388,329 @@ fun BibleReaderScreen(
             }
         }
 
-        // AI Verse Explanation Dialog
-        if (explainingVerse != null) {
-            AlertDialog(
-                onDismissRequest = { explainingVerse = null },
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFFA855F7))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("ИИ Толкование стиха", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0F172A))
-                    }
-                },
-                text = {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text(
-                            text = "«${explainingVerse!!.text(appLanguage, currentEdition)}»",
-                            fontFamily = FontFamily.Serif,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF0284C7)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+        // Verse Action Bottom Sheet (Notes, Markers, Tags, Pin)
+        if (selectedVerseForAction != null && selectedBook != null && selectedChapter != null) {
+            val v = selectedVerseForAction!!
+            val book = selectedBook!!
+            val chapter = selectedChapter!!
+            val existingAnn = remember(v, annotationsVersion) {
+                prefs.getAnnotation(book.id, chapter, v.verseNumber)
+            }
 
-                        if (isExplainingAI) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFFA855F7), strokeWidth = 2.dp)
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text("ИИ подготавливает богословское толкование...", color = Color(0xFF64748B), fontSize = 13.sp)
-                            }
-                        } else if (explanationResult != null) {
-                            Text(
-                                text = explanationResult!!,
-                                color = Color(0xFF1E293B),
-                                fontSize = 14.sp,
-                                lineHeight = 22.sp
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = { explainingVerse = null },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9))
-                    ) {
-                        Text("Փակել", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
+            var noteText by remember(v) { mutableStateOf(existingAnn?.note ?: "") }
+            var selectedColorHex by remember(v) { mutableStateOf(existingAnn?.colorHex) }
+            var selectedTags by remember(v) { mutableStateOf(existingAnn?.tags?.toSet() ?: emptySet()) }
+
+            val markerColors = listOf(
+                null,
+                "#FEF08A", // Yellow
+                "#BBF7D0", // Green
+                "#BAE6FD", // Blue
+                "#FECDD3", // Pink
+                "#E9D5FF"  // Purple
+            )
+
+            ModalBottomSheet(
+                onDismissRequest = {
+                    // Auto-save on dismiss
+                    val updatedAnn = VerseAnnotation(
+                        id = existingAnn?.id ?: java.util.UUID.randomUUID().toString(),
+                        bookId = book.id,
+                        chapter = chapter,
+                        verseNumber = v.verseNumber,
+                        bookNameHy = book.nameHy,
+                        bookNameRu = book.nameRu,
+                        bookNameEn = book.nameEn,
+                        textHy = v.textHy,
+                        textRu = v.textRu,
+                        textEn = v.textEn,
+                        colorHex = selectedColorHex,
+                        note = noteText.trim(),
+                        tags = selectedTags.toList()
+                    )
+                    prefs.saveAnnotation(updatedAnn)
+                    annotationsVersion++
+                    selectedVerseForAction = null
                 },
                 containerColor = Color.White,
-                shape = RoundedCornerShape(20.dp)
-            )
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${book.name(appLanguage)} $chapter:${v.verseNumber}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                        IconButton(
+                            onClick = {
+                                selectedVerseForAction = null
+                            }
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Marker Color Selector
+                    Text(
+                        text = when(appLanguage) {
+                            AppLanguage.ARMENIAN -> "Գունավոր մարկեր"
+                            AppLanguage.RUSSIAN -> "Цветной маркер"
+                            AppLanguage.ENGLISH -> "Highlight Color"
+                        },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        markerColors.forEach { cHex ->
+                            val isSelected = selectedColorHex == cHex
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (cHex == null) Color(0xFFF1F5F9)
+                                        else try {
+                                            Color(android.graphics.Color.parseColor(cHex))
+                                        } catch (e: Exception) {
+                                            Color.LightGray
+                                        }
+                                    )
+                                    .border(
+                                        if (isSelected) 2.5.dp else 1.dp,
+                                        if (isSelected) Color(0xFF0284C7) else Color(0xFFCBD5E1),
+                                        CircleShape
+                                    )
+                                    .clickable {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        selectedColorHex = cHex
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (cHex == null) {
+                                    Icon(Icons.Default.Block, contentDescription = "None", tint = Color(0xFF94A3B8), modifier = Modifier.size(18.dp))
+                                } else if (isSelected) {
+                                    Icon(Icons.Default.Check, contentDescription = "Selected", tint = Color(0xFF0F172A), modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Personal Note Input
+                    Text(
+                        text = when(appLanguage) {
+                            AppLanguage.ARMENIAN -> "Անձնական նշում"
+                            AppLanguage.RUSSIAN -> "Личная заметка"
+                            AppLanguage.ENGLISH -> "Personal Note"
+                        },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = noteText,
+                        onValueChange = { noteText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text(
+                                text = when(appLanguage) {
+                                    AppLanguage.ARMENIAN -> "Գրեք ձեր մտքերը..."
+                                    AppLanguage.RUSSIAN -> "Напишите ваши мысли..."
+                                    AppLanguage.ENGLISH -> "Write your thoughts..."
+                                },
+                                color = Color(0xFF94A3B8),
+                                fontSize = 14.sp
+                            )
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF0284C7),
+                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                        ),
+                        minLines = 3,
+                        maxLines = 5
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Theme Tags
+                    Text(
+                        text = when(appLanguage) {
+                            AppLanguage.ARMENIAN -> "Թեմատիկ պիտակներ (Թեգեր)"
+                            AppLanguage.RUSSIAN -> "Тематические теги"
+                            AppLanguage.ENGLISH -> "Topic Tags"
+                        },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        VerseTag.entries.take(4).forEach { tag ->
+                            val isSelected = selectedTags.contains(tag)
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isSelected) {
+                                    try {
+                                        Color(android.graphics.Color.parseColor(tag.colorHex)).copy(alpha = 0.3f)
+                                    } catch (e: Exception) {
+                                        Color(0xFFE0F2FE)
+                                    }
+                                } else Color(0xFFF1F5F9),
+                                border = ButtonDefaults.outlinedButtonBorder().copy(
+                                    brush = androidx.compose.ui.graphics.SolidColor(
+                                        if (isSelected) {
+                                            try {
+                                                Color(android.graphics.Color.parseColor(tag.colorHex))
+                                            } catch (e: Exception) {
+                                                Color(0xFF0284C7)
+                                            }
+                                        } else Color(0xFFCBD5E1)
+                                    )
+                                ),
+                                modifier = Modifier.clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    selectedTags = if (isSelected) selectedTags - tag else selectedTags + tag
+                                }
+                            ) {
+                                Text(
+                                    text = "${tag.icon} ${tag.localizedTitle(appLanguage)}",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = Color(0xFF0F172A),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        VerseTag.entries.drop(4).forEach { tag ->
+                            val isSelected = selectedTags.contains(tag)
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isSelected) {
+                                    try {
+                                        Color(android.graphics.Color.parseColor(tag.colorHex)).copy(alpha = 0.3f)
+                                    } catch (e: Exception) {
+                                        Color(0xFFE0F2FE)
+                                    }
+                                } else Color(0xFFF1F5F9),
+                                border = ButtonDefaults.outlinedButtonBorder().copy(
+                                    brush = androidx.compose.ui.graphics.SolidColor(
+                                        if (isSelected) {
+                                            try {
+                                                Color(android.graphics.Color.parseColor(tag.colorHex))
+                                            } catch (e: Exception) {
+                                                Color(0xFF0284C7)
+                                            }
+                                        } else Color(0xFFCBD5E1)
+                                    )
+                                ),
+                                modifier = Modifier.clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    selectedTags = if (isSelected) selectedTags - tag else selectedTags + tag
+                                }
+                            ) {
+                                Text(
+                                    text = "${tag.icon} ${tag.localizedTitle(appLanguage)}",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = Color(0xFF0F172A),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Action Buttons: Save & Pin to Widget
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val verseObj = BibleVerse(
+                                    textHy = v.textHy,
+                                    textRu = v.textRu,
+                                    textEn = v.textEn,
+                                    refHy = "${book.nameHy} $chapter:${v.verseNumber}",
+                                    refRu = "${book.nameRu} $chapter:${v.verseNumber}",
+                                    refEn = "${book.nameEn} $chapter:${v.verseNumber}"
+                                )
+                                prefs.saveCurrentVerseForWidget(verseObj)
+                                BibleAppWidget.sendUpdateBroadcast(context)
+                                Toast.makeText(context, "Ամրացված է վիջեթում 📌", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9), contentColor = Color(0xFF0F172A)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("📌 Վիջեթին", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                val updatedAnn = VerseAnnotation(
+                                    id = existingAnn?.id ?: java.util.UUID.randomUUID().toString(),
+                                    bookId = book.id,
+                                    chapter = chapter,
+                                    verseNumber = v.verseNumber,
+                                    bookNameHy = book.nameHy,
+                                    bookNameRu = book.nameRu,
+                                    bookNameEn = book.nameEn,
+                                    textHy = v.textHy,
+                                    textRu = v.textRu,
+                                    textEn = v.textEn,
+                                    colorHex = selectedColorHex,
+                                    note = noteText.trim(),
+                                    tags = selectedTags.toList()
+                                )
+                                prefs.saveAnnotation(updatedAnn)
+                                annotationsVersion++
+                                selectedVerseForAction = null
+                                Toast.makeText(context, "Պահպանված է!", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Պահպանել", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
         }
     }
 }

@@ -42,6 +42,7 @@ struct HomeView: View {
     @State private var animateVerse = false
     @State private var isShowingSettings = false
     @State private var isShowingQuiz = false
+    @State private var isShowingCalendar = false
     
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
@@ -199,9 +200,31 @@ struct HomeView: View {
                             .opacity(animateVerse ? 0.8 : 0)
                             .offset(y: animateVerse ? 0 : 10)
                         
-                        // Кнопки управления стихом (Избранное и Поделиться)
-                        HStack(spacing: 24) {
-                            // Кнопка Лайка
+                        // Кнопки управления стихом: Случайный, Избранное, Поделиться, ИИ Помощник
+                        HStack(spacing: 20) {
+                            // 1. Случайный стих (Офлайн)
+                            Button {
+                                triggerHaptic(.medium)
+                                withAnimation(.easeOut(duration: 0.18)) {
+                                    animateVerse = false
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                                    manager.selectRandomVerse()
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        animateVerse = true
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(primaryTextColor.opacity(0.6))
+                                    .padding(10)
+                                    .background(primaryTextColor.opacity(0.05))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // 2. Кнопка Лайка (Избранное)
                             Button {
                                 triggerHaptic(.light)
                                 if manager.isFavorite(manager.currentVerse) {
@@ -211,24 +234,38 @@ struct HomeView: View {
                                 }
                             } label: {
                                 Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(manager.isFavorite(manager.currentVerse) ? .red : primaryTextColor.opacity(0.4))
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(manager.isFavorite(manager.currentVerse) ? .red : primaryTextColor.opacity(0.6))
                                     .padding(10)
-                                    .background(primaryTextColor.opacity(0.04))
+                                    .background(primaryTextColor.opacity(0.05))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // Кнопка Поделиться открыткой
+                            // 3. Кнопка Поделиться открыткой
                             Button {
                                 triggerHaptic(.medium)
                                 shareVerseAsImage()
                             } label: {
                                 Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(primaryTextColor.opacity(0.4))
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(primaryTextColor.opacity(0.6))
                                     .padding(10)
-                                    .background(primaryTextColor.opacity(0.04))
+                                    .background(primaryTextColor.opacity(0.05))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // 4. Кнопка ИИ Помощника (Размышление)
+                            Button {
+                                triggerHaptic(.medium)
+                                manager.activeTabSelection = 2
+                            } label: {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(Color(hex: "0284C7"))
+                                    .padding(10)
+                                    .background(Color(hex: "0284C7").opacity(0.12))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -266,92 +303,11 @@ struct HomeView: View {
                         }
                     }
                     
-                    // MARK: - Блок кнопок генерации
-                    VStack(spacing: 12) {
-                        HStack(spacing: 12) {
-                            // Кнопка: Случайный оффлайн-стих
-                            Button {
-                                triggerHaptic(.medium)
-                                
-                                withAnimation(.easeOut(duration: 0.18)) {
-                                    animateVerse = false
-                                }
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                                    manager.selectRandomVerse()
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        animateVerse = true
-                                    }
-                                }
-                            } label: {
-                                Text("button_random_verse".localized(for: manager.appLanguage))
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(randomButtonTextColor)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(randomButtonBgColor)
-                                    .cornerRadius(14)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .stroke(randomButtonBorderColor, lineWidth: 1)
-                                    )
-                            }
-                            .buttonStyle(ScaleButtonStyle())
-                            
-                            // Кнопка: Генерация через ИИ
-                            Button {
-                                let key: String
-                                switch manager.activeProvider {
-                                case .gemini:
-                                    key = manager.geminiApiKey
-                                case .chatgpt:
-                                    key = manager.openaiApiKey
-                                case .claude:
-                                    key = manager.anthropicApiKey
-                                }
-                                
-                                if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    triggerHaptic(.heavy)
-                                    showingNoKeyAlert = true
-                                } else {
-                                    triggerHaptic(.medium)
-                                    runAIGeneration()
-                                }
-                            } label: {
-                                HStack(spacing: 10) {
-                                    if manager.isGeneratingAI {
-                                        ProgressView()
-                                            .tint(.white)
-                                    } else {
-                                        Image(systemName: "sparkles")
-                                            .font(.system(size: 15))
-                                        Text("button_ai_generation".localized(for: manager.appLanguage))
-                                    }
-                                }
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    LinearGradient(
-                                        colors: [accentColor, secondaryAccentColor],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(14)
-                                .shadow(color: accentColor.opacity(colorScheme == .dark ? 0.3 : 0.2), radius: 8, y: 4)
-                            }
-                            .disabled(manager.isGeneratingAI)
-                            .buttonStyle(ScaleButtonStyle())
-                        }
-                        .padding(.horizontal, 20)
-                    }
-                    
                     Spacer()
-                        .frame(height: 10)
+                        .frame(height: 6)
                     
                     // MARK: - Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
+
                     NarekatsiBannerCardView(
                         language: manager.appLanguage,
                         accentColor: accentColor,
@@ -379,6 +335,20 @@ struct HomeView: View {
                             isShowingQuiz = true
                         }
                     )
+                    
+                    // MARK: - Карточка Церковных праздников и Календаря
+                    ChurchFeastsBannerCardView(
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        cardBackgroundColor: cardBackgroundColor,
+                        cardBorderColor: cardBorderColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpenCalendar: {
+                            triggerHaptic(.medium)
+                            isShowingCalendar = true
+                        }
+                    )
                 }
                 .padding(.bottom, 30)
             }
@@ -396,6 +366,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isShowingQuiz) {
             BibleQuizView()
+        }
+        .sheet(isPresented: $isShowingCalendar) {
+            ChurchCalendarView()
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
@@ -555,6 +528,113 @@ struct NarekatsiBannerCardView: View {
                         .font(.system(size: 12, weight: .medium, design: .serif))
                         .foregroundColor(secondaryAccentColor)
                         .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(primaryTextColor.opacity(0.3))
+            }
+            .padding(16)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(cardBackgroundColor)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(cardBorderColor, lineWidth: 1)
+            )
+            .padding(.horizontal, 20)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Карточка Церковного календаря и праздников на Главном экране
+struct ChurchFeastsBannerCardView: View {
+    let language: AppLanguage
+    let accentColor: Color
+    let secondaryAccentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    let onOpenCalendar: () -> Void
+    
+    private var todayFeast: ArmenianChurchFeast? {
+        ChurchCalendarService.shared.todayFeast()
+    }
+    
+    private var nextDaghavar: (feast: ArmenianChurchFeast, daysLeft: Int)? {
+        ChurchCalendarService.shared.nextDaghavarFeast()
+    }
+    
+    var body: some View {
+        Button {
+            onOpenCalendar()
+        } label: {
+            HStack(spacing: 16) {
+                // Иконка
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "F59E0B").opacity(0.25), Color(hex: "D97706").opacity(0.15)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 48, height: 48)
+                    
+                    Text(todayFeast != nil ? todayFeast!.type.icon : "⛪")
+                        .font(.system(size: 24))
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    if let today = todayFeast {
+                        HStack(spacing: 6) {
+                            Text("today_badge".localized(for: language))
+                                .font(.system(size: 10, weight: .heavy))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.red)
+                                .cornerRadius(5)
+                            
+                            Text(today.title(for: language))
+                                .font(.system(size: 15, weight: .bold, design: .serif))
+                                .foregroundColor(primaryTextColor)
+                                .lineLimit(1)
+                        }
+                        
+                        Text(today.formattedDate(for: language) + (today.isFasting ? " • " + "fasting_day_badge".localized(for: language) : ""))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                            .lineLimit(1)
+                    } else if let next = nextDaghavar {
+                        Text("church_calendar_title".localized(for: language))
+                            .font(.system(size: 15, weight: .bold, design: .serif))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("\(next.feast.title(for: language)) • \(next.daysLeft) " + "days_left_format".localized(for: language))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                            .lineLimit(1)
+                    } else {
+                        Text("church_calendar_title".localized(for: language))
+                            .font(.system(size: 15, weight: .bold, design: .serif))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("church_calendar_subtitle".localized(for: language))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(secondaryAccentColor)
+                            .lineLimit(1)
+                    }
                 }
                 
                 Spacer()

@@ -74,13 +74,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginEnd="4dp"
+            android:layout_marginEnd="3dp"
             android:background="@drawable/widget_btn_bg"
             android:gravity="center"
             android:paddingVertical="6dp"
-            android:text="🔄 Նոր տող"
+            android:text="🔄 Նոր"
             android:textColor="#0F172A"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
 
         <TextView
@@ -88,13 +88,27 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginHorizontal="4dp"
+            android:layout_marginHorizontal="3dp"
             android:background="@drawable/widget_btn_bg"
             android:gravity="center"
             android:paddingVertical="6dp"
             android:text="❤️ Ընտրյալ"
             android:textColor="#0F172A"
-            android:textSize="11sp"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_btn_pray"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="3dp"
+            android:background="@drawable/widget_btn_bg"
+            android:gravity="center"
+            android:paddingVertical="6dp"
+            android:text="🙏 Աղոթք"
+            android:textColor="#0284C7"
+            android:textSize="10sp"
             android:textStyle="bold" />
 
         <TextView
@@ -102,13 +116,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="3dp"
             android:background="@drawable/widget_btn_bg"
             android:gravity="center"
             android:paddingVertical="6dp"
             android:text="📖 Կարդալ"
             android:textColor="#0284C7"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
     </LinearLayout>
 

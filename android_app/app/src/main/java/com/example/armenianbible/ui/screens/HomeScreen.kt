@@ -58,7 +58,9 @@ fun HomeScreen(
     onEditionChange: (ArmenianEdition) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenQuiz: () -> Unit,
-    onOpenNarek: () -> Unit
+    onOpenNarek: () -> Unit,
+    onOpenCalendar: () -> Unit,
+    onOpenAIGuide: () -> Unit
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -239,6 +241,62 @@ fun HomeScreen(
                                         AppLanguage.RUSSIAN -> "Добавлено в избранное ❤️"
                                         AppLanguage.ENGLISH -> "Added to favorites ❤️"
                                     },
+                // Verse Card Action Buttons (Refresh, Favorite, Share, AI Guide)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 1. Refresh (Random verse)
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            val newVerse = dbHelper.getRandomVerse()
+                            if (newVerse != null) currentVerse = newVerse
+                        },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF8FAFC))
+                            .border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Random Verse",
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // 2. Favorite
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            val item = FavoriteItem(
+                                verse = currentVerse,
+                                addedDate = System.currentTimeMillis()
+                            )
+                            if (isFav) {
+                                prefs.removeFavorite(item)
+                                isFav = false
+                                Toast.makeText(
+                                    context,
+                                    when(appLanguage) {
+                                        AppLanguage.ARMENIAN -> "Հեռացված է ընտրյալներից"
+                                        AppLanguage.RUSSIAN -> "Удалено из избранного"
+                                        AppLanguage.ENGLISH -> "Removed from favorites"
+                                    },
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                prefs.addFavorite(item)
+                                isFav = true
+                                Toast.makeText(
+                                    context,
+                                    when(appLanguage) {
+                                        AppLanguage.ARMENIAN -> "Ավելացված է ընտրյալներում ❤️"
+                                        AppLanguage.RUSSIAN -> "Добавлено в избранное ❤️"
+                                        AppLanguage.ENGLISH -> "Added to favorites ❤️"
+                                    },
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -257,7 +315,7 @@ fun HomeScreen(
                         )
                     }
 
-                    // Share (Image Card)
+                    // 3. Share (Image Card)
                     IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -281,154 +339,31 @@ fun HomeScreen(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                }
-            }
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // MARK: - Action Buttons: "Պատահական տող" and "✨ ԱԲ Գեներացում" (matching Screenshot 2)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Left Button: Պատահական տող (Light Gray Container)
-            Button(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    val newVerse = dbHelper.getRandomVerse()
-                    if (newVerse != null) {
-                        currentVerse = newVerse
-                    }
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp),
-                shape = RoundedCornerShape(16.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFEFF1F5),
-                    contentColor = Color(0xFF0F172A)
-                ),
-                border = ButtonDefaults.outlinedButtonBorder().copy(
-                    brush = Brush.linearGradient(listOf(Color(0xFFE2E8F0), Color(0xFFCBD5E1)))
-                )
-            ) {
-                Text(
-                    text = when(appLanguage) {
-                        AppLanguage.ARMENIAN -> "Պատահական տող"
-                        AppLanguage.RUSSIAN -> "Случайный стих"
-                        AppLanguage.ENGLISH -> "Random verse"
-                    },
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A),
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Right Button: ✨ ԱԲ Գեներացում (Vibrant Sky Blue Container)
-            Button(
-                onClick = {
-                    val key = when(prefs.activeProvider) {
-                        AIProvider.GEMINI -> prefs.geminiApiKey
-                        AIProvider.CHATGPT -> prefs.openaiApiKey
-                        AIProvider.CLAUDE -> prefs.anthropicApiKey
-                    }
-
-                    if (key.trim().isEmpty()) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        Toast.makeText(
-                            context,
-                            when(appLanguage) {
-                                AppLanguage.ARMENIAN -> "Մուտքագրեք API բանալին Կարգավորումներում ⚙️"
-                                AppLanguage.RUSSIAN -> "Впишите API Ключ в Настройках ⚙️"
-                                AppLanguage.ENGLISH -> "Please enter API Key in Settings ⚙️"
-                            },
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        onOpenSettings()
-                    } else {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        isGeneratingAI = true
-                        scope.launch {
-                            val result = AIService.generateVerse(
-                                provider = prefs.activeProvider,
-                                apiKey = key,
-                                appLanguage = appLanguage
-                            )
-                            isGeneratingAI = false
-                            result.onSuccess { generatedVerse ->
-                                currentVerse = generatedVerse
-                            }.onFailure { err ->
-                                Toast.makeText(
-                                    context,
-                                    "ИИ Ошибка: ${err.localizedMessage ?: "Network error"}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                val fallback = dbHelper.getRandomVerse()
-                                if (fallback != null) currentVerse = fallback
-                            }
-                        }
-                    }
-                },
-                enabled = !isGeneratingAI,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp),
-                shape = RoundedCornerShape(16.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF0EA5E9),
-                    contentColor = Color.White
-                )
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    if (isGeneratingAI) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "...",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    } else {
+                    // 4. AI Guide (Spiritual Reflection)
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onOpenAIGuide()
+                        },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE0F2FE))
+                            .border(1.dp, Color(0xFFBAE6FD), CircleShape)
+                    ) {
                         Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = when(appLanguage) {
-                                AppLanguage.ARMENIAN -> "ԱԲ Գեներացում"
-                                AppLanguage.RUSSIAN -> "Генерация ИИ"
-                                AppLanguage.ENGLISH -> "AI Generation"
-                            },
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "AI Guide",
+                            tint = Color(0xFF0284C7),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // MARK: - Banner 1: St. Gregory of Narek Card (matching Screenshot 2)
         Card(
@@ -558,6 +493,145 @@ fun HomeScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = Color(0xFF94A3B8),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // MARK: - Banner 3: Church Calendar & Feasts Card
+        val todayFeast = remember { ChurchCalendarService.todayFeast() }
+        val nextDaghavar = remember { ChurchCalendarService.nextDaghavarFeast() }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 1.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x10000000))
+                .clip(RoundedCornerShape(20.dp))
+                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onOpenCalendar()
+                },
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFFEF3C7),
+                    modifier = Modifier.size(46.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = todayFeast?.type?.icon ?: "⛪",
+                            fontSize = 22.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    if (todayFeast != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFFEF4444),
+                                modifier = Modifier.padding(end = 6.dp)
+                            ) {
+                                Text(
+                                    text = when (appLanguage) {
+                                        AppLanguage.ARMENIAN -> "ԱՅՍՕՐ"
+                                        AppLanguage.RUSSIAN -> "СЕГОДНЯ"
+                                        AppLanguage.ENGLISH -> "TODAY"
+                                    },
+                                    color = Color.White,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                            Text(
+                                text = todayFeast.title(appLanguage),
+                                color = Color(0xFF0F172A),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                fontFamily = FontFamily.Serif,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = todayFeast.formattedDate(appLanguage) + if (todayFeast.isFasting) " • 🕯️ " + when (appLanguage) {
+                                AppLanguage.ARMENIAN -> "Պահք"
+                                AppLanguage.RUSSIAN -> "Пост"
+                                AppLanguage.ENGLISH -> "Fast"
+                            } else "",
+                            color = Color(0xFFD97706),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else if (nextDaghavar != null) {
+                        Text(
+                            text = when (appLanguage) {
+                                AppLanguage.ARMENIAN -> "Եկեղեցական Տոնացույց"
+                                AppLanguage.RUSSIAN -> "Церковный Календарь"
+                                AppLanguage.ENGLISH -> "Church Calendar"
+                            },
+                            color = Color(0xFF0F172A),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            fontFamily = FontFamily.Serif
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${nextDaghavar.first.title(appLanguage)} • ${nextDaghavar.second} " + when (appLanguage) {
+                                AppLanguage.ARMENIAN -> "օրից"
+                                AppLanguage.RUSSIAN -> "дн."
+                                AppLanguage.ENGLISH -> "days left"
+                            },
+                            color = Color(0xFFD97706),
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else {
+                        Text(
+                            text = when (appLanguage) {
+                                AppLanguage.ARMENIAN -> "Եկեղեցական Տոնացույց"
+                                AppLanguage.RUSSIAN -> "Церковный Календарь"
+                                AppLanguage.ENGLISH -> "Church Calendar"
+                            },
+                            color = Color(0xFF0F172A),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            fontFamily = FontFamily.Serif
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = when (appLanguage) {
+                                AppLanguage.ARMENIAN -> "Հայ Առաքելական Եկեղեցու տոներ"
+                                AppLanguage.RUSSIAN -> "Праздники и посты Армянской Церкви"
+                                AppLanguage.ENGLISH -> "Armenian Apostolic Church Feasts"
+                            },
+                            color = Color(0xFF64748B),
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 Icon(
                     Icons.Default.ChevronRight,

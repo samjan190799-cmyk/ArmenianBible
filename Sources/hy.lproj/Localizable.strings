@@ -190,7 +190,39 @@
 "button_listen_audio" = "Լսել աղոթքը";
 "button_pause_audio" = "Դադար";
 
+/* Notes & Tags */
+"notes_title" = "Նշումներ & Ընդգծումներ";
+"notes_tab_all" = "Բոլորը";
+"notes_tab_favorites" = "Ընտրյալներ";
+"notes_tab_notes" = "Նշումներ";
+"notes_tab_highlights" = "Ընդգծումներ";
+"add_note_placeholder" = "Ավելացրեք ձեր անձնական միտքը կամ խորհրդածությունը...";
+"personal_note_title" = "Անձնական նշում";
+"tags_section_title" = "Թեմաներ & Թեգեր";
+"save_note_button" = "Պահպանել";
+"note_saved_toast" = "Նշումը պահպանված է";
+"note_deleted_toast" = "Նշումը հեռացված է";
+"all_tags_filter" = "Բոլոր թեգերը";
+"no_notes_found" = "Այս բաժնում նշումներ դեռ չկան";
 
+/* Interactive Widgets */
+"widget_next_verse_btn" = "Նոր տող";
+"widget_fav_btn" = "Ընտրյալ";
+"widget_pray_done_btn" = "✓ Աղոթված է";
+"widget_pray_todo_btn" = "🙏 Աղոթել";
+"widget_status_prayed" = "Օրվա աղոթքը կատարված է";
+"toast_prayer_done" = "Աղոթքը նշվեց որպես կատարված ✨";
+"toast_prayer_undone" = "Աղոթքի կարգավիճակը չեղարկվեց";
 
-
+/* Church Calendar & Feasts */
+"church_calendar_title" = "Եկեղեցական Տոնացույց";
+"church_calendar_subtitle" = "Հայ Առաքելական Եկեղեցու տոներ և պահքեր";
+"export_calendar_btn" = "Ներբեռնել օրացույցում";
+"today_badge" = "ԱՅՍՕՐ";
+"fasting_day_badge" = "Պահք";
+"days_left_format" = "օրից";
+"scripture_readings_title" = "Օրվա ընթերցվածք";
+"prayer_title" = "Տոնական աղոթք";
+"expand_details" = "Մանրամասն";
+"collapse_details" = "Փակել";
 

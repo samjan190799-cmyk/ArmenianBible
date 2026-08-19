@@ -190,7 +190,39 @@
 "button_listen_audio" = "Listen";
 "button_pause_audio" = "Pause";
 
+/* Notes & Tags */
+"notes_title" = "Notes & Highlights";
+"notes_tab_all" = "All";
+"notes_tab_favorites" = "Favorites";
+"notes_tab_notes" = "Notes";
+"notes_tab_highlights" = "Highlights";
+"add_note_placeholder" = "Add your personal thought or reflection...";
+"personal_note_title" = "Personal Note";
+"tags_section_title" = "Themes & Tags";
+"save_note_button" = "Save";
+"note_saved_toast" = "Note saved";
+"note_deleted_toast" = "Note deleted";
+"all_tags_filter" = "All Tags";
+"no_notes_found" = "No entries in this section yet";
 
+/* Interactive Widgets */
+"widget_next_verse_btn" = "Next Verse";
+"widget_fav_btn" = "Favorite";
+"widget_pray_done_btn" = "✓ Prayed";
+"widget_pray_todo_btn" = "🙏 Pray";
+"widget_status_prayed" = "Daily prayer completed";
+"toast_prayer_done" = "Marked as prayed today ✨";
+"toast_prayer_undone" = "Prayer completion reset";
 
-
+/* Church Calendar & Feasts */
+"church_calendar_title" = "Church Calendar";
+"church_calendar_subtitle" = "Armenian Apostolic Church Feasts & Fasts";
+"export_calendar_btn" = "Download to Calendar";
+"today_badge" = "TODAY";
+"fasting_day_badge" = "Fast";
+"days_left_format" = "days left";
+"scripture_readings_title" = "Scripture Readings";
+"prayer_title" = "Feast Prayer";
+"expand_details" = "More details";
+"collapse_details" = "Hide details";
 

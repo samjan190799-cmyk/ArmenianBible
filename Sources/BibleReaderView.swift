@@ -695,40 +695,87 @@ struct BibleSingleChapterView: View {
                             .frame(maxWidth: .infinity)
                             
                             ForEach(text.verses) { verse in
-                                let savedColorHex = manager.highlightColor(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
+                                let ann = manager.annotation(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
+                                let savedColorHex = ann?.colorHex ?? manager.highlightColor(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
                                 let isDeepLinkTarget = (highlightedVerseId == verse.verseNumber)
                                 
-                                VStack(alignment: .leading, spacing: 0) {
-                                    (
-                                        Text("\(verse.verseNumber) ")
-                                            .font(.system(size: 10, weight: .semibold, design: .serif))
-                                            .foregroundColor(accentColor.opacity(0.65))
-                                            .baselineOffset(6)
-                                        +
-                                        Text(verse.text(for: manager.appLanguage))
-                                            .font(.system(size: manager.bibleFontSize, weight: .regular, design: fontDesign))
-                                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : Color(hex: "1E293B"))
-                                    )
-                                    .lineSpacing(7)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 24)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        ZStack {
-                                            if let hex = savedColorHex {
-                                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                                    .fill(Color(hex: hex).opacity(colorScheme == .dark ? 0.28 : 0.22))
-                                            } else if isDeepLinkTarget {
-                                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                                    .fill(highlightColor)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(alignment: .top, spacing: 6) {
+                                        (
+                                            Text("\(verse.verseNumber) ")
+                                                .font(.system(size: 10, weight: .semibold, design: .serif))
+                                                .foregroundColor(accentColor.opacity(0.65))
+                                                .baselineOffset(6)
+                                            +
+                                            Text(verse.text(for: manager.appLanguage))
+                                                .font(.system(size: manager.bibleFontSize, weight: .regular, design: fontDesign))
+                                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : Color(hex: "1E293B"))
+                                        )
+                                        .lineSpacing(7)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        
+                                        if let ann = ann, !ann.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                            Image(systemName: "note.text")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(accentColor)
+                                                .padding(4)
+                                                .background(accentColor.opacity(0.12))
+                                                .clipShape(Circle())
+                                        }
+                                    }
+                                    
+                                    if let ann = ann, (!ann.tags.isEmpty || !ann.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            if !ann.tags.isEmpty {
+                                                HStack(spacing: 6) {
+                                                    ForEach(ann.tags) { tag in
+                                                        HStack(spacing: 3) {
+                                                            Text(tag.icon)
+                                                                .font(.system(size: 10))
+                                                            Text(tag.localizedTitle(for: manager.appLanguage))
+                                                                .font(.system(size: 10, weight: .bold))
+                                                        }
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 2)
+                                                        .background(Color(hex: tag.colorHex).opacity(0.16))
+                                                        .foregroundColor(Color(hex: tag.colorHex))
+                                                        .cornerRadius(6)
+                                                    }
+                                                }
+                                            }
+                                            
+                                            if !ann.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                                Text(ann.note)
+                                                    .font(.system(size: 12.5, weight: .medium, design: .serif))
+                                                    .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.75) : Color(hex: "475569"))
+                                                    .italic()
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
+                                                    .cornerRadius(6)
                                             }
                                         }
-                                    )
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        triggerHaptic(.light)
-                                        selectedVerseForSheet = verse
+                                        .padding(.top, 2)
                                     }
+                                }
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 8)
+                                .background(
+                                    ZStack {
+                                        if let hex = savedColorHex {
+                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                .fill(Color(hex: hex).opacity(colorScheme == .dark ? 0.28 : 0.22))
+                                        } else if isDeepLinkTarget {
+                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                .fill(highlightColor)
+                                        }
+                                    }
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    triggerHaptic(.light)
+                                    selectedVerseForSheet = verse
+                                }
                                     .contextMenu {
                                         Button {
                                             selectedVerseForSheet = verse
@@ -829,9 +876,6 @@ struct BibleSingleChapterView: View {
                 cardBackgroundColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.white,
                 cardBorderColor: LinearGradient(colors: [Color.primary.opacity(0.1), Color.primary.opacity(0.02)], startPoint: .topLeading, endPoint: .bottomTrailing),
                 primaryTextColor: colorScheme == .dark ? .white : Color(hex: "1E293B"),
-                onHighlight: { colorHex in
-                    manager.setHighlight(bookId: book.id, chapter: chapter, verseNumber: v.verseNumber, colorHex: colorHex)
-                },
                 onPinToWidget: {
                     pinToWidget(verse: v)
                 },
@@ -845,7 +889,7 @@ struct BibleSingleChapterView: View {
                     shareVerse(verse: v)
                 }
             )
-            .presentationDetents([.medium])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
         .overlay(
@@ -952,7 +996,7 @@ struct BibleSingleChapterView: View {
     }
 }
 
-// MARK: - Плашка действий над стихом (Маркеры + Закрепить на виджет)
+// MARK: - Плашка действий над стихом (Маркеры + Заметки + Теги + Закрепить на виджет)
 struct VerseActionSheetView: View {
     let book: BibleBook
     let chapter: Int
@@ -962,12 +1006,18 @@ struct VerseActionSheetView: View {
     let cardBackgroundColor: Color
     let cardBorderColor: LinearGradient
     let primaryTextColor: Color
-    let onHighlight: (String?) -> Void
+    
+    @ObservedObject var manager = BibleManager.shared
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var selectedColorHex: String? = nil
+    @State private var noteText: String = ""
+    @State private var selectedTags: Set<VerseTag> = []
+    
     let onPinToWidget: () -> Void
     let onToggleFavorite: () -> Void
     let onCopy: () -> Void
     let onShare: () -> Void
-    @Environment(\.dismiss) private var dismiss
     
     private let colors: [(name: String, hex: String)] = [
         ("Gold", "FACC15"),
@@ -978,94 +1028,302 @@ struct VerseActionSheetView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 18) {
-            HStack {
-                Text("\(book.name) \(chapter):\(verse.verseNumber)")
-                    .font(.system(size: 18, weight: .bold, design: .serif))
-                    .foregroundColor(primaryTextColor)
-                
-                Spacer()
-                
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            
-            Text(verse.text(for: language))
-                .font(.system(size: 15, weight: .medium, design: .serif))
-                .foregroundColor(primaryTextColor)
-                .lineSpacing(5)
-                .lineLimit(3)
-                .padding(14)
-                .background(cardBackgroundColor)
-                .cornerRadius(14)
-                .padding(.horizontal, 20)
-            
-            // Выбор цвета маркера
-            VStack(alignment: .leading, spacing: 10) {
-                Text("highlight_color_title".localized(for: language))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.secondary)
-                
-                HStack(spacing: 14) {
-                    ForEach(colors, id: \.hex) { c in
-                        Circle()
-                            .fill(Color(hex: c.hex))
-                            .frame(width: 36, height: 36)
-                            .overlay(
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Цитата стиха
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(verse.text(for: language))
+                            .font(.system(size: 15, weight: .medium, design: .serif))
+                            .foregroundColor(primaryTextColor)
+                            .lineSpacing(5)
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(cardBackgroundColor)
+                    .cornerRadius(14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(selectedColorHex != nil ? Color(hex: selectedColorHex!).opacity(0.6) : Color.primary.opacity(0.08), lineWidth: 1.5)
+                    )
+                    
+                    // Выбор цвета маркера
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("highlight_color_title".localized(for: language))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 14) {
+                            ForEach(colors, id: \.hex) { c in
                                 Circle()
-                                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
+                                    .fill(Color(hex: c.hex))
+                                    .frame(width: 36, height: 36)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(selectedColorHex == c.hex ? Color.primary : Color.clear, lineWidth: 2.5)
+                                    )
+                                    .scaleEffect(selectedColorHex == c.hex ? 1.15 : 1.0)
+                                    .animation(.spring(response: 0.3), value: selectedColorHex)
+                                    .onTapGesture {
+                                        triggerHaptic(.light)
+                                        if selectedColorHex == c.hex {
+                                            selectedColorHex = nil
+                                        } else {
+                                            selectedColorHex = c.hex
+                                        }
+                                        saveChanges()
+                                    }
+                            }
+                            
+                            Spacer()
+                            
+                            // Снять маркер
+                            if selectedColorHex != nil {
+                                Button {
+                                    triggerHaptic(.light)
+                                    selectedColorHex = nil
+                                    saveChanges()
+                                } label: {
+                                    Image(systemName: "slash.circle")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Поле личной заметки
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("personal_note_title".localized(for: language))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        
+                        TextField("add_note_placeholder".localized(for: language), text: $noteText, axis: .vertical)
+                            .lineLimit(3...6)
+                            .font(.system(size: 14))
+                            .padding(12)
+                            .background(cardBackgroundColor)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
                             )
-                            .onTapGesture {
-                                onHighlight(c.hex)
-                                dismiss()
+                            .onChange(of: noteText) { _ in
+                                saveChanges()
                             }
                     }
                     
-                    Spacer()
+                    // Тематические теги
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("tags_section_title".localized(for: language))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        
+                        FlowLayout(spacing: 8) {
+                            ForEach(VerseTag.allCases) { tag in
+                                let isSelected = selectedTags.contains(tag)
+                                Button {
+                                    triggerHaptic(.light)
+                                    if isSelected {
+                                        selectedTags.remove(tag)
+                                    } else {
+                                        selectedTags.insert(tag)
+                                    }
+                                    saveChanges()
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Text(tag.icon)
+                                        Text(tag.localizedTitle(for: language))
+                                            .font(.system(size: 12, weight: .semibold))
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(isSelected ? Color(hex: tag.colorHex).opacity(0.25) : cardBackgroundColor)
+                                    .foregroundColor(isSelected ? Color(hex: tag.colorHex) : primaryTextColor.opacity(0.8))
+                                    .cornerRadius(10)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(isSelected ? Color(hex: tag.colorHex) : Color.primary.opacity(0.1), lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                        }
+                    }
                     
-                    // Снять маркер
+                    Divider()
+                        .padding(.vertical, 4)
+                    
+                    // Кнопки быстрых действий
+                    VStack(spacing: 10) {
+                        Button {
+                            onPinToWidget()
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Image(systemName: "square.stack.3d.up.fill")
+                                    .foregroundColor(accentColor)
+                                Text("pin_to_widget".localized(for: language))
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(primaryTextColor)
+                                Spacer()
+                            }
+                            .padding(14)
+                            .background(accentColor.opacity(0.12))
+                            .cornerRadius(14)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        
+                        HStack(spacing: 10) {
+                            Button {
+                                onToggleFavorite()
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    Image(systemName: manager.isFavorite(verseText: verse) ? "heart.slash.fill" : "heart.fill")
+                                        .foregroundColor(.red)
+                                    Text(manager.isFavorite(verseText: verse) ? "context_menu_remove_favorite".localized(for: language) : "context_menu_add_favorite".localized(for: language))
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(12)
+                                .background(cardBackgroundColor)
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            Button {
+                                onCopy()
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "doc.on.doc")
+                                        .foregroundColor(accentColor)
+                                    Text("context_menu_copy".localized(for: language))
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(12)
+                                .background(cardBackgroundColor)
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            Button {
+                                onShare()
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .foregroundColor(accentColor)
+                                    Text("context_menu_share".localized(for: language))
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(12)
+                                .background(cardBackgroundColor)
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle("\(book.name) \(chapter):\(verse.verseNumber)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        onHighlight(nil)
                         dismiss()
                     } label: {
-                        Image(systemName: "slash.circle")
-                            .font(.system(size: 24))
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 22))
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            
-            Divider()
-                .padding(.horizontal, 20)
-            
-            // Действие 1: Закрепить на виджете
-            Button {
-                onPinToWidget()
-                dismiss()
-            } label: {
-                HStack {
-                    Image(systemName: "square.stack.3d.up.fill")
-                        .foregroundColor(accentColor)
-                    Text("pin_to_widget".localized(for: language))
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(primaryTextColor)
-                    Spacer()
+            .onAppear {
+                if let ann = manager.annotation(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber) {
+                    selectedColorHex = ann.colorHex
+                    noteText = ann.note
+                    selectedTags = Set(ann.tags)
+                } else if let hex = manager.highlightColor(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber) {
+                    selectedColorHex = hex
                 }
-                .padding(14)
-                .background(accentColor.opacity(0.12))
-                .cornerRadius(14)
             }
-            .buttonStyle(ScaleButtonStyle())
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
+        }
+    }
+    
+    private func saveChanges() {
+        var ann = manager.annotation(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber) ?? VerseAnnotation(
+            bookId: book.id,
+            chapter: chapter,
+            verseNumber: verse.verseNumber,
+            bookNameHy: book.nameHy,
+            bookNameRu: book.nameRu,
+            bookNameEn: book.nameEn,
+            textHy: verse.textHy,
+            textRu: verse.textRu,
+            textEn: verse.textEn
+        )
+        ann.colorHex = selectedColorHex
+        ann.note = noteText
+        ann.tags = Array(selectedTags)
+        ann.updatedAt = Date()
+        manager.saveAnnotation(ann)
+    }
+    
+    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
+}
+
+// MARK: - FlowLayout для красивого выравнивания чипсов тегов
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let containerWidth = proposal.width ?? .infinity
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentX + size.width > containerWidth && currentX > 0 {
+                currentX = 0
+                currentY += lineHeight + spacing
+                lineHeight = 0
+            }
+            currentX += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
+        }
+
+        return CGSize(width: containerWidth, height: currentY + lineHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var currentX: CGFloat = bounds.minX
+        var currentY: CGFloat = bounds.minY
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentX + size.width > bounds.maxX && currentX > bounds.minX {
+                currentX = bounds.minX
+                currentY += lineHeight + spacing
+                lineHeight = 0
+            }
+            subview.place(at: CGPoint(x: currentX, y: currentY), proposal: .unspecified)
+            currentX += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
         }
     }
 }

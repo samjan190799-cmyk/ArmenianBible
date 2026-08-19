@@ -24,6 +24,8 @@ class BibleManager: ObservableObject {
     @Published var activeTabSelection: Int = 0
     @Published var quizBestScore: Int = 0
     @Published var highlightedVerses: [String: String] = [:]
+    @Published var annotations: [String: VerseAnnotation] = [:]
+    @Published var isPrayerCompletedToday: Bool = false
     @Published var armenianEdition: ArmenianBibleEdition = .ararat
     
     // Глубокие ссылки для чтения Библии
@@ -194,11 +196,18 @@ class BibleManager: ObservableObject {
             if let savedHighlights = defaults.dictionary(forKey: "highlighted_verses_map") as? [String: String] {
                 self.highlightedVerses = savedHighlights
             }
+            if let savedAnnotationsData = defaults.data(forKey: "verse_annotations_map"),
+               let decoded = try? JSONDecoder().decode([String: VerseAnnotation].self, from: savedAnnotationsData) {
+                self.annotations = decoded
+            }
             if let savedEdRaw = defaults.string(forKey: "armenian_bible_edition"),
                let ed = ArmenianBibleEdition(rawValue: savedEdRaw) {
                 self.armenianEdition = ed
             }
         }
+        
+        // Проверка статуса молитвы дня
+        checkPrayerCompletionStatus()
         
         // Загрузка Цветовой темы
         if let defaults = sharedDefaults,
@@ -1237,24 +1246,111 @@ class BibleManager: ObservableObject {
         }
     }
     
-    // MARK: - Цветные Маркеры (Highlighters)
-    func setHighlight(bookId: Int, chapter: Int, verseNumber: Int, colorHex: String?) {
+    // MARK: - Управление Заметками, Тегами и Маркерами (Annotations, Notes, Tags & Highlighters)
+    func annotation(bookId: Int, chapter: Int, verseNumber: Int) -> VerseAnnotation? {
         let key = "\(bookId)_\(chapter)_\(verseNumber)"
-        if let colorHex = colorHex {
-            highlightedVerses[key] = colorHex
+        return annotations[key]
+    }
+    
+    func saveAnnotation(_ item: VerseAnnotation) {
+        let key = item.key
+        if item.hasContent {
+            annotations[key] = item
+            if let color = item.colorHex {
+                highlightedVerses[key] = color
+            } else {
+                highlightedVerses.removeValue(forKey: key)
+            }
         } else {
+            annotations.removeValue(forKey: key)
             highlightedVerses.removeValue(forKey: key)
         }
-        if let defaults = sharedDefaults {
-            defaults.set(highlightedVerses, forKey: "highlighted_verses_map")
-            defaults.synchronize()
-        }
+        
+        persistAnnotations()
         objectWillChange.send()
+    }
+    
+    func deleteAnnotation(bookId: Int, chapter: Int, verseNumber: Int) {
+        let key = "\(bookId)_\(chapter)_\(verseNumber)"
+        annotations.removeValue(forKey: key)
+        highlightedVerses.removeValue(forKey: key)
+        persistAnnotations()
+        objectWillChange.send()
+    }
+    
+    private func persistAnnotations() {
+        guard let defaults = sharedDefaults else { return }
+        if let encoded = try? JSONEncoder().encode(annotations) {
+            defaults.set(encoded, forKey: "verse_annotations_map")
+        }
+        defaults.set(highlightedVerses, forKey: "highlighted_verses_map")
+        defaults.synchronize()
+    }
+    
+    var allAnnotations: [VerseAnnotation] {
+        annotations.values.sorted { $0.updatedAt > $1.updatedAt }
+    }
+    
+    func setHighlight(
+        bookId: Int,
+        chapter: Int,
+        verseNumber: Int,
+        colorHex: String?,
+        bookNameHy: String = "",
+        bookNameRu: String = "",
+        bookNameEn: String = "",
+        textHy: String = "",
+        textRu: String = "",
+        textEn: String = ""
+    ) {
+        let key = "\(bookId)_\(chapter)_\(verseNumber)"
+        var item = annotations[key] ?? VerseAnnotation(
+            bookId: bookId,
+            chapter: chapter,
+            verseNumber: verseNumber,
+            bookNameHy: bookNameHy,
+            bookNameRu: bookNameRu,
+            bookNameEn: bookNameEn,
+            textHy: textHy,
+            textRu: textRu,
+            textEn: textEn
+        )
+        item.colorHex = colorHex
+        if !bookNameHy.isEmpty { item = VerseAnnotation(id: item.id, bookId: bookId, chapter: chapter, verseNumber: verseNumber, bookNameHy: bookNameHy, bookNameRu: bookNameRu, bookNameEn: bookNameEn, textHy: textHy, textRu: textRu, textEn: textEn, colorHex: colorHex, note: item.note, tags: item.tags, updatedAt: Date()) }
+        saveAnnotation(item)
     }
     
     func highlightColor(bookId: Int, chapter: Int, verseNumber: Int) -> String? {
         let key = "\(bookId)_\(chapter)_\(verseNumber)"
+        if let annColor = annotations[key]?.colorHex, !annColor.isEmpty {
+            return annColor
+        }
         return highlightedVerses[key]
+    }
+    
+    // MARK: - Молитва дня и статус выполнения (Widget & Lockscreen)
+    func checkPrayerCompletionStatus() {
+        guard let defaults = sharedDefaults else { return }
+        if let lastDate = defaults.object(forKey: "daily_prayer_completed_date") as? Date {
+            let isToday = Calendar.current.isDateInToday(lastDate)
+            self.isPrayerCompletedToday = isToday
+        } else {
+            self.isPrayerCompletedToday = false
+        }
+    }
+    
+    func togglePrayerCompletedToday() {
+        guard let defaults = sharedDefaults else { return }
+        let newValue = !isPrayerCompletedToday
+        isPrayerCompletedToday = newValue
+        if newValue {
+            defaults.set(Date(), forKey: "daily_prayer_completed_date")
+        } else {
+            defaults.removeObject(forKey: "daily_prayer_completed_date")
+        }
+        defaults.synchronize()
+        WidgetCenter.shared.reloadAllTimelines()
+        objectWillChange.send()
     }
     
     // MARK: - Закрепление стиха на Виджете

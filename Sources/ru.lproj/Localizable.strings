@@ -190,7 +190,39 @@
 "button_listen_audio" = "Слушать";
 "button_pause_audio" = "Пауза";
 
+/* Notes & Tags */
+"notes_title" = "Заметки и Выделения";
+"notes_tab_all" = "Все";
+"notes_tab_favorites" = "Избранное";
+"notes_tab_notes" = "Заметки";
+"notes_tab_highlights" = "Маркеры";
+"add_note_placeholder" = "Добавьте личную мысль или духовное размышление...";
+"personal_note_title" = "Личная заметка";
+"tags_section_title" = "Темы и Теги";
+"save_note_button" = "Сохранить";
+"note_saved_toast" = "Заметка сохранена";
+"note_deleted_toast" = "Заметка удалена";
+"all_tags_filter" = "Все теги";
+"no_notes_found" = "В этом разделе пока нет записей";
 
+/* Interactive Widgets */
+"widget_next_verse_btn" = "Новый стих";
+"widget_fav_btn" = "В избранное";
+"widget_pray_done_btn" = "✓ Прочитано";
+"widget_pray_todo_btn" = "🙏 Помолиться";
+"widget_status_prayed" = "Молитва дня совершена";
+"toast_prayer_done" = "Молитва отмечена выполненной ✨";
+"toast_prayer_undone" = "Отметка молитвы снята";
 
-
+/* Church Calendar & Feasts */
+"church_calendar_title" = "Церковный Календарь";
+"church_calendar_subtitle" = "Праздники и посты Армянской Церкви";
+"export_calendar_btn" = "Закачать в календарь";
+"today_badge" = "СЕГОДНЯ";
+"fasting_day_badge" = "Пост";
+"days_left_format" = "дн.";
+"scripture_readings_title" = "Чтения дня";
+"prayer_title" = "Праздничная молитва";
+"expand_details" = "Подробнее";
+"collapse_details" = "Скрыть";
 

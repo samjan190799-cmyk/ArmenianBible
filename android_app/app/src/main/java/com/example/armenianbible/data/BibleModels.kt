@@ -246,3 +246,87 @@ data class BibleSearchResult(
     val verseNumber: Int,
     val text: String
 )
+
+enum class VerseTag(val id: String, val icon: String, val colorHex: String) {
+    FAITH("faith", "🕊️", "#38BDF8"),
+    HOPE("hope", "⚓", "#10B981"),
+    LOVE("love", "❤️", "#F43F5E"),
+    GRIEF("grief", "🕯️", "#8B5CF6"),
+    GRATITUDE("gratitude", "🙏", "#F59E0B"),
+    WISDOM("wisdom", "📜", "#0EA5E9"),
+    PRAYER("prayer", "✝️", "#6366F1");
+
+    fun localizedTitle(lang: AppLanguage): String = when (this) {
+        FAITH -> when (lang) {
+            AppLanguage.ARMENIAN -> "Հավատք"
+            AppLanguage.RUSSIAN -> "Вера"
+            AppLanguage.ENGLISH -> "Faith"
+        }
+        HOPE -> when (lang) {
+            AppLanguage.ARMENIAN -> "Հույս"
+            AppLanguage.RUSSIAN -> "Надежда"
+            AppLanguage.ENGLISH -> "Hope"
+        }
+        LOVE -> when (lang) {
+            AppLanguage.ARMENIAN -> "Սեր"
+            AppLanguage.RUSSIAN -> "Любовь"
+            AppLanguage.ENGLISH -> "Love"
+        }
+        GRIEF -> when (lang) {
+            AppLanguage.ARMENIAN -> "Սուգ և մխիթարություն"
+            AppLanguage.RUSSIAN -> "Скорбь и утешение"
+            AppLanguage.ENGLISH -> "Grief & Comfort"
+        }
+        GRATITUDE -> when (lang) {
+            AppLanguage.ARMENIAN -> "Գոհություն"
+            AppLanguage.RUSSIAN -> "Благодарность"
+            AppLanguage.ENGLISH -> "Gratitude"
+        }
+        WISDOM -> when (lang) {
+            AppLanguage.ARMENIAN -> "Իմաստություն"
+            AppLanguage.RUSSIAN -> "Мудрость"
+            AppLanguage.ENGLISH -> "Wisdom"
+        }
+        PRAYER -> when (lang) {
+            AppLanguage.ARMENIAN -> "Աղոթք"
+            AppLanguage.RUSSIAN -> "Молитва"
+            AppLanguage.ENGLISH -> "Prayer"
+        }
+    }
+}
+
+data class VerseAnnotation(
+    val id: String = UUID.randomUUID().toString(),
+    val bookId: Int,
+    val chapter: Int,
+    val verseNumber: Int,
+    val bookNameHy: String = "",
+    val bookNameRu: String = "",
+    val bookNameEn: String = "",
+    val textHy: String = "",
+    val textRu: String = "",
+    val textEn: String = "",
+    val colorHex: String? = null,
+    val note: String = "",
+    val tags: List<VerseTag> = emptyList(),
+    val updatedAtMillis: Long = System.currentTimeMillis()
+) {
+    val key: String get() = "${bookId}_${chapter}_$verseNumber"
+
+    fun text(language: AppLanguage): String = when (language) {
+        AppLanguage.ARMENIAN -> textHy
+        AppLanguage.RUSSIAN -> textRu
+        AppLanguage.ENGLISH -> textEn
+    }
+
+    fun bookName(language: AppLanguage): String = when (language) {
+        AppLanguage.ARMENIAN -> if (bookNameHy.isNotEmpty()) bookNameHy else "$bookId"
+        AppLanguage.RUSSIAN -> if (bookNameRu.isNotEmpty()) bookNameRu else "$bookId"
+        AppLanguage.ENGLISH -> if (bookNameEn.isNotEmpty()) bookNameEn else "$bookId"
+    }
+
+    fun reference(language: AppLanguage): String = "${bookName(language)} $chapter:$verseNumber"
+
+    val hasContent: Boolean get() = (!colorHex.isNullOrEmpty()) || note.trim().isNotEmpty() || tags.isNotEmpty()
+}
+

@@ -76,6 +76,146 @@ struct ConfigurationAppIntent: WidgetConfigurationIntent {
     var category: TextCategoryAppEnum
 }
 
+// MARK: - Интерактивное намерение: Следующий стих (Next Verse Intent)
+@available(iOS 17.0, *)
+struct NextVerseIntent: AppIntent {
+    static var title: LocalizedStringResource = "Next Verse"
+    static var description: LocalizedStringResource = "Changes the widget to a new random Bible verse or prayer."
+    
+    func perform() async throws -> some IntentResult {
+        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+        guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
+            return .result()
+        }
+        
+        let categoryRaw = defaults.string(forKey: "selectedCategory") ?? "both"
+        let category = TextCategory(rawValue: categoryRaw) ?? .both
+        
+        let database: [BibleVerse]
+        switch category {
+        case .verses:
+            database = BibleVerse.database.filter { !$0.isPrayer }
+        case .prayers:
+            database = BibleVerse.database.filter { $0.isPrayer }
+        case .favorites:
+            if let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
+               let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
+               !decoded.isEmpty {
+                database = decoded.map { item in
+                    BibleVerse(
+                        id: item.id,
+                        textHy: item.textHy,
+                        textRu: item.textRu,
+                        textEn: item.textEn,
+                        refHy: item.refHy,
+                        refRu: item.refRu,
+                        refEn: item.refEn,
+                        isPrayer: false
+                    )
+                }
+            } else {
+                database = BibleVerse.database
+            }
+        case .both:
+            database = BibleVerse.database
+        }
+        
+        if let randomVerse = database.randomElement() {
+            defaults.set(randomVerse.id.uuidString, forKey: "currentVerseId")
+            defaults.set(randomVerse.textHy, forKey: "currentVerseTextHy")
+            defaults.set(randomVerse.textRu, forKey: "currentVerseTextRu")
+            defaults.set(randomVerse.textEn, forKey: "currentVerseTextEn")
+            defaults.set(randomVerse.refHy, forKey: "currentVerseReferenceHy")
+            defaults.set(randomVerse.refRu, forKey: "currentVerseReferenceRu")
+            defaults.set(randomVerse.refEn, forKey: "currentVerseReferenceEn")
+            
+            let langRaw = defaults.string(forKey: "app_language") ?? "armenian"
+            let lang = AppLanguage(rawValue: langRaw) ?? .armenian
+            defaults.set(randomVerse.text(for: lang), forKey: "currentVerseText")
+            defaults.set(randomVerse.reference(for: lang), forKey: "currentVerseReference")
+            defaults.synchronize()
+        }
+        
+        return .result()
+    }
+}
+
+// MARK: - Интерактивное намерение: Отметить молитву прочитанной / выполненной
+@available(iOS 17.0, *)
+struct TogglePrayerCompletedWidgetIntent: AppIntent {
+    static var title: LocalizedStringResource = "Mark Prayer as Completed"
+    static var description: LocalizedStringResource = "Toggles today's prayer completion status."
+    
+    func perform() async throws -> some IntentResult {
+        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+        guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
+            return .result()
+        }
+        
+        if let lastDate = defaults.object(forKey: "daily_prayer_completed_date") as? Date,
+           Calendar.current.isDateInToday(lastDate) {
+            defaults.removeObject(forKey: "daily_prayer_completed_date")
+        } else {
+            defaults.set(Date(), forKey: "daily_prayer_completed_date")
+        }
+        defaults.synchronize()
+        return .result()
+    }
+}
+
+// MARK: - Интерактивное намерение: Добавить/Удалить из Избранного
+@available(iOS 17.0, *)
+struct ToggleFavoriteWidgetIntent: AppIntent {
+    static var title: LocalizedStringResource = "Toggle Favorite"
+    static var description: LocalizedStringResource = "Adds or removes the current verse from favorites."
+    
+    func perform() async throws -> some IntentResult {
+        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+        guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
+            return .result()
+        }
+        
+        var favorites: [FavoriteItem] = []
+        if let data = defaults.data(forKey: "favorite_verses"),
+           let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: data) {
+            favorites = decoded
+        }
+        
+        let textHy = defaults.string(forKey: "currentVerseTextHy") ?? defaults.string(forKey: "currentVerseText") ?? ""
+        let textRu = defaults.string(forKey: "currentVerseTextRu") ?? defaults.string(forKey: "currentVerseText") ?? ""
+        let textEn = defaults.string(forKey: "currentVerseTextEn") ?? defaults.string(forKey: "currentVerseText") ?? ""
+        let refHy = defaults.string(forKey: "currentVerseReferenceHy") ?? defaults.string(forKey: "currentVerseReference") ?? ""
+        let refRu = defaults.string(forKey: "currentVerseReferenceRu") ?? defaults.string(forKey: "currentVerseReference") ?? ""
+        let refEn = defaults.string(forKey: "currentVerseReferenceEn") ?? defaults.string(forKey: "currentVerseReference") ?? ""
+        
+        if let existingIdx = favorites.firstIndex(where: { $0.refHy == refHy || ($0.textHy == textHy && !textHy.isEmpty) }) {
+            favorites.remove(at: existingIdx)
+        } else {
+            let newItem = FavoriteItem(
+                id: UUID(),
+                isDailyVerse: true,
+                bookId: nil,
+                chapter: nil,
+                verseNumber: nil,
+                textHy: textHy,
+                textRu: textRu,
+                textEn: textEn,
+                refHy: refHy,
+                refRu: refRu,
+                refEn: refEn
+            )
+            favorites.insert(newItem, at: 0)
+        }
+        
+        if let encoded = try? JSONEncoder().encode(favorites) {
+            defaults.set(encoded, forKey: "favorite_verses")
+            defaults.synchronize()
+        }
+        
+        return .result()
+    }
+}
+
 // MARK: - Модель записи таймлайна (Timeline Entry)
 @available(iOS 17.0, *)
 struct SimpleEntry: TimelineEntry {
@@ -327,31 +467,59 @@ struct BibleWidgetEntryView: View {
         return getSharedLanguage()
     }
 
+    private var isPrayerDone: Bool {
+        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+        guard let defaults = UserDefaults(suiteName: appGroupSuiteName),
+              let lastDate = defaults.object(forKey: "daily_prayer_completed_date") as? Date else {
+            return false
+        }
+        return Calendar.current.isDateInToday(lastDate)
+    }
+    
+    private var isFavorite: Bool {
+        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+        guard let defaults = UserDefaults(suiteName: appGroupSuiteName),
+              let data = defaults.data(forKey: "favorite_verses"),
+              let list = try? JSONDecoder().decode([FavoriteItem].self, from: data) else {
+            return false
+        }
+        return list.contains { $0.refHy == entry.verse.refHy || $0.textHy == entry.verse.textHy }
+    }
+
     var body: some View {
         Group {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки
-                Text(entry.verse.text(for: getLanguage()))
-                    .font(.system(size: 13, weight: .bold, design: .serif))
-                    .lineLimit(9)
-                    .minimumScaleFactor(0.35)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .padding(0)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(entry.verse.reference(for: getLanguage()))
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        if isPrayerDone {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 9))
+                        }
+                    }
+                    Text(entry.verse.text(for: getLanguage()))
+                        .font(.system(size: 12, weight: .bold, design: .serif))
+                        .lineLimit(4)
+                        .minimumScaleFactor(0.35)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
                 
             case .accessoryInline:
                 // Строчный виджет на экране блокировки над часами
-                Text("✝️ \(entry.verse.reference(for: getLanguage()))")
+                Text("\(isPrayerDone ? "✓ " : "✝️ ")\(entry.verse.reference(for: getLanguage()))")
                 
             case .accessoryCircular:
                 // Круглый виджет на экране блокировки
                 ZStack {
                     AccessoryWidgetBackground()
                     VStack(spacing: 1) {
-                        Image(systemName: "book.closed.fill")
+                        Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "book.closed.fill")
                             .font(.system(size: 16))
-                        Text("widget_circular_text".localized(for: getLanguage()))
+                        Text(isPrayerDone ? "OK" : "widget_circular_text".localized(for: getLanguage()))
                             .font(.system(size: 8, weight: .bold))
                     }
                 }
@@ -361,24 +529,45 @@ struct BibleWidgetEntryView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "quote.opening")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundColor(quoteIconColor)
                         Spacer()
+                        
+                        // Интерактивная кнопка следующего стиха
+                        Button(intent: NextVerseIntent()) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(secondaryTextColor)
+                                .padding(4)
+                                .background(Color.primary.opacity(0.06))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 13.0, weight: .medium, design: .serif))
-                        .lineLimit(9)
+                        .font(.system(size: 12.5, weight: .medium, design: .serif))
+                        .lineLimit(6)
                         .minimumScaleFactor(0.42)
                         .lineSpacing(2)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 2)
                     
-                    Text(entry.verse.reference(for: getLanguage()))
-                        .font(.system(size: 9.0, weight: .bold, design: .monospaced))
-                        .foregroundColor(secondaryTextColor)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    HStack {
+                        Button(intent: TogglePrayerCompletedWidgetIntent()) {
+                            Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(isPrayerDone ? .green : secondaryTextColor.opacity(0.7))
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                        
+                        Text(entry.verse.reference(for: getLanguage()))
+                            .font(.system(size: 9.0, weight: .bold, design: .monospaced))
+                            .foregroundColor(secondaryTextColor)
+                    }
                 }
                 .padding(11)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -389,26 +578,76 @@ struct BibleWidgetEntryView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Image(systemName: "quote.opening")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 13, weight: .bold))
                             .foregroundColor(quoteIconColor)
+                        
                         Spacer()
+                        
+                        Text(entry.verse.reference(for: getLanguage()))
+                            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                            .foregroundColor(secondaryTextColor)
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 14.5, weight: .medium, design: .serif))
-                        .lineLimit(9)
+                        .font(.system(size: 13.5, weight: .medium, design: .serif))
+                        .lineLimit(5)
                         .minimumScaleFactor(0.45)
                         .lineSpacing(2.5)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 2)
                     
-                    Text(entry.verse.reference(for: getLanguage()))
-                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(secondaryTextColor)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    // Интерактивная панель действий
+                    HStack(spacing: 8) {
+                        Button(intent: NextVerseIntent()) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 10, weight: .bold))
+                                Text("widget_next_verse_btn".localized(for: getLanguage()))
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.primary.opacity(0.06))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button(intent: ToggleFavoriteWidgetIntent()) {
+                            HStack(spacing: 4) {
+                                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(isFavorite ? .red : primaryTextColor)
+                                Text("widget_fav_btn".localized(for: getLanguage()))
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.primary.opacity(0.06))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                        
+                        Button(intent: TogglePrayerCompletedWidgetIntent()) {
+                            HStack(spacing: 4) {
+                                Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "hands.sparkles.fill")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(isPrayerDone ? .green : accentColor)
+                                Text(isPrayerDone ? "widget_pray_done_btn".localized(for: getLanguage()) : "widget_pray_todo_btn".localized(for: getLanguage()))
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(isPrayerDone ? .green : accentColor)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background((isPrayerDone ? Color.green : accentColor).opacity(0.12))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .padding(13)
+                .padding(12)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .widgetBackground(widgetBackgroundGradient)
                 
@@ -420,21 +659,70 @@ struct BibleWidgetEntryView: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(quoteIconColor)
                         Spacer()
+                        
+                        Text(entry.verse.reference(for: getLanguage()))
+                            .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                            .foregroundColor(secondaryTextColor)
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 17.0, weight: .medium, design: .serif))
-                        .lineLimit(16)
+                        .font(.system(size: 16.5, weight: .medium, design: .serif))
+                        .lineLimit(12)
                         .minimumScaleFactor(0.50)
                         .lineSpacing(4)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 4)
                     
-                    Text(entry.verse.reference(for: getLanguage()))
-                        .font(.system(size: 11.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(secondaryTextColor)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    // Интерактивная панель действий
+                    HStack(spacing: 10) {
+                        Button(intent: NextVerseIntent()) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 12, weight: .bold))
+                                Text("widget_next_verse_btn".localized(for: getLanguage()))
+                                    .font(.system(size: 11, weight: .bold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.primary.opacity(0.06))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button(intent: ToggleFavoriteWidgetIntent()) {
+                            HStack(spacing: 5) {
+                                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(isFavorite ? .red : primaryTextColor)
+                                Text("widget_fav_btn".localized(for: getLanguage()))
+                                    .font(.system(size: 11, weight: .bold))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.primary.opacity(0.06))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                        
+                        Button(intent: TogglePrayerCompletedWidgetIntent()) {
+                            HStack(spacing: 5) {
+                                Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "hands.sparkles.fill")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(isPrayerDone ? .green : accentColor)
+                                Text(isPrayerDone ? "widget_pray_done_btn".localized(for: getLanguage()) : "widget_pray_todo_btn".localized(for: getLanguage()))
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(isPrayerDone ? .green : accentColor)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background((isPrayerDone ? Color.green : accentColor).opacity(0.12))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

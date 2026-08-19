@@ -104,12 +104,33 @@ class BibleAppWidget : AppWidgetProvider() {
                 }
                 sendUpdateBroadcast(context)
             }
+
+            ACTION_WIDGET_TOGGLE_PRAYER -> {
+                val prefs = PreferencesManager(context)
+                val isDone = prefs.togglePrayerCompletedToday()
+                val msg = if (isDone) {
+                    when(prefs.appLanguage) {
+                        AppLanguage.ARMENIAN -> "Օրվա աղոթքը կատարված է 🙏"
+                        AppLanguage.RUSSIAN -> "Молитва дня выполнена 🙏"
+                        AppLanguage.ENGLISH -> "Daily prayer marked as completed 🙏"
+                    }
+                } else {
+                    when(prefs.appLanguage) {
+                        AppLanguage.ARMENIAN -> "Աղոթքի կարգավիճակը չեղարկված է"
+                        AppLanguage.RUSSIAN -> "Статус молитвы сброшен"
+                        AppLanguage.ENGLISH -> "Prayer status reset"
+                    }
+                }
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                sendUpdateBroadcast(context)
+            }
         }
     }
 
     companion object {
         const val ACTION_WIDGET_NEXT_VERSE = "com.example.armenianbible.ACTION_WIDGET_NEXT_VERSE"
         const val ACTION_WIDGET_TOGGLE_FAVORITE = "com.example.armenianbible.ACTION_WIDGET_TOGGLE_FAVORITE"
+        const val ACTION_WIDGET_TOGGLE_PRAYER = "com.example.armenianbible.ACTION_WIDGET_TOGGLE_PRAYER"
 
         fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val prefs = PreferencesManager(context)
@@ -171,6 +192,33 @@ class BibleAppWidget : AppWidgetProvider() {
             val isFav = prefs.isFavorite(verseRef)
             views.setTextViewText(R.id.widget_btn_fav, if (isFav) "❤️ Պահված" else "🤍 Ընտրյալ")
             views.setOnClickPendingIntent(R.id.widget_btn_fav, favPendingIntent)
+
+            // 4. Click on Prayer Button -> Toggle Daily Prayer Status
+            val prayIntent = Intent(context, BibleAppWidget::class.java).apply {
+                action = ACTION_WIDGET_TOGGLE_PRAYER
+            }
+            val prayPendingIntent = PendingIntent.getBroadcast(
+                context,
+                104,
+                prayIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val isPrayed = prefs.isPrayerCompletedToday()
+            val prayBtnText = if (isPrayed) {
+                when(prefs.appLanguage) {
+                    AppLanguage.ARMENIAN -> "✓ Աղոթել եմ"
+                    AppLanguage.RUSSIAN -> "✓ Помолился"
+                    AppLanguage.ENGLISH -> "✓ Prayed"
+                }
+            } else {
+                when(prefs.appLanguage) {
+                    AppLanguage.ARMENIAN -> "🙏 Աղոթել"
+                    AppLanguage.RUSSIAN -> "🙏 Помолиться"
+                    AppLanguage.ENGLISH -> "🙏 Pray"
+                }
+            }
+            views.setTextViewText(R.id.widget_btn_pray, prayBtnText)
+            views.setOnClickPendingIntent(R.id.widget_btn_pray, prayPendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }

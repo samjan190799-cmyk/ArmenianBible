@@ -1302,3 +1302,166 @@ struct FavoriteItem: Identifiable, Codable, Hashable {
     }
 }
 
+// MARK: - Тематические Теги (Verse Tags)
+enum VerseTag: String, CaseIterable, Identifiable, Codable, Hashable {
+    case faith = "faith"
+    case hope = "hope"
+    case love = "love"
+    case grief = "grief"
+    case gratitude = "gratitude"
+    case wisdom = "wisdom"
+    case prayer = "prayer"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .faith: return "🕊️"
+        case .hope: return "⚓"
+        case .love: return "❤️"
+        case .grief: return "🕯️"
+        case .gratitude: return "🙏"
+        case .wisdom: return "📜"
+        case .prayer: return "✝️"
+        }
+    }
+    
+    var colorHex: String {
+        switch self {
+        case .faith: return "38BDF8"       // Sky blue
+        case .hope: return "10B981"        // Emerald
+        case .love: return "F43F5E"        // Rose
+        case .grief: return "8B5CF6"       // Violet
+        case .gratitude: return "F59E0B"   // Amber
+        case .wisdom: return "0EA5E9"      // Ocean
+        case .prayer: return "6366F1"      // Indigo
+        }
+    }
+    
+    func localizedTitle(for language: AppLanguage) -> String {
+        switch self {
+        case .faith:
+            switch language {
+            case .armenian: return "Հավատք"
+            case .russian: return "Вера"
+            case .english: return "Faith"
+            }
+        case .hope:
+            switch language {
+            case .armenian: return "Հույս"
+            case .russian: return "Надежда"
+            case .english: return "Hope"
+            }
+        case .love:
+            switch language {
+            case .armenian: return "Սեր"
+            case .russian: return "Любовь"
+            case .english: return "Love"
+            }
+        case .grief:
+            switch language {
+            case .armenian: return "Սուգ և մխիթարություն"
+            case .russian: return "Скорбь и утешение"
+            case .english: return "Grief & Comfort"
+            }
+        case .gratitude:
+            switch language {
+            case .armenian: return "Գոհություն"
+            case .russian: return "Благодарность"
+            case .english: return "Gratitude"
+            }
+        case .wisdom:
+            switch language {
+            case .armenian: return "Իմաստություն"
+            case .russian: return "Мудрость"
+            case .english: return "Wisdom"
+            }
+        case .prayer:
+            switch language {
+            case .armenian: return "Աղոթք"
+            case .russian: return "Молитва"
+            case .english: return "Prayer"
+            }
+        }
+    }
+}
+
+// MARK: - Аннотация стиха (Цветной маркер, Заметка, Тематические теги)
+struct VerseAnnotation: Identifiable, Codable, Hashable {
+    let id: UUID
+    let bookId: Int
+    let chapter: Int
+    let verseNumber: Int
+    let bookNameHy: String
+    let bookNameRu: String
+    let bookNameEn: String
+    let textHy: String
+    let textRu: String
+    let textEn: String
+    var colorHex: String?              // Выделение маркером (например, "FACC15", "4ADE80", etc.)
+    var note: String                   // Текст личной мысли / размышления
+    var tags: [VerseTag]               // Список назначенных тегов
+    var updatedAt: Date
+    
+    init(
+        id: UUID = UUID(),
+        bookId: Int,
+        chapter: Int,
+        verseNumber: Int,
+        bookNameHy: String = "",
+        bookNameRu: String = "",
+        bookNameEn: String = "",
+        textHy: String,
+        textRu: String,
+        textEn: String,
+        colorHex: String? = nil,
+        note: String = "",
+        tags: [VerseTag] = [],
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.bookId = bookId
+        self.chapter = chapter
+        self.verseNumber = verseNumber
+        self.bookNameHy = bookNameHy
+        self.bookNameRu = bookNameRu
+        self.bookNameEn = bookNameEn
+        self.textHy = textHy
+        self.textRu = textRu
+        self.textEn = textEn
+        self.colorHex = colorHex
+        self.note = note
+        self.tags = tags
+        self.updatedAt = updatedAt
+    }
+    
+    var key: String {
+        "\(bookId)_\(chapter)_\(verseNumber)"
+    }
+    
+    func text(for language: AppLanguage) -> String {
+        switch language {
+        case .armenian: return textHy
+        case .russian: return textRu
+        case .english: return textEn
+        }
+    }
+    
+    func bookName(for language: AppLanguage) -> String {
+        switch language {
+        case .armenian: return bookNameHy.isEmpty ? "\(bookId)" : bookNameHy
+        case .russian: return bookNameRu.isEmpty ? "\(bookId)" : bookNameRu
+        case .english: return bookNameEn.isEmpty ? "\(bookId)" : bookNameEn
+        }
+    }
+    
+    func reference(for language: AppLanguage) -> String {
+        "\(bookName(for: language)) \(chapter):\(verseNumber)"
+    }
+    
+    var hasContent: Bool {
+        (colorHex != nil && !colorHex!.isEmpty) || !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !tags.isEmpty
+    }
+}
+
+

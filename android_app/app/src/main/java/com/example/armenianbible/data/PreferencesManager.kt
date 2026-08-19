@@ -19,6 +19,8 @@ class PreferencesManager(context: Context) {
         private const val KEY_WIDGET_LANGUAGE = "widget_language"
         private const val KEY_FONT_SIZE = "font_size"
         private const val KEY_FAVORITES = "favorites_json"
+        private const val KEY_ANNOTATIONS = "verse_annotations_json"
+        private const val KEY_PRAYER_COMPLETED_DATE = "daily_prayer_completed_date_str"
         private const val KEY_QUIZ_BEST_SCORE = "quiz_best_score"
 
         private const val KEY_NOTIF_ENABLED = "daily_notifications_enabled"
@@ -192,5 +194,59 @@ class PreferencesManager(context: Context) {
         } ?: ""
 
         return Pair(text, ref)
+    }
+
+    // MARK: - Управление Заметками, Тегами и Маркерами
+    fun getAnnotations(): Map<String, VerseAnnotation> {
+        val json = prefs.getString(KEY_ANNOTATIONS, null) ?: return emptyMap()
+        val type = object : TypeToken<Map<String, VerseAnnotation>>() {}.type
+        return try { gson.fromJson(json, type) ?: emptyMap() } catch (e: Exception) { emptyMap() }
+    }
+
+    fun getAnnotation(bookId: Int, chapter: Int, verseNumber: Int): VerseAnnotation? {
+        val key = "${bookId}_${chapter}_$verseNumber"
+        return getAnnotations()[key]
+    }
+
+    fun saveAnnotation(item: VerseAnnotation) {
+        val map = getAnnotations().toMutableMap()
+        if (item.hasContent) {
+            map[item.key] = item
+        } else {
+            map.remove(item.key)
+        }
+        prefs.edit().putString(KEY_ANNOTATIONS, gson.toJson(map)).apply()
+    }
+
+    fun deleteAnnotation(bookId: Int, chapter: Int, verseNumber: Int) {
+        val map = getAnnotations().toMutableMap()
+        map.remove("${bookId}_${chapter}_$verseNumber")
+        prefs.edit().putString(KEY_ANNOTATIONS, gson.toJson(map)).apply()
+    }
+
+    fun getAllAnnotations(): List<VerseAnnotation> {
+        return getAnnotations().values.sortedByDescending { it.updatedAtMillis }
+    }
+
+    // MARK: - Молитва дня (статус выполнения)
+    private fun getTodayDateString(): String {
+        val cal = java.util.Calendar.getInstance()
+        return "${cal.get(java.util.Calendar.YEAR)}-${cal.get(java.util.Calendar.MONTH)}-${cal.get(java.util.Calendar.DAY_OF_MONTH)}"
+    }
+
+    fun isPrayerCompletedToday(): Boolean {
+        val saved = prefs.getString(KEY_PRAYER_COMPLETED_DATE, null)
+        return saved == getTodayDateString()
+    }
+
+    fun togglePrayerCompletedToday(): Boolean {
+        val isDone = isPrayerCompletedToday()
+        if (isDone) {
+            prefs.edit().remove(KEY_PRAYER_COMPLETED_DATE).apply()
+            return false
+        } else {
+            prefs.edit().putString(KEY_PRAYER_COMPLETED_DATE, getTodayDateString()).apply()
+            return true
+        }
     }
 }
