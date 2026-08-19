@@ -28,6 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -261,7 +262,8 @@ val extendedQuizQuestions = listOf(
 @Composable
 fun QuizScreen(
     prefs: PreferencesManager,
-    appLanguage: AppLanguage
+    appLanguage: AppLanguage,
+    onDismiss: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -281,7 +283,7 @@ fun QuizScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A))
+            .background(Color(0xFFF8FAFC))
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -291,40 +293,34 @@ fun QuizScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Աստվածաշնչյան Վիկտորինա 🏆",
-                    style = MaterialTheme.typography.titleLarge.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    style = MaterialTheme.typography.titleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 19.sp)
                 )
                 Text(
                     text = "Միավորներ: $score | Ռեկորդ: $bestScore",
-                    color = Color(0xFFF59E0B),
+                    color = Color(0xFF059669),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            // Unlocked Badges count
-            Surface(
-                shape = CircleShape,
-                color = Color(0xFF6366F1).copy(alpha = 0.2f),
-                border = ButtonDefaults.outlinedButtonBorder().copy(brush = Brush.linearGradient(listOf(Color(0xFF818CF8), Color(0xFFA855F7))))
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFF1F5F9))
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("${unlockedBadges.size}/${allBadges.size}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
+                Icon(Icons.Default.Refresh, contentDescription = "Close", tint = Color(0xFF475569), modifier = Modifier.size(18.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         // BADGES HORIZONTAL SCROLL BAR
-        Text("Նվաճումներ և Կրծքանշաններ (Значки & Награды):", color = Color(0xFF94A3B8), fontSize = 11.sp, modifier = Modifier.fillMaxWidth())
+        Text("Նվաճումներ և Կրծքանշաններ (Значки & Награды):", color = Color(0xFF64748B), fontSize = 11.sp, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(6.dp))
 
         LazyRow(
@@ -335,9 +331,9 @@ fun QuizScreen(
                 val isUnlocked = bestScore >= badge.requiredScore
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = if (isUnlocked) Color(0xFF1E293B) else Color(0xFF1E293B).copy(alpha = 0.4f),
+                    color = if (isUnlocked) Color.White else Color(0xFFF1F5F9),
                     border = CardDefaults.outlinedCardBorder().copy(
-                        brush = if (isUnlocked) Brush.linearGradient(listOf(Color(0xFFF59E0B), Color(0xFF10B981))) else Brush.linearGradient(listOf(Color(0xFF334155), Color(0xFF334155)))
+                        brush = if (isUnlocked) Brush.linearGradient(listOf(Color(0xFFF59E0B), Color(0xFF10B981))) else Brush.linearGradient(listOf(Color(0xFFE2E8F0), Color(0xFFE2E8F0)))
                     )
                 ) {
                     Row(
@@ -349,13 +345,13 @@ fun QuizScreen(
                         Column {
                             Text(
                                 text = badge.title(appLanguage),
-                                color = if (isUnlocked) Color.White else Color(0xFF64748B),
+                                color = if (isUnlocked) Color(0xFF0F172A) else Color(0xFF94A3B8),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = if (isUnlocked) "✓ Открыто" else "${badge.requiredScore} очков",
-                                color = if (isUnlocked) Color(0xFF10B981) else Color(0xFF64748B),
+                                color = if (isUnlocked) Color(0xFF059669) else Color(0xFF94A3B8),
                                 fontSize = 9.sp
                             )
                         }
@@ -370,19 +366,20 @@ fun QuizScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                    .padding(16.dp)
+                    .shadow(2.dp, RoundedCornerShape(24.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(60.dp))
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(60.dp))
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Շնորհավորում ենք! 🎉", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("Շնորհավորում ենք! 🎉", color = Color(0xFF0F172A), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("Վաստակած միավորները: $score", color = Color(0xFF818CF8), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Վաստակած միավորները: $score", color = Color(0xFF0EA5E9), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
 
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -393,8 +390,8 @@ fun QuizScreen(
                             selectedOption = null
                             quizCompleted = false
                         },
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9))
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -410,17 +407,20 @@ fun QuizScreen(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(CircleShape),
-                color = Color(0xFF6366F1),
-                trackColor = Color(0xFF334155)
+                color = Color(0xFF0EA5E9),
+                trackColor = Color(0xFFE2E8F0)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Question Card
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                shape = RoundedCornerShape(24.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(1.dp, RoundedCornerShape(20.dp))
+                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
@@ -429,14 +429,14 @@ fun QuizScreen(
                     ) {
                         Text(
                             text = "Հարց ${questionIndex + 1}/${extendedQuizQuestions.size}",
-                            color = Color(0xFF6366F1),
+                            color = Color(0xFF0EA5E9),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
 
                         Text(
                             text = "+100 очков",
-                            color = Color(0xFFF59E0B),
+                            color = Color(0xFFD97706),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -444,10 +444,10 @@ fun QuizScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = currentQ.question(appLanguage),
-                        color = Color.White,
+                        color = Color(0xFF0F172A),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
-                        lineHeight = 23.sp
+                        lineHeight = 24.sp
                     )
                 }
             }
@@ -455,28 +455,35 @@ fun QuizScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Options list
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 currentQ.options(appLanguage).forEachIndexed { idx, opt ->
                     val isSelected = selectedOption == idx
                     val isCorrect = idx == currentQ.correctIndex
 
                     val bgColor = when {
-                        selectedOption == null -> Color(0xFF1E293B)
+                        selectedOption == null -> Color.White
                         isSelected && isCorrect -> Color(0xFF059669)
                         isSelected && !isCorrect -> Color(0xFFDC2626)
-                        isCorrect -> Color(0xFF059669).copy(alpha = 0.6f)
-                        else -> Color(0xFF1E293B)
+                        isCorrect -> Color(0xFF059669).copy(alpha = 0.8f)
+                        else -> Color.White
+                    }
+
+                    val textColor = when {
+                        selectedOption == null -> Color(0xFF0F172A)
+                        isSelected || isCorrect -> Color.White
+                        else -> Color(0xFF64748B)
                     }
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CircleShape)
+                            .shadow(if (selectedOption == null) 1.dp else 0.dp, RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(bgColor)
                             .border(
                                 width = 1.dp,
-                                color = if (isSelected) Color.White else Color(0xFF334155),
-                                shape = CircleShape
+                                color = if (isSelected) Color.Transparent else Color(0xFFE2E8F0),
+                                shape = RoundedCornerShape(16.dp)
                             )
                             .clickable(enabled = selectedOption == null) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -489,11 +496,11 @@ fun QuizScreen(
                                     }
                                 }
                             }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .padding(horizontal = 18.dp, vertical = 14.dp)
                     ) {
                         Text(
                             text = opt,
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -506,14 +513,17 @@ fun QuizScreen(
             // Explanation box when answered
             if (selectedOption != null) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B).copy(alpha = 0.8f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(1.dp, RoundedCornerShape(16.dp))
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7).copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
-                        Text("💡 Պարզաբանում (${currentQ.ref}):", color = Color(0xFFF59E0B), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("💡 Պարզաբանում (${currentQ.ref}):", color = Color(0xFFD97706), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(currentQ.explanation(appLanguage), color = Color(0xFFE2E8F0), fontSize = 13.sp)
+                        Text(currentQ.explanation(appLanguage), color = Color(0xFF1E293B), fontSize = 13.sp)
                     }
                 }
 
@@ -528,9 +538,9 @@ fun QuizScreen(
                             quizCompleted = true
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),
-                    shape = CircleShape
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Text("Հաջորդ հարցը ➔", fontSize = 15.sp, color = Color.White, fontWeight = FontWeight.Bold)
                 }

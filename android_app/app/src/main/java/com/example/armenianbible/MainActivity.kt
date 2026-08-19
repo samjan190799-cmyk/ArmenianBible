@@ -4,12 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,32 +49,42 @@ class MainActivity : ComponentActivity() {
             var bibleSubTab by remember { mutableIntStateOf(0) }
 
             val primaryAccent = Color(android.graphics.Color.parseColor(activeAccentTheme.colorHex))
+            val secondaryAccent = Color(android.graphics.Color.parseColor(activeAccentTheme.secondaryColorHex))
 
+            // iOS-styled Light / Clean Theme Palette
             MaterialTheme(
-                colorScheme = darkColorScheme(
-                    background = Color(0xFF0F172A),
-                    surface = Color(0xFF1E293B),
+                colorScheme = lightColorScheme(
+                    background = Color(0xFFF8FAFC),
+                    surface = Color.White,
                     primary = primaryAccent,
                     onPrimary = Color.White,
-                    onBackground = Color.White,
-                    onSurface = Color.White
+                    onBackground = Color(0xFF0F172A),
+                    onSurface = Color(0xFF0F172A)
                 )
             ) {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    containerColor = Color(0xFF0F172A),
+                    containerColor = Color(0xFFF8FAFC),
                     bottomBar = {
+                        // Exact iOS Bottom Navigation Bar
                         NavigationBar(
-                            containerColor = Color(0xFF1E293B),
-                            contentColor = Color(0xFF94A3B8),
-                            tonalElevation = 8.dp,
-                            windowInsets = WindowInsets.navigationBars
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF64748B),
+                            tonalElevation = 6.dp,
+                            windowInsets = WindowInsets.navigationBars,
+                            modifier = Modifier
+                                .border(width = 0.8.dp, color = Color(0xFFE2E8F0).copy(alpha = 0.8f))
                         ) {
+                            // Exact Tab Order matching iOS Screenshot:
+                            // 1. Գլխավոր (Home)
+                            // 2. Ընտրյալներ (Favorites)
+                            // 3. Օգնական (AI Assistant)
+                            // 4. Աստվածաշունչ (Bible)
                             val items = listOf(
                                 Triple(0, when(currentLanguage) { AppLanguage.ARMENIAN -> "Գլխավոր"; AppLanguage.RUSSIAN -> "Главная"; AppLanguage.ENGLISH -> "Home" }, Icons.Default.Home),
-                                Triple(1, when(currentLanguage) { AppLanguage.ARMENIAN -> "Աստվածաշունչ"; AppLanguage.RUSSIAN -> "Библия"; AppLanguage.ENGLISH -> "Bible" }, Icons.Default.MenuBook),
-                                Triple(2, when(currentLanguage) { AppLanguage.ARMENIAN -> "ИИ Ուղեցույց"; AppLanguage.RUSSIAN -> "ИИ ГИД"; AppLanguage.ENGLISH -> "AI Guide" }, Icons.Default.AutoAwesome),
-                                Triple(3, when(currentLanguage) { AppLanguage.ARMENIAN -> "Էջանշաններ"; AppLanguage.RUSSIAN -> "Избранное"; AppLanguage.ENGLISH -> "Favorites" }, Icons.Default.Favorite)
+                                Triple(1, when(currentLanguage) { AppLanguage.ARMENIAN -> "Ընտրյալներ"; AppLanguage.RUSSIAN -> "Избранное"; AppLanguage.ENGLISH -> "Favorites" }, Icons.Default.Favorite),
+                                Triple(2, when(currentLanguage) { AppLanguage.ARMENIAN -> "Օգնական"; AppLanguage.RUSSIAN -> "Помощник"; AppLanguage.ENGLISH -> "Assistant" }, Icons.Default.AutoAwesome),
+                                Triple(3, when(currentLanguage) { AppLanguage.ARMENIAN -> "Աստվածաշունչ"; AppLanguage.RUSSIAN -> "Библия"; AppLanguage.ENGLISH -> "Bible" }, Icons.Default.MenuBook)
                             )
 
                             items.forEach { (idx, label, icon) ->
@@ -77,14 +92,20 @@ class MainActivity : ComponentActivity() {
                                     selected = selectedTabScreen == idx,
                                     onClick = {
                                         selectedTabScreen = idx
-                                        if (idx == 1) bibleSubTab = 0
+                                        if (idx == 3) bibleSubTab = 0
                                     },
-                                    icon = { Icon(icon, contentDescription = label, modifier = Modifier.size(22.dp)) },
+                                    icon = {
+                                        Icon(
+                                            icon,
+                                            contentDescription = label,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    },
                                     label = {
                                         Text(
                                             text = label,
                                             fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
+                                            fontWeight = if (selectedTabScreen == idx) FontWeight.Bold else FontWeight.Medium,
                                             maxLines = 1,
                                             softWrap = false,
                                             overflow = TextOverflow.Ellipsis
@@ -94,7 +115,7 @@ class MainActivity : ComponentActivity() {
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = primaryAccent,
                                         selectedTextColor = primaryAccent,
-                                        indicatorColor = primaryAccent.copy(alpha = 0.25f),
+                                        indicatorColor = primaryAccent.copy(alpha = 0.14f),
                                         unselectedIconColor = Color(0xFF64748B),
                                         unselectedTextColor = Color(0xFF64748B)
                                     )
@@ -126,10 +147,18 @@ class MainActivity : ComponentActivity() {
                                 onOpenQuiz = { isShowingQuiz = true },
                                 onOpenNarek = {
                                     bibleSubTab = 2
-                                    selectedTabScreen = 1
+                                    selectedTabScreen = 3 // Switch to Bible screen with Narek tab
                                 }
                             )
-                            1 -> BibleReaderScreen(
+                            1 -> FavoritesScreen(
+                                prefs = prefs,
+                                appLanguage = currentLanguage
+                            )
+                            2 -> AIGuideScreen(
+                                prefs = prefs,
+                                appLanguage = currentLanguage
+                            )
+                            3 -> BibleReaderScreen(
                                 dbHelper = dbHelper,
                                 prefs = prefs,
                                 appLanguage = currentLanguage,
@@ -137,14 +166,6 @@ class MainActivity : ComponentActivity() {
                                 initialBookId = deepLinkBookId,
                                 initialChapter = deepLinkChapter,
                                 initialSubTab = bibleSubTab
-                            )
-                            2 -> AIGuideScreen(
-                                prefs = prefs,
-                                appLanguage = currentLanguage
-                            )
-                            3 -> FavoritesScreen(
-                                prefs = prefs,
-                                appLanguage = currentLanguage
                             )
                         }
 
@@ -161,26 +182,13 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Quiz Modal
+                        // Quiz Fullscreen Modal
                         if (isShowingQuiz) {
-                            Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = Color(0xFF0F172A)
-                            ) {
-                                Column {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        IconButton(onClick = { isShowingQuiz = false }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
-                                        }
-                                    }
-                                    QuizScreen(prefs = prefs, appLanguage = currentLanguage)
-                                }
-                            }
+                            QuizScreen(
+                                prefs = prefs,
+                                appLanguage = currentLanguage,
+                                onDismiss = { isShowingQuiz = false }
+                            )
                         }
                     }
                 }

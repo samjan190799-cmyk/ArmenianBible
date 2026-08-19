@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -47,8 +48,8 @@ fun SettingsSheet(
     Surface(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A)),
-        color = Color(0xFF0F172A)
+            .background(Color(0xFFF8FAFC)),
+        color = Color(0xFFF8FAFC)
     ) {
         Column(
             modifier = Modifier
@@ -63,20 +64,34 @@ fun SettingsSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF6366F1))
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFE0F2FE),
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = when(selectedLanguage) {
                             AppLanguage.ARMENIAN -> "Կարգավորումներ"
                             AppLanguage.RUSSIAN -> "Настройки"
                             AppLanguage.ENGLISH -> "Settings"
                         },
-                        style = MaterialTheme.typography.titleLarge.copy(color = Color.White, fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 22.sp)
                     )
                 }
 
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFF1F5F9))
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF475569), modifier = Modifier.size(18.dp))
                 }
             }
 
@@ -85,19 +100,22 @@ fun SettingsSheet(
             // SECTION 1: AI Provider & API Keys
             Text(
                 text = "🤖 ИИ Провайдер и Ключи API",
-                color = Color(0xFF818CF8),
+                color = Color(0xFF0284C7),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                shape = RoundedCornerShape(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(1.dp, RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(18.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Выберите модели ИИ:", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Text("Выберите модель ИИ:", color = Color(0xFF0F172A), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     AIProvider.entries.forEach { provider ->
@@ -111,10 +129,10 @@ fun SettingsSheet(
                             RadioButton(
                                 selected = selectedProvider == provider,
                                 onClick = { selectedProvider = provider },
-                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF6366F1))
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF0EA5E9))
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(provider.displayName, color = Color.White, fontSize = 14.sp)
+                            Text(provider.displayName, color = Color(0xFF1E293B), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -141,14 +159,16 @@ fun SettingsSheet(
                                 AIProvider.CLAUDE -> claudeKey = newVal
                             }
                         },
-                        label = { Text(currentKeyLabel, color = Color(0xFF94A3B8)) },
+                        label = { Text(currentKeyLabel, color = Color(0xFF64748B)) },
                         leadingIcon = { Icon(Icons.Default.Key, contentDescription = null, tint = Color(0xFFF59E0B)) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF6366F1),
-                            unfocusedBorderColor = Color(0xFF334155),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            focusedBorderColor = Color(0xFF0EA5E9),
+                            unfocusedBorderColor = Color(0xFFE2E8F0),
+                            focusedContainerColor = Color(0xFFF8FAFC),
+                            unfocusedContainerColor = Color(0xFFF8FAFC),
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A)
                         ),
                         shape = RoundedCornerShape(12.dp)
                     )
@@ -157,41 +177,47 @@ fun SettingsSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // SECTION 2: Accent Theme Picker
+            // SECTION 2: Accent Theme
             Text(
-                text = "🎨 Цветовая Тема (Accent Theme)",
-                color = Color(0xFF818CF8),
+                text = "🎨 Цветовая тема (Акцент)",
+                color = Color(0xFF0284C7),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                shape = RoundedCornerShape(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(1.dp, RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(18.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        AccentColorTheme.entries.forEach { theme ->
-                            val color = Color(android.graphics.Color.parseColor(theme.colorHex))
-                            val isSelected = selectedTheme == theme
-
+                Column(modifier = Modifier.padding(18.dp)) {
+                    AccentColorTheme.entries.forEach { theme ->
+                        val themeColor = Color(android.graphics.Color.parseColor(theme.colorHex))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedTheme = theme }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedTheme == theme,
+                                onClick = { selectedTheme = theme },
+                                colors = RadioButtonDefaults.colors(selectedColor = themeColor)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(20.dp)
                                     .clip(CircleShape)
-                                    .background(color)
-                                    .border(
-                                        width = if (isSelected) 3.dp else 0.dp,
-                                        color = Color.White,
-                                        shape = CircleShape
-                                    )
-                                    .clickable { selectedTheme = theme }
+                                    .background(themeColor)
                             )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(theme.displayName, color = Color(0xFF0F172A), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -199,36 +225,39 @@ fun SettingsSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // SECTION 3: App Language
+            // SECTION 3: Language
             Text(
-                text = "🌐 Язык интерфейса / Լեզու",
-                color = Color(0xFF818CF8),
+                text = "🌐 Язык интерфейса",
+                color = Color(0xFF0284C7),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                shape = RoundedCornerShape(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(1.dp, RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(18.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     AppLanguage.entries.forEach { lang ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { selectedLanguage = lang }
-                                .padding(vertical = 6.dp),
+                                .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
                                 selected = selectedLanguage == lang,
                                 onClick = { selectedLanguage = lang },
-                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF6366F1))
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF0EA5E9))
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(lang.displayName, color = Color.White, fontSize = 14.sp)
+                            Text(lang.displayName, color = Color(0xFF0F172A), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -249,17 +278,28 @@ fun SettingsSheet(
                     prefs.accentTheme = selectedTheme
 
                     onSettingsChanged()
-                    Toast.makeText(context, "Настройки сохранены!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Настройки сохранены! ✅", Toast.LENGTH_SHORT).show()
                     onDismiss()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9))
             ) {
-                Text("Պահպանել (Сохранить)", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = when(selectedLanguage) {
+                        AppLanguage.ARMENIAN -> "Պահպանել"
+                        AppLanguage.RUSSIAN -> "Сохранить"
+                        AppLanguage.ENGLISH -> "Save Changes"
+                    },
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color.White
+                )
             }
+
+            Spacer(modifier = Modifier.height(30.dp))
         }
     }
 }

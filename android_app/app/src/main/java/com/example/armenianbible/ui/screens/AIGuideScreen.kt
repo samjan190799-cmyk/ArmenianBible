@@ -12,15 +12,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,9 +36,9 @@ fun AIGuideScreen(
             listOf(
                 ChatMessage(
                     text = when(appLanguage) {
-                        AppLanguage.ARMENIAN -> "Ողջույն: Ես ձեր Հոգևոր ИИ Ուղեցույցն եմ (${prefs.activeProvider.displayName}): Ինչպե՞ս կարող եմ օգնել ձեզ այսօր Աստվածաշնչի կամ աղոթքների հարցում:"
-                        AppLanguage.RUSSIAN -> "Приветствую! Я ваш Духовный ИИ-Наставник (${prefs.activeProvider.displayName}). Чем могу помочь вам сегодня в изучении Писания или молитве?"
-                        AppLanguage.ENGLISH -> "Greetings! I am your Spiritual AI Guide (${prefs.activeProvider.displayName}). How can I assist you with Scripture or prayer today?"
+                        AppLanguage.ARMENIAN -> "Ողջույն: Ես ձեր Հոգևոր ИИ Օգնականն եմ (${prefs.activeProvider.displayName}): Ինչպե՞ս կարող եմ օգնել ձեզ այսօր Աստվածաշնչի կամ աղոթքների հարցում:"
+                        AppLanguage.RUSSIAN -> "Приветствую! Я ваш Духовный ИИ-Помощник (${prefs.activeProvider.displayName}). Чем могу помочь вам сегодня в изучении Писания или молитве?"
+                        AppLanguage.ENGLISH -> "Greetings! I am your Spiritual AI Assistant (${prefs.activeProvider.displayName}). How can I assist you with Scripture or prayer today?"
                     },
                     isUser = false
                 )
@@ -61,7 +60,7 @@ fun AIGuideScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A))
+            .background(Color(0xFFF8FAFC))
             .padding(16.dp)
     ) {
         // Top Bar
@@ -69,26 +68,44 @@ fun AIGuideScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFFA855F7), modifier = Modifier.size(28.dp))
-            Spacer(modifier = Modifier.width(8.dp))
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFFF3E8FF),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = Color(0xFFA855F7),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
                     text = when(appLanguage) {
-                        AppLanguage.ARMENIAN -> "ИИ Հոգևոր Ուղեցույց"
-                        AppLanguage.RUSSIAN -> "Духовный ИИ-Наставник"
-                        AppLanguage.ENGLISH -> "Spiritual AI Guide"
+                        AppLanguage.ARMENIAN -> "Օգնական"
+                        AppLanguage.RUSSIAN -> "ИИ Помощник"
+                        AppLanguage.ENGLISH -> "AI Assistant"
                     },
-                    style = MaterialTheme.typography.titleLarge.copy(color = Color.White, fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = Color(0xFF0F172A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    )
                 )
                 Text(
                     text = prefs.activeProvider.displayName,
                     color = Color(0xFFA855F7),
-                    fontSize = 11.sp
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Chat Messages
         LazyColumn(
@@ -96,10 +113,11 @@ fun AIGuideScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(messages) { msg ->
-                val bubbleBg = if (msg.isUser) Color(0xFF6366F1) else Color(0xFF1E293B)
+                val bubbleBg = if (msg.isUser) Color(0xFF0EA5E9) else Color.White
+                val textColor = if (msg.isUser) Color.White else Color(0xFF1E293B)
                 val align = if (msg.isUser) Alignment.End else Alignment.Start
 
                 Column(
@@ -108,15 +126,22 @@ fun AIGuideScreen(
                 ) {
                     Surface(
                         color = bubbleBg,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.widthIn(max = 280.dp)
+                        shape = RoundedCornerShape(18.dp),
+                        modifier = Modifier
+                            .widthIn(max = 300.dp)
+                            .shadow(if (msg.isUser) 0.dp else 1.dp, RoundedCornerShape(18.dp))
+                            .border(
+                                width = if (msg.isUser) 0.dp else 1.dp,
+                                color = if (msg.isUser) Color.Transparent else Color(0xFFE2E8F0),
+                                shape = RoundedCornerShape(18.dp)
+                            )
                     ) {
                         Text(
                             text = msg.text,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            modifier = Modifier.padding(12.dp)
+                            color = textColor,
+                            fontSize = 15.sp,
+                            lineHeight = 22.sp,
+                            modifier = Modifier.padding(14.dp)
                         )
                     }
                 }
@@ -124,16 +149,27 @@ fun AIGuideScreen(
 
             if (isThinking) {
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color(0xFFA855F7))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 6.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color(0xFFA855F7), strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("ИИ думает...", color = Color(0xFF94A3B8), fontSize = 12.sp)
+                        Text(
+                            text = when(appLanguage) {
+                                AppLanguage.ARMENIAN -> "ИИ մտածում է..."
+                                AppLanguage.RUSSIAN -> "ИИ размышляет..."
+                                AppLanguage.ENGLISH -> "AI is thinking..."
+                            },
+                            color = Color(0xFF64748B),
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // Prompt Suggestions Chips
         Row(
@@ -143,13 +179,17 @@ fun AIGuideScreen(
             promptSuggestions.forEach { suggestion ->
                 SuggestionChip(
                     onClick = { inputText = suggestion },
-                    label = { Text(suggestion, fontSize = 11.sp, color = Color(0xFFC084FC)) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(containerColor = Color(0xFF1E293B))
+                    label = { Text(suggestion, fontSize = 12.sp, color = Color(0xFF6B21A8), fontWeight = FontWeight.Medium) },
+                    colors = SuggestionChipDefaults.suggestionChipColors(containerColor = Color(0xFFFAF5FF)),
+                    border = SuggestionChipDefaults.suggestionChipBorder(enabled = true).copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE9D5FF))
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // Input Field
         Row(
@@ -166,17 +206,17 @@ fun AIGuideScreen(
                             AppLanguage.RUSSIAN -> "Спросите у ИИ..."
                             AppLanguage.ENGLISH -> "Ask spiritual AI..."
                         },
-                        color = Color(0xFF64748B)
+                        color = Color(0xFF94A3B8)
                     )
                 },
                 modifier = Modifier.weight(1f),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFFA855F7),
-                    unfocusedBorderColor = Color(0xFF334155),
-                    focusedContainerColor = Color(0xFF1E293B),
-                    unfocusedContainerColor = Color(0xFF1E293B),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
+                    unfocusedBorderColor = Color(0xFFE2E8F0),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedTextColor = Color(0xFF0F172A),
+                    unfocusedTextColor = Color(0xFF0F172A)
                 ),
                 shape = RoundedCornerShape(16.dp)
             )
@@ -210,7 +250,7 @@ fun AIGuideScreen(
                                     messages = messages + ChatMessage(text = reply, isUser = false)
                                 }.onFailure { err ->
                                     val fallbackReply = when(appLanguage) {
-                                        AppLanguage.ARMENIAN -> "«$userMsgText» — Աստծո Խոսքը ասում է. «Քո խօսքը ճրագ է իմ ոտքերի համար» (Սաղմոս 118:105): Հավատքը և հույսը միշտ լուսավորում են մեր ճանապարհը: (Ցանցային սխալ՝ ${err.localizedMessage ?: "Offline"})"
+                                        AppLanguage.ARMENIAN -> "«$userMsgText» — Աստծո Խոսքը ասում է. «Քո խօսքը ճրագ է իմ ոտքերի համար» (Սաղմոս 118:105): Հավատքը և հույսը միշտ լուսավորում են մեր ճանապարհը:"
                                         AppLanguage.RUSSIAN -> "На ваш вопрос «$userMsgText»: Слово Божие напоминает: «Слово Твое — светильник ноге моей» (Пс. 118:105). Вера и надежда преображают сердце."
                                         AppLanguage.ENGLISH -> "Regarding «$userMsgText»: The Scripture reminds us: 'Your word is a lamp to my feet' (Psalm 119:105). Faith brings true peace."
                                     }
@@ -230,7 +270,7 @@ fun AIGuideScreen(
                 },
                 enabled = !isThinking,
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(50.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFA855F7))
             ) {
