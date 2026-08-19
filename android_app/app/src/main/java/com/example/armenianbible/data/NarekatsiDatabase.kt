@@ -23,6 +23,32 @@ data class NarekPrayer(
         AppLanguage.RUSSIAN -> textRu
         AppLanguage.ENGLISH -> textEn
     }
+
+    val audioTimestampSeconds: Double
+        get() = when (id) {
+            1 -> 0.0
+            2 -> 259.0
+            3 -> 476.0
+            4 -> 675.0
+            5 -> 858.0
+            6 -> 1036.0
+            7 -> 1201.0
+            8 -> 1346.0
+            9 -> 1692.0
+            10 -> 2003.0
+            20 -> 2197.0
+            41 -> 2287.0
+            else -> {
+                val total = 3169.0
+                minOf((id - 1) * (total / 95.0), total - 5.0)
+            }
+        }
+
+    val formattedTimestamp: String
+        get() {
+            val secs = audioTimestampSeconds.toInt()
+            return String.format("%02d:%02d", secs / 60, secs % 60)
+        }
 }
 
 object NarekatsiDatabase {

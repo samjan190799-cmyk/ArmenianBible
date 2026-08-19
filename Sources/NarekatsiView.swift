@@ -222,7 +222,7 @@ struct NarekatsiView: View {
                                 
                                 Button {
                                     triggerHaptic(.light)
-                                    audioPlayer.togglePlay(prayer: prayer, language: audioPlayer.voiceLanguage)
+                                    audioPlayer.playPrayer(prayer, language: audioPlayer.voiceLanguage)
                                 } label: {
                                     HStack(spacing: 14) {
                                         // Индикатор воспроизведения
@@ -243,9 +243,15 @@ struct NarekatsiView: View {
                                         }
                                         
                                         VStack(alignment: .leading, spacing: 3) {
-                                            Text(prayer.banNumber)
-                                                .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(isCurrent ? accentColor : primaryTextColor)
+                                            HStack(spacing: 6) {
+                                                Text(prayer.banNumber)
+                                                    .font(.system(size: 13, weight: .bold))
+                                                    .foregroundColor(isCurrent ? accentColor : primaryTextColor)
+                                                
+                                                Text("• \(prayer.formattedTimestamp)")
+                                                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                                    .foregroundColor(isCurrent ? accentColor : .secondary)
+                                            }
                                             
                                             Text(prayer.title(for: audioPlayer.voiceLanguage))
                                                 .font(.system(size: 12, weight: .medium))

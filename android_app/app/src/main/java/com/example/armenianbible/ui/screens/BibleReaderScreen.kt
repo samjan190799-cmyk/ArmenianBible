@@ -829,7 +829,7 @@ fun BibleReaderScreen(
                                         )
                                         .clickable {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            narekPlayer.togglePlay(prayer, narekPlayer.voiceLanguage.value)
+                                            narekPlayer.playPrayer(prayer, narekPlayer.voiceLanguage.value)
                                         },
                                     colors = CardDefaults.cardColors(containerColor = Color.White)
                                 ) {
@@ -861,12 +861,21 @@ fun BibleReaderScreen(
                                         Spacer(modifier = Modifier.width(12.dp))
 
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = prayer.banNumber,
-                                                color = if (isCurrent) Color(0xFFD97706) else Color(0xFF0F172A),
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = prayer.banNumber,
+                                                    color = if (isCurrent) Color(0xFFD97706) else Color(0xFF0F172A),
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "• ${prayer.formattedTimestamp}",
+                                                    color = if (isCurrent) Color(0xFFD97706) else Color(0xFF94A3B8),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
                                             Text(
                                                 text = prayer.title(narekPlayer.voiceLanguage.value),
                                                 color = Color(0xFF64748B),

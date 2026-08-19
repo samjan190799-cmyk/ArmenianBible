@@ -28,6 +28,31 @@ struct NarekPrayer: Identifiable, Codable, Hashable {
         case .english: return textEn
         }
     }
+    
+    var audioTimestampSeconds: Double {
+        switch id {
+        case 1: return 0.0       // 00:00 - Բան Ա
+        case 2: return 259.0     // 04:19 - Բան Բ
+        case 3: return 476.0     // 07:56 - Բան Գ
+        case 4: return 675.0     // 11:15 - Բան Դ
+        case 5: return 858.0     // 14:18 - Բան Ե
+        case 6: return 1036.0    // 17:16 - Բան Զ
+        case 7: return 1201.0    // 20:01 - Բան Է
+        case 8: return 1346.0    // 22:26 - Բան Ը
+        case 9: return 1692.0    // 28:12 - Բան Թ
+        case 10: return 2003.0   // 33:22 - Բան Ժ
+        case 20: return 2197.0   // 36:37 - Բան Ի
+        case 41: return 2287.0   // 38:07 - Բան ԽԱ
+        default:
+            let total = 3169.0
+            return min(Double(id - 1) * (total / 95.0), total - 5.0)
+        }
+    }
+    
+    var formattedTimestamp: String {
+        let secs = Int(audioTimestampSeconds)
+        return String(format: "%02d:%02d", secs / 60, secs % 60)
+    }
 }
 
 // MARK: - Полная База Данных 95 Глав Книги Скорбных Песнопений (Գրիգոր Նարեկացի «Մատեան Ողբերգութեան»)

@@ -39,6 +39,14 @@ class NarekAudioPlayer private constructor(private val context: Context) {
                     currentTimeMs.longValue = pos
                     if (dur > 0) durationMs.longValue = dur
                     savePlaybackState()
+
+                    // Синхронизируем активную главу с текущим временем аудио
+                    val currentSec = pos / 1000.0
+                    val active = NarekatsiDatabase.prayers.lastOrNull { it.audioTimestampSeconds <= currentSec }
+                    if (active != null && currentlyPlayingId.value != active.id) {
+                        currentlyPlayingId.value = active.id
+                        savedPrayerId.value = active.id
+                    }
                 } catch (e: Exception) {}
                 mainHandler.postDelayed(this, 500)
             }
@@ -77,8 +85,24 @@ class NarekAudioPlayer private constructor(private val context: Context) {
             return
         }
 
-        val startAt = if (currentlyPlayingId.value == prayer.id) currentTimeMs.longValue else 0L
-        play(prayer, lang, startAt)
+        playPrayer(prayer, lang)
+    }
+
+    fun playPrayer(prayer: NarekPrayer, language: AppLanguage? = null) {
+        val lang = language ?: voiceLanguage.value
+        voiceLanguage.value = lang
+        currentlyPlayingId.value = prayer.id
+        savedPrayerId.value = prayer.id
+        val targetMs = (prayer.audioTimestampSeconds * 1000).toLong()
+
+        if (mediaPlayer != null) {
+            seekTo(targetMs)
+            if (!isPlaying.value) {
+                resume()
+            }
+        } else {
+            play(prayer, lang, targetMs)
+        }
     }
 
     fun play(prayer: NarekPrayer, language: AppLanguage, startAtMs: Long = 0L) {
@@ -267,7 +291,7 @@ class NarekAudioPlayer private constructor(private val context: Context) {
         val currentId = currentlyPlayingId.value ?: savedPrayerId.value
         val nextId = if (currentId < 95) currentId + 1 else 1
         NarekatsiDatabase.prayers.find { it.id == nextId }?.let { next ->
-            play(next, voiceLanguage.value)
+            playPrayer(next, voiceLanguage.value)
         }
     }
 
@@ -275,7 +299,7 @@ class NarekAudioPlayer private constructor(private val context: Context) {
         val currentId = currentlyPlayingId.value ?: savedPrayerId.value
         val prevId = if (currentId > 1) currentId - 1 else 95
         NarekatsiDatabase.prayers.find { it.id == prevId }?.let { prev ->
-            play(prev, voiceLanguage.value)
+            playPrayer(prev, voiceLanguage.value)
         }
     }
 

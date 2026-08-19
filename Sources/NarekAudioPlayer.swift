@@ -76,7 +76,26 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
             return
         }
         
-        play(prayer: prayer, language: lang, startAtSeconds: (currentlyPlayingId == prayer.id) ? currentTime : 0.0)
+        playPrayer(prayer, language: lang)
+    }
+    
+    func playPrayer(_ prayer: NarekPrayer, language: AppLanguage? = nil) {
+        let lang = language ?? voiceLanguage
+        voiceLanguage = lang
+        currentlyPlayingId = prayer.id
+        savedPrayerId = prayer.id
+        let targetTime = prayer.audioTimestampSeconds
+        
+        if let p = player {
+            seek(to: targetTime)
+            if !isPlaying {
+                p.play()
+                isPlaying = true
+            }
+            updateNowPlayingInfo(prayer: prayer)
+        } else {
+            play(prayer: prayer, language: lang, startAtSeconds: targetTime)
+        }
     }
     
     func play(prayer: NarekPrayer, language: AppLanguage, startAtSeconds: Double = 0.0) {
@@ -144,6 +163,14 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
                 if !currentSec.isNaN {
                     self.currentTime = currentSec
                     self.savePlaybackState()
+                    
+                    // Автоматически синхронизируем активную главу с текущим таймкодом
+                    if let active = NarekatsiDatabase.shared.prayers.last(where: { $0.audioTimestampSeconds <= currentSec }) {
+                        if self.currentlyPlayingId != active.id {
+                            self.currentlyPlayingId = active.id
+                            self.savedPrayerId = active.id
+                        }
+                    }
                 }
             }
             
@@ -249,7 +276,7 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         guard let currentId = currentlyPlayingId ?? Optional(savedPrayerId) else { return }
         let nextId = currentId < 95 ? currentId + 1 : 1
         if let nextPrayer = NarekatsiDatabase.shared.prayers.first(where: { $0.id == nextId }) {
-            play(prayer: nextPrayer, language: voiceLanguage)
+            playPrayer(nextPrayer, language: voiceLanguage)
         }
     }
     
@@ -257,7 +284,7 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         guard let currentId = currentlyPlayingId ?? Optional(savedPrayerId) else { return }
         let prevId = currentId > 1 ? currentId - 1 : 95
         if let prevPrayer = NarekatsiDatabase.shared.prayers.first(where: { $0.id == prevId }) {
-            play(prayer: prevPrayer, language: voiceLanguage)
+            playPrayer(prevPrayer, language: voiceLanguage)
         }
     }
     
