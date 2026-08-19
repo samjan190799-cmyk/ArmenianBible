@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.armenianbible.data.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun AIGuideScreen(
@@ -49,6 +50,7 @@ fun AIGuideScreen(
     var inputText by remember { mutableStateOf("") }
     var isThinking by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     val promptSuggestions = listOf(
         when(appLanguage) { AppLanguage.ARMENIAN -> "Բացատրիր Սաղմոս 23-ը"; AppLanguage.RUSSIAN -> "Объясни Псалом 22"; AppLanguage.ENGLISH -> "Explain Psalm 23" },
@@ -157,7 +159,16 @@ fun AIGuideScreen(
             OutlinedTextField(
                 value = inputText,
                 onValueChange = { inputText = it },
-                placeholder = { Text("Հարցրեք ИИ-ին...", color = Color(0xFF64748B)) },
+                placeholder = {
+                    Text(
+                        text = when(appLanguage) {
+                            AppLanguage.ARMENIAN -> "Հարցրեք ИИ-ին..."
+                            AppLanguage.RUSSIAN -> "Спросите у ИИ..."
+                            AppLanguage.ENGLISH -> "Ask spiritual AI..."
+                        },
+                        color = Color(0xFF64748B)
+                    )
+                },
                 modifier = Modifier.weight(1f),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFFA855F7),
@@ -174,23 +185,50 @@ fun AIGuideScreen(
 
             IconButton(
                 onClick = {
-                    if (inputText.trim().isNotEmpty()) {
+                    if (inputText.trim().isNotEmpty() && !isThinking) {
                         val userMsgText = inputText.trim()
                         inputText = ""
                         messages = messages + ChatMessage(text = userMsgText, isUser = true)
                         isThinking = true
 
-                        // Generate AI spiritual guidance response
-                        val replyText = when(appLanguage) {
-                            AppLanguage.ARMENIAN -> "«$userMsgText» — Աստծո Խոսքը ասում է. «Քո խօսքը ճրագ է իմ ոտքերի համար» (Սաղմոս 118:105): Հավատքը և հույսը միշտ լուսավորում են մեր ճանապարհը:"
-                            AppLanguage.RUSSIAN -> "На ваш вопрос «$userMsgText»: Слово Божие напоминает: «Слово Твое — светильник ноге моей» (Пс. 118:105). Вера и надежда преображают сердце."
-                            AppLanguage.ENGLISH -> "Regarding «$userMsgText»: The Scripture reminds us: 'Your word is a lamp to my feet' (Psalm 119:105). Faith brings true peace."
+                        val key = when(prefs.activeProvider) {
+                            AIProvider.GEMINI -> prefs.geminiApiKey
+                            AIProvider.CHATGPT -> prefs.openaiApiKey
+                            AIProvider.CLAUDE -> prefs.anthropicApiKey
                         }
 
-                        messages = messages + ChatMessage(text = replyText, isUser = false)
-                        isThinking = false
+                        scope.launch {
+                            if (key.trim().isNotEmpty()) {
+                                val result = AIService.chatGuide(
+                                    provider = prefs.activeProvider,
+                                    apiKey = key,
+                                    userQuestion = userMsgText,
+                                    appLanguage = appLanguage
+                                )
+                                isThinking = false
+                                result.onSuccess { reply ->
+                                    messages = messages + ChatMessage(text = reply, isUser = false)
+                                }.onFailure { err ->
+                                    val fallbackReply = when(appLanguage) {
+                                        AppLanguage.ARMENIAN -> "«$userMsgText» — Աստծո Խոսքը ասում է. «Քո խօսքը ճրագ է իմ ոտքերի համար» (Սաղմոս 118:105): Հավատքը և հույսը միշտ լուսավորում են մեր ճանապարհը: (Ցանցային սխալ՝ ${err.localizedMessage ?: "Offline"})"
+                                        AppLanguage.RUSSIAN -> "На ваш вопрос «$userMsgText»: Слово Божие напоминает: «Слово Твое — светильник ноге моей» (Пс. 118:105). Вера и надежда преображают сердце."
+                                        AppLanguage.ENGLISH -> "Regarding «$userMsgText»: The Scripture reminds us: 'Your word is a lamp to my feet' (Psalm 119:105). Faith brings true peace."
+                                    }
+                                    messages = messages + ChatMessage(text = fallbackReply, isUser = false)
+                                }
+                            } else {
+                                isThinking = false
+                                val hintReply = when(appLanguage) {
+                                    AppLanguage.ARMENIAN -> "Ավելի խորը պատասխանների համար խնդրում ենք Կարգավորումներում ⚙️ մուտքագրել ${prefs.activeProvider.displayName} API բանալին:"
+                                    AppLanguage.RUSSIAN -> "Для развернутых ответов искусственного интеллекта введите API Ключ в Настройках ⚙️ (${prefs.activeProvider.displayName})."
+                                    AppLanguage.ENGLISH -> "To receive deep AI answers, please enter your ${prefs.activeProvider.displayName} API Key in Settings ⚙️."
+                                }
+                                messages = messages + ChatMessage(text = hintReply, isUser = false)
+                            }
+                        }
                     }
                 },
+                enabled = !isThinking,
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)

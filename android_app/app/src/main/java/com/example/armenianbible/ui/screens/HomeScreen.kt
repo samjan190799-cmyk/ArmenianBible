@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.armenianbible.data.*
 import com.example.armenianbible.widget.BibleAppWidget
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +74,9 @@ fun HomeScreen(
     var isFav by remember(currentVerse) {
         mutableStateOf(prefs.isFavorite(currentVerse.refHy))
     }
+
+    var isGeneratingAI by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val accentColor = Color(android.graphics.Color.parseColor(prefs.accentTheme.colorHex))
     val secondaryAccentColor = Color(android.graphics.Color.parseColor(prefs.accentTheme.secondaryColorHex))
@@ -331,7 +335,11 @@ fun HomeScreen(
                     Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Պատահական",
+                        text = when(appLanguage) {
+                            AppLanguage.ARMENIAN -> "Պատահական տող"
+                            AppLanguage.RUSSIAN -> "Случайный стих"
+                            AppLanguage.ENGLISH -> "Random Verse"
+                        },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -351,14 +359,42 @@ fun HomeScreen(
                     }
 
                     if (key.trim().isEmpty()) {
-                        Toast.makeText(context, "Впишите API Ключ в Настройках ⚙️", Toast.LENGTH_SHORT).show()
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        Toast.makeText(
+                            context,
+                            when(appLanguage) {
+                                AppLanguage.ARMENIAN -> "Մուտքագրեք API բանալին Կարգավորումներում ⚙️"
+                                AppLanguage.RUSSIAN -> "Впишите API Ключ в Настройках ⚙️"
+                                AppLanguage.ENGLISH -> "Please enter API Key in Settings ⚙️"
+                            },
+                            Toast.LENGTH_SHORT
+                        ).show()
                         onOpenSettings()
                     } else {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        val newVerse = dbHelper.getRandomVerse()
-                        if (newVerse != null) currentVerse = newVerse
+                        isGeneratingAI = true
+                        scope.launch {
+                            val result = AIService.generateVerse(
+                                provider = prefs.activeProvider,
+                                apiKey = key,
+                                appLanguage = appLanguage
+                            )
+                            isGeneratingAI = false
+                            result.onSuccess { generatedVerse ->
+                                currentVerse = generatedVerse
+                            }.onFailure { err ->
+                                Toast.makeText(
+                                    context,
+                                    "ИИ Ошибка: ${err.localizedMessage ?: "Network error"}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                val fallback = dbHelper.getRandomVerse()
+                                if (fallback != null) currentVerse = fallback
+                            }
+                        }
                     }
                 },
+                enabled = !isGeneratingAI,
                 modifier = Modifier
                     .weight(1f)
                     .height(52.dp),
@@ -370,17 +406,36 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "ИИ Стих ✨",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    if (isGeneratingAI) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "...",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    } else {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = when(appLanguage) {
+                                AppLanguage.ARMENIAN -> "ԱԲ Գեներացում ✨"
+                                AppLanguage.RUSSIAN -> "ИИ Генерация ✨"
+                                AppLanguage.ENGLISH -> "AI Generation ✨"
+                            },
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
