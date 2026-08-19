@@ -1,14 +1,8 @@
-# 📖 App Store & Google Play — Описание и Метаданные (3 Языка)
+import os
 
-Данный документ содержит утверждённые метаданные и описания приложения **Luys: Armenian Bible & AI** на трех языках: **Армянском (Հայերեն)**, **Английском (English)** и **Русском (Русский)**.
-Текст полностью очищен от несовместимых символов (эмодзи флагов, спец-символов), вызывающих ошибку *"This field contains one or more invalid characters"* в App Store Connect.
+base_dir = r"c:\Users\Samvel\.gemini\antigravity-ide\scratch\ArmenianBibleLockScreen.ios"
 
----
-
-## 🌐 Основное объединенное описание для поля Description (2438 знаков):
-
-```text
-[ՀԱՅԵՐԵՆ / ARMENIAN]
+hy_text = """[ՀԱՅԵՐԵՆ / ARMENIAN]
 "Luys: Armenian Bible" - ոգեշնչող հոգևոր հավելված, որը բերում է Աստծո Խոսքը ձեր iPhone-ի Կողպեքրանին (Lock Screen) և Գլխավոր էկրանին:
 
 Հիմնական առանձնահատկությունները:
@@ -18,11 +12,9 @@
 - ԱԲ Հոգևոր Օգնական (AI Guide): Հարցեր և մեկնաբանություններ (Gemini, ChatGPT, Claude):
 - Աստվածաշնչյան Վիկտորինա: Ինտերակտիվ թեստեր գիտելիքների ստուգման համար:
 - Հոգևոր Բացիկներ և Էջանիշեր: Գեղեցիկ քարտերի ստեղծում և տողերի պահպանում:
-- 100% Անցանց և Գաղտնի: Աշխատում է առանց ինտերնետի, առանց գովազդի և տվյալների հավաքագրման:
+- 100% Անցանց և Գաղտնի: Աշխատում է առանց ինտերնետի, առանց գովազդի և տվյալների հավաքագրման:"""
 
-----------------------------------------
-
-[ENGLISH]
+en_text = """[ENGLISH]
 "Luys: Armenian Bible" brings the inspiring Word of God directly to your iOS Lock Screen and Home Screen.
 
 Key Features:
@@ -32,11 +24,9 @@ Key Features:
 - AI Spiritual Guide: Deep biblical reflections powered by Gemini, ChatGPT, and Claude.
 - Bible Quiz and Trivia: Strengthen your faith with interactive knowledge tests.
 - Spiritual Postcards and Bookmarks: Create elegant quote cards and save favorite verses.
-- 100% Offline and Private: No tracking, no ads, works fully offline.
+- 100% Offline and Private: No tracking, no ads, works fully offline."""
 
-----------------------------------------
-
-[РУССКИЙ / RUSSIAN]
+ru_text = """[РУССКИЙ / RUSSIAN]
 "Luys: Armenian Bible" - вдохновляющие строки Священного Писания прямо на Экране блокировки (Lock Screen) и Главном экране вашего iPhone.
 
 Главные возможности:
@@ -46,16 +36,31 @@ Key Features:
 - ИИ-помощник (AI Guide): Духовные ответы и толкования (Gemini, ChatGPT, Claude).
 - Библейская викторина: Интерактивные тесты на знание Священного Писания.
 - Духовные открытки и закладки: Создание красивых карточек и поиск по текстам.
-- 100% Оффлайн и Конфиденциальность: Без интернета, рекламы и сбора данных.
-```
+- 100% Оффлайн и Конфиденциальность: Без интернета, рекламы и сбора данных."""
 
----
+combined_desc = f"""{hy_text}
 
-## 📝 Текст для поля "What's New in This Version":
+----------------------------------------
 
-```text
-- Grigor Narekatsi: Complete 95 audio chapters and Book of Lamentations
+{en_text}
+
+----------------------------------------
+
+{ru_text}"""
+
+whats_new_clean = """- Grigor Narekatsi: Complete 95 audio chapters and Book of Lamentations
 - Գրիգոր Նարեկացի: Բոլոր 95 գլուխները ստուդիական աուդիոյով
 - Lock Screen and Home Screen widget synchronization enhancements
-- Григор Нарекаци: Все 95 глав со студийной озвучкой и улучшенные виджеты
-```
+- Григор Нарекаци: Все 95 глав со студийной озвучкой и улучшенные виджеты"""
+
+# Write to fastlane
+for loc in ["en-US", "default"]:
+    loc_dir = os.path.join(base_dir, "fastlane", "metadata", loc)
+    os.makedirs(loc_dir, exist_ok=True)
+    with open(os.path.join(loc_dir, "description.txt"), "w", encoding="utf-8") as f:
+        f.write(combined_desc.strip() + "\n")
+    with open(os.path.join(loc_dir, "release_notes.txt"), "w", encoding="utf-8") as f:
+        f.write(whats_new_clean.strip() + "\n")
+
+print(f"Clean description written: {len(combined_desc)} chars")
+print(f"Clean whats_new written: {len(whats_new_clean)} chars")
