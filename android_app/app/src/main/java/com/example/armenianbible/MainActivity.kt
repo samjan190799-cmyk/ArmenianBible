@@ -35,6 +35,10 @@ class MainActivity : ComponentActivity() {
         dbHelper = BibleDatabaseHelper.getInstance(this)
         prefs = PreferencesManager(this)
 
+        // Schedule daily notifications & update widget
+        com.example.armenianbible.receiver.DailyNotificationReceiver.scheduleDailyNotification(this)
+        com.example.armenianbible.widget.BibleAppWidget.sendUpdateBroadcast(this)
+
         setContent {
             var currentLanguage by remember { mutableStateOf(prefs.appLanguage) }
             var currentEdition by remember { mutableStateOf(prefs.armenianEdition) }

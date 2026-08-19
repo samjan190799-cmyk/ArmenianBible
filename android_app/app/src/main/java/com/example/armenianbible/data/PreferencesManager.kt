@@ -16,9 +16,14 @@ class PreferencesManager(context: Context) {
         private const val KEY_AI_PROVIDER = "ai_provider"
         private const val KEY_TEXT_CATEGORY = "text_category"
         private const val KEY_UPDATE_INTERVAL = "update_interval"
+        private const val KEY_WIDGET_LANGUAGE = "widget_language"
         private const val KEY_FONT_SIZE = "font_size"
         private const val KEY_FAVORITES = "favorites_json"
         private const val KEY_QUIZ_BEST_SCORE = "quiz_best_score"
+
+        private const val KEY_NOTIF_ENABLED = "daily_notifications_enabled"
+        private const val KEY_NOTIF_HOUR = "daily_notification_hour"
+        private const val KEY_NOTIF_MINUTE = "daily_notification_minute"
 
         private const val KEY_GEMINI_API_KEY = "gemini_api_key"
         private const val KEY_OPENAI_API_KEY = "openai_api_key"
@@ -73,6 +78,25 @@ class PreferencesManager(context: Context) {
             return try { UpdateInterval.valueOf(name!!) } catch (e: Exception) { UpdateInterval.EVERY_HOUR }
         }
         set(value) = prefs.edit().putString(KEY_UPDATE_INTERVAL, value.name).apply()
+
+    var widgetLanguage: WidgetLanguage
+        get() {
+            val name = prefs.getString(KEY_WIDGET_LANGUAGE, WidgetLanguage.FOLLOW_APP.name)
+            return try { WidgetLanguage.valueOf(name!!) } catch (e: Exception) { WidgetLanguage.FOLLOW_APP }
+        }
+        set(value) = prefs.edit().putString(KEY_WIDGET_LANGUAGE, value.name).apply()
+
+    var dailyNotificationsEnabled: Boolean
+        get() = prefs.getBoolean(KEY_NOTIF_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_NOTIF_ENABLED, value).apply()
+
+    var dailyNotificationHour: Int
+        get() = prefs.getInt(KEY_NOTIF_HOUR, 9)
+        set(value) = prefs.edit().putInt(KEY_NOTIF_HOUR, value).apply()
+
+    var dailyNotificationMinute: Int
+        get() = prefs.getInt(KEY_NOTIF_MINUTE, 0)
+        set(value) = prefs.edit().putInt(KEY_NOTIF_MINUTE, value).apply()
 
     var geminiApiKey: String
         get() = prefs.getString(KEY_GEMINI_API_KEY, "") ?: ""
@@ -129,16 +153,25 @@ class PreferencesManager(context: Context) {
     }
 
     fun getWidgetVerse(language: AppLanguage): Pair<String, String> {
-        val text = when(language) {
-            AppLanguage.ARMENIAN -> prefs.getString(KEY_WIDGET_TEXT_HY, "Ի սկզբանէ էր Բանն, եւ Բանն էր առ Աստուած, եւ Աստուած էր Բանն:")
-            AppLanguage.RUSSIAN -> prefs.getString(KEY_WIDGET_TEXT_RU, "В начале было Слово, и Слово было у Бога, и Слово было Бог.")
-            AppLanguage.ENGLISH -> prefs.getString(KEY_WIDGET_TEXT_EN, "In the beginning was the Word, and the Word was with God, and the Word was God.")
+        val effectiveLang = when (widgetLanguage) {
+            WidgetLanguage.FOLLOW_APP -> language
+            WidgetLanguage.ARMENIAN -> AppLanguage.ARMENIAN
+            WidgetLanguage.RUSSIAN -> AppLanguage.RUSSIAN
+            WidgetLanguage.ENGLISH -> AppLanguage.ENGLISH
+        }
+
+        val text = when(effectiveLang) {
+            AppLanguage.ARMENIAN -> prefs.getString(KEY_WIDGET_TEXT_HY, "ՉԷ՞ որ ես քեզ պատվիրեցի․ զորացի՛ր և քա՛ջ եղիր, մի՛ վախեցիր և մի՛ զարհուրիր, որովհետև քո Տեր Աստվածը քեզ հետ է ամեն տեղ, ուր էլ որ գնաս։")
+            AppLanguage.RUSSIAN -> prefs.getString(KEY_WIDGET_TEXT_RU, "Вот Я повелеваю тебе: будь тверд и мужествен, не страшись и не ужасайся; ибо с тобою Господь Бог твой везде, куда ни пойдешь.")
+            AppLanguage.ENGLISH -> prefs.getString(KEY_WIDGET_TEXT_EN, "Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the Lord thy God is with thee whithersoever thou goest.")
         } ?: ""
-        val ref = when(language) {
-            AppLanguage.ARMENIAN -> prefs.getString(KEY_WIDGET_REF_HY, "Յովհաննէս 1:1")
-            AppLanguage.RUSSIAN -> prefs.getString(KEY_WIDGET_REF_RU, "От Иоанна 1:1")
-            AppLanguage.ENGLISH -> prefs.getString(KEY_WIDGET_REF_EN, "John 1:1")
+
+        val ref = when(effectiveLang) {
+            AppLanguage.ARMENIAN -> prefs.getString(KEY_WIDGET_REF_HY, "Հեսու 1:9")
+            AppLanguage.RUSSIAN -> prefs.getString(KEY_WIDGET_REF_RU, "Иисус Навин 1:9")
+            AppLanguage.ENGLISH -> prefs.getString(KEY_WIDGET_REF_EN, "Joshua 1:9")
         } ?: ""
+
         return Pair(text, ref)
     }
 }

@@ -1,41 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
     android:background="@drawable/widget_background">
 
-    <TextView
-        android:id="@+id/widget_title"
-        android:layout_width="wrap_content"
+    <!-- Top Bar: App Title / Icon + Quick Refresh Button -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="✝️ Armenian Bible"
-        android:textColor="#FFD700"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🕊️ Աստվածաշունչ"
+            android:textColor="#0284C7"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_refresh_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔄"
+            android:textSize="14sp"
+            android:padding="4dp" />
+    </LinearLayout>
+
+    <!-- Verse Text Body -->
     <TextView
         android:id="@+id/widget_verse_text"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:ellipsize="end"
-        android:maxLines="5"
-        android:text="Ի սկզբանէ էր Բանն..."
-        android:textColor="#FFFFFF"
+        android:maxLines="6"
+        android:text="«ՉԷ՞ որ ես քեզ պատվիրեցի․ զորացի՛ր և քա՛ջ եղիր, մի՛ վախեցիր և մի՛ զարհուրիր...»"
+        android:textColor="#0F172A"
         android:textSize="14sp"
-        android:lineSpacingExtra="2dp" />
+        android:lineSpacingExtra="3dp"
+        android:fontFamily="serif"
+        android:textStyle="bold" />
 
+    <!-- Verse Reference -->
     <TextView
         android:id="@+id/widget_verse_ref"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
         android:layout_marginTop="4dp"
-        android:text="— Յովհաննէս 1:1"
-        android:textColor="#8A99AD"
+        android:text="— Հեսու 1:9"
+        android:textColor="#0EA5E9"
         android:textSize="12sp"
-        android:textStyle="italic" />
+        android:textStyle="bold" />
+
+    <!-- Interactive Buttons Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/widget_btn_next"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/widget_btn_bg"
+            android:gravity="center"
+            android:paddingVertical="6dp"
+            android:text="🔄 Նոր տող"
+            android:textColor="#0F172A"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_btn_fav"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="4dp"
+            android:background="@drawable/widget_btn_bg"
+            android:gravity="center"
+            android:paddingVertical="6dp"
+            android:text="❤️ Ընտրյալ"
+            android:textColor="#0F172A"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_btn_read"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/widget_btn_bg"
+            android:gravity="center"
+            android:paddingVertical="6dp"
+            android:text="📖 Կարդալ"
+            android:textColor="#0284C7"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
 </LinearLayout>

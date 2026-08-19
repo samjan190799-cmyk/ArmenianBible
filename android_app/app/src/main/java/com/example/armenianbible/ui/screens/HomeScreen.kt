@@ -257,24 +257,16 @@ fun HomeScreen(
                         )
                     }
 
-                    // Share
+                    // Share (Image Card)
                     IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, "«${currentVerse.text(appLanguage)}»\n\n${currentVerse.reference(appLanguage)}\n\n(Armenian Bible)")
-                                type = "text/plain"
-                            }
-                            val shareIntent = Intent.createChooser(
-                                sendIntent,
-                                when(appLanguage) {
-                                    AppLanguage.ARMENIAN -> "Կիսվել մեջբերումով"
-                                    AppLanguage.RUSSIAN -> "Поделиться стихом"
-                                    AppLanguage.ENGLISH -> "Share verse"
-                                }
+                            VerseCardExporter.shareVerseAsImage(
+                                context = context,
+                                verse = currentVerse,
+                                appLanguage = appLanguage,
+                                accentTheme = prefs.accentTheme
                             )
-                            context.startActivity(shareIntent)
                         },
                         modifier = Modifier
                             .size(42.dp)
