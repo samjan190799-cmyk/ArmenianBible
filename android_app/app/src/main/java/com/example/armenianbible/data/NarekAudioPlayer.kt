@@ -104,6 +104,8 @@ class NarekAudioPlayer private constructor(private val context: Context) {
             }
 
             tts?.language = locale
+            tts?.setSpeechRate(0.88f)
+            tts?.setPitch(0.95f)
             tts?.speak(textToRead, TextToSpeech.QUEUE_FLUSH, null, "NarekTTS")
             isPlaying.value = true
 
