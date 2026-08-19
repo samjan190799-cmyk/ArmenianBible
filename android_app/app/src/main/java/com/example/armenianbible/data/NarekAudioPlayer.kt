@@ -42,7 +42,7 @@ class NarekAudioPlayer private constructor(private val context: Context) {
 
                     // Синхронизируем активную главу с текущим временем аудио
                     val currentSec = pos / 1000.0
-                    val active = NarekatsiDatabase.prayers.lastOrNull { it.audioTimestampSeconds <= currentSec }
+                    val active = NarekatsiDatabase.prayers.lastOrNull { it.audioTimestampSeconds(voiceLanguage.value) <= currentSec }
                     if (active != null && currentlyPlayingId.value != active.id) {
                         currentlyPlayingId.value = active.id
                         savedPrayerId.value = active.id
@@ -93,7 +93,7 @@ class NarekAudioPlayer private constructor(private val context: Context) {
         voiceLanguage.value = lang
         currentlyPlayingId.value = prayer.id
         savedPrayerId.value = prayer.id
-        val targetMs = (prayer.audioTimestampSeconds * 1000).toLong()
+        val targetMs = (prayer.audioTimestampSeconds(lang) * 1000).toLong()
 
         if (mediaPlayer != null) {
             seekTo(targetMs)
@@ -113,9 +113,13 @@ class NarekAudioPlayer private constructor(private val context: Context) {
         currentTimeMs.longValue = startAtMs
 
         // Check if bundled asset exists
-        val assetPath = if (language == AppLanguage.ARMENIAN) "audio/narek_sos_sargsyan.mp3" else "audio/narek_russian_prayers.mp3"
+        val assetPath = if (language == AppLanguage.ARMENIAN) "audio/narek_sos_sargsyan.mp3" else "audio/narek_oleg_molenko.mp3"
         try {
-            val afd = context.assets.openFd(assetPath)
+            val afd = try {
+                context.assets.openFd(assetPath)
+            } catch (e: Exception) {
+                context.assets.openFd("audio/narek_russian_prayers.mp3")
+            }
             playFromAsset(afd, prayer, startAtMs)
             return
         } catch (e: Exception) {

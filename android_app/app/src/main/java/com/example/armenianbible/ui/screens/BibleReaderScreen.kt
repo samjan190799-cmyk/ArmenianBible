@@ -872,7 +872,7 @@ fun BibleReaderScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
-                                                    text = "• ${prayer.formattedTimestamp}",
+                                                    text = "• ${prayer.formattedTimestamp(narekPlayer.voiceLanguage.value)}",
                                                     color = if (isCurrent) Color(0xFFD97706) else Color(0xFF94A3B8),
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.SemiBold

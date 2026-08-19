@@ -248,7 +248,7 @@ struct NarekatsiView: View {
                                                     .font(.system(size: 13, weight: .bold))
                                                     .foregroundColor(isCurrent ? accentColor : primaryTextColor)
                                                 
-                                                Text("• \(prayer.formattedTimestamp)")
+                                                Text("• \(prayer.formattedTimestamp(for: audioPlayer.voiceLanguage))")
                                                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                                                     .foregroundColor(isCurrent ? accentColor.opacity(0.9) : .secondary)
                                             }

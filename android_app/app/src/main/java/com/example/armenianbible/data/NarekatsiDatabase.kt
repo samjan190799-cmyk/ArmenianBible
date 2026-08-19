@@ -24,31 +24,57 @@ data class NarekPrayer(
         AppLanguage.ENGLISH -> textEn
     }
 
-    val audioTimestampSeconds: Double
-        get() = when (id) {
-            1 -> 0.0
-            2 -> 259.0
-            3 -> 476.0
-            4 -> 675.0
-            5 -> 858.0
-            6 -> 1036.0
-            7 -> 1201.0
-            8 -> 1346.0
-            9 -> 1692.0
-            10 -> 2003.0
-            20 -> 2197.0
-            41 -> 2287.0
-            else -> {
-                val total = 3169.0
-                minOf((id - 1) * (total / 95.0), total - 5.0)
+    fun audioTimestampSeconds(language: AppLanguage): Double {
+        return if (language == AppLanguage.ARMENIAN) {
+            when (id) {
+                1 -> 0.0
+                2 -> 259.0
+                3 -> 476.0
+                4 -> 675.0
+                5 -> 858.0
+                6 -> 1036.0
+                7 -> 1201.0
+                8 -> 1346.0
+                9 -> 1692.0
+                10 -> 2003.0
+                20 -> 2197.0
+                41 -> 2287.0
+                else -> {
+                    val total = 3169.0
+                    minOf((id - 1) * (total / 95.0), total - 5.0)
+                }
+            }
+        } else {
+            // Русский (о. Олег Моленко, 3710 сек)
+            when (id) {
+                1 -> 0.0
+                2 -> 258.0
+                3 -> 469.0
+                4 -> 685.0
+                5 -> 874.0
+                6 -> 1117.0
+                7 -> 1375.0
+                8 -> 1572.0
+                9 -> 1772.0
+                10 -> 1950.0
+                else -> {
+                    val total = 3710.0
+                    minOf((id - 1) * (total / 95.0), total - 5.0)
+                }
             }
         }
+    }
+
+    val audioTimestampSeconds: Double
+        get() = audioTimestampSeconds(AppLanguage.ARMENIAN)
+
+    fun formattedTimestamp(language: AppLanguage): String {
+        val secs = audioTimestampSeconds(language).toInt()
+        return String.format("%02d:%02d", secs / 60, secs % 60)
+    }
 
     val formattedTimestamp: String
-        get() {
-            val secs = audioTimestampSeconds.toInt()
-            return String.format("%02d:%02d", secs / 60, secs % 60)
-        }
+        get() = formattedTimestamp(AppLanguage.ARMENIAN)
 }
 
 object NarekatsiDatabase {

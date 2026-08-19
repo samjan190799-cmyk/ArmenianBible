@@ -84,7 +84,7 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         voiceLanguage = lang
         currentlyPlayingId = prayer.id
         savedPrayerId = prayer.id
-        let targetTime = prayer.audioTimestampSeconds
+        let targetTime = prayer.audioTimestampSeconds(for: lang)
         
         if let p = player {
             seek(to: targetTime)
@@ -115,10 +115,13 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         }
         
         // Проверяем наличие встроенного файла в бандле приложения
-        let resourceName = (language == .armenian) ? "narek_sos_sargsyan" : "narek_russian_prayers"
+        let resourceName = (language == .armenian) ? "narek_sos_sargsyan" : "narek_oleg_molenko"
         var targetUrl = Bundle.main.url(forResource: resourceName, withExtension: "mp3")
         if targetUrl == nil {
             targetUrl = Bundle.main.url(forResource: resourceName, withExtension: "mp3", subdirectory: "Audio")
+        }
+        if targetUrl == nil {
+            targetUrl = Bundle.main.url(forResource: "narek_russian_prayers", withExtension: "mp3")
         }
         if targetUrl == nil {
             let urlString: String? = (language == .armenian) ? prayer.audioUrlHy : (prayer.audioUrlRu ?? prayer.audioUrlHy)
@@ -165,7 +168,7 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
                     self.savePlaybackState()
                     
                     // Автоматически синхронизируем активную главу с текущим таймкодом
-                    if let active = NarekatsiDatabase.shared.prayers.last(where: { $0.audioTimestampSeconds <= currentSec }) {
+                    if let active = NarekatsiDatabase.shared.prayers.last(where: { $0.audioTimestampSeconds(for: self.voiceLanguage) <= currentSec }) {
                         if self.currentlyPlayingId != active.id {
                             self.currentlyPlayingId = active.id
                             self.savedPrayerId = active.id
