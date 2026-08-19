@@ -35,7 +35,26 @@ class PreferencesManager(context: Context) {
         private const val KEY_WIDGET_REF_HY = "widget_ref_hy"
         private const val KEY_WIDGET_REF_RU = "widget_ref_ru"
         private const val KEY_WIDGET_REF_EN = "widget_ref_en"
+
+        private const val KEY_NAREK_LAST_PRAYER_ID = "narek_last_prayer_id"
+        private const val KEY_NAREK_LAST_TIME_MS = "narek_last_time_ms"
+        private const val KEY_NAREK_VOICE_LANG = "narek_voice_lang"
     }
+
+    var narekLastPrayerId: Int
+        get() = prefs.getInt(KEY_NAREK_LAST_PRAYER_ID, 1)
+        set(value) = prefs.edit().putInt(KEY_NAREK_LAST_PRAYER_ID, value).apply()
+
+    var narekLastTimeMs: Long
+        get() = prefs.getLong(KEY_NAREK_LAST_TIME_MS, 0L)
+        set(value) = prefs.edit().putLong(KEY_NAREK_LAST_TIME_MS, value).apply()
+
+    var narekVoiceLanguage: AppLanguage
+        get() {
+            val code = prefs.getString(KEY_NAREK_VOICE_LANG, AppLanguage.ARMENIAN.code)
+            return AppLanguage.entries.find { it.code == code } ?: AppLanguage.ARMENIAN
+        }
+        set(value) = prefs.edit().putString(KEY_NAREK_VOICE_LANG, value.code).apply()
 
     var appLanguage: AppLanguage
         get() {

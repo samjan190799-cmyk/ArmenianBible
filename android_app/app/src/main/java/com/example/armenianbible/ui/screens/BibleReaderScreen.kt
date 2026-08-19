@@ -21,6 +21,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -60,10 +65,11 @@ fun BibleReaderScreen(
     var selectedBook by remember { mutableStateOf<BibleBook?>(null) }
     var selectedChapter by remember { mutableStateOf<Int?>(initialChapter) }
     var mainSectionTab by remember { mutableIntStateOf(if (initialSubTab == 2) 1 else 0) } // 0: Bible, 1: Narekatsi
+    var narekSubTab by remember { mutableIntStateOf(0) } // 0: Text, 1: Audio Player
     var selectedTestament by remember { mutableIntStateOf(if (initialSubTab == 1) 1 else 0) } // 0: OT, 1: NT
 
     var selectedNarekPrayer by remember { mutableStateOf<NarekPrayer?>(null) }
-    var searchQuery by remember { mutableStateOf("") }
+    var searchText by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
 
     var fontSize by remember { mutableFloatStateOf(prefs.fontSize) }
@@ -75,11 +81,10 @@ fun BibleReaderScreen(
     var explanationResult by remember { mutableStateOf<String?>(null) }
     var isExplainingAI by remember { mutableStateOf(false) }
 
-    var isSpeaking by remember { mutableStateOf(false) }
+    var isSpeakingBible by remember { mutableStateOf(false) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
 
     val listState = rememberLazyListState()
-
     val narekPlayer = remember { NarekAudioPlayer.getInstance(context) }
 
     DisposableEffect(Unit) {
@@ -132,7 +137,7 @@ fun BibleReaderScreen(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             tts?.stop()
-                            isSpeaking = false
+                            isSpeakingBible = false
                             if (selectedNarekPrayer != null) {
                                 selectedNarekPrayer = null
                             } else if (selectedChapter != null) {
@@ -147,7 +152,7 @@ fun BibleReaderScreen(
                             .background(Color(0xFFF1F5F9))
                     ) {
                         Icon(
-                            Icons.Default.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Color(0xFF0F172A),
                             modifier = Modifier.size(20.dp)
@@ -168,7 +173,7 @@ fun BibleReaderScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Icon(Icons.Default.MenuBook, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(16.dp))
+                            Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = when(appLanguage) {
@@ -219,9 +224,9 @@ fun BibleReaderScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
                             onClick = {
-                                if (isSpeaking) {
+                                if (isSpeakingBible) {
                                     tts?.stop()
-                                    isSpeaking = false
+                                    isSpeakingBible = false
                                 } else {
                                     val verses = dbHelper.getChapterVerses(selectedBook!!.id, selectedChapter!!)
                                     val fullChapterText = verses.joinToString(". ") { it.text(appLanguage, currentEdition) }
@@ -231,13 +236,13 @@ fun BibleReaderScreen(
                                         AppLanguage.ENGLISH -> Locale("en")
                                     }
                                     tts?.speak(fullChapterText, TextToSpeech.QUEUE_FLUSH, null, "ChapterAudio")
-                                    isSpeaking = true
+                                    isSpeakingBible = true
                                 }
                             },
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
-                                imageVector = if (isSpeaking) Icons.Default.Stop else Icons.Default.VolumeUp,
+                                imageVector = if (isSpeakingBible) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
                                 contentDescription = "Audio",
                                 tint = Color(0xFF0EA5E9),
                                 modifier = Modifier.size(22.dp)
@@ -293,12 +298,12 @@ fun BibleReaderScreen(
                 shadowElevation = 1.dp
             ) {
                 OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    value = searchText,
+                    onValueChange = { searchText = it },
                     placeholder = { Text("Փնտրել գիրքը կամ համարը...", color = Color(0xFF94A3B8), fontSize = 14.sp) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF0EA5E9)) },
-                    trailingIcon = if (searchQuery.isNotEmpty()) {
-                        { IconButton(onClick = { searchQuery = "" }) { Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFF64748B)) } }
+                    trailingIcon = if (searchText.isNotEmpty()) {
+                        { IconButton(onClick = { searchText = "" }) { Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFF64748B)) } }
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -412,9 +417,9 @@ fun BibleReaderScreen(
 
                     val filteredBooks = allBooks.filter { book ->
                         (if (selectedTestament == 0) !book.isNewTestament else book.isNewTestament) &&
-                                (searchQuery.isEmpty() ||
-                                        book.name(appLanguage).contains(searchQuery, ignoreCase = true) ||
-                                        book.shortName(appLanguage).contains(searchQuery, ignoreCase = true))
+                                (searchText.isEmpty() ||
+                                        book.name(appLanguage).contains(searchText, ignoreCase = true) ||
+                                        book.shortName(appLanguage).contains(searchText, ignoreCase = true))
                     }
 
                     LazyColumn(
@@ -487,54 +492,402 @@ fun BibleReaderScreen(
                         }
                     }
                 } else {
-                    // NAREKATSI SECTION (95 prayers)
-                    val filteredPrayers = NarekatsiDatabase.prayers.filter { p ->
-                        searchQuery.isEmpty() ||
-                                p.banNumber.contains(searchQuery, ignoreCase = true) ||
-                                p.title(appLanguage).contains(searchQuery, ignoreCase = true) ||
-                                p.text(appLanguage).contains(searchQuery, ignoreCase = true)
+                    // NAREKATSI SECTION (2 SUB-TABS: 📄 ТЕКСТ / 🎧 ОЗВУЧКА И ПЛЕЕР)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFE2E8F0).copy(alpha = 0.5f))
+                            .padding(3.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (narekSubTab == 0) Color.White else Color.Transparent)
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    narekSubTab = 0
+                                }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "📄 Տեքստ (Մատյան)",
+                                color = if (narekSubTab == 0) Color(0xFFD97706) else Color(0xFF64748B),
+                                fontWeight = if (narekSubTab == 0) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (narekSubTab == 1) Color.White else Color.Transparent)
+                                .clickable {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    narekSubTab = 1
+                                }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "🎧 Ձայնագրություն",
+                                    color = if (narekSubTab == 1) Color(0xFFD97706) else Color(0xFF64748B),
+                                    fontWeight = if (narekSubTab == 1) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 12.sp
+                                )
+                                if (narekPlayer.isPlaying.value) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF10B981))
+                                    )
+                                }
+                            }
+                        }
                     }
 
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(filteredPrayers) { prayer ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .shadow(0.5.dp, RoundedCornerShape(14.dp))
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
-                                    .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        selectedNarekPrayer = prayer
-                                    },
-                                colors = CardDefaults.cardColors(containerColor = Color.White)
-                            ) {
-                                Row(
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (narekSubTab == 0) {
+                        // SUBTAB 0: TEXT PRAYERS LIST
+                        val filteredPrayers = NarekatsiDatabase.prayers.filter { p ->
+                            searchText.isEmpty() ||
+                                    p.banNumber.contains(searchText, ignoreCase = true) ||
+                                    p.title(appLanguage).contains(searchText, ignoreCase = true) ||
+                                    p.text(appLanguage).contains(searchText, ignoreCase = true)
+                        }
+
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(filteredPrayers) { prayer ->
+                                Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .shadow(0.5.dp, RoundedCornerShape(14.dp))
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                                        .clickable {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            selectedNarekPrayer = prayer
+                                        },
+                                    colors = CardDefaults.cardColors(containerColor = Color.White)
                                 ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = Color(0xFFFEF3C7),
-                                        modifier = Modifier.size(42.dp)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Default.MenuBook, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(22.dp))
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = Color(0xFFFEF3C7),
+                                            modifier = Modifier.size(42.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(22.dp))
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(14.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(prayer.banNumber, color = Color(0xFFD97706), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(prayer.title(appLanguage), color = Color(0xFF0F172A), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                        }
+                                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFCBD5E1))
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // SUBTAB 1: DEDICATED AUDIO PLAYER & 95 CHAPTERS PLAYLIST
+                        val currentPrayerId = narekPlayer.currentlyPlayingId.value ?: narekPlayer.savedPrayerId.value
+                        val activePrayer = NarekatsiDatabase.prayers.find { it.id == currentPrayerId } ?: NarekatsiDatabase.prayers[0]
+
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            // 1. HERO PLAYER CARD
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .shadow(1.dp, RoundedCornerShape(20.dp))
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp)),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                                ) {
+                                    Column(modifier = Modifier.padding(18.dp)) {
+                                        // Top Row: Ban Number + Voice Selector
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = activePrayer.banNumber,
+                                                    color = Color(0xFFD97706),
+                                                    fontSize = 17.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontFamily = FontFamily.Serif
+                                                )
+                                                if (narekPlayer.isStreaming.value) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text("• Բեռնվում է...", color = Color(0xFF64748B), fontSize = 11.sp)
+                                                }
+                                            }
+
+                                            // Voice Switcher (Armenian Sos Sargsyan / Russian Oleg Molenko)
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = Color(0xFFFEF3C7),
+                                                modifier = Modifier.clickable {
+                                                    val newLang = if (narekPlayer.voiceLanguage.value == AppLanguage.ARMENIAN) AppLanguage.RUSSIAN else AppLanguage.ARMENIAN
+                                                    narekPlayer.voiceLanguage.value = newLang
+                                                    narekPlayer.play(activePrayer, newLang)
+                                                }
+                                            ) {
+                                                Text(
+                                                    text = if (narekPlayer.voiceLanguage.value == AppLanguage.ARMENIAN) "🇦🇲 Սոս Սարգսյան" else "🇷🇺 О. Моленко",
+                                                    color = Color(0xFFD97706),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = activePrayer.title(narekPlayer.voiceLanguage.value),
+                                            color = Color(0xFF0F172A),
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+
+                                        Spacer(modifier = Modifier.height(14.dp))
+
+                                        // Seek Slider
+                                        val curMs = narekPlayer.currentTimeMs.longValue
+                                        val durMs = if (narekPlayer.durationMs.longValue > 0) narekPlayer.durationMs.longValue else 300000L
+                                        val sliderPos = (curMs.toFloat() / durMs.toFloat()).coerceIn(0f, 1f)
+
+                                        Slider(
+                                            value = sliderPos,
+                                            onValueChange = { frac ->
+                                                val targetMs = (frac * durMs).toLong()
+                                                narekPlayer.seekTo(targetMs)
+                                            },
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Color(0xFFD97706),
+                                                activeTrackColor = Color(0xFFD97706),
+                                                inactiveTrackColor = Color(0xFFE2E8F0)
+                                            )
+                                        )
+
+                                        // Time indicators
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            val curSec = curMs / 1000
+                                            val durSec = durMs / 1000
+                                            Text(
+                                                text = String.format("%02d:%02d", curSec / 60, curSec % 60),
+                                                color = Color(0xFF64748B),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = String.format("%02d:%02d", durSec / 60, durSec % 60),
+                                                color = Color(0xFF64748B),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        // Playback Controls Row: Prev, -15s, Play/Pause, +15s, Next
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceEvenly,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            IconButton(onClick = { narekPlayer.playPreviousPrayer() }) {
+                                                Icon(Icons.Default.SkipPrevious, contentDescription = "Prev", tint = Color(0xFF0F172A), modifier = Modifier.size(24.dp))
+                                            }
+
+                                            IconButton(onClick = { narekPlayer.skipBackward(15) }) {
+                                                Icon(Icons.Default.Replay10, contentDescription = "Rewind", tint = Color(0xFF0F172A), modifier = Modifier.size(24.dp))
+                                            }
+
+                                            // Main Big Play/Pause Button
+                                            Surface(
+                                                shape = CircleShape,
+                                                shadowElevation = 6.dp,
+                                                modifier = Modifier
+                                                    .size(56.dp)
+                                                    .clickable {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        narekPlayer.togglePlay(activePrayer)
+                                                    }
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .background(
+                                                            Brush.linearGradient(
+                                                                listOf(Color(0xFFF59E0B), Color(0xFFD97706))
+                                                            )
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = if (narekPlayer.isPlaying.value) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                        contentDescription = "Play/Pause",
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(30.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            IconButton(onClick = { narekPlayer.skipForward(15) }) {
+                                                Icon(Icons.Default.Forward10, contentDescription = "Forward", tint = Color(0xFF0F172A), modifier = Modifier.size(24.dp))
+                                            }
+
+                                            IconButton(onClick = { narekPlayer.playNextPrayer() }) {
+                                                Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = Color(0xFF0F172A), modifier = Modifier.size(24.dp))
+                                            }
+                                        }
+
+                                        // Remembered position indicator
+                                        if (narekPlayer.savedTimeMs.longValue > 0 && !narekPlayer.isPlaying.value) {
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            val savedSec = narekPlayer.savedTimeMs.longValue / 1000
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.Center,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(Icons.Default.History, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(13.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "Պահպանված դիրք՝ ${String.format("%02d:%02d", savedSec / 60, savedSec % 60)} (Գլուխ ${narekPlayer.savedPrayerId.value})",
+                                                    color = Color(0xFF64748B),
+                                                    fontSize = 11.sp
+                                                )
+                                            }
                                         }
                                     }
-                                    Spacer(modifier = Modifier.width(14.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(prayer.banNumber, color = Color(0xFFD97706), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(prayer.title(appLanguage), color = Color(0xFF0F172A), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                                    }
-                                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFCBD5E1))
                                 }
+                            }
+
+                            // 2. PLAYLIST HEADER
+                            item {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "📻 Բոլոր 95 Գլուխները (Плейлист)",
+                                        color = Color(0xFF0F172A),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text("95 աղոթք", color = Color(0xFF64748B), fontSize = 12.sp)
+                                }
+                            }
+
+                            // 3. 95 CHAPTERS PLAYLIST ITEMS
+                            items(NarekatsiDatabase.prayers) { prayer ->
+                                val isCurrent = (narekPlayer.currentlyPlayingId.value == prayer.id) ||
+                                        (narekPlayer.currentlyPlayingId.value == null && narekPlayer.savedPrayerId.value == prayer.id)
+                                val isThisPlaying = narekPlayer.isPlaying.value && narekPlayer.currentlyPlayingId.value == prayer.id
+
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .shadow(0.5.dp, RoundedCornerShape(14.dp))
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .border(
+                                            1.dp,
+                                            if (isCurrent) Color(0xFFD97706).copy(alpha = 0.5f) else Color(0xFFE2E8F0),
+                                            RoundedCornerShape(14.dp)
+                                        )
+                                        .clickable {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            narekPlayer.togglePlay(prayer, narekPlayer.voiceLanguage.value)
+                                        },
+                                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = if (isCurrent) Color(0xFFFEF3C7) else Color(0xFFF1F5F9),
+                                            modifier = Modifier.size(38.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                if (isThisPlaying) {
+                                                    Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(18.dp))
+                                                } else {
+                                                    Text(
+                                                        text = "${prayer.id}",
+                                                        color = if (isCurrent) Color(0xFFD97706) else Color(0xFF64748B),
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 13.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = prayer.banNumber,
+                                                color = if (isCurrent) Color(0xFFD97706) else Color(0xFF0F172A),
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = prayer.title(narekPlayer.voiceLanguage.value),
+                                                color = Color(0xFF64748B),
+                                                fontSize = 12.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        Icon(
+                                            imageVector = if (isThisPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
+                                            contentDescription = "Play",
+                                            tint = if (isThisPlaying) Color(0xFFD97706) else Color(0xFFCBD5E1),
+                                            modifier = Modifier.size(26.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(30.dp))
                             }
                         }
                     }
@@ -574,7 +927,7 @@ fun BibleReaderScreen(
                                 narekPlayer.togglePlay(p, appLanguage)
                             }) {
                                 Icon(
-                                    imageVector = if (isThisPrayerPlaying) Icons.Default.Stop else Icons.Default.VolumeUp,
+                                    imageVector = if (isThisPrayerPlaying) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
                                     contentDescription = "Audio",
                                     tint = if (isThisPrayerPlaying) Color(0xFFEF4444) else Color(0xFFD97706)
                                 )
@@ -689,7 +1042,7 @@ fun BibleReaderScreen(
                         ),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(16.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Նախորդ", color = Color(0xFF0F172A), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -718,7 +1071,7 @@ fun BibleReaderScreen(
                     ) {
                         Text("Հաջորդ", color = Color(0xFF0F172A), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Icon(Icons.Default.ArrowForward, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(16.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(16.dp))
                     }
                 }
 
