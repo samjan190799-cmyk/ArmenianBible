@@ -36,6 +36,7 @@ targets:
       path: Sources/ArmenianBible.entitlements
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.9"
         PRODUCT_NAME: ArmenianBible
         PRODUCT_BUNDLE_IDENTIFIER: com.samvel.armenianbible
@@ -75,6 +76,7 @@ targets:
       path: Widget/BibleWidget.entitlements
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.9"
         PRODUCT_NAME: BibleWidget
         PRODUCT_BUNDLE_IDENTIFIER: com.samvel.armenianbible.BibleWidget
