@@ -80,10 +80,13 @@ fun BibleReaderScreen(
 
     val listState = rememberLazyListState()
 
+    val narekPlayer = remember { NarekAudioPlayer.getInstance(context) }
+
     DisposableEffect(Unit) {
         val ttsInstance = TextToSpeech(context) { status -> }
         tts = ttsInstance
         onDispose {
+            narekPlayer.stop()
             ttsInstance.stop()
             ttsInstance.shutdown()
         }
@@ -564,26 +567,16 @@ fun BibleReaderScreen(
                             fontSize = 14.sp
                         )
 
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val isThisPrayerPlaying = narekPlayer.isPlaying.value && narekPlayer.currentlyPlayingId.value == p.id
                             IconButton(onClick = {
-                                if (isSpeaking) {
-                                    tts?.stop()
-                                    isSpeaking = false
-                                } else {
-                                    val textToRead = "${p.title(appLanguage)}. ${p.text(appLanguage)}"
-                                    tts?.language = when(appLanguage) {
-                                        AppLanguage.ARMENIAN -> Locale("hy")
-                                        AppLanguage.RUSSIAN -> Locale("ru")
-                                        AppLanguage.ENGLISH -> Locale("en")
-                                    }
-                                    tts?.speak(textToRead, TextToSpeech.QUEUE_FLUSH, null, "NarekAudio")
-                                    isSpeaking = true
-                                }
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                narekPlayer.togglePlay(p, appLanguage)
                             }) {
                                 Icon(
-                                    imageVector = if (isSpeaking) Icons.Default.Stop else Icons.Default.VolumeUp,
+                                    imageVector = if (isThisPrayerPlaying) Icons.Default.Stop else Icons.Default.VolumeUp,
                                     contentDescription = "Audio",
-                                    tint = Color(0xFFD97706)
+                                    tint = if (isThisPrayerPlaying) Color(0xFFEF4444) else Color(0xFFD97706)
                                 )
                             }
 
