@@ -95,10 +95,21 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
             print("Failed to set AVAudioSession category: \(error)")
         }
         
-        let urlString: String? = (language == .armenian) ? prayer.audioUrlHy : (prayer.audioUrlRu ?? prayer.audioUrlHy)
+        // Проверяем наличие встроенного файла в бандле приложения
+        let resourceName = (language == .armenian) ? "narek_sos_sargsyan" : "narek_russian_prayers"
+        var targetUrl = Bundle.main.url(forResource: resourceName, withExtension: "mp3")
+        if targetUrl == nil {
+            targetUrl = Bundle.main.url(forResource: resourceName, withExtension: "mp3", subdirectory: "Audio")
+        }
+        if targetUrl == nil {
+            let urlString: String? = (language == .armenian) ? prayer.audioUrlHy : (prayer.audioUrlRu ?? prayer.audioUrlHy)
+            if let validUrlString = urlString {
+                targetUrl = URL(string: validUrlString)
+            }
+        }
         
-        if let validUrlString = urlString, let url = URL(string: validUrlString) {
-            isStreaming = true
+        if let url = targetUrl {
+            isStreaming = url.scheme == "http" || url.scheme == "https"
             let playerItem = AVPlayerItem(url: url)
             let newPlayer = AVPlayer(playerItem: playerItem)
             self.player = newPlayer

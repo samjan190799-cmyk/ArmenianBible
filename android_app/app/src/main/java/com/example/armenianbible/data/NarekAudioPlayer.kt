@@ -88,12 +88,59 @@ class NarekAudioPlayer private constructor(private val context: Context) {
         isPlaying.value = true
         currentTimeMs.longValue = startAtMs
 
+        // Check if bundled asset exists
+        val assetPath = if (language == AppLanguage.ARMENIAN) "audio/narek_sos_sargsyan.mp3" else "audio/narek_russian_prayers.mp3"
+        try {
+            val afd = context.assets.openFd(assetPath)
+            playFromAsset(afd, prayer, startAtMs)
+            return
+        } catch (e: Exception) {
+            // Asset not found, try url
+        }
+
         val urlString = if (language == AppLanguage.ARMENIAN) prayer.audioUrlHy else (prayer.audioUrlRu ?: prayer.audioUrlHy)
 
         if (!urlString.isNullOrEmpty()) {
             playFromUrl(urlString, prayer, language, startAtMs)
         } else {
             fallbackToTts(prayer, language)
+        }
+    }
+
+    private fun playFromAsset(afd: android.content.res.AssetFileDescriptor, prayer: NarekPrayer, startAtMs: Long) {
+        try {
+            isStreaming.value = false
+            mediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                afd.close()
+                setOnPreparedListener { mp ->
+                    if (currentlyPlayingId.value == prayer.id) {
+                        if (startAtMs > 0) {
+                            mp.seekTo(startAtMs.toInt())
+                        }
+                        mp.start()
+                        this@NarekAudioPlayer.isPlaying.value = true
+                        durationMs.longValue = mp.duration.toLong()
+                        mainHandler.post(progressUpdater)
+                    }
+                }
+                setOnCompletionListener {
+                    playNextPrayer()
+                }
+                setOnErrorListener { _, _, _ ->
+                    fallbackToTts(prayer, voiceLanguage.value)
+                    true
+                }
+                prepareAsync()
+            }
+        } catch (e: Exception) {
+            fallbackToTts(prayer, voiceLanguage.value)
         }
     }
 
