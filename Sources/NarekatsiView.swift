@@ -7,7 +7,7 @@ struct NarekatsiView: View {
     @StateObject private var audioPlayer = NarekAudioPlayer.shared
     
     @State private var subTab: Int = 0 // 0: 📄 Текст, 1: 🎧 Озвучка
-    @State private var shareItem: ShareItem? = nil
+    @State private var shareText: String? = nil
     @State private var toastMessage: String? = nil
     @State private var searchText: String = ""
     
@@ -302,8 +302,13 @@ struct NarekatsiView: View {
             }
             .animation(.spring(), value: toastMessage)
         )
-        .sheet(item: $shareItem) { item in
-            ShareSheet(activityItems: [item.text])
+        .sheet(isPresented: Binding(
+            get: { shareText != nil },
+            set: { if !$0 { shareText = nil } }
+        )) {
+            if let txt = shareText {
+                ActivityView(activityItems: [txt])
+            }
         }
     }
     
@@ -311,7 +316,14 @@ struct NarekatsiView: View {
     
     private func pinPrayerToWidget(_ prayer: NarekPrayer) {
         triggerHaptic(.medium)
-        manager.pinnedPrayer = prayer
+        manager.pinVerseToWidget(
+            textHy: prayer.textHy,
+            textRu: prayer.textRu,
+            textEn: prayer.textEn,
+            refHy: prayer.banNumber,
+            refRu: prayer.banNumber,
+            refEn: prayer.banNumber
+        )
         showToast("Աղոթքը տեղադրվեց Վիջեթում 📌")
     }
     
@@ -323,7 +335,7 @@ struct NarekatsiView: View {
     
     private func sharePrayer(_ prayer: NarekPrayer) {
         triggerHaptic(.light)
-        shareItem = ShareItem(text: "«\(prayer.title(for: manager.appLanguage))»\n\n\(prayer.text(for: manager.appLanguage))\n\n(Գրիգոր Նարեկացի — Մատյան Ողբերգության)")
+        shareText = "«\(prayer.title(for: manager.appLanguage))»\n\n\(prayer.text(for: manager.appLanguage))\n\n(Գրիգոր Նարեկացի — Մատյան Ողբերգության)"
     }
     
     private func showToast(_ msg: String) {
