@@ -698,37 +698,18 @@ struct BibleSingleChapterView: View {
                             .padding(.bottom, 20)
                             .frame(maxWidth: .infinity)
                             
-                            // Подсказка о свободном выделении
-                            HStack(spacing: 6) {
-                                Image(systemName: "hand.tap.fill")
-                                    .font(.system(size: 11))
-                                Text("bible_reader_select_hint".localized(for: manager.appLanguage))
-                                    .font(.system(size: 11.5, weight: .medium))
-                            }
-                            .foregroundColor(accentColor.opacity(0.75))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
-                            .background(accentColor.opacity(0.08))
-                            .cornerRadius(12)
-                            .padding(.bottom, 20)
-                            
-                            // MARK: - Непрерывный текст главы со свободным выделением любого диапазона
-                            Text(buildChapterAttributedString(from: text))
-                                .lineSpacing(8)
-                                .textSelection(.enabled)
-                                .padding(.horizontal, 24)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .environment(\.openURL, OpenURLAction { url in
-                                    if url.scheme == "verse" {
-                                        let raw = (url.host ?? url.path).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                                        if let verseNum = Int(raw), let v = text.verses.first(where: { $0.verseNumber == verseNum }) {
-                                            triggerHaptic(.light)
-                                            selectedVerseForSheet = v
-                                            return .handled
-                                        }
+                            // MARK: - Непрерывный текст главы со свободным выделением и нативным копированием
+                            SelectableBibleTextView(
+                                attributedText: buildChapterNSAttributedString(from: text),
+                                onVerseTapped: { verseNum in
+                                    if let v = text.verses.first(where: { $0.verseNumber == verseNum }) {
+                                        triggerHaptic(.light)
+                                        selectedVerseForSheet = v
                                     }
-                                    return .systemAction
-                                })
+                                }
+                            )
+                            .padding(.horizontal, 24)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             
                             // MARK: - Заметки и теги к стихам этой главы (если есть)
                             let chapterAnnotations = text.verses.compactMap { v -> (BibleVerseText, VerseAnnotation)? in
@@ -965,41 +946,56 @@ struct BibleSingleChapterView: View {
         }
     }
     
-    private func buildChapterAttributedString(from text: BibleChapterText) -> AttributedString {
-        var result = AttributedString()
+    private func buildChapterNSAttributedString(from text: BibleChapterText) -> NSAttributedString {
+        let result = NSMutableAttributedString()
         let fontSize = manager.bibleFontSize
-        let textColor = colorScheme == .dark ? Color.white.opacity(0.92) : Color(hex: "1E293B")
+        let textColor = colorScheme == .dark ? UIColor.white.withAlphaComponent(0.92) : UIColor(red: 0.12, green: 0.16, blue: 0.23, alpha: 1.0)
+        let uiAccentColor = UIColor(Color(hex: manager.accentTheme.colorHex))
+        
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 7
+        paragraphStyle.paragraphSpacing = 16
+        
+        let fontDescriptor = UIFont.systemFont(ofSize: fontSize, weight: .regular).fontDescriptor.withDesign(.serif) ?? UIFont.systemFont(ofSize: fontSize).fontDescriptor
+        let font = UIFont(descriptor: fontDescriptor, size: fontSize)
+        
+        let numDescriptor = UIFont.boldSystemFont(ofSize: max(11, fontSize * 0.65)).fontDescriptor.withDesign(.serif) ?? UIFont.boldSystemFont(ofSize: max(11, fontSize * 0.65)).fontDescriptor
+        let numFont = UIFont(descriptor: numDescriptor, size: max(11, fontSize * 0.65))
         
         for (index, verse) in text.verses.enumerated() {
             // Номер стиха надстрочным шрифтом с кликабельной ссылкой
-            var numStr = AttributedString(" \(verse.verseNumber) ")
-            numStr.font = .system(size: max(11, fontSize * 0.65), weight: .bold, design: .serif)
-            numStr.foregroundColor = accentColor
-            numStr.baselineOffset = fontSize * 0.25
-            if let linkURL = URL(string: "verse://\(verse.verseNumber)") {
-                numStr.link = linkURL
-            }
+            let numAttrs: [NSAttributedString.Key: Any] = [
+                .font: numFont,
+                .foregroundColor: uiAccentColor,
+                .baselineOffset: fontSize * 0.25,
+                .link: URL(string: "verse://\(verse.verseNumber)") ?? ""
+            ]
+            let numStr = NSAttributedString(string: " \(verse.verseNumber) ", attributes: numAttrs)
             
             // Текст стиха
             let verseContent = verse.text(for: manager.appLanguage)
-            var verseStr = AttributedString(verseContent)
-            verseStr.font = .system(size: fontSize, weight: .regular, design: fontDesign)
-            verseStr.foregroundColor = textColor
+            var verseAttrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: textColor,
+                .paragraphStyle: paragraphStyle
+            ]
             
             let ann = manager.annotation(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
             let savedColorHex = ann?.colorHex ?? manager.highlightColor(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
             
             if let hex = savedColorHex {
-                verseStr.backgroundColor = Color(hex: hex).opacity(colorScheme == .dark ? 0.35 : 0.25)
+                verseAttrs[.backgroundColor] = UIColor(Color(hex: hex)).withAlphaComponent(colorScheme == .dark ? 0.35 : 0.25)
             } else if highlightedVerseId == verse.verseNumber {
-                verseStr.backgroundColor = accentColor.opacity(colorScheme == .dark ? 0.25 : 0.18)
+                verseAttrs[.backgroundColor] = uiAccentColor.withAlphaComponent(colorScheme == .dark ? 0.25 : 0.18)
             }
+            
+            let verseStr = NSAttributedString(string: verseContent, attributes: verseAttrs)
             
             result.append(numStr)
             result.append(verseStr)
             
             if index < text.verses.count - 1 {
-                result.append(AttributedString("\n\n"))
+                result.append(NSAttributedString(string: "\n\n", attributes: [.paragraphStyle: paragraphStyle]))
             }
         }
         
@@ -1010,6 +1006,74 @@ struct BibleSingleChapterView: View {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
+    }
+}
+
+// MARK: - Нативный компонент для свободного выделения и копирования текста через UITextView
+struct SelectableBibleTextView: UIViewRepresentable {
+    let attributedText: NSAttributedString
+    let onVerseTapped: (Int) -> Void
+    
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.isScrollEnabled = false
+        textView.backgroundColor = .clear
+        textView.textContainerInset = .zero
+        textView.textContainer.lineFragmentPadding = 0
+        textView.delegate = context.coordinator
+        textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        textView.setContentHuggingPriority(.required, for: .vertical)
+        textView.linkTextAttributes = [:]
+        return textView
+    }
+    
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        uiView.attributedText = attributedText
+        context.coordinator.onVerseTapped = onVerseTapped
+    }
+    
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        let width = proposal.width ?? UIScreen.main.bounds.width
+        let size = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: size.height)
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onVerseTapped: onVerseTapped)
+    }
+    
+    class Coordinator: NSObject, UITextViewDelegate {
+        var onVerseTapped: (Int) -> Void
+        
+        init(onVerseTapped: @escaping (Int) -> Void) {
+            self.onVerseTapped = onVerseTapped
+        }
+        
+        func textView(_ textView: UITextView, shouldInteractWith URL: URL, in characterRange: NSRange, interaction: UITextItemInteraction) -> Bool {
+            if URL.scheme == "verse" {
+                let raw = (URL.host ?? URL.path).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                if let verseNum = Int(raw) {
+                    onVerseTapped(verseNum)
+                    return false
+                }
+            }
+            return true
+        }
+        
+        @available(iOS 17.0, *)
+        func textView(_ textView: UITextView, primaryActionFor textItem: UITextItem, defaultAction: UIAction) -> UIAction? {
+            if case .link(let url) = textItem.content, url.scheme == "verse" {
+                let raw = (url.host ?? url.path).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                if let verseNum = Int(raw) {
+                    return UIAction { [weak self] _ in
+                        self?.onVerseTapped(verseNum)
+                    }
+                }
+            }
+            return defaultAction
+        }
     }
 }
 

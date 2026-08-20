@@ -591,8 +591,9 @@ struct ChurchFeastsBannerCardView: View {
                         )
                         .frame(width: 48, height: 48)
                     
-                    Text(todayFeast != nil ? todayFeast!.type.icon : "⛪")
-                        .font(.system(size: 24))
+                    Image(systemName: todayFeast != nil ? todayFeast!.type.icon : "calendar")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {

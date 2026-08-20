@@ -237,8 +237,9 @@ struct ChurchCalendarView: View {
                                         triggerHaptic(.light)
                                         selectedCategory = isSelected ? nil : cat
                                     } label: {
-                                        HStack(spacing: 4) {
-                                            Text(cat.icon)
+                                        HStack(spacing: 5) {
+                                            Image(systemName: cat.icon)
+                                                .font(.system(size: 11, weight: .bold))
                                             Text(cat.localizedTitle(for: manager.appLanguage))
                                                 .font(.system(size: 12, weight: isSelected ? .bold : .medium))
                                         }
@@ -397,15 +398,15 @@ struct ChurchCalendarView: View {
     
     private func copyFeastInfo(_ feast: ArmenianChurchFeast) {
         triggerHaptic(.light)
-        var text = "✨ \(feast.title(for: manager.appLanguage))\n📅 \(feast.formattedDate(for: manager.appLanguage))\n\n\(feast.description(for: manager.appLanguage))"
+        var text = "\(feast.title(for: manager.appLanguage))\n\(feast.formattedDate(for: manager.appLanguage))\n\n\(feast.description(for: manager.appLanguage))"
         if !feast.meaning(for: manager.appLanguage).isEmpty {
-            text += "\n\n🕊️ \("feast_meaning_section_spiritual".localized(for: manager.appLanguage)):\n\(feast.meaning(for: manager.appLanguage))"
+            text += "\n\n\("feast_meaning_section_spiritual".localized(for: manager.appLanguage)):\n\(feast.meaning(for: manager.appLanguage))"
         }
         if !feast.traditions(for: manager.appLanguage).isEmpty {
-            text += "\n\n🕯️ \("feast_meaning_section_traditions".localized(for: manager.appLanguage)):\n\(feast.traditions(for: manager.appLanguage))"
+            text += "\n\n\("feast_meaning_section_traditions".localized(for: manager.appLanguage)):\n\(feast.traditions(for: manager.appLanguage))"
         }
         if !feast.prayer(for: manager.appLanguage).isEmpty {
-            text += "\n\n🙏 \(feast.prayer(for: manager.appLanguage))"
+            text += "\n\n\(feast.prayer(for: manager.appLanguage))"
         }
         UIPasteboard.general.string = text
         showToast("copied_to_clipboard".localized(for: manager.appLanguage))
@@ -471,12 +472,12 @@ struct ChurchFeastCardView: View {
             HStack(alignment: .center, spacing: 6) {
                 // Иконка и категория
                 HStack(spacing: 4) {
-                    Text(feast.type.icon)
-                        .font(.system(size: 13))
+                    Image(systemName: feast.type.icon)
+                        .font(.system(size: 10, weight: .bold))
                     Text(feast.type.localizedTitle(for: language))
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(Color(hex: feast.type.colorHex))
                 }
+                .foregroundColor(Color(hex: feast.type.colorHex))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Color(hex: feast.type.colorHex).opacity(0.15))
@@ -635,24 +636,6 @@ struct ChurchFeastCardView: View {
                 Spacer()
                 
                 HStack(spacing: 8) {
-                    // Кнопка разъяснения смысла праздника (?)
-                    Button {
-                        onShowMeaning()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "questionmark.circle")
-                                .font(.system(size: 12, weight: .bold))
-                            Text("feast_meaning_btn".localized(for: language))
-                                .font(.system(size: 11, weight: .bold))
-                        }
-                        .foregroundColor(Color(hex: "F59E0B"))
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
-                        .background(Color(hex: "F59E0B").opacity(0.12))
-                        .cornerRadius(12)
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    
                     // В календарь
                     Button {
                         onExportSingle()
@@ -737,8 +720,9 @@ struct FeastMeaningSheetView: View {
                 VStack(spacing: 16) {
                     // MARK: - Шапка праздника
                     VStack(spacing: 8) {
-                        Text(feast.type.icon)
-                            .font(.system(size: 40))
+                        Image(systemName: feast.type.icon)
+                            .font(.system(size: 34, weight: .semibold))
+                            .foregroundColor(Color(hex: feast.type.colorHex))
                             .padding(.bottom, 2)
                         
                         Text(feast.title(for: language))

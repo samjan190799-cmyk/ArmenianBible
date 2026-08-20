@@ -12,10 +12,10 @@ enum FeastType: String, Codable, CaseIterable, Identifiable, Sendable {
     
     var icon: String {
         switch self {
-        case .daghavar: return "👑"
-        case .dominical: return "✨"
-        case .fasting: return "🕯️"
-        case .saints: return "🕊️"
+        case .daghavar: return "crown.fill"
+        case .dominical: return "sun.max.fill"
+        case .fasting: return "flame.fill"
+        case .saints: return "cross.fill"
         }
     }
     
@@ -1787,19 +1787,19 @@ final class ChurchCalendarService: @unchecked Sendable {
             let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: feast.date) ?? feast.date
             let dtEnd = dateFormatter.string(from: nextDay)
             
-            let summary = "\(feast.type.icon) \(feast.title(for: language))"
+            let summary = feast.title(for: language)
             var desc = feast.description(for: language)
             if !feast.meaning(for: language).isEmpty {
-                desc += "\\n\\n🕊️ \("feast_meaning_section_spiritual".localized(for: language)): \(feast.meaning(for: language))"
+                desc += "\\n\\n\("feast_meaning_section_spiritual".localized(for: language)): \(feast.meaning(for: language))"
             }
             if !feast.traditions(for: language).isEmpty {
-                desc += "\\n\\n🕯️ \("feast_meaning_section_traditions".localized(for: language)): \(feast.traditions(for: language))"
+                desc += "\\n\\n\("feast_meaning_section_traditions".localized(for: language)): \(feast.traditions(for: language))"
             }
             if !feast.scriptureReading.isEmpty {
-                desc += "\\n\\n📖 \("scripture_readings_title".localized(for: language)): \(feast.scriptureReading)"
+                desc += "\\n\\n\("scripture_readings_title".localized(for: language)): \(feast.scriptureReading)"
             }
             if !feast.prayer(for: language).isEmpty {
-                desc += "\\n\\n🙏 \("prayer_title".localized(for: language)): \(feast.prayer(for: language))"
+                desc += "\\n\\n\("prayer_title".localized(for: language)): \(feast.prayer(for: language))"
             }
             
             icsString += """
