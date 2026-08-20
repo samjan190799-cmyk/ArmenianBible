@@ -148,6 +148,10 @@ class BibleDatabase {
     
     // MARK: - Получение списка книг
     
+    var books: [BibleBook] {
+        getBooks()
+    }
+    
     func getBooks() -> [BibleBook] {
         var books: [BibleBook] = []
         let query = "SELECT id, name_hy, name_ru, name_en, short_name_hy, short_name_ru, short_name_en, chapters_count FROM books ORDER BY id ASC;"

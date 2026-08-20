@@ -130,7 +130,7 @@ final class BibleQuizGenerator {
     
     // MARK: - Генерация вопросов по цитатам "Из какой книги этот стих?"
     func generateVerseGuessQuestions() -> [QuizQuestion] {
-        let allBooks = BibleDatabase.shared.books
+        let allBooks = BibleDatabase.shared.getBooks()
         guard !allBooks.isEmpty else { return [] }
         
         var generated: [QuizQuestion] = []
@@ -172,7 +172,7 @@ final class BibleQuizGenerator {
     
     // MARK: - Генерация вопросов по структуре Библии (число глав, порядок книг)
     func generateBibleStructureQuestions() -> [QuizQuestion] {
-        let allBooks = BibleDatabase.shared.books
+        let allBooks = BibleDatabase.shared.getBooks()
         guard allBooks.count >= 10 else { return [] }
         
         var generated: [QuizQuestion] = []
