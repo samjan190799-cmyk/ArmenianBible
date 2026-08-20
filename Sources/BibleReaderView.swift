@@ -701,11 +701,21 @@ struct BibleSingleChapterView: View {
                             // MARK: - Непрерывный текст главы со свободным выделением и нативным копированием
                             SelectableBibleTextView(
                                 attributedText: buildChapterNSAttributedString(from: text),
+                                language: manager.appLanguage,
                                 onVerseTapped: { verseNum in
                                     if let v = text.verses.first(where: { $0.verseNumber == verseNum }) {
                                         triggerHaptic(.light)
                                         selectedVerseForSheet = v
                                     }
+                                },
+                                onRemoveHighlight: { verseNum in
+                                    triggerHaptic(.medium)
+                                    manager.setHighlight(
+                                        bookId: book.id,
+                                        chapter: chapter,
+                                        verseNumber: verseNum,
+                                        colorHex: nil
+                                    )
                                 }
                             )
                             .padding(.horizontal, 24)
@@ -962,13 +972,16 @@ struct BibleSingleChapterView: View {
         let numDescriptor = UIFont.boldSystemFont(ofSize: max(11, fontSize * 0.65)).fontDescriptor.withDesign(.serif) ?? UIFont.boldSystemFont(ofSize: max(11, fontSize * 0.65)).fontDescriptor
         let numFont = UIFont(descriptor: numDescriptor, size: max(11, fontSize * 0.65))
         
+        let verseKey = NSAttributedString.Key("verseNumber")
+        
         for (index, verse) in text.verses.enumerated() {
             // Номер стиха надстрочным шрифтом с кликабельной ссылкой
             let numAttrs: [NSAttributedString.Key: Any] = [
                 .font: numFont,
                 .foregroundColor: uiAccentColor,
                 .baselineOffset: fontSize * 0.25,
-                .link: URL(string: "verse://\(verse.verseNumber)") ?? ""
+                .link: URL(string: "verse://\(verse.verseNumber)") ?? "",
+                verseKey: verse.verseNumber
             ]
             let numStr = NSAttributedString(string: " \(verse.verseNumber) ", attributes: numAttrs)
             
@@ -977,13 +990,14 @@ struct BibleSingleChapterView: View {
             var verseAttrs: [NSAttributedString.Key: Any] = [
                 .font: font,
                 .foregroundColor: textColor,
-                .paragraphStyle: paragraphStyle
+                .paragraphStyle: paragraphStyle,
+                verseKey: verse.verseNumber
             ]
             
             let ann = manager.annotation(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
             let savedColorHex = ann?.colorHex ?? manager.highlightColor(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
             
-            if let hex = savedColorHex {
+            if let hex = savedColorHex, !hex.isEmpty {
                 verseAttrs[.backgroundColor] = UIColor(Color(hex: hex)).withAlphaComponent(colorScheme == .dark ? 0.35 : 0.25)
             } else if highlightedVerseId == verse.verseNumber {
                 verseAttrs[.backgroundColor] = uiAccentColor.withAlphaComponent(colorScheme == .dark ? 0.25 : 0.18)
@@ -1012,7 +1026,9 @@ struct BibleSingleChapterView: View {
 // MARK: - Нативный компонент для свободного выделения и копирования текста через UITextView
 struct SelectableBibleTextView: UIViewRepresentable {
     let attributedText: NSAttributedString
+    let language: AppLanguage
     let onVerseTapped: (Int) -> Void
+    let onRemoveHighlight: (Int) -> Void
     
     func makeUIView(context: Context) -> UITextView {
         let textView = UITextView()
@@ -1026,12 +1042,19 @@ struct SelectableBibleTextView: UIViewRepresentable {
         textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         textView.setContentHuggingPriority(.required, for: .vertical)
         textView.linkTextAttributes = [:]
+        
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        tapGesture.delegate = context.coordinator
+        textView.addGestureRecognizer(tapGesture)
+        
         return textView
     }
     
     func updateUIView(_ uiView: UITextView, context: Context) {
         uiView.attributedText = attributedText
         context.coordinator.onVerseTapped = onVerseTapped
+        context.coordinator.onRemoveHighlight = onRemoveHighlight
+        context.coordinator.language = language
     }
     
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
@@ -1041,14 +1064,43 @@ struct SelectableBibleTextView: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(onVerseTapped: onVerseTapped)
+        Coordinator(language: language, onVerseTapped: onVerseTapped, onRemoveHighlight: onRemoveHighlight)
     }
     
-    class Coordinator: NSObject, UITextViewDelegate {
+    class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate {
+        var language: AppLanguage
         var onVerseTapped: (Int) -> Void
+        var onRemoveHighlight: (Int) -> Void
         
-        init(onVerseTapped: @escaping (Int) -> Void) {
+        init(language: AppLanguage, onVerseTapped: @escaping (Int) -> Void, onRemoveHighlight: @escaping (Int) -> Void) {
+            self.language = language
             self.onVerseTapped = onVerseTapped
+            self.onRemoveHighlight = onRemoveHighlight
+        }
+        
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            return true
+        }
+        
+        @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+            guard let textView = gesture.view as? UITextView else { return }
+            
+            // Если сейчас текст выделен, не перехватываем тап
+            if textView.selectedRange.length > 0 {
+                return
+            }
+            
+            let point = gesture.location(in: textView)
+            let layoutManager = textView.layoutManager
+            let textContainer = textView.textContainer
+            
+            let characterIndex = layoutManager.characterIndex(for: point, in: textContainer, fractionOfDistanceBetweenInsertionPoints: nil)
+            
+            if characterIndex < textView.textStorage.length {
+                if let verseNum = textView.textStorage.attribute(NSAttributedString.Key("verseNumber"), at: characterIndex, effectiveRange: nil) as? Int {
+                    onVerseTapped(verseNum)
+                }
+            }
         }
         
         func textView(_ textView: UITextView, shouldInteractWith URL: URL, in characterRange: NSRange, interaction: UITextItemInteraction) -> Bool {
@@ -1073,6 +1125,36 @@ struct SelectableBibleTextView: UIViewRepresentable {
                 }
             }
             return defaultAction
+        }
+        
+        @available(iOS 16.0, *)
+        func textView(_ textView: UITextView, editMenuFor textRange: UITextRange, suggestedActions: [UIMenuElement]) -> UIMenu? {
+            let startOffset = textView.offset(from: textView.beginningOfDocument, to: textRange.start)
+            var targetVerseNum: Int? = nil
+            
+            if startOffset < textView.textStorage.length {
+                targetVerseNum = textView.textStorage.attribute(NSAttributedString.Key("verseNumber"), at: startOffset, effectiveRange: nil) as? Int
+            }
+            
+            var customActions: [UIMenuElement] = []
+            
+            if let vNum = targetVerseNum {
+                let markerTitle = "edit_menu_marker".localized(for: language)
+                let markerAction = UIAction(title: markerTitle, image: UIImage(systemName: "highlighter")) { [weak self] _ in
+                    self?.onVerseTapped(vNum)
+                }
+                customActions.append(markerAction)
+                
+                let removeTitle = "remove_highlight_btn".localized(for: language)
+                let removeAction = UIAction(title: removeTitle, image: UIImage(systemName: "slash.circle"), attributes: .destructive) { [weak self] _ in
+                    self?.onRemoveHighlight(vNum)
+                }
+                customActions.append(removeAction)
+            }
+            
+            var allActions = suggestedActions
+            allActions.insert(contentsOf: customActions, at: 0)
+            return UIMenu(children: allActions)
         }
     }
 }
@@ -1129,47 +1211,80 @@ struct VerseActionSheetView: View {
                     )
                     
                     // Выбор цвета маркера
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("highlight_color_title".localized(for: language))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("highlight_color_title".localized(for: language))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                            
+                            Spacer()
+                            
+                            // Явная кнопка "Убрать цвет" / "Մաքրել գույնը"
+                            if selectedColorHex != nil {
+                                Button {
+                                    triggerHaptic(.medium)
+                                    selectedColorHex = nil
+                                    saveChanges()
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "trash.fill")
+                                            .font(.system(size: 12))
+                                        Text("remove_highlight_btn".localized(for: language))
+                                            .font(.system(size: 12, weight: .bold))
+                                    }
+                                    .foregroundColor(.red)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.red.opacity(0.12))
+                                    .cornerRadius(10)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                        }
                         
                         HStack(spacing: 14) {
                             ForEach(colors, id: \.hex) { c in
-                                Circle()
-                                    .fill(Color(hex: c.hex))
-                                    .frame(width: 36, height: 36)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(selectedColorHex == c.hex ? Color.primary : Color.clear, lineWidth: 2.5)
-                                    )
-                                    .scaleEffect(selectedColorHex == c.hex ? 1.15 : 1.0)
-                                    .animation(.spring(response: 0.3), value: selectedColorHex)
-                                    .onTapGesture {
-                                        triggerHaptic(.light)
-                                        if selectedColorHex == c.hex {
-                                            selectedColorHex = nil
-                                        } else {
-                                            selectedColorHex = c.hex
-                                        }
-                                        saveChanges()
+                                Button {
+                                    triggerHaptic(.light)
+                                    if selectedColorHex == c.hex {
+                                        selectedColorHex = nil
+                                    } else {
+                                        selectedColorHex = c.hex
                                     }
+                                    saveChanges()
+                                } label: {
+                                    Circle()
+                                        .fill(Color(hex: c.hex))
+                                        .frame(width: 36, height: 36)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(selectedColorHex == c.hex ? Color.primary : Color.clear, lineWidth: 3)
+                                        )
+                                        .scaleEffect(selectedColorHex == c.hex ? 1.15 : 1.0)
+                                        .shadow(color: Color(hex: c.hex).opacity(selectedColorHex == c.hex ? 0.4 : 0.15), radius: 3, y: 1.5)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
                             }
                             
                             Spacer()
                             
-                            // Снять маркер
-                            if selectedColorHex != nil {
-                                Button {
-                                    triggerHaptic(.light)
-                                    selectedColorHex = nil
-                                    saveChanges()
-                                } label: {
+                            // Кнопка сброса цвета
+                            Button {
+                                triggerHaptic(.medium)
+                                selectedColorHex = nil
+                                saveChanges()
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .stroke(Color.primary.opacity(0.15), lineWidth: 1.5)
+                                        .frame(width: 36, height: 36)
+                                    
                                     Image(systemName: "slash.circle")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(.secondary)
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundColor(selectedColorHex == nil ? .secondary : .red)
                                 }
                             }
+                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
                     
@@ -1357,6 +1472,18 @@ struct VerseActionSheetView: View {
         ann.tags = Array(selectedTags)
         ann.updatedAt = Date()
         manager.saveAnnotation(ann)
+        manager.setHighlight(
+            bookId: book.id,
+            chapter: chapter,
+            verseNumber: verse.verseNumber,
+            colorHex: selectedColorHex,
+            bookNameHy: book.nameHy,
+            bookNameRu: book.nameRu,
+            bookNameEn: book.nameEn,
+            textHy: verse.textHy,
+            textRu: verse.textRu,
+            textEn: verse.textEn
+        )
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {

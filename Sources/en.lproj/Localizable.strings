@@ -177,7 +177,9 @@
 /* Highlighter & Widget Pin */
 "pin_to_widget" = "Pin to Widget";
 "toast_pinned_to_widget" = "Verse pinned to Lock Screen widget!";
-"highlight_color_title" = "Highlight:";
+"highlight_color_title" = "Highlight";
+"remove_highlight_btn" = "Remove Color";
+"edit_menu_marker" = "Highlight";
 
 /* Armenian Bible Editions */
 "edition_ararat_title" = "Արարատյան (Araratian)";

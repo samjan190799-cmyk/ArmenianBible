@@ -178,6 +178,8 @@
 "pin_to_widget" = "Ամրացնել վիդջեթում";
 "toast_pinned_to_widget" = "Տողը ամրացվեց վիդջեթում";
 "highlight_color_title" = "Գունանշում";
+"remove_highlight_btn" = "Մաքրել գույնը";
+"edit_menu_marker" = "Գունանշում";
 
 /* Armenian Bible Editions */
 "edition_ararat_title" = "Արարատյան թարգմանություն";
