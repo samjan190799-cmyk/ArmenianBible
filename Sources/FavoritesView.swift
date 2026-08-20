@@ -11,8 +11,9 @@ struct FavoritesView: View {
     // Редактирование выбранной заметки
     @State private var editingAnnotation: VerseAnnotation? = nil
     
-    // Экспорт открытки со стихом
+    // Экспорт открытки со стихом и обоев
     @State private var selectedVerseForShare: BibleVerse? = nil
+    @State private var selectedWallpaperVerse: BibleVerse? = nil
     @State private var shareItem: ShareItem? = nil
     
     // Toast для уведомления о копировании
@@ -315,6 +316,18 @@ struct FavoritesView: View {
                                         onPinToWidget: {
                                             pinFavoriteToWidget(item)
                                         },
+                                        onWallpaper: {
+                                            let verse = BibleVerse(
+                                                id: item.id,
+                                                textHy: item.textHy,
+                                                textRu: item.textRu,
+                                                textEn: item.textEn,
+                                                refHy: item.refHy,
+                                                refRu: item.refRu,
+                                                refEn: item.refEn
+                                            )
+                                            selectedWallpaperVerse = verse
+                                        },
                                         onOpenBible: {
                                             openInBible(item)
                                         }
@@ -401,6 +414,9 @@ struct FavoritesView: View {
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
+        }
+        .sheet(item: $selectedWallpaperVerse) { verse in
+            BibleWallpaperMakerView(verse: verse)
         }
     }
     
@@ -732,6 +748,7 @@ struct FavoriteCardView: View {
     let onShare: () -> Void
     let onCopy: () -> Void
     let onPinToWidget: () -> Void
+    let onWallpaper: () -> Void
     let onOpenBible: () -> Void
     
     var body: some View {
@@ -792,6 +809,18 @@ struct FavoriteCardView: View {
                         onPinToWidget()
                     } label: {
                         Image(systemName: "square.stack.3d.up.fill")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(secondaryAccentColor)
+                            .padding(8)
+                            .background(secondaryAccentColor.opacity(0.1))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    
+                    Button {
+                        onWallpaper()
+                    } label: {
+                        Image(systemName: "photo.artframe")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(secondaryAccentColor)
                             .padding(8)

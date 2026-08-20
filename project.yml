@@ -19,6 +19,8 @@ targets:
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
         ITSAppUsesNonExemptEncryption: "NO"
+        NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
+        NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         UIRequiresFullScreen: true
         UILaunchScreen:
           UIColorName: LaunchBackground

@@ -155,16 +155,54 @@
 "quiz_start_subtitle" = "Ընտրեք հարցերի կատեգորիան և ստուգեք ձեր գիտելիքները:";
 "quiz_best_score" = "Ձեր լավագույն արդյունքը";
 "quiz_select_category" = "Հարցերի կատեգորիա.";
+"quiz_questions_count" = "Հարցերի քանակը փուլում.";
+"quiz_count_suffix" = "հարց";
 "quiz_cat_all" = "Բոլոր թեմաները";
 "quiz_cat_old" = "Հին Կտակարան";
 "quiz_cat_new" = "Նոր Կտակարան";
 "quiz_cat_gospels" = "Ավետարաններ";
+"quiz_cat_church_history" = "Հայ Եկեղեցի և Սրբեր";
+"quiz_cat_verses" = "Ոսկե Համարներ (Մեջբերումներ)";
+"quiz_diff_all" = "Բոլոր մակարդակները";
+"quiz_diff_easy" = "Հեշտ";
+"quiz_diff_medium" = "Միջին";
+"quiz_diff_hard" = "Բարդ";
 "quiz_next_question" = "Հաջորդ հարցը";
 "quiz_result_expert" = "Գերազանց արդյունք! 🏆";
 "quiz_result_good" = "Լավ արդյունք! 👍";
 "quiz_result_try_again" = "Շարունակեք ուսումնասիրել Աստվածաշունչը: 📖";
-"quiz_result_subtitle" = "Ճիշտ պատասխաններ այս փուլում.";
 "quiz_button_play_again" = "Խաղալ նորից";
+
+/* Achievements & Badges */
+"achievements_title" = "Պարգևներ և Կրծքանշաններ";
+"achievements_btn" = "պարգև";
+"your_rank" = "Ձեր մակարդակը.";
+"unlocked_count" = "բացված";
+"unlocked_status" = "Բացված է";
+"badge_unlocked_message" = "Այս կրծքանշանը հաջողությամբ բացված է:";
+"new_badge_unlocked" = "Նոր Պարգև Է Բացվել!";
+"view_all_badges" = "Դիտել բոլոր պարգևները";
+"rank_beginner" = "Սկսնակ Ուսումնասիրող";
+"rank_student" = "Աստվածաշնչի Աշակերտ";
+"rank_scholar" = "Սուրբ Գրքի Գիտակ";
+"rank_bible_sage" = "Աստվածաշնչյան Իմաստուն";
+"rank_grand_theologian" = "Մեծ Աստվածաբան";
+
+/* Verse Source Scope */
+"verse_source_scope_title" = "Օրվա տողի աղբյուրը";
+"verse_source_scope_description" = "Ընտրեք, թե Սուրբ Գրքի որ հատվածից են ընտրվելու տողերը կողպեքրանի և գլխավոր էկրանի համար:";
+"scope_all_bible" = "Ամբողջ Աստվածաշունչ (31 100+ տող)";
+"scope_gospels" = "Չորս Ավետարաններ";
+"scope_new_testament" = "Նոր Կտակարան";
+"scope_psalms_proverbs" = "Սաղմոսներ և Առակներ";
+"scope_golden_verses" = "Ոսկե Համարներ (Ոգեշնչող)";
+
+/* Wallpaper Maker */
+"wallpaper_maker_title" = "Պաստառների Ստեղծիչ";
+"wallpaper_background_title" = "Ընտրեք ֆոնը.";
+"lockscreen_preview" = "Կողպեքրան";
+"save_wallpaper_button" = "Պահպանել Լուսանկարներում";
+"wallpaper_saved_success" = "Պաստառը հաջողությամբ պահպանվեց!";
 
 /* Widget Instruction Sheet */
 "widget_instruction_title" = "Ինչպես ավելացնել վիդջեթը";

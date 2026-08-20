@@ -391,4 +391,111 @@ class BibleDatabase {
         sqlite3_finalize(statement)
         return results
     }
+    
+    // MARK: - Получение случайного стиха из всей базы Библии
+    
+    func getRandomVerse(scope: VerseSourceScope = .allBible) -> BibleVerse? {
+        if scope == .goldenVerses {
+            return BibleVerse.database.randomElement()
+        }
+        
+        guard db != nil else {
+            return BibleVerse.database.randomElement()
+        }
+        
+        let condition: String
+        switch scope {
+        case .allBible:
+            condition = "1=1"
+        case .gospels:
+            condition = "v.book_id IN (40, 41, 42, 43)"
+        case .newTestament:
+            condition = "v.book_id >= 40"
+        case .psalmsProverbs:
+            condition = "v.book_id IN (19, 20)"
+        case .goldenVerses:
+            condition = "1=1"
+        }
+        
+        let sql = """
+        SELECT v.id, b.name_hy, b.name_ru, b.name_en, v.chapter, v.verse, v.text_hy, v.text_ru, v.text_en
+        FROM verses v
+        JOIN books b ON b.id = v.book_id
+        WHERE \(condition) AND LENGTH(v.text_hy) > 15
+        ORDER BY RANDOM()
+        LIMIT 1;
+        """
+        
+        var statement: OpaquePointer?
+        var verse: BibleVerse? = nil
+        
+        if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+            if sqlite3_step(statement) == SQLITE_ROW {
+                let _ = Int(sqlite3_column_int(statement, 0))
+                let bNameHy = String(cString: sqlite3_column_text(statement, 1))
+                let bNameRu = String(cString: sqlite3_column_text(statement, 2))
+                let bNameEn = String(cString: sqlite3_column_text(statement, 3))
+                let chapter = Int(sqlite3_column_int(statement, 4))
+                let verseNum = Int(sqlite3_column_int(statement, 5))
+                let textHy = String(cString: sqlite3_column_text(statement, 6))
+                let textRu = String(cString: sqlite3_column_text(statement, 7))
+                let textEn = String(cString: sqlite3_column_text(statement, 8))
+                
+                let refHy = "\(bNameHy) \(chapter):\(verseNum)"
+                let refRu = "\(bNameRu) \(chapter):\(verseNum)"
+                let refEn = "\(bNameEn) \(chapter):\(verseNum)"
+                
+                verse = BibleVerse(
+                    textHy: textHy,
+                    textRu: textRu,
+                    textEn: textEn,
+                    refHy: refHy,
+                    refRu: refRu,
+                    refEn: refEn,
+                    isPrayer: false
+                )
+            }
+        } else {
+            print("Error preparing getRandomVerse query.")
+        }
+        
+        sqlite3_finalize(statement)
+        return verse ?? BibleVerse.database.randomElement()
+    }
+}
+
+// MARK: - Источник выборки стихов
+enum VerseSourceScope: String, CaseIterable, Identifiable, Codable {
+    case allBible = "all_bible"
+    case gospels = "gospels"
+    case newTestament = "new_testament"
+    case psalmsProverbs = "psalms_proverbs"
+    case goldenVerses = "golden_verses"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .allBible: return "book.fill"
+        case .gospels: return "cross.fill"
+        case .newTestament: return "dove.fill"
+        case .psalmsProverbs: return "scroll.fill"
+        case .goldenVerses: return "sparkles"
+        }
+    }
+    
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .allBible:
+            return "scope_all_bible".localized(for: language)
+        case .gospels:
+            return "scope_gospels".localized(for: language)
+        case .newTestament:
+            return "scope_new_testament".localized(for: language)
+        case .psalmsProverbs:
+            return "scope_psalms_proverbs".localized(for: language)
+        case .goldenVerses:
+            return "scope_golden_verses".localized(for: language)
+        }
+    }
 }

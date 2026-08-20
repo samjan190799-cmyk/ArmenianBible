@@ -350,6 +350,7 @@ struct BibleChapterReaderView: View {
     let targetVerse: Int?
     
     @ObservedObject var manager = BibleManager.shared
+    @ObservedObject var speechService = BibleSpeechService.shared
     @State private var currentChapterIndex: Int = 0
     @State private var showNavigationHints = true
     @State private var animateHint = false
@@ -439,6 +440,25 @@ struct BibleChapterReaderView: View {
             
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 14) {
+                    // Кнопка аудио-озвучки главы
+                    Button {
+                        triggerHaptic(.light)
+                        let chapterNum = currentChapterIndex + 1
+                        if speechService.isSpeaking && !speechService.isPaused {
+                            speechService.stop()
+                        } else {
+                            if let chapterData = BibleDatabase.shared.getChapterText(bookId: book.id, chapter: chapterNum) {
+                                let versesText = chapterData.verses.map { "\($0.verseNumber). \($0.text(for: manager.appLanguage))" }.joined(separator: " ")
+                                let fullText = "\(book.name). \(chapterNum) \("chapter_title_label".localized(for: manager.appLanguage)). \(versesText)"
+                                speechService.speak(text: fullText, language: manager.appLanguage)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: speechService.isSpeaking && !speechService.isPaused ? "speaker.wave.3.fill" : "speaker.wave.2")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(speechService.isSpeaking && !speechService.isPaused ? accentColor : (colorScheme == .dark ? .white : Color(hex: "1E293B")))
+                    }
+                    
                     // Меню выбора перевода Библии
                     Menu {
                         Section("menu_translation_title".localized(for: manager.appLanguage)) {

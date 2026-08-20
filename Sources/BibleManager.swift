@@ -18,6 +18,7 @@ class BibleManager: ObservableObject {
     @Published var dailyNotificationsEnabled: Bool = false
     @Published var dailyNotificationTime: Date = Date()
     @Published var widgetLanguage: WidgetLanguage = .followApp
+    @Published var verseSourceScope: VerseSourceScope = .allBible
     
     // Переменные для полной Библии и Deep Link
     @Published var bibleFontSize: Double = 18.0
@@ -48,6 +49,7 @@ class BibleManager: ObservableObject {
     private let activeProviderKey = "active_ai_provider"
     private let appLanguageKey = "app_language"
     private let favoritesKey = "favorite_verses"
+    private let verseSourceScopeKey = "verse_source_scope"
     private let accentThemeKey = "accent_theme"
     private let notificationsEnabledKey = "daily_notifications_enabled"
     private let notificationTimeKey = "daily_notification_time"
@@ -203,6 +205,12 @@ class BibleManager: ObservableObject {
             if let savedEdRaw = defaults.string(forKey: "armenian_bible_edition"),
                let ed = ArmenianBibleEdition(rawValue: savedEdRaw) {
                 self.armenianEdition = ed
+            }
+            if let savedScopeRaw = defaults.string(forKey: verseSourceScopeKey),
+               let savedScope = VerseSourceScope(rawValue: savedScopeRaw) {
+                self.verseSourceScope = savedScope
+            } else {
+                self.verseSourceScope = .allBible
             }
         }
         
@@ -557,19 +565,33 @@ class BibleManager: ObservableObject {
     
     // MARK: - Выбор случайного стиха из оффлайн-базы данных
     func selectRandomVerse() {
-        let database = getFilteredDatabase(for: selectedCategory)
-        guard !database.isEmpty else { return }
-        
-        let availableVerses = database.filter { $0.text != currentVerse.text }
-        let newVerse: BibleVerse
-        
-        if !availableVerses.isEmpty {
-            newVerse = availableVerses.randomElement() ?? database[0]
+        if let randomVerse = BibleDatabase.shared.getRandomVerse(scope: verseSourceScope) {
+            updateCurrentVerse(randomVerse)
         } else {
-            newVerse = database[0]
+            let database = getFilteredDatabase(for: selectedCategory)
+            guard !database.isEmpty else { return }
+            
+            let availableVerses = database.filter { $0.text != currentVerse.text }
+            let newVerse: BibleVerse
+            
+            if !availableVerses.isEmpty {
+                newVerse = availableVerses.randomElement() ?? database[0]
+            } else {
+                newVerse = database[0]
+            }
+            
+            updateCurrentVerse(newVerse)
         }
-        
-        updateCurrentVerse(newVerse)
+    }
+    
+    // MARK: - Обновление источника выборки стихов
+    func updateVerseSourceScope(_ scope: VerseSourceScope) {
+        self.verseSourceScope = scope
+        if let defaults = sharedDefaults {
+            defaults.set(scope.rawValue, forKey: verseSourceScopeKey)
+            defaults.synchronize()
+        }
+        selectRandomVerse()
     }
     
     // MARK: - Генерация цитаты через Gemini API / ChatGPT / Claude

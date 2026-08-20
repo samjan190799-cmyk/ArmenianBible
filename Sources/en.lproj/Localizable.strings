@@ -155,16 +155,54 @@
 "quiz_start_subtitle" = "Select a question category and test the depth of your knowledge.";
 "quiz_best_score" = "Your Best Score";
 "quiz_select_category" = "Question Category:";
+"quiz_questions_count" = "Questions per round:";
+"quiz_count_suffix" = "questions";
 "quiz_cat_all" = "All Topics";
 "quiz_cat_old" = "Old Testament";
 "quiz_cat_new" = "New Testament";
 "quiz_cat_gospels" = "Gospels";
+"quiz_cat_church_history" = "Armenian Church & Saints";
+"quiz_cat_verses" = "Golden Verses (Quotes)";
+"quiz_diff_all" = "All Levels";
+"quiz_diff_easy" = "Easy";
+"quiz_diff_medium" = "Medium";
+"quiz_diff_hard" = "Hard";
 "quiz_next_question" = "Next Question";
 "quiz_result_expert" = "Excellent Score! 🏆";
 "quiz_result_good" = "Good Score! 👍";
 "quiz_result_try_again" = "Keep Studying the Bible! 📖";
-"quiz_result_subtitle" = "Correct answers in this round:";
 "quiz_button_play_again" = "Play Again";
+
+/* Achievements & Badges */
+"achievements_title" = "Achievements & Badges";
+"achievements_btn" = "badges";
+"your_rank" = "Your Spiritual Rank:";
+"unlocked_count" = "unlocked";
+"unlocked_status" = "Unlocked";
+"badge_unlocked_message" = "This badge has been unlocked!";
+"new_badge_unlocked" = "New Badge Unlocked!";
+"view_all_badges" = "View All Badges";
+"rank_beginner" = "Beginner Seeker";
+"rank_student" = "Scripture Student";
+"rank_scholar" = "Bible Scholar";
+"rank_bible_sage" = "Bible Sage";
+"rank_grand_theologian" = "Grand Theologian";
+
+/* Verse Source Scope */
+"verse_source_scope_title" = "Verse of the Day Source";
+"verse_source_scope_description" = "Choose which parts of the Bible will supply verses for widgets and the home screen:";
+"scope_all_bible" = "All Bible (31,100+ Verses)";
+"scope_gospels" = "Four Gospels";
+"scope_new_testament" = "New Testament";
+"scope_psalms_proverbs" = "Psalms & Proverbs";
+"scope_golden_verses" = "Golden Verses (Inspiring)";
+
+/* Wallpaper Maker */
+"wallpaper_maker_title" = "Wallpaper Maker";
+"wallpaper_background_title" = "Choose Background:";
+"lockscreen_preview" = "Lock Screen";
+"save_wallpaper_button" = "Save to Photos";
+"wallpaper_saved_success" = "Wallpaper saved to Photos!";
 
 /* Widget Instruction Sheet */
 "widget_instruction_title" = "How to Add Widget";

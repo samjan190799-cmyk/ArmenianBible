@@ -1,89 +1,15 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Категория Викторины
-enum QuizCategory: String, CaseIterable, Identifiable {
-    case all = "all"
-    case oldTestament = "old_testament"
-    case newTestament = "new_testament"
-    case gospels = "gospels"
-    
-    var id: String { rawValue }
-    
-    func title(for language: AppLanguage) -> String {
-        switch self {
-        case .all:
-            return "quiz_cat_all".localized(for: language)
-        case .oldTestament:
-            return "quiz_cat_old".localized(for: language)
-        case .newTestament:
-            return "quiz_cat_new".localized(for: language)
-        case .gospels:
-            return "quiz_cat_gospels".localized(for: language)
-        }
-    }
-}
-
-// MARK: - Модель вопроса Викторины
-struct QuizQuestion: Identifiable {
-    let id = UUID()
-    let category: QuizCategory
-    let questionHy: String
-    let questionRu: String
-    let questionEn: String
-    
-    let optionsHy: [String]
-    let optionsRu: [String]
-    let optionsEn: [String]
-    
-    let correctAnswerIndex: Int
-    let explanationHy: String
-    let explanationRu: String
-    let explanationEn: String
-    let verseRefHy: String
-    let verseRefRu: String
-    let verseRefEn: String
-    
-    func question(for lang: AppLanguage) -> String {
-        switch lang {
-        case .armenian: return questionHy
-        case .russian: return questionRu
-        case .english: return questionEn
-        }
-    }
-    
-    func options(for lang: AppLanguage) -> [String] {
-        switch lang {
-        case .armenian: return optionsHy
-        case .russian: return optionsRu
-        case .english: return optionsEn
-        }
-    }
-    
-    func explanation(for lang: AppLanguage) -> String {
-        switch lang {
-        case .armenian: return explanationHy
-        case .russian: return explanationRu
-        case .english: return explanationEn
-        }
-    }
-    
-    func verseRef(for lang: AppLanguage) -> String {
-        switch lang {
-        case .armenian: return verseRefHy
-        case .russian: return verseRefRu
-        case .english: return verseRefEn
-        }
-    }
-}
-
 // MARK: - Главный Экран Викторины
 struct BibleQuizView: View {
     @ObservedObject var manager = BibleManager.shared
+    @ObservedObject var achievements = AchievementsManager.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
     @State private var selectedCategory: QuizCategory = .all
+    @State private var selectedQuestionCount = 10
     @State private var quizStarted = false
     @State private var currentQuestionIndex = 0
     @State private var score = 0
@@ -91,6 +17,8 @@ struct BibleQuizView: View {
     @State private var showAnswerDetails = false
     @State private var quizFinished = false
     @State private var activeQuestions: [QuizQuestion] = []
+    @State private var isShowingAchievements = false
+    @State private var newlyUnlockedBadges: [AchievementBadge] = []
     
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
@@ -157,10 +85,25 @@ struct BibleQuizView: View {
                     
                     Spacer()
                     
-                    // Заглушка для выравнивания
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 24))
-                        .opacity(0)
+                    // Кнопка Наград в правом углу
+                    Button {
+                        triggerHaptic(.light)
+                        isShowingAchievements = true
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "trophy.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(Color.orange)
+                            
+                            if achievements.unlockedCount > 0 {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 2, y: -2)
+                            }
+                        }
+                    }
+                    .buttonStyle(ScaleButtonStyle())
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
@@ -170,13 +113,20 @@ struct BibleQuizView: View {
                     // MARK: - Экран Старта и Выбора Категории
                     QuizStartView(
                         selectedCategory: $selectedCategory,
+                        selectedQuestionCount: $selectedQuestionCount,
                         bestScore: manager.quizBestScore,
+                        unlockedBadgesCount: achievements.unlockedCount,
+                        totalBadgesCount: achievements.badges.count,
                         language: manager.appLanguage,
                         accentColor: accentColor,
                         secondaryAccentColor: secondaryAccentColor,
                         cardBackgroundColor: cardBackgroundColor,
                         cardBorderColor: cardBorderColor,
                         primaryTextColor: primaryTextColor,
+                        onOpenAchievements: {
+                            triggerHaptic(.light)
+                            isShowingAchievements = true
+                        },
                         onStart: startQuiz
                     )
                 } else if quizFinished {
@@ -185,15 +135,21 @@ struct BibleQuizView: View {
                         score: score,
                         total: activeQuestions.count,
                         bestScore: manager.quizBestScore,
+                        newlyUnlockedBadges: newlyUnlockedBadges,
                         language: manager.appLanguage,
                         accentColor: accentColor,
                         secondaryAccentColor: secondaryAccentColor,
                         cardBackgroundColor: cardBackgroundColor,
                         cardBorderColor: cardBorderColor,
                         primaryTextColor: primaryTextColor,
+                        onOpenAchievements: {
+                            triggerHaptic(.light)
+                            isShowingAchievements = true
+                        },
                         onRestart: {
                             quizStarted = false
                             quizFinished = false
+                            newlyUnlockedBadges = []
                         }
                     )
                 } else if currentQuestionIndex < activeQuestions.count {
@@ -231,7 +187,7 @@ struct BibleQuizView: View {
                                     .foregroundColor(accentColor)
                                 
                                 Text(question.question(for: manager.appLanguage))
-                                    .font(.system(size: 19, weight: .semibold, design: .serif))
+                                    .font(.system(size: 18, weight: .semibold, design: .serif))
                                     .foregroundColor(primaryTextColor)
                                     .multilineTextAlignment(.center)
                                     .lineSpacing(6)
@@ -361,6 +317,9 @@ struct BibleQuizView: View {
                 }
             }
         }
+        .sheet(isPresented: $isShowingAchievements) {
+            BibleAchievementsView()
+        }
     }
     
     private func letterPrefix(for index: Int) -> String {
@@ -413,18 +372,13 @@ struct BibleQuizView: View {
     
     private func startQuiz() {
         triggerHaptic(.medium)
-        let filtered: [QuizQuestion]
-        if selectedCategory == .all {
-            filtered = QuizDatabase.allQuestions
-        } else {
-            filtered = QuizDatabase.allQuestions.filter { $0.category == selectedCategory }
-        }
-        activeQuestions = Array(filtered.shuffled().prefix(10))
+        activeQuestions = BibleQuizGenerator.shared.fetchQuestions(category: selectedCategory, count: selectedQuestionCount)
         currentQuestionIndex = 0
         score = 0
         selectedAnswerIndex = nil
         showAnswerDetails = false
         quizFinished = false
+        newlyUnlockedBadges = []
         withAnimation {
             quizStarted = true
         }
@@ -451,6 +405,11 @@ struct BibleQuizView: View {
             currentQuestionIndex += 1
         } else {
             manager.updateQuizBestScore(score)
+            let unlocked = achievements.recordQuizResult(score: score, total: activeQuestions.count, category: selectedCategory)
+            newlyUnlockedBadges = unlocked
+            if !unlocked.isEmpty {
+                triggerHapticNotification(.success)
+            }
             withAnimation {
                 quizFinished = true
             }
@@ -473,115 +432,176 @@ struct BibleQuizView: View {
 // MARK: - Экран Старта Викторины
 struct QuizStartView: View {
     @Binding var selectedCategory: QuizCategory
+    @Binding var selectedQuestionCount: Int
     let bestScore: Int
+    let unlockedBadgesCount: Int
+    let totalBadgesCount: Int
     let language: AppLanguage
     let accentColor: Color
     let secondaryAccentColor: Color
     let cardBackgroundColor: Color
     let cardBorderColor: LinearGradient
     let primaryTextColor: Color
+    let onOpenAchievements: () -> Void
     let onStart: () -> Void
     
+    private let counts = [10, 20, 30]
+    
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            VStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(accentColor.opacity(0.12))
-                        .frame(width: 90, height: 90)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(accentColor.opacity(0.12))
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 38))
+                            .foregroundColor(accentColor)
+                    }
                     
-                    Image(systemName: "trophy.fill")
-                        .font(.system(size: 42))
-                        .foregroundColor(accentColor)
-                }
-                
-                Text("quiz_start_title".localized(for: language))
-                    .font(.system(size: 24, weight: .bold, design: .serif))
-                    .foregroundColor(primaryTextColor)
-                
-                Text("quiz_start_subtitle".localized(for: language))
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
-            }
-            
-            if bestScore > 0 {
-                HStack(spacing: 8) {
-                    Image(systemName: "crown.fill")
-                        .foregroundColor(.orange)
-                    Text("quiz_best_score".localized(for: language) + ": \(bestScore) / 10")
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    Text("quiz_start_title".localized(for: language))
+                        .font(.system(size: 22, weight: .bold, design: .serif))
                         .foregroundColor(primaryTextColor)
+                    
+                    Text("quiz_start_subtitle".localized(for: language))
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(20)
-            }
-            
-            // Выбор категории
-            VStack(alignment: .leading, spacing: 10) {
-                Text("quiz_select_category".localized(for: language))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 4)
+                .padding(.top, 10)
                 
-                VStack(spacing: 10) {
-                    ForEach(QuizCategory.allCases) { cat in
-                        Button {
-                            selectedCategory = cat
-                        } label: {
-                            HStack {
-                                Text(cat.title(for: language))
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundColor(primaryTextColor)
-                                
-                                Spacer()
-                                
-                                if selectedCategory == cat {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(accentColor)
-                                }
-                            }
-                            .padding(14)
-                            .background(
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(selectedCategory == cat ? accentColor.opacity(0.1) : cardBackgroundColor)
-                                }
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(selectedCategory == cat ? accentColor : Color.primary.opacity(0.06), lineWidth: 1.2)
-                            )
+                // Бейджи результатов и наград
+                HStack(spacing: 10) {
+                    if bestScore > 0 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "crown.fill")
+                                .foregroundColor(.orange)
+                            Text("quiz_best_score".localized(for: language) + ": \(bestScore)")
+                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .foregroundColor(primaryTextColor)
                         }
-                        .buttonStyle(ScaleButtonStyle())
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(20)
+                    }
+                    
+                    Button {
+                        onOpenAchievements()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "medal.fill")
+                                .foregroundColor(.yellow)
+                            Text("\(unlockedBadgesCount)/\(totalBadgesCount) " + "achievements_btn".localized(for: language))
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(primaryTextColor)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(Color.yellow.opacity(0.12))
+                        .cornerRadius(20)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+                
+                // Выбор количества вопросов
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("quiz_questions_count".localized(for: language))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                    
+                    HStack(spacing: 10) {
+                        ForEach(counts, id: \.self) { count in
+                            Button {
+                                selectedQuestionCount = count
+                            } label: {
+                                Text("\(count) " + "quiz_count_suffix".localized(for: language))
+                                    .font(.system(size: 13, weight: selectedQuestionCount == count ? .bold : .medium))
+                                    .foregroundColor(selectedQuestionCount == count ? .white : primaryTextColor)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(selectedQuestionCount == count ? accentColor : cardBackgroundColor)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(selectedQuestionCount == count ? accentColor : Color.primary.opacity(0.06), lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
                     }
                 }
+                .padding(.horizontal, 20)
+                
+                // Выбор категории
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("quiz_select_category".localized(for: language))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                    
+                    VStack(spacing: 8) {
+                        ForEach(QuizCategory.allCases) { cat in
+                            Button {
+                                selectedCategory = cat
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: cat.icon)
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(selectedCategory == cat ? accentColor : .secondary)
+                                        .frame(width: 24)
+                                    
+                                    Text(cat.title(for: language))
+                                        .font(.system(size: 14, weight: selectedCategory == cat ? .bold : .medium))
+                                        .foregroundColor(primaryTextColor)
+                                    
+                                    Spacer()
+                                    
+                                    if selectedCategory == cat {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(accentColor)
+                                    }
+                                }
+                                .padding(12)
+                                .background(
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .fill(selectedCategory == cat ? accentColor.opacity(0.1) : cardBackgroundColor)
+                                    }
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(selectedCategory == cat ? accentColor : Color.primary.opacity(0.06), lineWidth: 1.2)
+                                )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                Button {
+                    onStart()
+                } label: {
+                    Text("quiz_button_start".localized(for: language))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(accentColor)
+                        .cornerRadius(16)
+                        .shadow(color: accentColor.opacity(0.3), radius: 8, y: 4)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 20)
-            
-            Spacer()
-            
-            Button {
-                onStart()
-            } label: {
-                Text("quiz_button_start".localized(for: language))
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(accentColor)
-                    .cornerRadius(16)
-                    .shadow(color: accentColor.opacity(0.3), radius: 8, y: 4)
-            }
-            .buttonStyle(ScaleButtonStyle())
-            .padding(.horizontal, 20)
-            .padding(.bottom, 30)
         }
     }
 }
@@ -591,12 +611,14 @@ struct QuizResultView: View {
     let score: Int
     let total: Int
     let bestScore: Int
+    let newlyUnlockedBadges: [AchievementBadge]
     let language: AppLanguage
     let accentColor: Color
     let secondaryAccentColor: Color
     let cardBackgroundColor: Color
     let cardBorderColor: LinearGradient
     let primaryTextColor: Color
+    let onOpenAchievements: () -> Void
     let onRestart: () -> Void
     
     private var resultTitle: String {
@@ -611,360 +633,135 @@ struct QuizResultView: View {
     }
     
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            VStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(accentColor.opacity(0.15))
-                        .frame(width: 100, height: 100)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                // Если разблокированы новые награды
+                if !newlyUnlockedBadges.isEmpty {
+                    VStack(spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.yellow)
+                            Text("new_badge_unlocked".localized(for: language))
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.yellow)
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.yellow)
+                        }
+                        
+                        ForEach(newlyUnlockedBadges) { badge in
+                            HStack(spacing: 12) {
+                                Image(systemName: badge.icon)
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.orange)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(badge.title(for: language))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(primaryTextColor)
+                                    Text(badge.description(for: language))
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .padding(12)
+                            .background(Color.yellow.opacity(0.12))
+                            .cornerRadius(14)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.orange.opacity(0.1))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 1.2)
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                }
+                
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(accentColor.opacity(0.15))
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: score >= 6 ? "sparkles" : "book.closed")
+                            .font(.system(size: 38))
+                            .foregroundColor(accentColor)
+                    }
                     
-                    Image(systemName: score >= 6 ? "sparkles" : "book.closed")
-                        .font(.system(size: 46))
+                    Text(resultTitle)
+                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .foregroundColor(primaryTextColor)
+                    
+                    Text("\(score) / \(total)")
+                        .font(.system(size: 36, weight: .black, design: .monospaced))
                         .foregroundColor(accentColor)
+                    
+                    Text("quiz_result_subtitle".localized(for: language))
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
                 }
-                
-                Text(resultTitle)
-                    .font(.system(size: 24, weight: .bold, design: .serif))
-                    .foregroundColor(primaryTextColor)
-                
-                Text("\(score) / \(total)")
-                    .font(.system(size: 38, weight: .black, design: .monospaced))
-                    .foregroundColor(accentColor)
-                
-                Text("quiz_result_subtitle".localized(for: language))
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
-            }
-            .padding(26)
-            .background(
-                ZStack {
+                .padding(22)
+                .frame(maxWidth: .infinity)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(cardBackgroundColor)
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(cardBorderColor, lineWidth: 1.2)
-            )
-            .padding(.horizontal, 20)
-            
-            Spacer()
-            
-            Button {
-                onRestart()
-            } label: {
-                Text("quiz_button_play_again".localized(for: language))
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
+                        .stroke(cardBorderColor, lineWidth: 1.2)
+                )
+                .padding(.horizontal, 20)
+                
+                // Кнопка просмотра всех наград
+                Button {
+                    onOpenAchievements()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "medal.fill")
+                            .foregroundColor(.orange)
+                        Text("view_all_badges".localized(for: language))
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                    }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(accentColor)
+                    .padding(.vertical, 14)
+                    .background(cardBackgroundColor)
                     .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .padding(.horizontal, 20)
+                
+                Button {
+                    onRestart()
+                } label: {
+                    Text("quiz_button_play_again".localized(for: language))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(accentColor)
+                        .cornerRadius(16)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
             }
-            .buttonStyle(ScaleButtonStyle())
-            .padding(.horizontal, 20)
-            .padding(.bottom, 30)
         }
     }
-}
-
-// MARK: - База Данных Вопросов Викторины
-struct QuizDatabase {
-    static let allQuestions: [QuizQuestion] = [
-        QuizQuestion(
-            category: .oldTestament,
-            questionHy: "Քանի՞ օրում Աստված արարեց աշխարհը և հանգստացավ յոթերորդ օրը։",
-            questionRu: "За сколько дней Бог сотворил мир, после чего почил в день седьмой?",
-            questionEn: "In how many days did God create the world before resting on the seventh day?",
-            optionsHy: ["5 օրում", "6 օրում", "7 օրում", "40 օրում"],
-            optionsRu: ["За 5 дней", "За 6 дней", "За 7 дней", "За 40 дней"],
-            optionsEn: ["In 5 days", "In 6 days", "In 7 days", "In 40 days"],
-            correctAnswerIndex: 1,
-            explanationHy: "Աստված արարեց երկինքն ու երկիրը 6 օրում, իսկ յոթերորդ օրը հանգստացավ Իր բոլոր գործերից։",
-            explanationRu: "Бог сотворил небо и землю за 6 дней, а в седьмой день почил от всех дел Своих.",
-            explanationEn: "God created the heavens and the earth in 6 days, and rested on the seventh day from all His work.",
-            verseRefHy: "Ծննդոց 2:2",
-            verseRefRu: "Бытие 2:2",
-            verseRefEn: "Genesis 2:2"
-        ),
-        QuizQuestion(
-            category: .oldTestament,
-            questionHy: "Ո՞վ տապան կառուցեց ջրհեղեղից փրկվելու համար։",
-            questionRu: "Кто построил ковчег для спасения от Великого потопа?",
-            questionEn: "Who built the ark to survive the Great Flood?",
-            optionsHy: ["Աբրահամը", "Մովսեսը", "Նոյը", "Դավիթը"],
-            optionsRu: ["Авраам", "Моисей", "Ной", "Давид"],
-            optionsEn: ["Abraham", "Moses", "Noah", "David"],
-            correctAnswerIndex: 2,
-            explanationHy: "Աստված պատվիրեց Նոյին տապան շինել, որպեսզի նա և իր ընտանիքը փրկվեն ջրհեղեղից։",
-            explanationRu: "Бог повелел Ною построить ковчег, чтобы спасти свою семью и животных от потопа.",
-            explanationEn: "God commanded Noah to build an ark to save his family and animals from the flood.",
-            verseRefHy: "Ծննդոց 6:14",
-            verseRefRu: "Бытие 6:14",
-            verseRefEn: "Genesis 6:14"
-        ),
-        QuizQuestion(
-            category: .oldTestament,
-            questionHy: "Ո՞վ սպանեց Գողիաթին պարսատիկով և քարով։",
-            questionRu: "Кто победил великана Голиафа с помощью пращи и камня?",
-            questionEn: "Who defeated the giant Goliath using a sling and a stone?",
-            optionsHy: ["Սավուղը", "Սողոմոնը", "Դավիթը", "Սամսոնը"],
-            optionsRu: ["Саул", "Соломон", "Давид", "Самсон"],
-            optionsEn: ["Saul", "Solomon", "David", "Samson"],
-            correctAnswerIndex: 2,
-            explanationHy: "Երիտասարդ Դավիթը հավատով ելավ փղշտացի Գողիաթի դեմ և հաղթեց նրան Տիրոջ անունով։",
-            explanationRu: "Молодой Давид выступил с верою против филистимлянина Голиафа и победил во имя Господа.",
-            explanationEn: "Young David confronted Goliath in faith and defeated him in the name of the Lord.",
-            verseRefHy: "Ա Թագավորաց 17:50",
-            verseRefRu: "1 Царств 17:50",
-            verseRefEn: "1 Samuel 17:50"
-        ),
-        QuizQuestion(
-            category: .gospels,
-            questionHy: "Ո՞ր քաղաքում ծնվեց Հիսուս Քրիստոս։",
-            questionRu: "В каком городе родился Иисус Христос?",
-            questionEn: "In which city was Jesus Christ born?",
-            optionsHy: ["Նազարեթ", "Երուսաղեմ", "Բեթղեհեմ", "Կափառնաում"],
-            optionsRu: ["Назарет", "Иерусалим", "Вифлеем", "Капернаум"],
-            optionsEn: ["Nazareth", "Jerusalem", "Bethlehem", "Capernaum"],
-            correctAnswerIndex: 2,
-            explanationHy: "Հիսուս ծնվեց Հուդայի Բեթղեհեմ քաղաքում, ինչպես մարգարեացվել էր։",
-            explanationRu: "Иисус родился в Вифлееме Иудейском, как и предрекали пророки.",
-            explanationEn: "Jesus was born in Bethlehem of Judea, as foretold by the prophets.",
-            verseRefHy: "Մատթեոս 2:1",
-            verseRefRu: "Матфея 2:1",
-            verseRefEn: "Matthew 2:1"
-        ),
-        QuizQuestion(
-            category: .gospels,
-            questionHy: "Քանի՞ առաքյալ ընտրեց Հիսուսը։",
-            questionRu: "Сколько апостолов избрал Иисус?",
-            questionEn: "How many apostles did Jesus choose?",
-            optionsHy: ["7", "10", "12", "70"],
-            optionsRu: ["7", "10", "12", "70"],
-            optionsEn: ["7", "10", "12", "70"],
-            correctAnswerIndex: 2,
-            explanationHy: "Հիսուս ընտրեց տասներկու աշակերտների, որպեսզի նրանք լինեն Իր ականատեսները։",
-            explanationRu: "Иисус призвал двенадцать учеников, чтобы они проповедовали Евангелие.",
-            explanationEn: "Jesus called twelve disciples to follow Him and preach the Gospel.",
-            verseRefHy: "Մատթեոս 10:1",
-            verseRefRu: "Матфея 10:1",
-            verseRefEn: "Matthew 10:1"
-        ),
-        QuizQuestion(
-            category: .newTestament,
-            questionHy: "Ո՞վ էր Պողոս առաքյալը նախքան Քրիստոնեություն ընդունելը։",
-            questionRu: "Кем был апостол Павел до своего обращения в христианство?",
-            questionEn: "Who was the Apostle Paul before converting to Christianity?",
-            optionsHy: ["Ձկնորս", "Սավուղ (հալածող)", "Մաքսավոր", "Քահանայապետ"],
-            optionsRu: ["Рыбак", "Савл (гонитель)", "Миттарь", "Первосвященник"],
-            optionsEn: ["Fisherman", "Saul (persecutor)", "Tax collector", "High Priest"],
-            correctAnswerIndex: 1,
-            explanationHy: "Սավուղը հալածում էր եկեղեցին, մինչև Դամասկոսի ճանապարհին հանդիպեց Տեր Հիսուսին։",
-            explanationRu: "Савл яростно гнал христиан, пока на пути в Дамаск не встретил воскресшего Господа.",
-            explanationEn: "Saul persecuted Christians until he encountered the risen Lord on the road to Damascus.",
-            verseRefHy: "Գործք 9:3-5",
-            verseRefRu: "Деяния 9:3-5",
-            verseRefEn: "Acts 9:3-5"
-        ),
-        QuizQuestion(
-            category: .oldTestament,
-            questionHy: "Ո՞վ ստացավ 10 Պատվիրանները Սինա լեռան վրա։",
-            questionRu: "Кто получил 10 Заповедей на горе Синай?",
-            questionEn: "Who received the 10 Commandments on Mount Sinai?",
-            optionsHy: ["Աբրահամը", "Մովսեսը", "Հեսուն", "Ահարոնը"],
-            optionsRu: ["Авраам", "Моисей", "Иисус Навин", "Аарон"],
-            optionsEn: ["Abraham", "Moses", "Joshua", "Aaron"],
-            correctAnswerIndex: 1,
-            explanationHy: "Մովսեսը բարձրացավ Սինա լեռը և ստացավ պատվիրանները։",
-            explanationRu: "Моисей взошел на Синай и получил заповеди.",
-            explanationEn: "Moses ascended Sinai and received the commandments.",
-            verseRefHy: "Ելք 20:1",
-            verseRefRu: "Исход 20:1",
-            verseRefEn: "Exodus 20:1"
-        ),
-        QuizQuestion(
-            category: .gospels,
-            questionHy: "Ո՞ր գետում մկրտվեց Հիսուս Քրիստոս Հովհաննես Մկրտչի կողմից։",
-            questionRu: "В какой реке крестился Иисус Христос от Иоанна Крестителя?",
-            questionEn: "In which river was Jesus baptized by John the Baptist?",
-            optionsHy: ["Եփրատ", "Տիգրիս", "Հորդանան", "Նեղոս"],
-            optionsRu: ["Евфрат", "Тигр", "Иордан", "Нил"],
-            optionsEn: ["Euphrates", "Tigris", "Jordan", "Nile"],
-            correctAnswerIndex: 2,
-            explanationHy: "Հիսուս մկրտվեց Հորդանան գետում։",
-            explanationRu: "Иисус крестился в реке Иордан.",
-            explanationEn: "Jesus was baptized in the Jordan River.",
-            verseRefHy: "Մատթեոս 3:13",
-            verseRefRu: "Матфея 3:13",
-            verseRefEn: "Matthew 3:13"
-        ),
-        QuizQuestion(
-            category: .oldTestament,
-            questionHy: "Ո՞վ էր Աստվածաշնչում ամենաիմաստուն թագավորը։",
-            questionRu: "Кто был самым мудрым царем в Библии?",
-            questionEn: "Who was the wisest king in the Bible?",
-            optionsHy: ["Սավուղը", "Դավիթը", "Սողոմոնը", "Եզեկիան"],
-            optionsRu: ["Саул", "Давид", "Соломон", "Езекия"],
-            optionsEn: ["Saul", "David", "Solomon", "Hezekiah"],
-            correctAnswerIndex: 2,
-            explanationHy: "Աստված տվեց Սողոմոնին անկրկնելի իմաստություն։",
-            explanationRu: "Бог даровал Соломону великую мудрость.",
-            explanationEn: "God gave Solomon great wisdom.",
-            verseRefHy: "Գ Թագավորաց 3:12",
-            verseRefRu: "3 Царств 3:12",
-            verseRefEn: "1 Kings 3:12"
-        ),
-        QuizQuestion(
-            category: .gospels,
-            questionHy: "Ո՞րն է Աստվածաշնչի ամենակարճ համարը։",
-            questionRu: "Какой самый короткий стих в Библии?",
-            questionEn: "What is the shortest verse in the Bible?",
-            optionsHy: ["«Հիսուս լաց եղավ»", "«Աղոթեցեք»", "«Փառք Աստծո»", "«Սիրեցեք միմյանց»"],
-            optionsRu: ["«Иисус прослезился»", "«Молитесь»", "«Слава Богу»", "«Любите друг друга»"],
-            optionsEn: ["«Jesus wept»", "«Pray always»", "«Glory to God»", "«Love one another»"],
-            correctAnswerIndex: 0,
-            explanationHy: "«Հիսուս լաց եղավ» (Յովհաննէս 11:35)։",
-            explanationRu: "«Иисус прослезился» (Иоанна 11:35).",
-            explanationEn: "«Jesus wept» (John 11:35).",
-            verseRefHy: "Յովհաննէս 11:35",
-            verseRefRu: "Иоанна 11:35",
-            verseRefEn: "John 11:35"
-        ),
-        QuizQuestion(
-            category: .newTestament,
-            questionHy: "Ո՞ր քաղաքում էին Քրիստոսի հետևորդները առաջին անգամ կոչվեցին «Քրիստոնյաներ»։",
-            questionRu: "В каком городе последователи Христа впервые стали называться Христианами?",
-            questionEn: "In which city were disciples first called Christians?",
-            optionsHy: ["Երուսաղեմ", "Անտիոք", "Հռոմ", "Կորնթոս"],
-            optionsRu: ["Иерусалим", "Антиохия", "Рим", "Коринф"],
-            optionsEn: ["Jerusalem", "Antioch", "Rome", "Corinth"],
-            correctAnswerIndex: 1,
-            explanationHy: "Անտիոքում աշակերտները առաջին անգամ կոչվեցին Քրիստոնյաներ։",
-            explanationRu: "В Антиохии ученики впервые стали называться Христианами.",
-            explanationEn: "Disciples were first called Christians in Antioch.",
-            verseRefHy: "Գործք 11:26",
-            verseRefRu: "Деяния 11:26",
-            verseRefEn: "Acts 11:26"
-        ),
-        QuizQuestion(
-            category: .gospels,
-            questionHy: "Քանի՞ հացով և ձկով Հիսուսը կերակրեց 5000 մարդկանց։",
-            questionRu: "Сколькими хлебами и рыбами Иисус накормил 5000 человек?",
-            questionEn: "How many loaves and fish did Jesus use to feed the 5,000?",
-            optionsHy: ["5 հաց և 2 ձուկ", "7 հաց և 3 ձուկ", "3 հաց և 5 ձուկ", "12 հաց և 2 ձուկ"],
-            optionsRu: ["5 хлебов и 2 рыбы", "7 хлебов и 3 рыбы", "3 хлеба и 5 рыб", "12 хлебов и 2 рыбы"],
-            optionsEn: ["5 loaves and 2 fish", "7 loaves and 3 fish", "3 loaves and 5 fish", "12 loaves and 2 fish"],
-            correctAnswerIndex: 0,
-            explanationHy: "Հիսուս օրհնեց 5 նկանակն ու 2 ձուկը։",
-            explanationRu: "Иисус благословил 5 хлебов и 2 рыбы.",
-            explanationEn: "Jesus blessed 5 loaves and 2 fish.",
-            verseRefHy: "Մատթեոս 14:19",
-            verseRefRu: "Матфея 14:19",
-            verseRefEn: "Matthew 14:19"
-        ),
-        QuizQuestion(
-            category: .oldTestament,
-            questionHy: "Ո՞րն է Աստվածաշնչի առաջին գիրքը։",
-            questionRu: "Какая первая книга Библии?",
-            questionEn: "What is the first book of the Bible?",
-            optionsHy: ["Ծննդոց", "Ելք", "Ղևտական", "Թվեր"],
-            optionsRu: ["Бытие", "Исход", "Левит", "Числа"],
-            optionsEn: ["Genesis", "Exodus", "Leviticus", "Numbers"],
-            correctAnswerIndex: 0,
-            explanationHy: "Ծննդոց գիրքը պատմում է աշխարհի և մարդկության արարման մասին։",
-            explanationRu: "Книга Бытия повествует о сотворении мира и человека.",
-            explanationEn: "Genesis recounts the creation of the world and humanity.",
-            verseRefHy: "Ծննդոց 1:1",
-            verseRefRu: "Бытие 1:1",
-            verseRefEn: "Genesis 1:1"
-        ),
-        QuizQuestion(
-            category: .oldTestament,
-            questionHy: "Ո՞ր լեռան վրա կանգ առավ Նոյան Տապանը ջրհեղեղից հետո։",
-            questionRu: "На какой горе остановился Ноев Ковчег после потопа?",
-            questionEn: "Upon which mountain did Noah's Ark come to rest after the flood?",
-            optionsHy: ["Սինա", "Արարատ", "Ձիթենյաց", "Թաբոր"],
-            optionsRu: ["Синай", "Арарат", "Елеонская", "Фавор"],
-            optionsEn: ["Sinai", "Ararat", "Mount Olivet", "Tabor"],
-            correctAnswerIndex: 1,
-            explanationHy: "Տապանը կանգ առավ Արարատ լեռան վրա (Ծննդոց 8:4)։",
-            explanationRu: "Ковчег остановился на горах Араратских (Бытие 8:4).",
-            explanationEn: "The ark rested upon the mountains of Ararat (Genesis 8:4).",
-            verseRefHy: "Ծննդոց 8:4",
-            verseRefRu: "Бытие 8:4",
-            verseRefEn: "Genesis 8:4"
-        ),
-        QuizQuestion(
-            category: .oldTestament,
-            questionHy: "Ո՞ր հսկային հաղթեց Դավիթը պարսատիկով։",
-            questionRu: "Какого гиганта победил Давид с помощью пращи?",
-            questionEn: "Which giant did David defeat using a sling?",
-            optionsHy: ["Գողիաթին", "Օգին", "Անակին", "Սիհոնին"],
-            optionsRu: ["Голиафа", "Ога", "Енака", "Сигона"],
-            optionsEn: ["Goliath", "Og", "Anak", "Sihon"],
-            correctAnswerIndex: 0,
-            explanationHy: "Դավիթը հաղթեց Գողիաթին Տիրոջ անունով և պարսատիկի քարով։",
-            explanationRu: "Давид поразил филистимлянина Голиафа камнем из пращи во имя Господа.",
-            explanationEn: "David struck Philistine Goliath with a sling stone in the name of the Lord.",
-            verseRefHy: "Ա Թագավորաց 17:49",
-            verseRefRu: "1 Царств 17:49",
-            verseRefEn: "1 Samuel 17:49"
-        ),
-        QuizQuestion(
-            category: .gospels,
-            questionHy: "Ո՞ր քաղաքում ծնվեց Հիսուս Քրիստոս։",
-            questionRu: "В каком городе родился Иисус Христос?",
-            questionEn: "In which city was Jesus Christ born?",
-            optionsHy: ["Նազարեթ", "Բեթղեհեմ", "Երուսաղեմ", "Կափառնաում"],
-            optionsRu: ["Назарет", "Вифлеем", "Иерусалим", "Капернаум"],
-            optionsEn: ["Nazareth", "Bethlehem", "Jerusalem", "Capernaum"],
-            correctAnswerIndex: 1,
-            explanationHy: "Հիսուս ծնվեց Հուդայի Բեթղեհեմ քաղաքում։",
-            explanationRu: "Иисус родился в Вифлееме Иудейском.",
-            explanationEn: "Jesus was born in Bethlehem of Judea.",
-            verseRefHy: "Մատթեոս 2:1",
-            verseRefRu: "Матфея 2:1",
-            verseRefEn: "Matthew 2:1"
-        ),
-        QuizQuestion(
-            category: .newTestament,
-            questionHy: "Ո՞վ էր Առաջին Քրիստոնյա Նահատակը (Նախասարկավագը)։",
-            questionRu: "Кто был первым христианским мучеником (перводиаконом)?",
-            questionEn: "Who was the first Christian martyr (first deacon)?",
-            optionsHy: ["Սուրբ Ստեփանոսը", "Սուրբ Պետրոսը", "Սուրբ Հակոբոսը", "Սուրբ Պողոսը"],
-            optionsRu: ["Святой Стефан", "Святой Пётр", "Святой Иаков", "Святой Павел"],
-            optionsEn: ["Saint Stephen", "Saint Peter", "Saint James", "Saint Paul"],
-            correctAnswerIndex: 0,
-            explanationHy: "Սուրբ Ստեփանոս Նախավկան քարկոծվեց Քրիստոսի վկայության համար։",
-            explanationRu: "Святой Стефан был побит камнями за вероисповедание Христа.",
-            explanationEn: "Saint Stephen was stoned for witnessing to Christ.",
-            verseRefHy: "Գործք 7:59",
-            verseRefRu: "Деяния 7:59",
-            verseRefEn: "Acts 7:59"
-        ),
-        QuizQuestion(
-            category: .newTestament,
-            questionHy: "Ո՞վ էր Հայաստանում Քրիստոնեության առաջին Լուսավորիչն ու Հայրապետը։",
-            questionRu: "Кто был первым Просветителем и Крестителем Армении?",
-            questionEn: "Who was the Illuminator and Baptizer of Armenia?",
-            optionsHy: ["Սուրբ Գրիգոր Լուսավորիչը", "Սուրբ Սահակ Պարթևը", "Սուրբ Մեսրոպ Մաշտոցը", "Սուրբ Ներսեսը"],
-            optionsRu: ["Святой Григорий Просветитель", "Святой Саак Партев", "Святой Месроп Маштоц", "Святой Нерсес"],
-            optionsEn: ["Saint Gregory the Illuminator", "Saint Sahak Partev", "Saint Mesrop Mashtots", "Saint Nerses"],
-            correctAnswerIndex: 0,
-            explanationHy: "Սուրբ Գրիգոր Լուսավորիչը դարձրեց Հայաստանը աշխարհում առաջին քրիստոնյա պետությունը 301թ․։",
-            explanationRu: "Святой Григорий Просветитель крестил Армению в 301 году как первую христианскую страну в мире.",
-            explanationEn: "Saint Gregory the Illuminator guided Armenia to accept Christianity as the first Christian nation in 301 AD.",
-            verseRefHy: "Գործք Առաքելոց / Հայոց Պատմություն",
-            verseRefRu: "Деяния / История Армении 301 г.",
-            verseRefEn: "History of Armenia 301 AD"
-        )
-    ]
 }

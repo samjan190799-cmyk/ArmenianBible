@@ -60,5 +60,9 @@
         <key>NSAllowsArbitraryLoads</key>
         <true/>
     </dict>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>We need permission to save generated Bible verse wallpapers to your Photos library.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>We need permission to save generated Bible verse wallpapers to your Photos library.</string>
 </dict>
 </plist>

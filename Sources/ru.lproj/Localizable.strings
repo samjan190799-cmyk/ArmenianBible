@@ -155,16 +155,54 @@
 "quiz_start_subtitle" = "Выберите категорию вопросов и проверьте глубину ваших знаний.";
 "quiz_best_score" = "Ваш лучший результат";
 "quiz_select_category" = "Категория вопросов:";
+"quiz_questions_count" = "Количество вопросов в раунде:";
+"quiz_count_suffix" = "вопросов";
 "quiz_cat_all" = "Все темы";
 "quiz_cat_old" = "Ветхий Завет";
 "quiz_cat_new" = "Новый Завет";
 "quiz_cat_gospels" = "Евангелия";
+"quiz_cat_church_history" = "Армянская Церковь и Святые";
+"quiz_cat_verses" = "Золотые стихи (Цитаты)";
+"quiz_diff_all" = "Все уровни";
+"quiz_diff_easy" = "Легкий";
+"quiz_diff_medium" = "Средний";
+"quiz_diff_hard" = "Сложный";
 "quiz_next_question" = "Следующий вопрос";
 "quiz_result_expert" = "Отличный результат! 🏆";
 "quiz_result_good" = "Хороший результат! 👍";
 "quiz_result_try_again" = "Продолжайте изучать Библию! 📖";
-"quiz_result_subtitle" = "Правильных ответов в этом раунде:";
 "quiz_button_play_again" = "Сыграть снова";
+
+/* Achievements & Badges */
+"achievements_title" = "Награды и Значки";
+"achievements_btn" = "наград";
+"your_rank" = "Ваш духовный ранг:";
+"unlocked_count" = "открыто";
+"unlocked_status" = "Открыто";
+"badge_unlocked_message" = "Этот значок успешно разблокирован!";
+"new_badge_unlocked" = "Новая награда разблокирована!";
+"view_all_badges" = "Посмотреть все награды";
+"rank_beginner" = "Начинающий Исследователь";
+"rank_student" = "Ученик Писания";
+"rank_scholar" = "Знаток Писания";
+"rank_bible_sage" = "Библейский Мудрец";
+"rank_grand_theologian" = "Великий Богослов";
+
+/* Verse Source Scope */
+"verse_source_scope_title" = "Источник стиха дня и виджетов";
+"verse_source_scope_description" = "Выберите, из каких книг и разделов Библии будут выбираться стихи для виджетов и главного экрана:";
+"scope_all_bible" = "Вся Библия (31 100+ стихов)";
+"scope_gospels" = "Четыре Евангелия";
+"scope_new_testament" = "Новый Завет";
+"scope_psalms_proverbs" = "Псалтирь и Притчи";
+"scope_golden_verses" = "Золотые стихи (Вдохновляющие)";
+
+/* Wallpaper Maker */
+"wallpaper_maker_title" = "Создатель Обоев";
+"wallpaper_background_title" = "Выберите фон:";
+"lockscreen_preview" = "Экран блокировки";
+"save_wallpaper_button" = "Сохранить в Фотопленку";
+"wallpaper_saved_success" = "Обои успешно сохранены в Галерею!";
 
 /* Widget Instruction Sheet */
 "widget_instruction_title" = "Как добавить виджет";

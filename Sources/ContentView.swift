@@ -51,6 +51,8 @@ struct HomeView: View {
     
     // Переменные для экспорта картинок
     @State private var shareItem: ShareItem? = nil
+    @State private var isShowingWallpaperMaker = false
+    @ObservedObject var speechService = BibleSpeechService.shared
     
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
@@ -178,10 +180,52 @@ struct HomeView: View {
                         .frame(height: 10)
                     
                     // MARK: - Контейнер со стихом
-                    VStack(spacing: 20) {
-                        Image(systemName: "laurel.leading")
-                            .font(.system(size: 28))
-                            .foregroundColor(secondaryAccentColor.opacity(0.7))
+                    VStack(spacing: 16) {
+                        HStack {
+                            Image(systemName: "laurel.leading")
+                                .font(.system(size: 24))
+                                .foregroundColor(secondaryAccentColor.opacity(0.7))
+                            
+                            Spacer()
+                            
+                            // Интерактивный переключатель источника стихов
+                            Menu {
+                                ForEach(VerseSourceScope.allCases) { scope in
+                                    Button {
+                                        triggerHaptic(.light)
+                                        manager.updateVerseSourceScope(scope)
+                                    } label: {
+                                        HStack {
+                                            Text(scope.title(for: manager.appLanguage))
+                                            if manager.verseSourceScope == scope {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: manager.verseSourceScope.icon)
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text(manager.verseSourceScope.title(for: manager.appLanguage))
+                                        .font(.system(size: 11, weight: .semibold))
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 8, weight: .bold))
+                                }
+                                .foregroundColor(secondaryAccentColor)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(secondaryAccentColor.opacity(0.12))
+                                .cornerRadius(12)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "laurel.trailing")
+                                .font(.system(size: 24))
+                                .foregroundColor(secondaryAccentColor.opacity(0.7))
+                        }
+                        .padding(.horizontal, 8)
                         
                         Text(manager.currentVerse.text)
                             .font(.system(size: 21, weight: .medium, design: .serif))
@@ -196,7 +240,7 @@ struct HomeView: View {
                         Text(manager.currentVerse.reference)
                             .font(.system(size: 13, weight: .bold, design: .monospaced))
                             .foregroundColor(secondaryAccentColor)
-                            .padding(.top, 4)
+                            .padding(.top, 2)
                             .opacity(animateVerse ? 0.8 : 0)
                             .offset(y: animateVerse ? 0 : 10)
                         
@@ -242,7 +286,36 @@ struct HomeView: View {
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // 3. Кнопка Поделиться открыткой
+                            // 3. Кнопка Генератора Обоев для LockScreen
+                            Button {
+                                triggerHaptic(.medium)
+                                isShowingWallpaperMaker = true
+                            } label: {
+                                Image(systemName: "photo.artframe")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(primaryTextColor.opacity(0.6))
+                                    .padding(10)
+                                    .background(primaryTextColor.opacity(0.05))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // 4. Кнопка Аудио-Озвучки стиха
+                            Button {
+                                triggerHaptic(.light)
+                                let textToSpeak = "\(manager.currentVerse.text(for: manager.appLanguage)). \(manager.currentVerse.reference(for: manager.appLanguage))"
+                                speechService.speak(text: textToSpeak, language: manager.appLanguage)
+                            } label: {
+                                Image(systemName: speechService.isSpeaking && !speechService.isPaused ? "speaker.wave.3.fill" : "speaker.wave.2")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(speechService.isSpeaking && !speechService.isPaused ? accentColor : primaryTextColor.opacity(0.6))
+                                    .padding(10)
+                                    .background((speechService.isSpeaking && !speechService.isPaused ? accentColor.opacity(0.15) : primaryTextColor.opacity(0.05)))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // 5. Кнопка Поделиться открыткой
                             Button {
                                 triggerHaptic(.medium)
                                 shareVerseAsImage()
@@ -256,7 +329,7 @@ struct HomeView: View {
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // 4. Кнопка ИИ Помощника (Размышление)
+                            // 6. Кнопка ИИ Помощника (Размышление)
                             Button {
                                 triggerHaptic(.medium)
                                 manager.activeTabSelection = 2
@@ -369,6 +442,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isShowingCalendar) {
             ChurchCalendarView()
+        }
+        .sheet(isPresented: $isShowingWallpaperMaker) {
+            BibleWallpaperMakerView(verse: manager.currentVerse)
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
@@ -1426,6 +1502,7 @@ struct SettingsView: View {
     
     @State private var selectedInterval: UpdateInterval = .everyHour
     @State private var selectedCategory: TextCategory = .both
+    @State private var selectedScope: VerseSourceScope = .allBible
     @State private var selectedTheme: AccentColorTheme = .indigo
     @State private var selectedWidgetLanguage: WidgetLanguage = .followApp
     
@@ -1770,6 +1847,60 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal, 4)
                         
+                        // MARK: - Выбор Источника стихов (вся Библия 31 100+ или разделы)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("verse_source_scope_title".localized(for: selectedLanguage))
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(primaryTextColor)
+                            
+                            Text("verse_source_scope_description".localized(for: selectedLanguage))
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineSpacing(4)
+                            
+                            VStack(spacing: 8) {
+                                ForEach(VerseSourceScope.allCases) { scope in
+                                    Button {
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.prepare()
+                                        generator.impactOccurred()
+                                        selectedScope = scope
+                                        manager.updateVerseSourceScope(scope)
+                                    } label: {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: scope.icon)
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .foregroundColor(selectedScope == scope ? Color(hex: selectedTheme.colorHex) : .secondary)
+                                                .frame(width: 24)
+                                            
+                                            Text(scope.title(for: selectedLanguage))
+                                                .font(.system(size: 14, weight: selectedScope == scope ? .bold : .medium))
+                                                .foregroundColor(primaryTextColor)
+                                            
+                                            Spacer()
+                                            
+                                            if selectedScope == scope {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                            }
+                                        }
+                                        .padding(12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(selectedScope == scope ? Color(hex: selectedTheme.colorHex).opacity(0.12) : inputFieldBgColor)
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(selectedScope == scope ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: 1)
+                                        )
+                                    }
+                                    .buttonStyle(ScaleButtonStyle())
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .padding(.horizontal, 4)
+                        
                         // MARK: - Выбор типа контента (Стихи / Молитвы / Избранное / Все)
                         VStack(alignment: .leading, spacing: 10) {
                             Text("content_type_title".localized(for: selectedLanguage))
@@ -1889,6 +2020,7 @@ struct SettingsView: View {
                 anthropicKeyInput = manager.anthropicApiKey
                 selectedInterval = manager.updateInterval
                 selectedCategory = manager.selectedCategory
+                selectedScope = manager.verseSourceScope
                 selectedTheme = manager.accentTheme
                 notificationsEnabled = manager.dailyNotificationsEnabled
                 notificationTime = manager.dailyNotificationTime
@@ -2051,7 +2183,7 @@ struct BibleQuizCardView: View {
                                 Image(systemName: "star.fill")
                                     .font(.system(size: 10))
                                     .foregroundColor(.orange)
-                                Text("\(bestScore)/10")
+                                Text("\(bestScore)")
                                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                                     .foregroundColor(primaryTextColor)
                             }
