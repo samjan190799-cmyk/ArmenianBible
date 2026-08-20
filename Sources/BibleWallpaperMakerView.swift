@@ -614,9 +614,7 @@ struct WallpaperCanvasView: View {
                 .background(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(Color.black.opacity(0.35))
-                        .background(
-                            VisualEffectBlur(material: .systemUltraThinMaterial, blendingMode: .withinWindow)
-                        )
+                        .background(.ultraThinMaterial)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .overlay(
