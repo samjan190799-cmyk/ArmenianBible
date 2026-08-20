@@ -20,6 +20,10 @@ final class BibleSpeechService: NSObject, ObservableObject, AVSpeechSynthesizerD
     
     // MARK: - Воспроизведение текста
     func speak(text: String, language: AppLanguage) {
+        // Очищаем текст от лишних символов и нумераций
+        let cleanedText = cleanSpokenText(text)
+        guard !cleanedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        
         // Если уже читается этот же текст — ставим на паузу или возобновляем
         if isSpeaking && currentSpokenText == text {
             if isPaused {
@@ -33,30 +37,36 @@ final class BibleSpeechService: NSObject, ObservableObject, AVSpeechSynthesizerD
         // Останавливаем предыдущую озвучку
         stop()
         
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        
         configureAudioSession()
         
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.48 // Спокойная, уважительная библейская скорость речи
+        var textToUtter = cleanedText
+        var chosenVoice: AVSpeechSynthesisVoice? = nil
+        
+        switch language {
+        case .armenian:
+            // Ищем установленный армянский голос в системе
+            if let armenianVoice = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.lowercased().hasPrefix("hy") }) ?? AVSpeechSynthesisVoice(language: "hy-AM") {
+                chosenVoice = armenianVoice
+            } else {
+                // Если армянский голос не установлен в iOS, используем фонетическую транслитерацию с европейским голосом
+                textToUtter = transliterateArmenianToPhonetic(cleanedText)
+                chosenVoice = AVSpeechSynthesisVoice(language: "it-IT") ?? AVSpeechSynthesisVoice(language: "el-GR") ?? AVSpeechSynthesisVoice(language: "en-US")
+            }
+            
+        case .russian:
+            chosenVoice = AVSpeechSynthesisVoice(language: "ru-RU")
+            
+        case .english:
+            chosenVoice = AVSpeechSynthesisVoice(language: "en-US") ?? AVSpeechSynthesisVoice(language: "en-GB")
+        }
+        
+        let utterance = AVSpeechUtterance(string: textToUtter)
+        utterance.rate = 0.46 // Спокойная, уважительная библейская скорость речи
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
         
-        // Подбираем системный голос для языка
-        let bcp47Code: String
-        switch language {
-        case .armenian:
-            bcp47Code = "hy-AM"
-        case .russian:
-            bcp47Code = "ru-RU"
-        case .english:
-            bcp47Code = "en-US"
-        }
-        
-        if let voice = AVSpeechSynthesisVoice(language: bcp47Code) {
+        if let voice = chosenVoice {
             utterance.voice = voice
-        } else if let fallbackVoice = AVSpeechSynthesisVoice(language: "hy") {
-            utterance.voice = fallbackVoice
         }
         
         currentSpokenText = text
@@ -90,6 +100,43 @@ final class BibleSpeechService: NSObject, ObservableObject, AVSpeechSynthesizerD
         isSpeaking = false
         isPaused = false
         currentSpokenText = ""
+    }
+    
+    // MARK: - Очистка текста от номеров стихов перед чтением
+    private func cleanSpokenText(_ raw: String) -> String {
+        var text = raw
+        // Убираем регулярные вкрапления цифр номеров стихов в начале строк
+        text = text.replacingOccurrences(of: "\\b\\d+\\b[\\.\\:\\)]?", with: "", options: .regularExpression)
+        text = text.replacingOccurrences(of: "\n", with: " ")
+        text = text.replacingOccurrences(of: "  +", with: " ", options: .regularExpression)
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    // MARK: - Фонетическая транслитерация армянского текста для синтезатора
+    private func transliterateArmenianToPhonetic(_ text: String) -> String {
+        let map: [Character: String] = [
+            "ա": "a", "բ": "b", "գ": "g", "դ": "d", "ե": "e", "զ": "z", "է": "e", "ը": "u",
+            "թ": "t", "ժ": "zh", "ի": "i", "լ": "l", "խ": "kh", "ծ": "ts", "կ": "k", "հ": "h",
+            "ձ": "dz", "ղ": "gh", "ճ": "ch", "մ": "m", "յ": "y", "ն": "n", "շ": "sh", "ո": "o",
+            "չ": "ch", "պ": "p", "ջ": "j", "ռ": "r", "ս": "s", "վ": "v", "տ": "t", "ր": "r",
+            "ց": "ts", "ւ": "v", "փ": "p", "ք": "k", "և": "yev", "օ": "o", "ֆ": "f",
+            "Ա": "A", "Բ": "B", "Գ": "G", "Դ": "D", "Ե": "Ye", "Զ": "Z", "Է": "E", "Ը": "U",
+            "Թ": "T", "Ժ": "Zh", "Ի": "I", "Լ": "L", "Խ": "Kh", "Ծ": "Ts", "Կ": "K", "Հ": "H",
+            "Ձ": "Dz", "Ղ": "Gh", "Ճ": "Ch", "Մ": "M", "Յ": "Y", "Ն": "N", "Շ": "Sh", "Ո": "Vo",
+            "Չ": "Ch", "Պ": "P", "Ջ": "J", "Ռ": "R", "Ս": "S", "Վ": "V", "Տ": "T", "Ր": "R",
+            "Ց": "Ts", "Ւ": "V", "Փ": "P", "Ք": "K", "Օ": "O", "Ֆ": "F",
+            "։": ".", "՝": ",", "․": ".", "«": "", "»": "", "—": " - "
+        ]
+        
+        var result = ""
+        for char in text {
+            if let replacement = map[char] {
+                result.append(replacement)
+            } else {
+                result.append(char)
+            }
+        }
+        return result
     }
     
     // MARK: - Настройка аудио-сессии

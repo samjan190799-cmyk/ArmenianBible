@@ -188,39 +188,6 @@ struct HomeView: View {
                             
                             Spacer()
                             
-                            // Интерактивный переключатель источника стихов
-                            Menu {
-                                ForEach(VerseSourceScope.allCases) { scope in
-                                    Button {
-                                        triggerHaptic(.light)
-                                        manager.updateVerseSourceScope(scope)
-                                    } label: {
-                                        HStack {
-                                            Text(scope.title(for: manager.appLanguage))
-                                            if manager.verseSourceScope == scope {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 5) {
-                                    Image(systemName: manager.verseSourceScope.icon)
-                                        .font(.system(size: 11, weight: .bold))
-                                    Text(manager.verseSourceScope.title(for: manager.appLanguage))
-                                        .font(.system(size: 11, weight: .semibold))
-                                    Image(systemName: "chevron.down")
-                                        .font(.system(size: 8, weight: .bold))
-                                }
-                                .foregroundColor(secondaryAccentColor)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(secondaryAccentColor.opacity(0.12))
-                                .cornerRadius(12)
-                            }
-                            
-                            Spacer()
-                            
                             Image(systemName: "laurel.trailing")
                                 .font(.system(size: 24))
                                 .foregroundColor(secondaryAccentColor.opacity(0.7))
@@ -244,31 +211,9 @@ struct HomeView: View {
                             .opacity(animateVerse ? 0.8 : 0)
                             .offset(y: animateVerse ? 0 : 10)
                         
-                        // Кнопки управления стихом: Случайный, Избранное, Поделиться, ИИ Помощник
-                        HStack(spacing: 20) {
-                            // 1. Случайный стих (Офлайн)
-                            Button {
-                                triggerHaptic(.medium)
-                                withAnimation(.easeOut(duration: 0.18)) {
-                                    animateVerse = false
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                                    manager.selectRandomVerse()
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        animateVerse = true
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(primaryTextColor.opacity(0.6))
-                                    .padding(10)
-                                    .background(primaryTextColor.opacity(0.05))
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(ScaleButtonStyle())
-                            
-                            // 2. Кнопка Лайка (Избранное)
+                        // Кнопки управления стихом: Избранное, Обои, Аудио-озвучка, Поделиться
+                        HStack(spacing: 24) {
+                            // 1. Кнопка Лайка (Избранное)
                             Button {
                                 triggerHaptic(.light)
                                 if manager.isFavorite(manager.currentVerse) {
@@ -278,67 +223,53 @@ struct HomeView: View {
                                 }
                             } label: {
                                 Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(manager.isFavorite(manager.currentVerse) ? .red : primaryTextColor.opacity(0.6))
-                                    .padding(10)
+                                    .padding(11)
                                     .background(primaryTextColor.opacity(0.05))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // 3. Кнопка Генератора Обоев для LockScreen
+                            // 2. Кнопка Генератора Обоев для LockScreen
                             Button {
                                 triggerHaptic(.medium)
                                 isShowingWallpaperMaker = true
                             } label: {
                                 Image(systemName: "photo.artframe")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(primaryTextColor.opacity(0.6))
-                                    .padding(10)
+                                    .padding(11)
                                     .background(primaryTextColor.opacity(0.05))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // 4. Кнопка Аудио-Озвучки стиха
+                            // 3. Кнопка Аудио-Озвучки стиха
                             Button {
                                 triggerHaptic(.light)
                                 let textToSpeak = "\(manager.currentVerse.text(for: manager.appLanguage)). \(manager.currentVerse.reference(for: manager.appLanguage))"
                                 speechService.speak(text: textToSpeak, language: manager.appLanguage)
                             } label: {
                                 Image(systemName: speechService.isSpeaking && !speechService.isPaused ? "speaker.wave.3.fill" : "speaker.wave.2")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(speechService.isSpeaking && !speechService.isPaused ? accentColor : primaryTextColor.opacity(0.6))
-                                    .padding(10)
+                                    .padding(11)
                                     .background((speechService.isSpeaking && !speechService.isPaused ? accentColor.opacity(0.15) : primaryTextColor.opacity(0.05)))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // 5. Кнопка Поделиться открыткой
+                            // 4. Кнопка Поделиться открыткой
                             Button {
                                 triggerHaptic(.medium)
                                 shareVerseAsImage()
                             } label: {
                                 Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(primaryTextColor.opacity(0.6))
-                                    .padding(10)
+                                    .padding(11)
                                     .background(primaryTextColor.opacity(0.05))
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(ScaleButtonStyle())
-                            
-                            // 6. Кнопка ИИ Помощника (Размышление)
-                            Button {
-                                triggerHaptic(.medium)
-                                manager.activeTabSelection = 2
-                            } label: {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(Color(hex: "0284C7"))
-                                    .padding(10)
-                                    .background(Color(hex: "0284C7").opacity(0.12))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(ScaleButtonStyle())

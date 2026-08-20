@@ -71,38 +71,34 @@ enum WallpaperTheme: String, CaseIterable, Identifiable {
     var colors: [Color] {
         switch self {
         case .ararat:
-            return [Color(hex: "0F172A"), Color(hex: "1E293B"), Color(hex: "38BDF8").opacity(0.4), Color(hex: "F43F5E").opacity(0.3)]
+            return [Color(hex: "060B19"), Color(hex: "172554"), Color(hex: "BE185D"), Color(hex: "F59E0B")]
         case .tatev:
-            return [Color(hex: "020617"), Color(hex: "0F172A"), Color(hex: "1E3A5F"), Color(hex: "0EA5E9").opacity(0.3)]
+            return [Color(hex: "020617"), Color(hex: "0F172A"), Color(hex: "0369A1"), Color(hex: "0D9488")]
         case .khachkar:
-            return [Color(hex: "18181B"), Color(hex: "27272A"), Color(hex: "D97706").opacity(0.35), Color(hex: "B45309").opacity(0.2)]
+            return [Color(hex: "18181B"), Color(hex: "27272A"), Color(hex: "78350F"), Color(hex: "D97706")]
         case .parchment:
-            return [Color(hex: "292524"), Color(hex: "44403C"), Color(hex: "78716C"), Color(hex: "D97706").opacity(0.25)]
+            return [Color(hex: "1C1917"), Color(hex: "44403C"), Color(hex: "78716C"), Color(hex: "B45309")]
         case .bethlehem:
-            return [Color(hex: "030712"), Color(hex: "0B132B"), Color(hex: "1C2541"), Color(hex: "6366F1").opacity(0.4)]
+            return [Color(hex: "020617"), Color(hex: "0B132B"), Color(hex: "1E1B4B"), Color(hex: "4338CA")]
         case .sunset:
-            return [Color(hex: "1A0B2E"), Color(hex: "3B185F"), Color(hex: "A12568"), Color(hex: "FEC260").opacity(0.35)]
+            return [Color(hex: "1E1B4B"), Color(hex: "581C87"), Color(hex: "9D174D"), Color(hex: "EA580C")]
         case .graphite:
-            return [Color(hex: "090A0F"), Color(hex: "12141C"), Color(hex: "1E2230"), Color(hex: "64748B").opacity(0.2)]
+            return [Color(hex: "090A0F"), Color(hex: "12141C"), Color(hex: "1E2230"), Color(hex: "334155")]
         case .royal:
-            return [Color(hex: "1E1035"), Color(hex: "311458"), Color(hex: "581C87"), Color(hex: "F59E0B").opacity(0.35)]
+            return [Color(hex: "180828"), Color(hex: "3B0764"), Color(hex: "581C87"), Color(hex: "D97706")]
         }
-    }
-    
-    var isLight: Bool {
-        return false
     }
     
     var accentColor: Color {
         switch self {
-        case .ararat: return Color(hex: "38BDF8")
+        case .ararat: return Color(hex: "FDE047")
         case .tatev: return Color(hex: "38BDF8")
-        case .khachkar: return Color(hex: "F59E0B")
-        case .parchment: return Color(hex: "FBBF24")
-        case .bethlehem: return Color(hex: "818CF8")
-        case .sunset: return Color(hex: "FB7185")
-        case .graphite: return Color(hex: "94A3B8")
-        case .royal: return Color(hex: "FBBF24")
+        case .khachkar: return Color(hex: "FBBF24")
+        case .parchment: return Color(hex: "FDE68A")
+        case .bethlehem: return Color(hex: "A5B4FC")
+        case .sunset: return Color(hex: "FDBA74")
+        case .graphite: return Color(hex: "E2E8F0")
+        case .royal: return Color(hex: "FCD34D")
         }
     }
 }
@@ -210,10 +206,6 @@ struct BibleWallpaperMakerView: View {
     @State private var showSaveSuccessToast = false
     @State private var isExporting = false
     
-    private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
-    }
-    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -275,7 +267,7 @@ struct BibleWallpaperMakerView: View {
                     .frame(maxHeight: .infinity)
                     .padding(.vertical, 12)
                     
-                    // MARK: - Панель Настроек Обоев (Шторка управления)
+                    // MARK: - Панель Настроек Обоев
                     VStack(spacing: 16) {
                         // 1. Селектор Темы / Фона
                         VStack(alignment: .leading, spacing: 8) {
@@ -348,7 +340,7 @@ struct BibleWallpaperMakerView: View {
                             }
                         }
                         
-                        // 2. Селекторы Стиля: Шрифт, Декор и Язык
+                        // 2. Селекторы: Шрифт, Декор и Язык
                         HStack(spacing: 12) {
                             // Шрифт
                             Menu {
@@ -541,7 +533,202 @@ struct BibleWallpaperMakerView: View {
     }
 }
 
-// MARK: - Холст предпросмотра обоев (с часами iOS Lock Screen)
+// MARK: - Художественный фон обоев (Арарат, Татев, Хачкар, Манускрипт и т.д.)
+struct WallpaperArtBackground: View {
+    let theme: WallpaperTheme
+    
+    var body: some View {
+        ZStack {
+            // Базовый градиент
+            LinearGradient(
+                colors: theme.colors,
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            
+            switch theme {
+            case .ararat:
+                // Силуэт горы Арарат на рассвете
+                ZStack {
+                    // Солнечный диск на горизонте
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color(hex: "FDE047").opacity(0.8), Color(hex: "F59E0B").opacity(0.3), Color.clear],
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: 120
+                            )
+                        )
+                        .frame(width: 200, height: 200)
+                        .offset(y: 60)
+                    
+                    // Силуэт гор (Masis & Sis)
+                    GeometryReader { geo in
+                        Path { path in
+                            let w = geo.size.width
+                            let h = geo.size.height
+                            let base = h * 0.78
+                            
+                            path.move(to: CGPoint(x: 0, y: h))
+                            path.addLine(to: CGPoint(x: 0, y: base))
+                            // Малый Арарат (Сис)
+                            path.addLine(to: CGPoint(x: w * 0.28, y: base - h * 0.15))
+                            path.addLine(to: CGPoint(x: w * 0.44, y: base - h * 0.05))
+                            // Большой Арарат (Масис)
+                            path.addLine(to: CGPoint(x: w * 0.68, y: base - h * 0.26))
+                            path.addLine(to: CGPoint(x: w * 0.88, y: base - h * 0.08))
+                            path.addLine(to: CGPoint(x: w, y: base))
+                            path.addLine(to: CGPoint(x: w, y: h))
+                            path.closeSubpath()
+                        }
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "1E1B4B").opacity(0.85), Color(hex: "090A0F")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        
+                        // Снежные шапки Арарата
+                        Path { path in
+                            let w = geo.size.width
+                            let h = geo.size.height
+                            let base = h * 0.78
+                            
+                            // Снег на Масисе
+                            path.move(to: CGPoint(x: w * 0.68, y: base - h * 0.26))
+                            path.addLine(to: CGPoint(x: w * 0.62, y: base - h * 0.19))
+                            path.addLine(to: CGPoint(x: w * 0.74, y: base - h * 0.18))
+                            path.closeSubpath()
+                        }
+                        .fill(Color.white.opacity(0.45))
+                    }
+                }
+                
+            case .tatev:
+                // Монастырь Татев над ущельем
+                ZStack {
+                    RadialGradient(
+                        colors: [Color(hex: "0284C7").opacity(0.4), Color.clear],
+                        center: .top,
+                        startRadius: 20,
+                        endRadius: 260
+                    )
+                    
+                    // Силуэт купола храма внизу
+                    VStack {
+                        Spacer()
+                        Image(systemName: "cross.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(Color(hex: "38BDF8").opacity(0.6))
+                            .padding(.bottom, 4)
+                        
+                        // Арка и купол
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "0F172A").opacity(0.85), Color(hex: "020617")],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: 70)
+                            .overlay(
+                                Image(systemName: "building.columns.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(Color.white.opacity(0.15))
+                            )
+                    }
+                }
+                
+            case .khachkar:
+                // Резной орнамент армянского хачкара
+                ZStack {
+                    RadialGradient(
+                        colors: [Color(hex: "D97706").opacity(0.35), Color.clear],
+                        center: .center,
+                        startRadius: 20,
+                        endRadius: 220
+                    )
+                    
+                    // Золотой крест Хачкара на фоне
+                    VStack(spacing: 0) {
+                        Image(systemName: "cross.fill")
+                            .font(.system(size: 80, weight: .ultraLight))
+                            .foregroundColor(Color(hex: "F59E0B").opacity(0.18))
+                    }
+                }
+                
+            case .parchment:
+                // Древний манускрипт Матенадарана
+                ZStack {
+                    Color(hex: "292524").opacity(0.3)
+                    // Тонкая рамка манускрипта
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(Color(hex: "D97706").opacity(0.25), lineWidth: 1.5)
+                        .padding(14)
+                }
+                
+            case .bethlehem:
+                // Вифлеемская Звезда и ночное небо
+                ZStack {
+                    RadialGradient(
+                        colors: [Color(hex: "818CF8").opacity(0.4), Color.clear],
+                        center: .top,
+                        startRadius: 10,
+                        endRadius: 200
+                    )
+                    
+                    VStack {
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 38, weight: .bold))
+                            .foregroundColor(Color(hex: "E0E7FF"))
+                            .shadow(color: Color(hex: "818CF8"), radius: 12)
+                            .padding(.top, 40)
+                        Spacer()
+                    }
+                }
+                
+            case .sunset:
+                // Закат над Армянским нагорьем
+                ZStack {
+                    RadialGradient(
+                        colors: [Color(hex: "FB7185").opacity(0.45), Color(hex: "EA580C").opacity(0.2), Color.clear],
+                        center: .center,
+                        startRadius: 30,
+                        endRadius: 240
+                    )
+                }
+                
+            case .graphite:
+                // Чистый премиальный темный оникс
+                ZStack {
+                    RadialGradient(
+                        colors: [Color(hex: "334155").opacity(0.3), Color.clear],
+                        center: .center,
+                        startRadius: 30,
+                        endRadius: 200
+                    )
+                }
+                
+            case .royal:
+                // Королевский пурпур и сияние
+                ZStack {
+                    RadialGradient(
+                        colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "7C3AED").opacity(0.2), Color.clear],
+                        center: .top,
+                        startRadius: 20,
+                        endRadius: 240
+                    )
+                }
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+// MARK: - Холст предпросмотра обоев (без серого фона под текстом)
 struct WallpaperCanvasView: View {
     let verse: BibleVerse
     let theme: WallpaperTheme
@@ -552,21 +739,8 @@ struct WallpaperCanvasView: View {
     
     var body: some View {
         ZStack {
-            // Фон
-            LinearGradient(
-                colors: theme.colors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            // Художественные световые пятна
-            RadialGradient(
-                gradient: Gradient(colors: [theme.accentColor.opacity(0.35), Color.clear]),
-                center: .center,
-                startRadius: 20,
-                endRadius: 180
-            )
+            // Художественный фон
+            WallpaperArtBackground(theme: theme)
             
             VStack(spacing: 0) {
                 // Верхний блок: Системные часы Lock Screen
@@ -574,12 +748,14 @@ struct WallpaperCanvasView: View {
                     VStack(spacing: 2) {
                         Text(currentDateString(for: language))
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(.white.opacity(0.9))
+                            .shadow(color: .black.opacity(0.8), radius: 4)
                             .padding(.top, 28)
                         
                         Text("09:41")
                             .font(.system(size: 44, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.8), radius: 6)
                     }
                     .frame(height: 100)
                 } else {
@@ -588,46 +764,30 @@ struct WallpaperCanvasView: View {
                 
                 Spacer()
                 
-                // Центральный блок: Стих и Ссылка
+                // Центральный блок: Стих и Ссылка (ЧИСТЫЙ ТЕКСТ БЕЗ СЕРОЙ ПЛАШКИ)
                 VStack(spacing: 12) {
-                    // Декоративный символ
                     if decor != .minimal {
                         Image(systemName: decor.icon)
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(theme.accentColor.opacity(0.9))
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(theme.accentColor)
+                            .shadow(color: .black.opacity(0.9), radius: 6, x: 0, y: 2)
                     }
                     
                     Text(verse.text(for: language))
-                        .font(.system(size: 13, weight: .medium, design: fontDesign.design))
+                        .font(.system(size: 13.5, weight: .semibold, design: fontDesign.design))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
-                        .lineSpacing(4)
+                        .lineSpacing(4.5)
+                        .shadow(color: .black.opacity(0.95), radius: 8, x: 0, y: 3)
+                        .shadow(color: .black.opacity(0.9), radius: 3, x: 0, y: 1)
                         .padding(.horizontal, 16)
                     
                     Text(verse.reference(for: language))
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
                         .foregroundColor(theme.accentColor)
+                        .shadow(color: .black.opacity(0.95), radius: 6, x: 0, y: 2)
                         .padding(.top, 2)
                 }
-                .padding(.vertical, 20)
-                .padding(.horizontal, 14)
-                .background(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(Color.black.opacity(0.35))
-                        .background(.ultraThinMaterial)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.2), Color.white.opacity(0.04)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                )
                 .padding(.horizontal, 14)
                 
                 Spacer()
@@ -636,14 +796,14 @@ struct WallpaperCanvasView: View {
                 if showOverlay {
                     HStack {
                         Circle()
-                            .fill(Color.black.opacity(0.4))
+                            .fill(Color.black.opacity(0.45))
                             .frame(width: 28, height: 28)
                             .overlay(Image(systemName: "flashlight.off.fill").font(.system(size: 11)).foregroundColor(.white))
                         
                         Spacer()
                         
                         Circle()
-                            .fill(Color.black.opacity(0.4))
+                            .fill(Color.black.opacity(0.45))
                             .frame(width: 28, height: 28)
                             .overlay(Image(systemName: "camera.fill").font(.system(size: 11)).foregroundColor(.white))
                     }
@@ -675,71 +835,46 @@ struct FullResolutionWallpaperView: View {
     
     var body: some View {
         ZStack {
-            // Фон высокого разрешения
-            LinearGradient(
-                colors: theme.colors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            // Большое сияние
-            RadialGradient(
-                gradient: Gradient(colors: [theme.accentColor.opacity(0.4), Color.clear]),
-                center: .center,
-                startRadius: 50,
-                endRadius: 700
-            )
+            // Художественный фон высокого разрешения
+            WallpaperArtBackground(theme: theme)
             
             VStack {
                 Spacer()
                 
-                // Карточка со стихом в центре
+                // Карточка со стихом в центре (ЧИСТЫЙ ТЕКСТ БЕЗ СЕРОЙ ПЛАШКИ)
                 VStack(spacing: 36) {
                     if decor != .minimal {
                         Image(systemName: decor.icon)
-                            .font(.system(size: 64, weight: .bold))
-                            .foregroundColor(theme.accentColor.opacity(0.9))
+                            .font(.system(size: 68, weight: .bold))
+                            .foregroundColor(theme.accentColor)
+                            .shadow(color: .black.opacity(0.9), radius: 16, x: 0, y: 6)
                     }
                     
                     Text(verse.text(for: language))
-                        .font(.system(size: 46, weight: .medium, design: fontDesign.design))
+                        .font(.system(size: 48, weight: .semibold, design: fontDesign.design))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
-                        .lineSpacing(16)
-                        .padding(.horizontal, 48)
+                        .lineSpacing(18)
+                        .shadow(color: .black.opacity(0.95), radius: 24, x: 0, y: 8)
+                        .shadow(color: .black.opacity(0.9), radius: 8, x: 0, y: 3)
+                        .padding(.horizontal, 60)
                     
                     Text(verse.reference(for: language))
-                        .font(.system(size: 32, weight: .bold, design: .monospaced))
+                        .font(.system(size: 34, weight: .bold, design: .monospaced))
                         .foregroundColor(theme.accentColor)
-                        .padding(.top, 8)
+                        .shadow(color: .black.opacity(0.95), radius: 16, x: 0, y: 6)
+                        .padding(.top, 10)
                 }
-                .padding(.vertical, 72)
-                .padding(.horizontal, 54)
-                .background(
-                    RoundedRectangle(cornerRadius: 56, style: .continuous)
-                        .fill(Color.black.opacity(0.42))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 56, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.25), Color.white.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
-                        )
-                )
-                .padding(.horizontal, 70)
+                .padding(.horizontal, 40)
                 
                 Spacer()
                 
                 // Подпись приложения внизу
                 VStack(spacing: 6) {
                     Text("ArmenianBible")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.white.opacity(0.4))
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white.opacity(0.5))
+                        .shadow(color: .black.opacity(0.8), radius: 6)
                 }
                 .padding(.bottom, 90)
             }

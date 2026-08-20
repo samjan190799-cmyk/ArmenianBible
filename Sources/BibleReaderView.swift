@@ -448,8 +448,8 @@ struct BibleChapterReaderView: View {
                             speechService.stop()
                         } else {
                             if let chapterData = BibleDatabase.shared.getChapterText(bookId: book.id, chapter: chapterNum) {
-                                let versesText = chapterData.verses.map { "\($0.verseNumber). \($0.text(for: manager.appLanguage))" }.joined(separator: " ")
-                                let fullText = "\(book.name). \(chapterNum) \("chapter_title_label".localized(for: manager.appLanguage)). \(versesText)"
+                                let versesText = chapterData.verses.map { $0.text(for: manager.appLanguage) }.joined(separator: ". ")
+                                let fullText = "\(book.name), \(chapterNum) \("chapter_title_label".localized(for: manager.appLanguage)). \(versesText)"
                                 speechService.speak(text: fullText, language: manager.appLanguage)
                             }
                         }
