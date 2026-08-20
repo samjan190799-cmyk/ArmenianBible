@@ -629,6 +629,10 @@ struct BibleSingleChapterView: View {
         .serif
     }
     
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : Color(hex: "1E293B")
+    }
+    
     var body: some View {
         ZStack {
             backgroundColor.ignoresSafeArea()
@@ -716,7 +720,7 @@ struct BibleSingleChapterView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .environment(\.openURL, OpenURLAction { url in
                                     if url.scheme == "verse" {
-                                        let raw = url.host ?? url.resourceSpecifier.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                                        let raw = (url.host ?? url.path).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                                         if let verseNum = Int(raw), let v = text.verses.first(where: { $0.verseNumber == verseNum }) {
                                             triggerHaptic(.light)
                                             selectedVerseForSheet = v
