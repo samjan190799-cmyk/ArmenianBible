@@ -653,7 +653,7 @@ struct BibleSingleChapterView: View {
             if let text = chapterText {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 0) {
+                        VStack(spacing: 0) {
                             // Книжный заголовок главы
                             VStack(spacing: 8) {
                                 Text(book.name)
@@ -691,127 +691,105 @@ struct BibleSingleChapterView: View {
                                 .padding(.top, 4)
                             }
                             .padding(.top, 36)
-                            .padding(.bottom, 28)
+                            .padding(.bottom, 20)
                             .frame(maxWidth: .infinity)
                             
-                            ForEach(text.verses) { verse in
-                                let ann = manager.annotation(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
-                                let savedColorHex = ann?.colorHex ?? manager.highlightColor(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
-                                let isDeepLinkTarget = (highlightedVerseId == verse.verseNumber)
-                                
-                                VStack(alignment: .leading, spacing: 3) {
-                                    HStack(alignment: .top, spacing: 6) {
-                                        (
-                                            Text("\(verse.verseNumber) ")
-                                                .font(.system(size: 10, weight: .semibold, design: .serif))
-                                                .foregroundColor(accentColor.opacity(0.65))
-                                                .baselineOffset(6)
-                                            +
-                                            Text(verse.text(for: manager.appLanguage))
-                                                .font(.system(size: manager.bibleFontSize, weight: .regular, design: fontDesign))
-                                                .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : Color(hex: "1E293B"))
-                                        )
-                                        .lineSpacing(7)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        
-                                        if let ann = ann, !ann.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                            Image(systemName: "note.text")
-                                                .font(.system(size: 11, weight: .bold))
-                                                .foregroundColor(accentColor)
-                                                .padding(4)
-                                                .background(accentColor.opacity(0.12))
-                                                .clipShape(Circle())
+                            // Подсказка о свободном выделении
+                            HStack(spacing: 6) {
+                                Image(systemName: "hand.tap.fill")
+                                    .font(.system(size: 11))
+                                Text("bible_reader_select_hint".localized(for: manager.appLanguage))
+                                    .font(.system(size: 11.5, weight: .medium))
+                            }
+                            .foregroundColor(accentColor.opacity(0.75))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(accentColor.opacity(0.08))
+                            .cornerRadius(12)
+                            .padding(.bottom, 20)
+                            
+                            // MARK: - Непрерывный текст главы со свободным выделением любого диапазона
+                            Text(buildChapterAttributedString(from: text))
+                                .lineSpacing(8)
+                                .textSelection(.enabled)
+                                .padding(.horizontal, 24)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .environment(\.openURL, OpenURLAction { url in
+                                    if url.scheme == "verse" {
+                                        let raw = url.host ?? url.resourceSpecifier.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                                        if let verseNum = Int(raw), let v = text.verses.first(where: { $0.verseNumber == verseNum }) {
+                                            triggerHaptic(.light)
+                                            selectedVerseForSheet = v
+                                            return .handled
                                         }
                                     }
+                                    return .systemAction
+                                })
+                            
+                            // MARK: - Заметки и теги к стихам этой главы (если есть)
+                            let chapterAnnotations = text.verses.compactMap { v -> (BibleVerseText, VerseAnnotation)? in
+                                guard let ann = manager.annotation(bookId: book.id, chapter: chapter, verseNumber: v.verseNumber),
+                                      (!ann.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !ann.tags.isEmpty) else {
+                                    return nil
+                                }
+                                return (v, ann)
+                            }
+                            
+                            if !chapterAnnotations.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "note.text")
+                                            .font(.system(size: 13, weight: .bold))
+                                        Text("personal_note_title".localized(for: manager.appLanguage))
+                                            .font(.system(size: 13, weight: .bold))
+                                    }
+                                    .foregroundColor(accentColor)
+                                    .padding(.top, 16)
                                     
-                                    if let ann = ann, (!ann.tags.isEmpty || !ann.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            if !ann.tags.isEmpty {
-                                                HStack(spacing: 6) {
-                                                    ForEach(ann.tags) { tag in
-                                                        HStack(spacing: 3) {
-                                                            Text(tag.icon)
-                                                                .font(.system(size: 10))
-                                                            Text(tag.localizedTitle(for: manager.appLanguage))
-                                                                .font(.system(size: 10, weight: .bold))
+                                    ForEach(chapterAnnotations, id: \.0.verseNumber) { (v, ann) in
+                                        Button {
+                                            triggerHaptic(.light)
+                                            selectedVerseForSheet = v
+                                        } label: {
+                                            VStack(alignment: .leading, spacing: 6) {
+                                                HStack {
+                                                    Text("\("verse_label".localized(for: manager.appLanguage)) \(v.verseNumber)")
+                                                        .font(.system(size: 12, weight: .bold, design: .serif))
+                                                        .foregroundColor(accentColor)
+                                                    
+                                                    Spacer()
+                                                    
+                                                    if !ann.tags.isEmpty {
+                                                        HStack(spacing: 4) {
+                                                            ForEach(ann.tags) { tag in
+                                                                Text(tag.icon)
+                                                                    .font(.system(size: 10))
+                                                            }
                                                         }
-                                                        .padding(.horizontal, 6)
-                                                        .padding(.vertical, 2)
-                                                        .background(Color(hex: tag.colorHex).opacity(0.16))
-                                                        .foregroundColor(Color(hex: tag.colorHex))
-                                                        .cornerRadius(6)
                                                     }
                                                 }
+                                                
+                                                if !ann.note.isEmpty {
+                                                    Text(ann.note)
+                                                        .font(.system(size: 13, weight: .regular, design: .serif))
+                                                        .foregroundColor(primaryTextColor)
+                                                        .multilineTextAlignment(.leading)
+                                                }
                                             }
-                                            
-                                            if !ann.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                                Text(ann.note)
-                                                    .font(.system(size: 12.5, weight: .medium, design: .serif))
-                                                    .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.75) : Color(hex: "475569"))
-                                                    .italic()
-                                                    .padding(.horizontal, 8)
-                                                    .padding(.vertical, 4)
-                                                    .background(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
-                                                    .cornerRadius(6)
-                                            }
+                                            .padding(12)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(rowBgColor)
+                                            .cornerRadius(12)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                                            )
                                         }
-                                        .padding(.top, 2)
+                                        .buttonStyle(ScaleButtonStyle())
                                     }
                                 }
                                 .padding(.horizontal, 24)
-                                .padding(.vertical, 8)
-                                .background(
-                                    ZStack {
-                                        if let hex = savedColorHex {
-                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                                .fill(Color(hex: hex).opacity(colorScheme == .dark ? 0.28 : 0.22))
-                                        } else if isDeepLinkTarget {
-                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                                .fill(highlightColor)
-                                        }
-                                    }
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    triggerHaptic(.light)
-                                    selectedVerseForSheet = verse
-                                }
-                                .contextMenu {
-                                    Button {
-                                        selectedVerseForSheet = verse
-                                    } label: {
-                                        Label("highlight_color_title".localized(for: manager.appLanguage), systemImage: "paintbrush.fill")
-                                    }
-                                    
-                                    Button {
-                                        pinToWidget(verse: verse)
-                                    } label: {
-                                        Label("pin_to_widget".localized(for: manager.appLanguage), systemImage: "square.stack.3d.up.fill")
-                                    }
-                                    
-                                    Button {
-                                        copyToClipboard(verse: verse)
-                                    } label: {
-                                        Label("context_menu_copy".localized(for: manager.appLanguage), systemImage: "doc.on.doc")
-                                    }
-                                    
-                                    Button {
-                                        shareVerse(verse: verse)
-                                    } label: {
-                                        Label("context_menu_share".localized(for: manager.appLanguage), systemImage: "square.and.arrow.up")
-                                    }
-                                    
-                                    Button {
-                                        toggleFavorite(verse: verse)
-                                    } label: {
-                                        if manager.isFavorite(verseText: verse) {
-                                            Label("context_menu_remove_favorite".localized(for: manager.appLanguage), systemImage: "heart.slash.fill")
-                                        } else {
-                                            Label("context_menu_add_favorite".localized(for: manager.appLanguage), systemImage: "heart")
-                                        }
-                                    }
-                                }
-                                .id(verse.verseNumber)
+                                .padding(.top, 24)
                             }
                             
                             // Номер страницы (номер текущей главы)
@@ -833,12 +811,7 @@ struct BibleSingleChapterView: View {
                     .onAppear {
                         // Скроллим к целевому стиху, если он передан (для Deep Link и поиска)
                         if let target = targetVerse {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
-                                    proxy.scrollTo(target, anchor: .center)
-                                }
-                                highlightedVerseId = target
-                            }
+                            highlightedVerseId = target
                             
                             // Убираем подсветку через 3 секунды
                             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
@@ -986,6 +959,47 @@ struct BibleSingleChapterView: View {
         } else {
             manager.addToFavorites(verseText: verse, bookName: book.name)
         }
+    }
+    
+    private func buildChapterAttributedString(from text: BibleChapterText) -> AttributedString {
+        var result = AttributedString()
+        let fontSize = manager.bibleFontSize
+        let textColor = colorScheme == .dark ? Color.white.opacity(0.92) : Color(hex: "1E293B")
+        
+        for (index, verse) in text.verses.enumerated() {
+            // Номер стиха надстрочным шрифтом с кликабельной ссылкой
+            var numStr = AttributedString(" \(verse.verseNumber) ")
+            numStr.font = .system(size: max(11, fontSize * 0.65), weight: .bold, design: .serif)
+            numStr.foregroundColor = accentColor
+            numStr.baselineOffset = fontSize * 0.25
+            if let linkURL = URL(string: "verse://\(verse.verseNumber)") {
+                numStr.link = linkURL
+            }
+            
+            // Текст стиха
+            let verseContent = verse.text(for: manager.appLanguage)
+            var verseStr = AttributedString(verseContent)
+            verseStr.font = .system(size: fontSize, weight: .regular, design: fontDesign)
+            verseStr.foregroundColor = textColor
+            
+            let ann = manager.annotation(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
+            let savedColorHex = ann?.colorHex ?? manager.highlightColor(bookId: book.id, chapter: chapter, verseNumber: verse.verseNumber)
+            
+            if let hex = savedColorHex {
+                verseStr.backgroundColor = Color(hex: hex).opacity(colorScheme == .dark ? 0.35 : 0.25)
+            } else if highlightedVerseId == verse.verseNumber {
+                verseStr.backgroundColor = accentColor.opacity(colorScheme == .dark ? 0.25 : 0.18)
+            }
+            
+            result.append(numStr)
+            result.append(verseStr)
+            
+            if index < text.verses.count - 1 {
+                result.append(AttributedString("\n\n"))
+            }
+        }
+        
+        return result
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {

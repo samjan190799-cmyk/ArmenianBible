@@ -58,7 +58,7 @@ struct NarekatsiView: View {
     var body: some View {
         VStack(spacing: 0) {
             
-            // MARK: - Переключатель двух вкладок (📄 Текст / 🎧 Озвучка)
+            // MARK: - Переключатель двух вкладок (Текст / Озвучка)
             HStack(spacing: 8) {
                 // Вкладка 1: Текст
                 Button {
@@ -70,7 +70,7 @@ struct NarekatsiView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "doc.text.fill")
                             .font(.system(size: 13, weight: .bold))
-                        Text("📄 Տեքստ (Մատյան)")
+                        Text("Տեքստ (Մատյան)")
                             .font(.system(size: 13, weight: .bold))
                     }
                     .foregroundColor(subTab == 0 ? accentColor : .secondary)
@@ -93,7 +93,7 @@ struct NarekatsiView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "headphones")
                             .font(.system(size: 13, weight: .bold))
-                        Text("🎧 Օձայնագրություն")
+                        Text("Ձայնագրություն")
                             .font(.system(size: 13, weight: .bold))
                         
                         if audioPlayer.isPlaying {

@@ -1,6 +1,30 @@
 import SwiftUI
 import UIKit
 
+// MARK: - Режим сортировки праздников
+enum CalendarSortMode: String, CaseIterable, Identifiable, Sendable {
+    case approaching = "approaching"
+    case chronological = "chronological"
+    
+    var id: String { rawValue }
+    
+    func localizedTitle(for lang: AppLanguage) -> String {
+        switch self {
+        case .approaching:
+            return "sort_approaching".localized(for: lang)
+        case .chronological:
+            return "sort_chronological".localized(for: lang)
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .approaching: return "clock.arrow.circlepath"
+        case .chronological: return "calendar"
+        }
+    }
+}
+
 // MARK: - Экран Церковного календаря (Armenian Church Calendar View)
 struct ChurchCalendarView: View {
     @ObservedObject var manager = BibleManager.shared
@@ -9,7 +33,9 @@ struct ChurchCalendarView: View {
     
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var selectedCategory: FeastType? = nil
+    @State private var sortMode: CalendarSortMode = .approaching
     @State private var expandedFeastId: String? = nil
+    @State private var selectedFeastForMeaning: ArmenianChurchFeast? = nil
     
     // Экспорт календаря
     @State private var shareURL: ShareURLItem? = nil
@@ -30,13 +56,13 @@ struct ChurchCalendarView: View {
     }
     
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.85)
+        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.9)
     }
     
     private var cardBorderColor: LinearGradient {
         if colorScheme == .dark {
             return LinearGradient(
-                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                colors: [Color.white.opacity(0.14), Color.white.opacity(0.03)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -54,7 +80,14 @@ struct ChurchCalendarView: View {
     }
     
     private var feasts: [ArmenianChurchFeast] {
-        let all = ChurchCalendarService.shared.feasts(for: selectedYear)
+        let all: [ArmenianChurchFeast]
+        switch sortMode {
+        case .approaching:
+            all = ChurchCalendarService.shared.feastsSortedByApproaching(for: selectedYear)
+        case .chronological:
+            all = ChurchCalendarService.shared.feasts(for: selectedYear)
+        }
+        
         if let cat = selectedCategory {
             return all.filter { $0.type == cat }
         }
@@ -69,17 +102,17 @@ struct ChurchCalendarView: View {
                 
                 // Мягкое неоновое свечение
                 RadialGradient(
-                    gradient: Gradient(colors: [Color(hex: "F59E0B").opacity(colorScheme == .dark ? 0.08 : 0.05), Color.clear]),
+                    gradient: Gradient(colors: [Color(hex: "F59E0B").opacity(colorScheme == .dark ? 0.09 : 0.05), Color.clear]),
                     center: .top,
                     startRadius: 40,
-                    endRadius: 350
+                    endRadius: 380
                 )
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // MARK: - Шапка: Селектор года + Кнопка экспорта в календарь
-                    VStack(spacing: 12) {
-                        HStack {
+                    // MARK: - Шапка: Селектор года + Сортировка + Кнопка экспорта
+                    VStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             // Переключатель года
                             Menu {
                                 ForEach(2025...2030, id: \.self) { y in
@@ -89,20 +122,59 @@ struct ChurchCalendarView: View {
                                     }
                                 }
                             } label: {
-                                HStack(spacing: 6) {
+                                HStack(spacing: 5) {
                                     Text("\(selectedYear)")
-                                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                                        .font(.system(size: 16, weight: .bold, design: .monospaced))
                                     Image(systemName: "chevron.down")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.system(size: 11, weight: .bold))
                                 }
                                 .foregroundColor(primaryTextColor)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
                                 .background(cardBackgroundColor)
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(primaryTextColor.opacity(0.1), lineWidth: 1)
+                                        .stroke(primaryTextColor.opacity(0.12), lineWidth: 1)
+                                )
+                            }
+                            
+                            // Переключатель режима сортировки (Ближайшие / По календарю)
+                            Menu {
+                                ForEach(CalendarSortMode.allCases) { mode in
+                                    Button {
+                                        triggerHaptic(.light)
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                            sortMode = mode
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(mode.localizedTitle(for: manager.appLanguage))
+                                            if sortMode == mode {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: sortMode.icon)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(Color(hex: "F59E0B"))
+                                    Text(sortMode.localizedTitle(for: manager.appLanguage))
+                                        .font(.system(size: 12.5, weight: .bold))
+                                        .foregroundColor(primaryTextColor)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(primaryTextColor.opacity(0.5))
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(cardBackgroundColor)
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color(hex: "F59E0B").opacity(0.3), lineWidth: 1)
                                 )
                             }
                             
@@ -113,15 +185,15 @@ struct ChurchCalendarView: View {
                                 triggerHaptic(.medium)
                                 exportFullCalendar()
                             } label: {
-                                HStack(spacing: 6) {
+                                HStack(spacing: 5) {
                                     Image(systemName: "calendar.badge.plus")
-                                        .font(.system(size: 14, weight: .bold))
-                                    Text("export_calendar_btn".localized(for: manager.appLanguage))
                                         .font(.system(size: 13, weight: .bold))
+                                    Text("export_calendar_btn".localized(for: manager.appLanguage))
+                                        .font(.system(size: 12, weight: .bold))
                                 }
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
                                 .background(
                                     LinearGradient(
                                         colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
@@ -134,8 +206,8 @@ struct ChurchCalendarView: View {
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 14)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 10)
                         
                         // Категории праздников (Горизонтальные чипсы)
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -183,15 +255,15 @@ struct ChurchCalendarView: View {
                                     .buttonStyle(ScaleButtonStyle())
                                 }
                             }
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 4)
                         }
                     }
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 6)
                     
                     // MARK: - Список карточек праздников
                     ScrollView(showsIndicators: false) {
-                        LazyVStack(spacing: 14) {
+                        LazyVStack(spacing: 12) {
                             ForEach(feasts) { feast in
                                 ChurchFeastCardView(
                                     feast: feast,
@@ -207,6 +279,10 @@ struct ChurchCalendarView: View {
                                             expandedFeastId = (expandedFeastId == feast.id) ? nil : feast.id
                                         }
                                     },
+                                    onShowMeaning: {
+                                        triggerHaptic(.medium)
+                                        selectedFeastForMeaning = feast
+                                    },
                                     onExportSingle: {
                                         exportSingleFeast(feast)
                                     },
@@ -219,8 +295,9 @@ struct ChurchCalendarView: View {
                                 )
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .padding(.bottom, 24)
                     }
                 }
                 
@@ -258,6 +335,26 @@ struct ChurchCalendarView: View {
                             .foregroundColor(primaryTextColor.opacity(0.5))
                     }
                 }
+            }
+            .sheet(item: $selectedFeastForMeaning) { feast in
+                FeastMeaningSheetView(
+                    feast: feast,
+                    language: manager.appLanguage,
+                    accentColor: accentColor,
+                    primaryTextColor: primaryTextColor,
+                    cardBackgroundColor: cardBackgroundColor,
+                    onExport: {
+                        exportSingleFeast(feast)
+                    },
+                    onShare: {
+                        shareFeastCard(feast)
+                    },
+                    onCopy: {
+                        copyFeastInfo(feast)
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
             .sheet(item: $shareURL) { item in
                 ActivityView(activityItems: [item.url])
@@ -301,6 +398,12 @@ struct ChurchCalendarView: View {
     private func copyFeastInfo(_ feast: ArmenianChurchFeast) {
         triggerHaptic(.light)
         var text = "✨ \(feast.title(for: manager.appLanguage))\n📅 \(feast.formattedDate(for: manager.appLanguage))\n\n\(feast.description(for: manager.appLanguage))"
+        if !feast.meaning(for: manager.appLanguage).isEmpty {
+            text += "\n\n🕊️ \("feast_meaning_section_spiritual".localized(for: manager.appLanguage)):\n\(feast.meaning(for: manager.appLanguage))"
+        }
+        if !feast.traditions(for: manager.appLanguage).isEmpty {
+            text += "\n\n🕯️ \("feast_meaning_section_traditions".localized(for: manager.appLanguage)):\n\(feast.traditions(for: manager.appLanguage))"
+        }
         if !feast.prayer(for: manager.appLanguage).isEmpty {
             text += "\n\n🙏 \(feast.prayer(for: manager.appLanguage))"
         }
@@ -353,24 +456,25 @@ struct ChurchFeastCardView: View {
     let isExpanded: Bool
     
     let onToggleExpand: () -> Void
+    let onShowMeaning: () -> Void
     let onExportSingle: () -> Void
     let onShareCard: () -> Void
     let onCopyPrayer: () -> Void
     
-    var isToday: Bool {
-        Calendar.current.isDateInToday(feast.date)
+    private var countdown: (text: String, isToday: Bool, isUpcoming: Bool) {
+        feast.countdownBadge(for: language)
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Верхняя плашка: Дата + Тип + Сегодня бейдж
-            HStack(alignment: .center, spacing: 8) {
+            // Верхняя плашка: Дата + Тип + Бейдж обратного отсчета
+            HStack(alignment: .center, spacing: 6) {
                 // Иконка и категория
                 HStack(spacing: 4) {
                     Text(feast.type.icon)
                         .font(.system(size: 13))
                     Text(feast.type.localizedTitle(for: language))
-                        .font(.system(size: 11.5, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(Color(hex: feast.type.colorHex))
                 }
                 .padding(.horizontal, 8)
@@ -378,34 +482,71 @@ struct ChurchFeastCardView: View {
                 .background(Color(hex: feast.type.colorHex).opacity(0.15))
                 .cornerRadius(8)
                 
-                if isToday {
-                    Text("today_badge".localized(for: language))
-                        .font(.system(size: 10.5, weight: .heavy))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Color.red)
-                        .cornerRadius(6)
+                // Бейдж приближения даты (Сегодня, Завтра, Через N дней)
+                if countdown.isToday {
+                    HStack(spacing: 3) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 9))
+                        Text(countdown.text)
+                            .font(.system(size: 10.5, weight: .heavy))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3.5)
+                    .background(Color.red)
+                    .cornerRadius(6)
+                } else if countdown.isUpcoming {
+                    HStack(spacing: 3) {
+                        Image(systemName: "hourglass")
+                            .font(.system(size: 9))
+                        Text(countdown.text)
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(Color(hex: "D97706"))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3.5)
+                    .background(Color(hex: "F59E0B").opacity(0.18))
+                    .cornerRadius(6)
                 }
                 
                 Spacer()
                 
                 // Дата праздника
                 Text(feast.formattedDate(for: language))
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
                     .foregroundColor(secondaryAccentColor)
             }
             
-            // Название праздника
-            Text(feast.title(for: language))
-                .font(.system(size: 17, weight: .bold, design: .serif))
-                .foregroundColor(primaryTextColor)
-                .lineSpacing(4)
-                .multilineTextAlignment(.leading)
+            // Название праздника + Кнопка разъяснения смысла (?)
+            HStack(alignment: .top, spacing: 8) {
+                Text(feast.title(for: language))
+                    .font(.system(size: 16.5, weight: .bold, design: .serif))
+                    .foregroundColor(primaryTextColor)
+                    .lineSpacing(3)
+                    .multilineTextAlignment(.leading)
+                
+                Spacer()
+                
+                // Кнопка разъяснения смысла праздника (?)
+                Button {
+                    onShowMeaning()
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.system(size: 18, weight: .bold))
+                    }
+                    .foregroundColor(Color(hex: "F59E0B"))
+                    .padding(4)
+                    .background(Color(hex: "F59E0B").opacity(0.12))
+                    .clipShape(Circle())
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .accessibilityLabel("feast_meaning_btn".localized(for: language))
+            }
             
             // Краткое описание
             Text(feast.description(for: language))
-                .font(.system(size: 13.5, weight: .regular, design: .serif))
+                .font(.system(size: 13, weight: .regular, design: .serif))
                 .foregroundColor(primaryTextColor.opacity(0.85))
                 .lineSpacing(4)
                 .lineLimit(isExpanded ? nil : 3)
@@ -413,6 +554,27 @@ struct ChurchFeastCardView: View {
             // Раскрывающиеся детали: Чтения и Молитва
             if isExpanded {
                 VStack(alignment: .leading, spacing: 10) {
+                    if !feast.meaning(for: language).isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 11))
+                                Text("feast_meaning_section_spiritual".localized(for: language))
+                                    .font(.system(size: 11, weight: .bold))
+                            }
+                            .foregroundColor(Color(hex: "8B5CF6"))
+                            
+                            Text(feast.meaning(for: language))
+                                .font(.system(size: 12.5, weight: .regular, design: .serif))
+                                .foregroundColor(primaryTextColor.opacity(0.9))
+                                .lineSpacing(3)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(hex: "8B5CF6").opacity(0.08))
+                        .cornerRadius(10)
+                    }
+                    
                     if !feast.scriptureReading.isEmpty {
                         HStack(spacing: 6) {
                             Image(systemName: "book.pages.fill")
@@ -473,6 +635,24 @@ struct ChurchFeastCardView: View {
                 Spacer()
                 
                 HStack(spacing: 8) {
+                    // Кнопка разъяснения смысла праздника (?)
+                    Button {
+                        onShowMeaning()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 12, weight: .bold))
+                            Text("feast_meaning_btn".localized(for: language))
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundColor(Color(hex: "F59E0B"))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Color(hex: "F59E0B").opacity(0.12))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    
                     // В календарь
                     Button {
                         onExportSingle()
@@ -527,8 +707,290 @@ struct ChurchFeastCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(isToday ? LinearGradient(colors: [Color(hex: "F59E0B"), Color.red], startPoint: .topLeading, endPoint: .bottomTrailing) : cardBorderColor, lineWidth: isToday ? 1.8 : 1.2)
+                .stroke(countdown.isToday ? LinearGradient(colors: [Color(hex: "F59E0B"), Color.red], startPoint: .topLeading, endPoint: .bottomTrailing) : cardBorderColor, lineWidth: countdown.isToday ? 1.8 : 1.2)
         )
+    }
+}
+
+// MARK: - Модальное окно разъяснения смысла праздника (Feast Meaning Sheet View)
+struct FeastMeaningSheetView: View {
+    let feast: ArmenianChurchFeast
+    let language: AppLanguage
+    let accentColor: Color
+    let primaryTextColor: Color
+    let cardBackgroundColor: Color
+    
+    let onExport: () -> Void
+    let onShare: () -> Void
+    let onCopy: () -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var countdown: (text: String, isToday: Bool, isUpcoming: Bool) {
+        feast.countdownBadge(for: language)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    // MARK: - Шапка праздника
+                    VStack(spacing: 8) {
+                        Text(feast.type.icon)
+                            .font(.system(size: 40))
+                            .padding(.bottom, 2)
+                        
+                        Text(feast.title(for: language))
+                            .font(.system(size: 22, weight: .bold, design: .serif))
+                            .foregroundColor(primaryTextColor)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 10)
+                        
+                        HStack(spacing: 8) {
+                            Text(feast.type.localizedTitle(for: language))
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(Color(hex: feast.type.colorHex))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color(hex: feast.type.colorHex).opacity(0.15))
+                                .cornerRadius(8)
+                            
+                            Text(feast.formattedDate(for: language))
+                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.secondary)
+                            
+                            if countdown.isToday {
+                                Text(countdown.text)
+                                    .font(.system(size: 11, weight: .heavy))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3.5)
+                                    .background(Color.red)
+                                    .cornerRadius(6)
+                            } else if countdown.isUpcoming {
+                                Text(countdown.text)
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(Color(hex: "D97706"))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3.5)
+                                    .background(Color(hex: "F59E0B").opacity(0.2))
+                                    .cornerRadius(6)
+                            }
+                        }
+                    }
+                    .padding(.top, 16)
+                    .padding(.bottom, 4)
+                    
+                    // MARK: - Раздел 1: Что мы празднуем (Событие)
+                    if !feast.description(for: language).isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "book.closed.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color(hex: "0284C7"))
+                                Text("feast_meaning_section_event".localized(for: language))
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(hex: "0284C7"))
+                            }
+                            
+                            Text(feast.description(for: language))
+                                .font(.system(size: 14.5, weight: .regular, design: .serif))
+                                .foregroundColor(primaryTextColor)
+                                .lineSpacing(5)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(cardBackgroundColor)
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(hex: "0284C7").opacity(0.2), lineWidth: 1)
+                        )
+                    }
+                    
+                    // MARK: - Раздел 2: Духовный смысл для верующего
+                    if !feast.meaning(for: language).isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color(hex: "8B5CF6"))
+                                Text("feast_meaning_section_spiritual".localized(for: language))
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(hex: "8B5CF6"))
+                            }
+                            
+                            Text(feast.meaning(for: language))
+                                .font(.system(size: 14.5, weight: .regular, design: .serif))
+                                .foregroundColor(primaryTextColor)
+                                .lineSpacing(5)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(cardBackgroundColor)
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(hex: "8B5CF6").opacity(0.2), lineWidth: 1)
+                        )
+                    }
+                    
+                    // MARK: - Раздел 3: Церковные традиции и обычаи
+                    if !feast.traditions(for: language).isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "flame.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color(hex: "F59E0B"))
+                                Text("feast_meaning_section_traditions".localized(for: language))
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(hex: "F59E0B"))
+                            }
+                            
+                            Text(feast.traditions(for: language))
+                                .font(.system(size: 14.5, weight: .regular, design: .serif))
+                                .foregroundColor(primaryTextColor)
+                                .lineSpacing(5)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(cardBackgroundColor)
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(hex: "F59E0B").opacity(0.2), lineWidth: 1)
+                        )
+                    }
+                    
+                    // MARK: - Раздел 4: Чтения дня
+                    if !feast.scriptureReading.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "book.pages.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(hex: "10B981"))
+                                Text("scripture_readings_title".localized(for: language))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(Color(hex: "10B981"))
+                            }
+                            
+                            Text(feast.scriptureReading)
+                                .font(.system(size: 14, weight: .medium, design: .serif))
+                                .foregroundColor(primaryTextColor)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(hex: "10B981").opacity(0.08))
+                        .cornerRadius(14)
+                    }
+                    
+                    // MARK: - Раздел 5: Праздничная молитва
+                    if !feast.prayer(for: language).isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "hands.sparkles.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(hex: "D97706"))
+                                Text("prayer_title".localized(for: language))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(Color(hex: "D97706"))
+                            }
+                            
+                            Text(feast.prayer(for: language))
+                                .font(.system(size: 14, weight: .regular, design: .serif))
+                                .foregroundColor(primaryTextColor)
+                                .lineSpacing(4)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(hex: "D97706").opacity(0.08))
+                        .cornerRadius(14)
+                    }
+                    
+                    // MARK: - Действия
+                    HStack(spacing: 12) {
+                        Button {
+                            onCopy()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "doc.on.doc")
+                                Text("context_menu_copy".localized(for: language))
+                            }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(cardBackgroundColor)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        
+                        Button {
+                            onShare()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("context_menu_share".localized(for: language))
+                            }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(cardBackgroundColor)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        
+                        Button {
+                            onExport()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "calendar.badge.plus")
+                                Text("export_calendar_btn".localized(for: language))
+                            }
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                    .padding(.top, 8)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 30)
+            }
+            .navigationTitle("feast_meaning_title".localized(for: language))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(primaryTextColor.opacity(0.5))
+                    }
+                }
+            }
+        }
     }
 }
 

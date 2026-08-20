@@ -225,4 +225,16 @@
 "prayer_title" = "Feast Prayer";
 "expand_details" = "More details";
 "collapse_details" = "Hide details";
+"sort_approaching" = "Approaching";
+"sort_chronological" = "Calendar Order";
+"feast_meaning_btn" = "Feast Meaning";
+"feast_meaning_title" = "Feast Meaning & Traditions";
+"feast_meaning_section_event" = "What We Celebrate";
+"feast_meaning_section_spiritual" = "Spiritual Significance";
+"feast_meaning_section_traditions" = "Church Traditions & Customs";
+"days_left_today" = "TODAY";
+"days_left_tomorrow" = "Tomorrow";
+"days_left_in" = "In %d days";
+"days_left_passed" = "Passed";
+"bible_reader_select_hint" = "Select any text or tap a verse number";
 

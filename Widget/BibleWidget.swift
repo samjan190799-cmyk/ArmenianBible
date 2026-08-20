@@ -490,23 +490,14 @@ struct BibleWidgetEntryView: View {
         Group {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        if isPrayerDone {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 9))
-                        }
-                    }
-                    Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 12, weight: .bold, design: .serif))
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.35)
-                        .multilineTextAlignment(.leading)
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+                // Прямоугольный виджет на экране блокировки (только текст стиха для максимального места)
+                Text(entry.verse.text(for: getLanguage()))
+                    .font(.system(size: 12.5, weight: .semibold, design: .serif))
+                    .lineLimit(5)
+                    .minimumScaleFactor(0.38)
+                    .lineSpacing(1.5)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 
             case .accessoryInline:
                 // Строчный виджет на экране блокировки над часами

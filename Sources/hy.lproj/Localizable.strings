@@ -225,4 +225,16 @@
 "prayer_title" = "Տոնական աղոթք";
 "expand_details" = "Մանրամասն";
 "collapse_details" = "Փակել";
+"sort_approaching" = "Մոտակա";
+"sort_chronological" = "Ըստ օրացույցի";
+"feast_meaning_btn" = "Տոնի իմաստը";
+"feast_meaning_title" = "Տոնի իմաստն ու ավանդույթները";
+"feast_meaning_section_event" = "Ի՞նչ ենք տոնում";
+"feast_meaning_section_spiritual" = "Հոգևոր խորհուրդը";
+"feast_meaning_section_traditions" = "Եկեղեցական և ազգային ավանդույթներ";
+"days_left_today" = "ԱՅՍՕՐ";
+"days_left_tomorrow" = "Վաղը";
+"days_left_in" = "Մնացել է %d օր";
+"days_left_passed" = "Անցել է";
+"bible_reader_select_hint" = "Ընտրեք ցանկացած տեքստ կամ սեղմեք համարի վրա";
 

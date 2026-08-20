@@ -225,4 +225,16 @@
 "prayer_title" = "Праздничная молитва";
 "expand_details" = "Подробнее";
 "collapse_details" = "Скрыть";
+"sort_approaching" = "Ближайшие";
+"sort_chronological" = "По календарю";
+"feast_meaning_btn" = "Смысл праздника";
+"feast_meaning_title" = "Смысл и традиции праздника";
+"feast_meaning_section_event" = "Что мы празднуем";
+"feast_meaning_section_spiritual" = "Духовный смысл для каждого";
+"feast_meaning_section_traditions" = "Церковные обычаи и традиции";
+"days_left_today" = "СЕГОДНЯ";
+"days_left_tomorrow" = "Завтра";
+"days_left_in" = "Через %d дн.";
+"days_left_passed" = "Прошел";
+"bible_reader_select_hint" = "Выделяйте любой текст или нажмите на номер стиха";
 
