@@ -1457,16 +1457,6 @@ class BibleManager: ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
         objectWillChange.send()
     }
-    
-    // MARK: - Армянский перевод Библии
-    func setArmenianEdition(_ edition: ArmenianBibleEdition) {
-        armenianEdition = edition
-        if let defaults = sharedDefaults {
-            defaults.set(edition.rawValue, forKey: "armenian_bible_edition")
-            defaults.synchronize()
-        }
-        objectWillChange.send()
-    }
 }
 
 // MARK: - Армянский редактор текста Библии
