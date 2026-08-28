@@ -568,28 +568,41 @@ struct BibleWidgetEntryView: View {
         return list.contains { $0.refHy == entry.verse.refHy || $0.textHy == entry.verse.textHy }
     }
 
+    private var lockScreenFontSize: CGFloat {
+        let text = entry.verse.text(for: getLanguage())
+        let count = text.count
+        if count <= 22 {
+            return 17.5
+        } else if count <= 36 {
+            return 15.5
+        } else {
+            return 14.5
+        }
+    }
+
     var body: some View {
         Group {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: крупный текст, который всегда виден целиком
-                VStack(alignment: .leading, spacing: 2) {
+                // Прямоугольный виджет на экране блокировки: крупный адаптивный текст и четкая ссылка
+                VStack(alignment: .leading, spacing: 3) {
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 13.5, weight: .bold, design: .rounded))
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.60)
+                        .font(.system(size: lockScreenFontSize, weight: .bold, design: .rounded))
+                        .lineLimit(2)
+                        .lineSpacing(-0.5)
+                        .minimumScaleFactor(0.75)
                         .multilineTextAlignment(.leading)
                         .foregroundColor(.primary)
                     
-                    Spacer(minLength: 0)
+                    Spacer(minLength: 1)
                     
-                    HStack(spacing: 3) {
+                    HStack(spacing: 4) {
                         Text("✝️")
-                            .font(.system(size: 8))
+                            .font(.system(size: 9.5))
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 10.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 11.5, weight: .bold, design: .rounded))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                            .minimumScaleFactor(0.80)
                             .foregroundColor(.secondary)
                     }
                 }

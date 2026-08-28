@@ -2472,6 +2472,17 @@ struct LockScreenPreviewCardView: View {
     let primaryTextColor: Color
     let isDarkMode: Bool
     
+    private var fontSize: CGFloat {
+        let count = verse.text(for: language).count
+        if count <= 22 {
+            return 17.5
+        } else if count <= 36 {
+            return 15.5
+        } else {
+            return 14.5
+        }
+    }
+    
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 16)
@@ -2482,13 +2493,14 @@ struct LockScreenPreviewCardView: View {
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(verse.text(for: language))
-                    .font(.system(size: 15.0, weight: .bold, design: .rounded))
+                    .font(.system(size: fontSize, weight: .bold, design: .rounded))
                     .lineLimit(2)
+                    .lineSpacing(-0.5)
                     .foregroundColor(primaryTextColor)
                 
                 HStack(spacing: 4) {
                     Text("✝️")
-                        .font(.system(size: 9))
+                        .font(.system(size: 9.5))
                     Text(verse.reference(for: language))
                         .font(.system(size: 11.5, weight: .bold, design: .rounded))
                         .foregroundColor(.secondary)
