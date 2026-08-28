@@ -195,6 +195,7 @@ enum WallpaperDecor: String, CaseIterable, Identifiable {
 struct BibleWallpaperMakerView: View {
     let verse: BibleVerse
     @ObservedObject var manager = BibleManager.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
@@ -205,6 +206,7 @@ struct BibleWallpaperMakerView: View {
     @State private var showLockScreenOverlay = true
     @State private var showSaveSuccessToast = false
     @State private var isExporting = false
+    @State private var isShowingPaywall = false
     
     var body: some View {
         NavigationStack {
@@ -303,6 +305,7 @@ struct BibleWallpaperMakerView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
                                     ForEach(WallpaperTheme.allCases) { theme in
+                                        let isPro = (theme == .royal || theme == .bethlehem || theme == .khachkar)
                                         Button {
                                             triggerHaptic(.light)
                                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -325,6 +328,16 @@ struct BibleWallpaperMakerView: View {
                                                         Circle()
                                                             .stroke(Color.white, lineWidth: 2.5)
                                                             .frame(width: 50, height: 50)
+                                                    }
+                                                    
+                                                    if isPro && !subscriptionManager.isPremium {
+                                                        Image(systemName: "crown.fill")
+                                                            .font(.system(size: 10, weight: .bold))
+                                                            .foregroundColor(.black)
+                                                            .padding(4)
+                                                            .background(Color(hex: "FDE68A"))
+                                                            .clipShape(Circle())
+                                                            .offset(x: 16, y: -16)
                                                     }
                                                 }
                                                 
@@ -483,12 +496,22 @@ struct BibleWallpaperMakerView: View {
             .onAppear {
                 selectedLanguage = manager.appLanguage
             }
+            .sheet(isPresented: $isShowingPaywall) {
+                PaywallView()
+            }
         }
     }
     
     // MARK: - Рендеринг и Сохранение в Фотопленку
     @MainActor
     private func saveWallpaperToPhotos() {
+        let isProTheme = (selectedTheme == .royal || selectedTheme == .bethlehem || selectedTheme == .khachkar)
+        if isProTheme && !subscriptionManager.isPremium {
+            triggerHaptic(.medium)
+            isShowingPaywall = true
+            return
+        }
+        
         isExporting = true
         
         let fullResView = FullResolutionWallpaperView(

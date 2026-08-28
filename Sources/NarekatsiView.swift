@@ -5,11 +5,13 @@ import SwiftUI
 struct NarekatsiView: View {
     @ObservedObject var manager = BibleManager.shared
     @StateObject private var audioPlayer = NarekAudioPlayer.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     
     @State private var subTab: Int = 0 // 0: 📄 Текст, 1: 🎧 Озвучка
     @State private var shareText: String? = nil
     @State private var toastMessage: String? = nil
     @State private var searchText: String = ""
+    @State private var isShowingPaywall: Bool = false
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -154,18 +156,25 @@ struct NarekatsiView: View {
                         // Список 95 молитв
                         LazyVStack(spacing: 14) {
                             ForEach(filteredPrayers) { prayer in
+                                let isLocked = !subscriptionManager.canPlayNarekAudio(prayerId: prayer.id)
                                 NarekCardView(
                                     prayer: prayer,
                                     language: manager.appLanguage,
                                     isPlaying: audioPlayer.isPlaying && audioPlayer.currentlyPlayingId == prayer.id,
+                                    isLocked: isLocked,
                                     accentColor: accentColor,
                                     secondaryAccentColor: secondaryAccentColor,
                                     cardBackgroundColor: cardBackgroundColor,
                                     cardBorderColor: cardBorderColor,
                                     primaryTextColor: primaryTextColor,
                                     onToggleAudio: {
-                                        triggerHaptic(.medium)
-                                        audioPlayer.togglePlay(prayer: prayer, language: manager.appLanguage)
+                                        if isLocked {
+                                            triggerHaptic(.medium)
+                                            isShowingPaywall = true
+                                        } else {
+                                            triggerHaptic(.medium)
+                                            audioPlayer.togglePlay(prayer: prayer, language: manager.appLanguage)
+                                        }
                                     },
                                     onPinToWidget: {
                                         pinPrayerToWidget(prayer)
@@ -192,11 +201,15 @@ struct NarekatsiView: View {
                         NarekHeroPlayerCard(
                             prayer: currentOrLastPrayer,
                             audioPlayer: audioPlayer,
+                            isLocked: !subscriptionManager.canPlayNarekAudio(prayerId: currentOrLastPrayer.id),
                             accentColor: accentColor,
                             secondaryAccentColor: secondaryAccentColor,
                             cardBgColor: cardBackgroundColor,
                             cardBorderColor: cardBorderColor,
-                            primaryTextColor: primaryTextColor
+                            primaryTextColor: primaryTextColor,
+                            onShowPaywall: {
+                                isShowingPaywall = true
+                            }
                         )
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
@@ -219,10 +232,15 @@ struct NarekatsiView: View {
                                 let isCurrent = (audioPlayer.currentlyPlayingId == prayer.id) ||
                                                 (audioPlayer.currentlyPlayingId == nil && audioPlayer.savedPrayerId == prayer.id)
                                 let isThisPlaying = audioPlayer.isPlaying && audioPlayer.currentlyPlayingId == prayer.id
+                                let isChapterLocked = !subscriptionManager.canPlayNarekAudio(prayerId: prayer.id)
                                 
                                 Button {
                                     triggerHaptic(.light)
-                                    audioPlayer.playPrayer(prayer, language: audioPlayer.voiceLanguage)
+                                    if isChapterLocked {
+                                        isShowingPaywall = true
+                                    } else {
+                                        audioPlayer.playPrayer(prayer, language: audioPlayer.voiceLanguage)
+                                    }
                                 } label: {
                                     HStack(spacing: 14) {
                                         // Индикатор воспроизведения
@@ -235,6 +253,10 @@ struct NarekatsiView: View {
                                                 Image(systemName: "waveform")
                                                     .font(.system(size: 16, weight: .bold))
                                                     .foregroundColor(accentColor)
+                                            } else if isChapterLocked {
+                                                Image(systemName: "lock.fill")
+                                                    .font(.system(size: 14, weight: .semibold))
+                                                    .foregroundColor(Color(hex: "F59E0B"))
                                             } else {
                                                 Text("\(prayer.id)")
                                                     .font(.system(size: 14, weight: .bold, design: .monospaced))
@@ -248,9 +270,19 @@ struct NarekatsiView: View {
                                                     .font(.system(size: 13, weight: .bold))
                                                     .foregroundColor(isCurrent ? accentColor : primaryTextColor)
                                                 
-                                                Text("• \(prayer.formattedTimestamp(for: audioPlayer.voiceLanguage))")
-                                                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                                    .foregroundColor(isCurrent ? accentColor.opacity(0.9) : .secondary)
+                                                if isChapterLocked {
+                                                    Text("PREMIUM")
+                                                        .font(.system(size: 9, weight: .black))
+                                                        .foregroundColor(.black)
+                                                        .padding(.horizontal, 5)
+                                                        .padding(.vertical, 2)
+                                                        .background(Color(hex: "FDE68A"))
+                                                        .cornerRadius(4)
+                                                } else {
+                                                    Text("• \(prayer.formattedTimestamp(for: audioPlayer.voiceLanguage))")
+                                                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                                        .foregroundColor(isCurrent ? accentColor.opacity(0.9) : .secondary)
+                                                }
                                             }
                                             
                                             Text(prayer.title(for: audioPlayer.voiceLanguage))
@@ -261,9 +293,15 @@ struct NarekatsiView: View {
                                         
                                         Spacer()
                                         
-                                        Image(systemName: isThisPlaying ? "pause.circle.fill" : (isCurrent ? "play.circle.fill" : "play.circle"))
-                                            .font(.system(size: 24))
-                                            .foregroundColor(isCurrent ? accentColor : Color.secondary.opacity(0.5))
+                                        if isChapterLocked {
+                                            Image(systemName: "crown.fill")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(Color(hex: "F59E0B"))
+                                        } else {
+                                            Image(systemName: isThisPlaying ? "pause.circle.fill" : (isCurrent ? "play.circle.fill" : "play.circle"))
+                                                .font(.system(size: 24))
+                                                .foregroundColor(isCurrent ? accentColor : Color.secondary.opacity(0.5))
+                                        }
                                     }
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 10)
@@ -308,6 +346,9 @@ struct NarekatsiView: View {
             }
             .animation(.spring(), value: toastMessage)
         )
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView()
+        }
         .sheet(isPresented: Binding(
             get: { shareText != nil },
             set: { if !$0 { shareText = nil } }
@@ -363,11 +404,13 @@ struct NarekatsiView: View {
 struct NarekHeroPlayerCard: View {
     let prayer: NarekPrayer
     @ObservedObject var audioPlayer: NarekAudioPlayer
+    let isLocked: Bool
     let accentColor: Color
     let secondaryAccentColor: Color
     let cardBgColor: Color
     let cardBorderColor: Color
     let primaryTextColor: Color
+    let onShowPaywall: () -> Void
     
     private func formatTime(_ seconds: Double) -> String {
         guard !seconds.isNaN && seconds >= 0 else { return "00:00" }
@@ -387,7 +430,15 @@ struct NarekHeroPlayerCard: View {
                             .font(.system(size: 18, weight: .bold, design: .serif))
                             .foregroundColor(accentColor)
                         
-                        if audioPlayer.isStreaming {
+                        if isLocked {
+                            Text("👑 PREMIUM")
+                                .font(.system(size: 10, weight: .heavy))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "FDE68A"))
+                                .cornerRadius(5)
+                        } else if audioPlayer.isStreaming {
                             Text("• Բեռնվում է...")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.secondary)
@@ -406,14 +457,18 @@ struct NarekHeroPlayerCard: View {
                 Menu {
                     Button {
                         audioPlayer.voiceLanguage = .armenian
-                        audioPlayer.play(prayer: prayer, language: .armenian)
+                        if !isLocked {
+                            audioPlayer.play(prayer: prayer, language: .armenian)
+                        }
                     } label: {
                         Label("🇦🇲 Սոս Սարգսյան (Հայերեն)", systemImage: audioPlayer.voiceLanguage == .armenian ? "checkmark" : "")
                     }
                     
                     Button {
                         audioPlayer.voiceLanguage = .russian
-                        audioPlayer.play(prayer: prayer, language: .russian)
+                        if !isLocked {
+                            audioPlayer.play(prayer: prayer, language: .russian)
+                        }
                     } label: {
                         Label("🇷🇺 Олег Моленко (Русский)", systemImage: audioPlayer.voiceLanguage == .russian ? "checkmark" : "")
                     }
@@ -438,12 +493,15 @@ struct NarekHeroPlayerCard: View {
                     value: Binding(
                         get: { audioPlayer.currentTime },
                         set: { newVal in
-                            audioPlayer.seek(to: newVal)
+                            if !isLocked {
+                                audioPlayer.seek(to: newVal)
+                            }
                         }
                     ),
                     in: 0...max(audioPlayer.duration, 1.0)
                 )
                 .tint(accentColor)
+                .disabled(isLocked)
                 
                 HStack {
                     Text(formatTime(audioPlayer.currentTime))
@@ -469,7 +527,9 @@ struct NarekHeroPlayerCard: View {
                 
                 // Перемотка назад на 15 сек
                 Button {
-                    audioPlayer.skipBackward(seconds: 15)
+                    if !isLocked {
+                        audioPlayer.skipBackward(seconds: 15)
+                    }
                 } label: {
                     Image(systemName: "gobackward.15")
                         .font(.system(size: 20))
@@ -478,11 +538,21 @@ struct NarekHeroPlayerCard: View {
                 
                 // Главная кнопка Play / Pause
                 Button {
-                    audioPlayer.togglePlay(prayer: prayer)
+                    if isLocked {
+                        onShowPaywall()
+                    } else {
+                        audioPlayer.togglePlay(prayer: prayer)
+                    }
                 } label: {
                     ZStack {
                         Circle()
                             .fill(
+                                isLocked ?
+                                LinearGradient(
+                                    colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ) :
                                 LinearGradient(
                                     colors: [accentColor, secondaryAccentColor],
                                     startPoint: .topLeading,
@@ -490,19 +560,27 @@ struct NarekHeroPlayerCard: View {
                                 )
                             )
                             .frame(width: 58, height: 58)
-                            .shadow(color: accentColor.opacity(0.4), radius: 8, y: 4)
+                            .shadow(color: (isLocked ? Color(hex: "F59E0B") : accentColor).opacity(0.4), radius: 8, y: 4)
                         
-                        Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.white)
-                            .offset(x: audioPlayer.isPlaying ? 0 : 2)
+                        if isLocked {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                        } else {
+                            Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                                .offset(x: audioPlayer.isPlaying ? 0 : 2)
+                        }
                     }
                 }
                 .buttonStyle(ScaleButtonStyle())
                 
                 // Перемотка вперед на 15 сек
                 Button {
-                    audioPlayer.skipForward(seconds: 15)
+                    if !isLocked {
+                        audioPlayer.skipForward(seconds: 15)
+                    }
                 } label: {
                     Image(systemName: "goforward.15")
                         .font(.system(size: 20))
@@ -550,6 +628,7 @@ struct NarekCardView: View {
     let prayer: NarekPrayer
     let language: AppLanguage
     let isPlaying: Bool
+    let isLocked: Bool
     let accentColor: Color
     let secondaryAccentColor: Color
     let cardBackgroundColor: Color
@@ -581,16 +660,26 @@ struct NarekCardView: View {
                     onToggleAudio()
                 } label: {
                     HStack(spacing: 5) {
-                        Image(systemName: isPlaying ? "stop.fill" : "speaker.wave.2.fill")
-                            .font(.system(size: 12, weight: .bold))
-                        Text(isPlaying ? "Դադարեցնել" : "Լսել աղոթքը")
-                            .font(.system(size: 12, weight: .bold))
+                        if isLocked {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("Լսել (PRO)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
+                        } else {
+                            Image(systemName: isPlaying ? "stop.fill" : "speaker.wave.2.fill")
+                                .font(.system(size: 12, weight: .bold))
+                            Text(isPlaying ? "Դադարեցնել" : "Լսել աղոթքը")
+                                .font(.system(size: 12, weight: .bold))
+                        }
                     }
-                    .foregroundColor(isPlaying ? .white : accentColor)
+                    .foregroundColor(isLocked ? .white : (isPlaying ? .white : accentColor))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(
-                        isPlaying ? AnyShapeStyle(Color.red) : AnyShapeStyle(accentColor.opacity(0.12))
+                        isLocked ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "F59E0B"), Color(hex: "D97706")], startPoint: .leading, endPoint: .trailing)) :
+                        (isPlaying ? AnyShapeStyle(Color.red) : AnyShapeStyle(accentColor.opacity(0.12)))
                     )
                     .cornerRadius(12)
                 }

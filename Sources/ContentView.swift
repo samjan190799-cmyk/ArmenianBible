@@ -39,10 +39,12 @@ struct ContentView: View {
 
 struct HomeView: View {
     @ObservedObject var manager = BibleManager.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var animateVerse = false
     @State private var isShowingSettings = false
     @State private var isShowingQuiz = false
     @State private var isShowingCalendar = false
+    @State private var isShowingPaywall = false
     
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
@@ -353,6 +355,21 @@ struct HomeView: View {
                             isShowingCalendar = true
                         }
                     )
+                    
+                    // MARK: - Карточка Armenian Bible Premium
+                    PremiumPromoBannerCardView(
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        cardBackgroundColor: cardBackgroundColor,
+                        cardBorderColor: cardBorderColor,
+                        primaryTextColor: primaryTextColor,
+                        isPremium: subscriptionManager.isPremium,
+                        onOpenPaywall: {
+                            triggerHaptic(.medium)
+                            isShowingPaywall = true
+                        }
+                    )
                 }
                 .padding(.bottom, 30)
             }
@@ -364,6 +381,9 @@ struct HomeView: View {
             }
             // Перепланируем уведомления на неделю вперед при открытии
             manager.scheduleDailyNotifications()
+        }
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView()
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings)
@@ -671,6 +691,95 @@ struct ChurchFeastsBannerCardView: View {
     }
 }
 
+// MARK: - Карточка Подписки Armenian Bible Premium на Главном экране
+struct PremiumPromoBannerCardView: View {
+    let language: AppLanguage
+    let accentColor: Color
+    let secondaryAccentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    let isPremium: Bool
+    let onOpenPaywall: () -> Void
+    
+    var body: some View {
+        Button {
+            onOpenPaywall()
+        } label: {
+            HStack(spacing: 16) {
+                // Иконка
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "D97706").opacity(0.15)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 48, height: 48)
+                    
+                    Image(systemName: isPremium ? "crown.fill" : "sparkles")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(isPremium ? "PREMIUM ԱԿՏԻՎ Է" : "ARMENIAN BIBLE PREMIUM")
+                            .font(.system(size: 11, weight: .black))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                        
+                        if !isPremium {
+                            Text("PRO")
+                                .font(.system(size: 9, weight: .black))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "FDE68A"))
+                                .cornerRadius(4)
+                        }
+                    }
+                    
+                    Text(isPremium ? (language == .armenian ? "Բոլոր 95 աուդիո գլուխները և AI-ն ապաբլոկավորված են" : "Все 95 аудио глав и ИИ разблокированы") : (language == .armenian ? "Բացեք Նարեկացու 95 աուդիո գլուխները և AI-ն" : "95 аудио глав Нарекаци и безлимитный ИИ"))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(primaryTextColor.opacity(0.85))
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                Image(systemName: isPremium ? "checkmark.seal.fill" : "chevron.right")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(isPremium ? Color(hex: "F59E0B") : .secondary)
+            }
+            .padding(16)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(cardBackgroundColor)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color(hex: "F59E0B").opacity(0.04))
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color(hex: "F59E0B").opacity(0.4), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.2
+                    )
+            )
+            .padding(.horizontal, 20)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
 // MARK: - Представление открытки для экспорта (без Canvas/StaticDotGridView для 100% стабильного рендеринга на iOS 16+)
 struct VerseCardExportView: View {
     let verse: BibleVerse
@@ -783,9 +892,11 @@ struct ActivityView: UIViewControllerRepresentable {
 // MARK: - ЭКРАН ИИ РУКОВОДСТВА (AI Guide View - Библейский Ответчик)
 struct AIGuideView: View {
     @ObservedObject var manager = BibleManager.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var questionText = ""
     @State private var currentAnswer: BibleAnswer? = nil
     @State private var isAskingAI = false
+    @State private var isShowingPaywall = false
     
     // Ошибки
     @State private var showingErrorAlert = false
@@ -859,7 +970,7 @@ struct AIGuideView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     // Заголовок
-                    VStack(spacing: 6) {
+                    VStack(spacing: 8) {
                         Text("ai_guide_title".localized(for: manager.appLanguage))
                             .font(.system(size: 26, weight: .bold, design: .serif))
                             .foregroundColor(primaryTextColor)
@@ -868,6 +979,35 @@ struct AIGuideView: View {
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
+                        
+                        // Индикатор подписки / остатка бесплатных вопросов
+                        HStack(spacing: 6) {
+                            Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(Color(hex: "F59E0B"))
+                            
+                            Text(subscriptionManager.isPremium ?
+                                 (manager.appLanguage == .armenian ? "PRO • Անսահմանափակ" : "PRO • Безлимитно") :
+                                 (manager.appLanguage == .armenian ? "Օրական մնացել է \(subscriptionManager.remainingFreeAiQuestions) անվճար հարց" : "Осталось \(subscriptionManager.remainingFreeAiQuestions) бесплатных вопроса на сегодня"))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(subscriptionManager.isPremium ? Color(hex: "F59E0B") : .secondary)
+                            
+                            if !subscriptionManager.isPremium {
+                                Button {
+                                    triggerHaptic(.light)
+                                    isShowingPaywall = true
+                                } label: {
+                                    Text("PRO")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(accentColor)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(accentColor.opacity(0.12))
+                                        .cornerRadius(6)
+                                }
+                            }
+                        }
+                        .padding(.top, 2)
                     }
                     .padding(.top, 16)
                     
@@ -1071,6 +1211,9 @@ struct AIGuideView: View {
                 .padding(.bottom, 40)
             }
         }
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView()
+        }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
         }
@@ -1087,6 +1230,12 @@ struct AIGuideView: View {
     }
     
     private func submitQuestion(_ question: String) {
+        if !subscriptionManager.canAskAI() {
+            triggerHaptic(.heavy)
+            isShowingPaywall = true
+            return
+        }
+        
         let key: String
         switch manager.activeProvider {
         case .gemini:
@@ -1111,6 +1260,7 @@ struct AIGuideView: View {
                 self.isAskingAI = false
                 switch result {
                 case .success(let answer):
+                    self.subscriptionManager.recordAiQuestionUsed()
                     self.currentAnswer = answer
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         self.animateAnswer = true
@@ -1424,7 +1574,9 @@ struct ExplanationView: View {
 struct SettingsView: View {
     @Binding var isPresented: Bool
     @ObservedObject var manager = BibleManager.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     
+    @State private var isShowingPaywall = false
     @State private var selectedProvider: AIProvider = .gemini
     @State private var selectedLanguage: AppLanguage = .armenian
     @State private var geminiKeyInput = ""
@@ -1501,6 +1653,7 @@ struct SettingsView: View {
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
+                        premiumMembershipSection
                         aiProviderSection
                         appLanguageSection
                         colorThemeSection
@@ -1545,6 +1698,9 @@ struct SettingsView: View {
                 selectedArmenianEdition = manager.armenianEdition
                 previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
             }
+            .sheet(isPresented: $isShowingPaywall) {
+                PaywallView()
+            }
             .sheet(isPresented: $isShowingWidgetInstruction) {
                 WidgetInstructionSheetView(
                     language: selectedLanguage,
@@ -1556,6 +1712,126 @@ struct SettingsView: View {
             }
         }
         .environment(\.locale, Locale(identifier: selectedLanguage.localeCode))
+    }
+    
+    // MARK: - Подсекции настроек
+    @ViewBuilder
+    private var premiumMembershipSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "D97706").opacity(0.15)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("Armenian Bible Premium")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        if subscriptionManager.isPremium {
+                            Text("PRO")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "FDE68A"))
+                                .cornerRadius(6)
+                        }
+                    }
+                    
+                    Text(subscriptionManager.isPremium ?
+                         (selectedLanguage == .armenian ? "Կարգավիճակ՝ Ակտիվ (Բոլոր ֆունկցիաները բացված են)" : "Статус: Активен (Все функции открыты)") :
+                         (selectedLanguage == .armenian ? "Բացեք Նարեկացու 95 աուդիոները, անսահմանափակ AI-ն և PRO պաստառները" : "95 аудио Нарекаци, безлимитный ИИ и PRO обои"))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            
+            HStack(spacing: 10) {
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    isShowingPaywall = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
+                            .font(.system(size: 13, weight: .bold))
+                        Text(subscriptionManager.isPremium ?
+                             (selectedLanguage == .armenian ? "Կառավարել" : "Управление") :
+                             (selectedLanguage == .armenian ? "Ստանալ Premium" : "Оформить Premium"))
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    Task {
+                        _ = await subscriptionManager.restorePurchases()
+                    }
+                } label: {
+                    Text(selectedLanguage == .armenian ? "Վերականգնել" : "Восстановить")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(cardBackgroundColor)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+        }
+        .padding(16)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(cardBackgroundColor)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(hex: "F59E0B").opacity(0.04))
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: "F59E0B").opacity(0.4), Color.clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
+                )
+        )
     }
     
     // MARK: - Подсекции настроек
