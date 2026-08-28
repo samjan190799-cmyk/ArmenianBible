@@ -494,11 +494,56 @@ private func getSharedTheme() -> AccentColorTheme {
 
 extension String {
     func localized(for language: AppLanguage) -> String {
-        guard let path = Bundle.main.path(forResource: language.localeCode, ofType: "lproj"),
-              let bundle = Bundle(path: path) else {
-            return NSLocalizedString(self, comment: "")
+        switch self {
+        case "widget_next_verse_btn":
+            switch language {
+            case .armenian: return "Հաջորդը"
+            case .russian: return "Следующий"
+            case .english: return "Next"
+            }
+        case "widget_fav_btn":
+            switch language {
+            case .armenian: return "Սիրված"
+            case .russian: return "Избранное"
+            case .english: return "Favorite"
+            }
+        case "widget_pray_todo_btn":
+            switch language {
+            case .armenian: return "Աղոթք"
+            case .russian: return "Молитва"
+            case .english: return "Prayer"
+            }
+        case "widget_pray_done_btn":
+            switch language {
+            case .armenian: return "Կատարված"
+            case .russian: return "Прочитано"
+            case .english: return "Completed"
+            }
+        case "widget_circular_text":
+            switch language {
+            case .armenian: return "ԱՍՏ"
+            case .russian: return "БИБ"
+            case .english: return "BIB"
+            }
+        case "widget_title":
+            switch language {
+            case .armenian: return "Աստվածաշունչ"
+            case .russian: return "Армянская Библия"
+            case .english: return "Armenian Bible"
+            }
+        case "widget_description":
+            switch language {
+            case .armenian: return "Աստվածաշնչի ոգեշնչող համարներ կողպեքի և գլխավոր էկրանին:"
+            case .russian: return "Вдохновляющие стихи из Библии на экране блокировки и домашнем экране."
+            case .english: return "Inspiring Bible verses on Lock Screen and Home Screen."
+            }
+        default:
+            guard let path = Bundle.main.path(forResource: language.localeCode, ofType: "lproj"),
+                  let bundle = Bundle(path: path) else {
+                return self
+            }
+            return bundle.localizedString(forKey: self, value: nil, table: nil)
         }
-        return bundle.localizedString(forKey: self, value: nil, table: nil)
     }
 }
 
@@ -568,15 +613,34 @@ struct BibleWidgetEntryView: View {
         return list.contains { $0.refHy == entry.verse.refHy || $0.textHy == entry.verse.textHy }
     }
 
-    private var lockScreenFontSize: CGFloat {
+    private func dynamicFontSize(for family: WidgetFamily) -> CGFloat {
         let text = entry.verse.text(for: getLanguage())
         let count = text.count
-        if count <= 22 {
-            return 17.5
-        } else if count <= 36 {
-            return 15.5
-        } else {
-            return 14.5
+        
+        switch family {
+        case .accessoryRectangular:
+            if count <= 22 { return 17.5 }
+            else if count <= 36 { return 15.5 }
+            else { return 14.5 }
+            
+        case .systemSmall:
+            if count <= 40 { return 19.5 }
+            else if count <= 75 { return 17.0 }
+            else { return 15.0 }
+            
+        case .systemMedium:
+            if count <= 45 { return 23.0 }
+            else if count <= 85 { return 19.5 }
+            else { return 17.0 }
+            
+        case .systemLarge:
+            if count <= 45 { return 28.0 }
+            else if count <= 85 { return 24.0 }
+            else if count <= 130 { return 21.0 }
+            else { return 18.5 }
+            
+        default:
+            return 16.0
         }
     }
 
@@ -587,7 +651,7 @@ struct BibleWidgetEntryView: View {
                 // Прямоугольный виджет на экране блокировки: крупный адаптивный текст и четкая ссылка
                 VStack(alignment: .leading, spacing: 3) {
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: lockScreenFontSize, weight: .bold, design: .rounded))
+                        .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .bold, design: .rounded))
                         .lineLimit(2)
                         .lineSpacing(-0.5)
                         .minimumScaleFactor(0.75)
@@ -629,14 +693,14 @@ struct BibleWidgetEntryView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "quote.opening")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundColor(quoteIconColor)
                         Spacer()
                         
                         // Интерактивная кнопка следующего стиха
                         Button(intent: NextVerseIntent()) {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 11.5, weight: .bold))
                                 .foregroundColor(secondaryTextColor)
                                 .padding(5)
                                 .background(Color.primary.opacity(0.08))
@@ -646,9 +710,9 @@ struct BibleWidgetEntryView: View {
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 15.5, weight: .semibold, design: .serif))
+                        .font(.system(size: dynamicFontSize(for: .systemSmall), weight: .bold, design: .rounded))
                         .lineLimit(5)
-                        .minimumScaleFactor(0.78)
+                        .minimumScaleFactor(0.75)
                         .lineSpacing(2.5)
                         .foregroundColor(primaryTextColor)
                     
@@ -657,7 +721,7 @@ struct BibleWidgetEntryView: View {
                     HStack {
                         Button(intent: TogglePrayerCompletedWidgetIntent()) {
                             Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(isPrayerDone ? .green : secondaryTextColor.opacity(0.8))
                         }
                         .buttonStyle(.plain)
@@ -665,7 +729,7 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                         
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 10.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 11.0, weight: .bold, design: .rounded))
                             .foregroundColor(secondaryTextColor)
                     }
                 }
@@ -675,41 +739,42 @@ struct BibleWidgetEntryView: View {
                 
             case .systemMedium:
                 // Средний виджет на домашнем экране (System Medium 4x2): просторный крупный текст
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Image(systemName: "quote.opening")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 15, weight: .bold))
                             .foregroundColor(quoteIconColor)
                         
                         Spacer()
                         
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 13.0, weight: .bold, design: .rounded))
                             .foregroundColor(secondaryTextColor)
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 17.0, weight: .semibold, design: .serif))
+                        .font(.system(size: dynamicFontSize(for: .systemMedium), weight: .bold, design: .rounded))
                         .lineLimit(4)
-                        .minimumScaleFactor(0.80)
-                        .lineSpacing(3.2)
+                        .minimumScaleFactor(0.78)
+                        .lineSpacing(3.5)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 2)
                     
-                    // Интерактивная панель действий с крупными кнопками
-                    HStack(spacing: 8) {
+                    // Интерактивная панель действий с 3 крупными кнопками
+                    HStack(spacing: 6) {
                         Button(intent: NextVerseIntent()) {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.system(size: 11, weight: .bold))
                                 Text("widget_next_verse_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .lineLimit(1)
                             }
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
                             .background(Color.primary.opacity(0.08))
-                            .cornerRadius(8)
+                            .cornerRadius(9)
                         }
                         .buttonStyle(.plain)
                         
@@ -719,16 +784,16 @@ struct BibleWidgetEntryView: View {
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(isFavorite ? .red : primaryTextColor)
                                 Text("widget_fav_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .foregroundColor(isFavorite ? .red : primaryTextColor)
+                                    .lineLimit(1)
                             }
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(Color.primary.opacity(0.08))
-                            .cornerRadius(8)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background((isFavorite ? Color.red : Color.primary).opacity(0.08))
+                            .cornerRadius(9)
                         }
                         .buttonStyle(.plain)
-                        
-                        Spacer()
                         
                         Button(intent: TogglePrayerCompletedWidgetIntent()) {
                             HStack(spacing: 4) {
@@ -736,13 +801,14 @@ struct BibleWidgetEntryView: View {
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(isPrayerDone ? .green : accentColor)
                                 Text(isPrayerDone ? "widget_pray_done_btn".localized(for: getLanguage()) : "widget_pray_todo_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
                                     .foregroundColor(isPrayerDone ? .green : accentColor)
+                                    .lineLimit(1)
                             }
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
                             .background((isPrayerDone ? Color.green : accentColor).opacity(0.14))
-                            .cornerRadius(8)
+                            .cornerRadius(9)
                         }
                         .buttonStyle(.plain)
                     }
@@ -752,74 +818,76 @@ struct BibleWidgetEntryView: View {
                 .widgetBackground(widgetBackgroundGradient)
                 
             case .systemLarge:
-                // Большой виджет на домашнем экране (System Large 4x4): максимальный комфорт и крупный кегль
+                // Большой виджет на домашнем экране (System Large 4x4): максимальный комфорт и крупный кегль для слабовидящих
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "quote.opening")
-                            .font(.system(size: 19, weight: .bold))
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundColor(quoteIconColor)
                         Spacer()
                         
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 13.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 15.5, weight: .bold, design: .rounded))
                             .foregroundColor(secondaryTextColor)
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 19.5, weight: .semibold, design: .serif))
-                        .lineLimit(10)
-                        .minimumScaleFactor(0.85)
-                        .lineSpacing(4.8)
+                        .font(.system(size: dynamicFontSize(for: .systemLarge), weight: .bold, design: .rounded))
+                        .lineLimit(8)
+                        .minimumScaleFactor(0.75)
+                        .lineSpacing(5.5)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 4)
                     
-                    // Интерактивная панель действий
-                    HStack(spacing: 10) {
+                    // Интерактивная панель действий с 3 крупными кнопками
+                    HStack(spacing: 8) {
                         Button(intent: NextVerseIntent()) {
-                            HStack(spacing: 5) {
+                            HStack(spacing: 6) {
                                 Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 12.5, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold))
                                 Text("widget_next_verse_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 12, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .lineLimit(1)
                             }
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 7)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
                             .background(Color.primary.opacity(0.08))
-                            .cornerRadius(10)
+                            .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
                         
                         Button(intent: ToggleFavoriteWidgetIntent()) {
-                            HStack(spacing: 5) {
+                            HStack(spacing: 6) {
                                 Image(systemName: isFavorite ? "heart.fill" : "heart")
-                                    .font(.system(size: 12.5, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(isFavorite ? .red : primaryTextColor)
                                 Text("widget_fav_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 12, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .foregroundColor(isFavorite ? .red : primaryTextColor)
+                                    .lineLimit(1)
                             }
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 7)
-                            .background(Color.primary.opacity(0.08))
-                            .cornerRadius(10)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                            .background((isFavorite ? Color.red : Color.primary).opacity(0.08))
+                            .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
                         
-                        Spacer()
-                        
                         Button(intent: TogglePrayerCompletedWidgetIntent()) {
-                            HStack(spacing: 5) {
+                            HStack(spacing: 6) {
                                 Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "hands.sparkles.fill")
-                                    .font(.system(size: 12.5, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(isPrayerDone ? .green : accentColor)
                                 Text(isPrayerDone ? "widget_pray_done_btn".localized(for: getLanguage()) : "widget_pray_todo_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 12, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
                                     .foregroundColor(isPrayerDone ? .green : accentColor)
+                                    .lineLimit(1)
                             }
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 7)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
                             .background((isPrayerDone ? Color.green : accentColor).opacity(0.14))
-                            .cornerRadius(10)
+                            .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
                     }
