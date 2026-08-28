@@ -105,11 +105,11 @@ final class SubscriptionManager: ObservableObject {
     // MARK: - StoreKit 2 Transaction Listener
     
     private func listenForTransactions() -> Task<Void, Never> {
-        return Task.detached {
+        return Task.detached { [weak self] in
             for await result in Transaction.updates {
                 do {
-                    let transaction = try self.checkVerified(result)
-                    await self.updatePurchasedStatus()
+                    let transaction = try Self.checkVerified(result)
+                    await self?.updatePurchasedStatus()
                     await transaction.finish()
                 } catch {
                     print("Transaction verification failed: \(error)")
@@ -125,7 +125,7 @@ final class SubscriptionManager: ObservableObject {
         let productIds = SubscriptionPlan.allCases.map { $0.rawValue }
         
         do {
-            let storeProducts = try await Product.request(with: Set(productIds))
+            let storeProducts = try await Product.products(for: Set(productIds))
             self.products = storeProducts.sorted { p1, p2 in
                 p1.price < p2.price
             }
@@ -146,7 +146,7 @@ final class SubscriptionManager: ObservableObject {
         guard let product = products.first(where: { $0.id == plan.rawValue }) else {
             // Если в симуляторе или без интернета нет продукта, проверим StoreKit
             do {
-                let fetched = try await Product.request(with: [plan.rawValue])
+                let fetched = try await Product.products(for: [plan.rawValue])
                 if let first = fetched.first {
                     return await executePurchase(product: first)
                 }
@@ -166,7 +166,7 @@ final class SubscriptionManager: ObservableObject {
             
             switch result {
             case .success(let verification):
-                let transaction = try checkVerified(verification)
+                let transaction = try Self.checkVerified(verification)
                 await updatePurchasedStatus()
                 await transaction.finish()
                 isPurchasing = false
@@ -216,7 +216,7 @@ final class SubscriptionManager: ObservableObject {
         
         for await result in Transaction.currentEntitlements {
             do {
-                let transaction = try checkVerified(result)
+                let transaction = try Self.checkVerified(result)
                 
                 if SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }) {
                     if transaction.revocationDate == nil {
@@ -232,7 +232,7 @@ final class SubscriptionManager: ObservableObject {
         UserDefaults.standard.set(hasActivePremium, forKey: kPremiumOverrideKey)
     }
     
-    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+    private static func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
         case .unverified(_, let error):
             throw error
