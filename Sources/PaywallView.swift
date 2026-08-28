@@ -3,7 +3,7 @@ import StoreKit
 
 // MARK: - Премиальный Экран Подписки (Paywall View)
 // Разработан по стандартам Apple HIG 2026 с Glassmorphism, Haptics и анимациями
-public struct PaywallView: View {
+struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
@@ -28,9 +28,9 @@ public struct PaywallView: View {
         Color(hex: bibleManager.accentTheme.secondaryColorHex)
     }
     
-    public init() {}
+    init() {}
     
-    public var body: some View {
+    var body: some View {
         ZStack {
             // MARK: - Премиальный Темный Фон с Градиентом
             Color(hex: "08090E").ignoresSafeArea()

@@ -4,14 +4,14 @@ import SwiftUI
 import Combine
 
 // MARK: - Модели подписок и тарифов
-public enum SubscriptionPlan: String, CaseIterable, Identifiable {
+enum SubscriptionPlan: String, CaseIterable, Identifiable {
     case monthly = "com.samvel.armenianbible.subscription.monthly"
     case yearly = "com.samvel.armenianbible.subscription.yearly"
     case lifetime = "com.samvel.armenianbible.lifetime"
     
-    public var id: String { rawValue }
+    var id: String { rawValue }
     
-    public func localizedTitle(for language: AppLanguage) -> String {
+    func localizedTitle(for language: AppLanguage) -> String {
         switch self {
         case .monthly:
             switch language {
@@ -34,7 +34,7 @@ public enum SubscriptionPlan: String, CaseIterable, Identifiable {
         }
     }
     
-    public func fallbackPrice(for language: AppLanguage) -> String {
+    func fallbackPrice(for language: AppLanguage) -> String {
         switch self {
         case .monthly:
             return "$1.99"
@@ -45,7 +45,7 @@ public enum SubscriptionPlan: String, CaseIterable, Identifiable {
         }
     }
     
-    public func localizedBadge(for language: AppLanguage) -> String? {
+    func localizedBadge(for language: AppLanguage) -> String? {
         switch self {
         case .yearly:
             switch language {
@@ -67,14 +67,14 @@ public enum SubscriptionPlan: String, CaseIterable, Identifiable {
 
 // MARK: - Главный Менеджер Подписок (StoreKit 2 + Offline Fallback)
 @MainActor
-public final class SubscriptionManager: ObservableObject {
-    public static let shared = SubscriptionManager()
+final class SubscriptionManager: ObservableObject {
+    static let shared = SubscriptionManager()
     
-    @Published public private(set) var isPremium: Bool = false
-    @Published public private(set) var products: [Product] = []
-    @Published public private(set) var isLoadingProducts: Bool = false
-    @Published public private(set) var isPurchasing: Bool = false
-    @Published public var purchaseErrorMessage: String? = nil
+    @Published private(set) var isPremium: Bool = false
+    @Published private(set) var products: [Product] = []
+    @Published private(set) var isLoadingProducts: Bool = false
+    @Published private(set) var isPurchasing: Bool = false
+    @Published var purchaseErrorMessage: String? = nil
     
     // Ограничитель бесплатных ИИ запросов (3 вопроса в день)
     private let kDailyAiDateKey = "daily_ai_last_date_key"
@@ -120,7 +120,7 @@ public final class SubscriptionManager: ObservableObject {
     
     // MARK: - Загрузка продуктов из App Store
     
-    public func requestProducts() async {
+    func requestProducts() async {
         isLoadingProducts = true
         let productIds = SubscriptionPlan.allCases.map { $0.rawValue }
         
@@ -138,7 +138,7 @@ public final class SubscriptionManager: ObservableObject {
     
     // MARK: - Покупка продукта
     
-    public func purchase(plan: SubscriptionPlan) async -> Bool {
+    func purchase(plan: SubscriptionPlan) async -> Bool {
         isPurchasing = true
         purchaseErrorMessage = nil
         
@@ -193,7 +193,7 @@ public final class SubscriptionManager: ObservableObject {
     
     // MARK: - Восстановление покупок (Restore Purchases)
     
-    public func restorePurchases() async -> Bool {
+    func restorePurchases() async -> Bool {
         isPurchasing = true
         purchaseErrorMessage = nil
         
@@ -211,7 +211,7 @@ public final class SubscriptionManager: ObservableObject {
     
     // MARK: - Проверка прав (Entitlements)
     
-    public func updatePurchasedStatus() async {
+    func updatePurchasedStatus() async {
         var hasActivePremium = false
         
         for await result in Transaction.currentEntitlements {
@@ -244,13 +244,13 @@ public final class SubscriptionManager: ObservableObject {
     // MARK: - ОГРАНИЧИТЕЛИ (Gating Logic)
     
     /// Проверка доступа к аудио Нарекаци (Глава 1 бесплатна для всех, остальные 2-95 требуют Premium)
-    public func canPlayNarekAudio(prayerId: Int) -> Bool {
+    func canPlayNarekAudio(prayerId: Int) -> Bool {
         if isPremium { return true }
         return prayerId <= 1
     }
     
     /// Проверка доступности ИИ-ассистента (3 бесплатных вопроса в сутки, далее Premium)
-    public func canAskAI() -> Bool {
+    func canAskAI() -> Bool {
         if isPremium { return true }
         
         let (todayCount, _) = currentDailyAiUsage()
@@ -258,14 +258,14 @@ public final class SubscriptionManager: ObservableObject {
     }
     
     /// Количество оставшихся бесплатных вопросов к ИИ на сегодня
-    public var remainingFreeAiQuestions: Int {
+    var remainingFreeAiQuestions: Int {
         if isPremium { return 999 }
         let (todayCount, _) = currentDailyAiUsage()
         return max(0, maxFreeDailyAiQueries - todayCount)
     }
     
     /// Фиксация одного использованного бесплатного вопроса к ИИ
-    public func recordAiQuestionUsed() {
+    func recordAiQuestionUsed() {
         if isPremium { return }
         
         let (count, todayString) = currentDailyAiUsage()
@@ -291,7 +291,7 @@ public final class SubscriptionManager: ObservableObject {
     }
     
     /// Для внутреннего тестирования / отладки
-    public func setDebugPremium(_ enabled: Bool) {
+    func setDebugPremium(_ enabled: Bool) {
         self.isPremium = enabled
         UserDefaults.standard.set(enabled, forKey: kPremiumOverrideKey)
     }
