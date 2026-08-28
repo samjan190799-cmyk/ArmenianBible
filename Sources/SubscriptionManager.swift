@@ -209,11 +209,12 @@ final class SubscriptionManager: ObservableObject {
         }
     }
     
-    // MARK: - Проверка прав (Entitlements)
+    // MARK: - Проверка прав (Entitlements + Grandfathering)
     
     func updatePurchasedStatus() async {
         var hasActivePremium = false
         
+        // 1. Проверяем активные подписки и Lifetime покупки через StoreKit 2
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try Self.checkVerified(result)
@@ -228,8 +229,42 @@ final class SubscriptionManager: ObservableObject {
             }
         }
         
+        // 2. Grandfathering (Сохранение пожизненного доступа для пользователей, купивших платную версию за $3)
+        // Если у пользователя нет активной новой подписки, проверяем чек покупки самого приложения (до версии 2.0)
+        if !hasActivePremium {
+            do {
+                let appTxResult = try await AppTransaction.shared
+                let appTransaction = try Self.checkVerified(appTxResult)
+                let originalVersion = appTransaction.originalAppVersion
+                
+                if isPaidEarlyAdopter(versionString: originalVersion) {
+                    hasActivePremium = true
+                }
+            } catch {
+                // Если чек App Store еще не синхронизирован или в тестовой среде
+            }
+        }
+        
         self.isPremium = hasActivePremium
         UserDefaults.standard.set(hasActivePremium, forKey: kPremiumOverrideKey)
+    }
+    
+    /// Определение ранних покупателей, купивших платное приложение до перехода на подписки (< 2.0)
+    private func isPaidEarlyAdopter(versionString: String) -> Bool {
+        guard !versionString.isEmpty else { return false }
+        
+        // В App Store originalAppVersion возвращает либо строку версии (например "1.0", "1.9"), либо build number
+        let components = versionString.split(separator: ".")
+        if let majorStr = components.first, let major = Int(majorStr) {
+            return major < 2
+        }
+        
+        // Если это целочисленный номер сборки до релиза 2.0
+        if let buildNum = Int(versionString) {
+            return buildNum <= 100
+        }
+        
+        return false
     }
     
     nonisolated private static func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
