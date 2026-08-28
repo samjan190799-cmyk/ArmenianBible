@@ -141,6 +141,39 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
         return null
     }
 
+    fun getRandomShortVerse(maxLength: Int = 120): BibleVerse? {
+        val db = readableDatabase
+        val query = """
+            SELECT v.text_hy, v.text_ru, v.text_en, v.chapter, v.verse, b.name_hy, b.name_ru, b.name_en
+            FROM verses v
+            JOIN books b ON v.book_id = b.id
+            WHERE LENGTH(v.text_hy) <= ?
+            ORDER BY RANDOM() LIMIT 1;
+        """.trimIndent()
+        val cursor = db.rawQuery(query, arrayOf(maxLength.toString()))
+        cursor.use { c ->
+            if (c.moveToNext()) {
+                val textHy = c.getString(0) ?: ""
+                val textRu = c.getString(1) ?: ""
+                val textEn = c.getString(2) ?: ""
+                val ch = c.getInt(3)
+                val v = c.getInt(4)
+                val bHy = c.getString(5) ?: ""
+                val bRu = c.getString(6) ?: ""
+                val bEn = c.getString(7) ?: ""
+                return BibleVerse(
+                    textHy = textHy,
+                    textRu = textRu,
+                    textEn = textEn,
+                    refHy = "$bHy $ch:$v",
+                    refRu = "$bRu $ch:$v",
+                    refEn = "$bEn $ch:$v"
+                )
+            }
+        }
+        return getRandomVerse()
+    }
+
     fun searchVerses(queryText: String, language: AppLanguage): List<BibleSearchResult> {
         if (queryText.trim().length < 2) return emptyList()
         val db = readableDatabase

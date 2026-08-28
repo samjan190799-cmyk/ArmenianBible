@@ -21,7 +21,7 @@
             android:layout_weight="1"
             android:text="🕊️ Աստվածաշունչ"
             android:textColor="#0284C7"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
         <TextView
@@ -29,7 +29,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="🔄"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:padding="4dp" />
     </LinearLayout>
 
@@ -44,8 +44,8 @@
         android:maxLines="6"
         android:text="«ՉԷ՞ որ ես քեզ պատվիրեցի․ զորացի՛ր և քա՛ջ եղիր, մի՛ վախեցիր և մի՛ զարհուրիր...»"
         android:textColor="#0F172A"
-        android:textSize="14sp"
-        android:lineSpacingExtra="3dp"
+        android:textSize="16.5sp"
+        android:lineSpacingExtra="4dp"
         android:fontFamily="serif"
         android:textStyle="bold" />
 
@@ -58,7 +58,7 @@
         android:layout_marginTop="4dp"
         android:text="— Հեսու 1:9"
         android:textColor="#0EA5E9"
-        android:textSize="12sp"
+        android:textSize="13sp"
         android:textStyle="bold" />
 
     <!-- Interactive Buttons Row -->
@@ -77,10 +77,10 @@
             android:layout_marginEnd="3dp"
             android:background="@drawable/widget_btn_bg"
             android:gravity="center"
-            android:paddingVertical="6dp"
+            android:paddingVertical="7dp"
             android:text="🔄 Նոր"
             android:textColor="#0F172A"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
         <TextView
@@ -91,10 +91,10 @@
             android:layout_marginHorizontal="3dp"
             android:background="@drawable/widget_btn_bg"
             android:gravity="center"
-            android:paddingVertical="6dp"
+            android:paddingVertical="7dp"
             android:text="❤️ Ընտրյալ"
             android:textColor="#0F172A"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
         <TextView
@@ -105,10 +105,10 @@
             android:layout_marginHorizontal="3dp"
             android:background="@drawable/widget_btn_bg"
             android:gravity="center"
-            android:paddingVertical="6dp"
+            android:paddingVertical="7dp"
             android:text="🙏 Աղոթք"
             android:textColor="#0284C7"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
         <TextView
@@ -119,10 +119,10 @@
             android:layout_marginStart="3dp"
             android:background="@drawable/widget_btn_bg"
             android:gravity="center"
-            android:paddingVertical="6dp"
+            android:paddingVertical="7dp"
             android:text="📖 Կարդալ"
             android:textColor="#0284C7"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
 

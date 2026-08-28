@@ -29,7 +29,7 @@ class BibleAppWidget : AppWidgetProvider() {
                 val dbHelper = BibleDatabaseHelper.getInstance(context)
 
                 val newVerse: BibleVerse? = when (prefs.selectedCategory) {
-                    TextCategory.VERSES -> dbHelper.getRandomVerse()
+                    TextCategory.VERSES -> dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse()
                     TextCategory.PRAYERS -> {
                         val prayer = NarekatsiDatabase.prayers.randomOrNull()
                         if (prayer != null) {
@@ -42,7 +42,7 @@ class BibleAppWidget : AppWidgetProvider() {
                                 refEn = prayer.banNumber,
                                 isPrayer = true
                             )
-                        } else dbHelper.getRandomVerse()
+                        } else (dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse())
                     }
                     TextCategory.FAVORITES -> {
                         val favs = prefs.getFavorites()
@@ -56,11 +56,11 @@ class BibleAppWidget : AppWidgetProvider() {
                                 refRu = f.refRu,
                                 refEn = f.refEn
                             )
-                        } else dbHelper.getRandomVerse()
+                        } else (dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse())
                     }
                     TextCategory.BOTH -> {
                         if ((0..1).random() == 0) {
-                            dbHelper.getRandomVerse()
+                            dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse()
                         } else {
                             val prayer = NarekatsiDatabase.prayers.randomOrNull()
                             if (prayer != null) {
@@ -73,7 +73,7 @@ class BibleAppWidget : AppWidgetProvider() {
                                     refEn = prayer.banNumber,
                                     isPrayer = true
                                 )
-                            } else dbHelper.getRandomVerse()
+                            } else (dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse())
                         }
                     }
                 }
