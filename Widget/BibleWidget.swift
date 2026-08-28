@@ -358,7 +358,7 @@ struct Provider: AppIntentTimelineProvider {
             if !shortVerses.isEmpty {
                 return shortVerses
             }
-            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }.prefix(20)))
+            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }).prefix(20))
             
         case .systemSmall:
             // Малый виджет 2x2: компактные стихи (до 100 символов) для крупного шрифта
@@ -366,7 +366,7 @@ struct Provider: AppIntentTimelineProvider {
             if !smallVerses.isEmpty {
                 return smallVerses
             }
-            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }.prefix(25)))
+            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }).prefix(25))
             
         case .systemMedium:
             // Средний виджет 4x2: стихи средней длины (до 175 символов)
@@ -374,7 +374,7 @@ struct Provider: AppIntentTimelineProvider {
             if !medVerses.isEmpty {
                 return medVerses
             }
-            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }.prefix(35)))
+            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }).prefix(35))
             
         case .systemLarge, .accessoryInline, .accessoryCircular:
             // Большой виджет 4x4 и строчные: доступны любые стихи
