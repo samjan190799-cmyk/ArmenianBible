@@ -157,6 +157,15 @@ enum WidgetLanguage: String, CaseIterable, Identifiable, Codable {
     
     var id: String { self.rawValue }
     
+    var appLanguage: AppLanguage? {
+        switch self {
+        case .followApp: return nil
+        case .armenian: return .armenian
+        case .russian: return .russian
+        case .english: return .english
+        }
+    }
+    
     func localizedName(for language: AppLanguage) -> String {
         switch self {
         case .followApp:
