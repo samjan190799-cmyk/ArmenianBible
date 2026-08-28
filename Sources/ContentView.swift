@@ -1501,613 +1501,16 @@ struct SettingsView: View {
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        
-                        // MARK: - Выбор ИИ Провайдера
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("ai_provider".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
-                            
-                            Text("ai_provider_description".localized(for: selectedLanguage))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineSpacing(4)
-                            
-                            Picker("ai_provider", selection: $selectedProvider) {
-                                ForEach(AIProvider.allCases) { provider in
-                                    Text(provider.displayName).tag(provider)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                            .tint(colorScheme == .dark ? .white : .primary)
-                            .padding(.vertical, 4)
-                            .onChange(of: selectedProvider) { newProvider in
-                                manager.setActiveProvider(newProvider)
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                        .padding(.top, 10)
-                        
-                        // MARK: - Выбор языка приложения (интерфейса и стихов)
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("ai_language".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
-                            
-                            Text("ai_language_description".localized(for: selectedLanguage))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineSpacing(4)
-                            
-                            Picker("ai_language", selection: $selectedLanguage) {
-                                ForEach(AppLanguage.allCases) { language in
-                                    Text(language.displayName).tag(language)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                            .tint(colorScheme == .dark ? .white : .primary)
-                            .padding(.vertical, 4)
-                            .onChange(of: selectedLanguage) { newLang in
-                                manager.setAppLanguage(newLang)
-                                manager.forceRefreshUI()
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                        
-                        // MARK: - Выбор цветовой темы оформления
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("theme_section_title".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
-                            
-                            HStack(spacing: 16) {
-                                ForEach(AccentColorTheme.allCases) { theme in
-                                    // Используем ZStack с onTapGesture вместо Button для 100% стабильного срабатывания в ScrollView
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color(hex: theme.colorHex))
-                                            .frame(width: 40, height: 40)
-                                            .shadow(color: Color(hex: theme.colorHex).opacity(0.3), radius: 4, y: 2)
-                                        
-                                        if selectedTheme == theme {
-                                            Circle()
-                                                .stroke(primaryTextColor, lineWidth: 2)
-                                                .frame(width: 48, height: 48)
-                                        }
-                                    }
-                                    .contentShape(Circle())
-                                    .onTapGesture {
-                                        let generator = UIImpactFeedbackGenerator(style: .light)
-                                        generator.prepare()
-                                        generator.impactOccurred()
-                                        selectedTheme = theme
-                                        manager.setAccentTheme(theme)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 6)
-                        }
-                        .padding(.horizontal, 4)
-                        
-                        // MARK: - Поле ввода API Key в зависимости от провайдера
-                        VStack(alignment: .leading, spacing: 8) {
-                            switch selectedProvider {
-                            case .gemini:
-                                Text("gemini_settings_title".localized(for: selectedLanguage))
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(primaryTextColor)
-                                
-                                Text("gemini_settings_description".localized(for: selectedLanguage))
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                                    .lineSpacing(4)
-                                    .padding(.bottom, 6)
-                                
-                                SecureField("placeholder_gemini_key".localized(for: selectedLanguage), text: $geminiKeyInput)
-                                    .font(.system(size: 15, design: .monospaced))
-                                    .foregroundColor(primaryTextColor)
-                                    .padding()
-                                    .background(inputFieldBgColor)
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(inputFieldBorderColor, lineWidth: 1)
-                                    )
-                                    .onChange(of: geminiKeyInput) { val in
-                                        manager.geminiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    }
-                                
-                                if !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty {
-                                    Text("api_key_saved".localized(for: selectedLanguage))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.green)
-                                        .padding(.horizontal, 4)
-                                }
-                                
-                            case .chatgpt:
-                                Text("chatgpt_settings_title".localized(for: selectedLanguage))
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(primaryTextColor)
-                                
-                                Text("chatgpt_settings_description".localized(for: selectedLanguage))
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                                    .lineSpacing(4)
-                                    .padding(.bottom, 6)
-                                
-                                SecureField("placeholder_openai_key".localized(for: selectedLanguage), text: $openaiKeyInput)
-                                    .font(.system(size: 15, design: .monospaced))
-                                    .foregroundColor(primaryTextColor)
-                                    .padding()
-                                    .background(inputFieldBgColor)
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(inputFieldBorderColor, lineWidth: 1)
-                                    )
-                                    .onChange(of: openaiKeyInput) { val in
-                                        manager.openaiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    }
-                                
-                                if !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty {
-                                    Text("api_key_saved".localized(for: selectedLanguage))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.green)
-                                        .padding(.horizontal, 4)
-                                }
-                                
-                            case .claude:
-                                Text("claude_settings_title".localized(for: selectedLanguage))
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(primaryTextColor)
-                                
-                                Text("claude_settings_description".localized(for: selectedLanguage))
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                                    .lineSpacing(4)
-                                    .padding(.bottom, 6)
-                                
-                                SecureField("placeholder_anthropic_key".localized(for: selectedLanguage), text: $anthropicKeyInput)
-                                    .font(.system(size: 15, design: .monospaced))
-                                    .foregroundColor(primaryTextColor)
-                                    .padding()
-                                    .background(inputFieldBgColor)
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(inputFieldBorderColor, lineWidth: 1)
-                                    )
-                                    .onChange(of: anthropicKeyInput) { val in
-                                        manager.anthropicApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    }
-                                
-                                if !manager.anthropicApiKey.isEmpty && !anthropicKeyInput.isEmpty {
-                                    Text("api_key_saved".localized(for: selectedLanguage))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.green)
-                                        .padding(.horizontal, 4)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                        
-                        // MARK: - Ежедневные уведомления
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("notification_section_title".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
-                            
-                            Toggle(isOn: $notificationsEnabled) {
-                                Text("notification_enable_title".localized(for: selectedLanguage))
-                                    .font(.system(size: 14))
-                                    .foregroundColor(primaryTextColor)
-                            }
-                            .tint(Color(hex: selectedTheme.colorHex))
-                            .onChange(of: notificationsEnabled) { newValue in
-                                manager.setDailyNotificationsEnabled(newValue)
-                                if newValue {
-                                    manager.requestNotificationPermission { granted in
-                                        if !granted {
-                                            self.notificationsEnabled = false
-                                            manager.setDailyNotificationsEnabled(false)
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            if notificationsEnabled {
-                                DatePicker("notification_time_title".localized(for: selectedLanguage), selection: $notificationTime, displayedComponents: .hourAndMinute)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(primaryTextColor)
-                                    .padding(.vertical, 4)
-                                    .onChange(of: notificationTime) { newTime in
-                                        manager.setDailyNotificationTime(newTime)
-                                    }
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                        
-                        // MARK: - Частота смены стихов
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("update_interval_title".localized(for: selectedLanguage))
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(primaryTextColor)
-                                
-                                Spacer()
-                                
-                                Button {
-                                    let generator = UIImpactFeedbackGenerator(style: .light)
-                                    generator.prepare()
-                                    generator.impactOccurred()
-                                    isShowingWidgetInstruction = true
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "questionmark.circle.fill")
-                                            .font(.system(size: 16))
-                                            .foregroundColor(Color(hex: selectedTheme.colorHex))
-                                        Text("widget_instruction_title".localized(for: selectedLanguage))
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundColor(Color(hex: selectedTheme.colorHex))
-                                    }
-                                }
-                                .buttonStyle(ScaleButtonStyle())
-                            }
-                            
-                            Text("update_interval_description".localized(for: selectedLanguage))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineSpacing(4)
-                            
-                            Picker("update_interval_title", selection: $selectedInterval) {
-                                ForEach(UpdateInterval.allCases) { interval in
-                                    Text(interval.localizedTitle(for: selectedLanguage)).tag(interval)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .tint(colorScheme == .dark ? .white : .primary)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(inputFieldBgColor)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(inputFieldBorderColor, lineWidth: 1)
-                            )
-                            .onChange(of: selectedInterval) { newInt in
-                                manager.setUpdateInterval(newInt)
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                        
-                        // MARK: - Выбор Источника стихов (вся Библия 31 100+ или разделы)
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("verse_source_scope_title".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
-                            
-                            Text("verse_source_scope_description".localized(for: selectedLanguage))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineSpacing(4)
-                            
-                            VStack(spacing: 8) {
-                                ForEach(VerseSourceScope.allCases) { scope in
-                                    Button {
-                                        let generator = UIImpactFeedbackGenerator(style: .light)
-                                        generator.prepare()
-                                        generator.impactOccurred()
-                                        selectedScope = scope
-                                        manager.updateVerseSourceScope(scope)
-                                    } label: {
-                                        HStack(spacing: 12) {
-                                            Image(systemName: scope.icon)
-                                                .font(.system(size: 15, weight: .semibold))
-                                                .foregroundColor(selectedScope == scope ? Color(hex: selectedTheme.colorHex) : .secondary)
-                                                .frame(width: 24)
-                                            
-                                            Text(scope.title(for: selectedLanguage))
-                                                .font(.system(size: 14, weight: selectedScope == scope ? .bold : .medium))
-                                                .foregroundColor(primaryTextColor)
-                                            
-                                            Spacer()
-                                            
-                                            if selectedScope == scope {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .foregroundColor(Color(hex: selectedTheme.colorHex))
-                                            }
-                                        }
-                                        .padding(12)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(selectedScope == scope ? Color(hex: selectedTheme.colorHex).opacity(0.12) : inputFieldBgColor)
-                                        )
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(selectedScope == scope ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: 1)
-                                        )
-                                    }
-                                    .buttonStyle(ScaleButtonStyle())
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                        .padding(.horizontal, 4)
-                        
-                        // MARK: - Выбор типа контента (Стихи / Молитвы / Избранное / Все)
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("content_type_title".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
-                            
-                            Text("content_type_description".localized(for: selectedLanguage))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineSpacing(4)
-                            
-                            Picker("content_type_title", selection: $selectedCategory) {
-                                ForEach(TextCategory.allCases) { category in
-                                    Text(category.localizedTitle(for: selectedLanguage)).tag(category)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .tint(colorScheme == .dark ? .white : .primary)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(inputFieldBgColor)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(inputFieldBorderColor, lineWidth: 1)
-                            )
-                            .onChange(of: selectedCategory) { newCat in
-                                manager.setSelectedCategory(newCat)
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                        
-                        // MARK: - Раздел: Экран блокировки и Виджеты (Расширенные настройки)
-                        VStack(alignment: .leading, spacing: 14) {
-                            HStack {
-                                Label {
-                                    Text("lockscreen_widget_section_title".localized(for: selectedLanguage))
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(primaryTextColor)
-                                } icon: {
-                                    Image(systemName: "lock.iphone")
-                                        .foregroundColor(Color(hex: selectedTheme.colorHex))
-                                }
-                                
-                                Spacer()
-                                
-                                Button {
-                                    let generator = UIImpactFeedbackGenerator(style: .light)
-                                    generator.prepare()
-                                    generator.impactOccurred()
-                                    isShowingWidgetInstruction = true
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "questionmark.circle.fill")
-                                            .font(.system(size: 15))
-                                        Text("widget_instruction_title".localized(for: selectedLanguage))
-                                            .font(.system(size: 12, weight: .semibold))
-                                    }
-                                    .foregroundColor(Color(hex: selectedTheme.colorHex))
-                                }
-                                .buttonStyle(ScaleButtonStyle())
-                            }
-                            
-                            Text("lockscreen_widget_section_desc".localized(for: selectedLanguage))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineSpacing(4)
-                            
-                            // 1. Язык виджетов
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("widget_language_title".localized(for: selectedLanguage))
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(primaryTextColor)
-                                
-                                Picker("widget_language_title", selection: $selectedWidgetLanguage) {
-                                    ForEach(WidgetLanguage.allCases) { lang in
-                                        Text(lang.localizedName(for: selectedLanguage)).tag(lang)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
-                                .tint(colorScheme == .dark ? .white : .primary)
-                                .onChange(of: selectedWidgetLanguage) { newLang in
-                                    manager.setWidgetLanguage(newLang)
-                                }
-                            }
-                            .padding(.vertical, 4)
-                            
-                            // 2. Армянский перевод Библии
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("armenian_translation_title".localized(for: selectedLanguage))
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(primaryTextColor)
-                                
-                                Picker("armenian_translation_title", selection: $selectedArmenianEdition) {
-                                    ForEach(ArmenianBibleEdition.allCases) { edition in
-                                        Text(edition.localizedTitle(for: selectedLanguage)).tag(edition)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
-                                .tint(colorScheme == .dark ? .white : .primary)
-                                .onChange(of: selectedArmenianEdition) { newEd in
-                                    manager.setArmenianEdition(newEd)
-                                }
-                            }
-                            .padding(.vertical, 4)
-                            
-                            // 3. Категория цитат для Экрана Блокировки
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("lockscreen_category_title".localized(for: selectedLanguage))
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(primaryTextColor)
-                                
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 8) {
-                                        ForEach(LockScreenCategory.allCases) { cat in
-                                            Button {
-                                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                                generator.prepare()
-                                                generator.impactOccurred()
-                                                selectedLockCategory = cat
-                                                manager.setLockScreenCategory(cat)
-                                                
-                                                if cat == .pearls {
-                                                    previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
-                                                } else {
-                                                    previewVerse = BibleVerse.database.randomElement() ?? BibleVerse.lockScreenPearls[0]
-                                                }
-                                            } label: {
-                                                HStack(spacing: 6) {
-                                                    Text(cat.icon)
-                                                    Text(cat.localizedTitle(for: selectedLanguage))
-                                                        .font(.system(size: 13, weight: selectedLockCategory == cat ? .bold : .medium))
-                                                }
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                                .background(
-                                                    RoundedRectangle(cornerRadius: 10)
-                                                        .fill(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex).opacity(0.18) : inputFieldBgColor)
-                                                )
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 10)
-                                                        .stroke(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: 1)
-                                                )
-                                                .foregroundColor(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex) : primaryTextColor)
-                                            }
-                                            .buttonStyle(ScaleButtonStyle())
-                                        }
-                                    }
-                                    .padding(.vertical, 2)
-                                }
-                            }
-                            .padding(.vertical, 4)
-                            
-                            // 4. Интерактивный Live-превью экрана блокировки
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("lockscreen_preview_title".localized(for: selectedLanguage))
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Button {
-                                        let generator = UIImpactFeedbackGenerator(style: .light)
-                                        generator.prepare()
-                                        generator.impactOccurred()
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                            previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
-                                        }
-                                    } label: {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "shuffle")
-                                                .font(.system(size: 12))
-                                            Text("button_random_verse".localized(for: selectedLanguage))
-                                                .font(.system(size: 12, weight: .semibold))
-                                        }
-                                        .foregroundColor(Color(hex: selectedTheme.colorHex))
-                                    }
-                                }
-                                
-                                // Визуальный макет плашки экрана блокировки
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
-                                    
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                                    
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
-                                            .font(.system(size: 15.0, weight: .bold, design: .rounded))
-                                            .lineLimit(2)
-                                            .foregroundColor(primaryTextColor)
-                                        
-                                        HStack(spacing: 4) {
-                                            Text("✝️")
-                                                .font(.system(size: 9))
-                                            Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
-                                                .font(.system(size: 11.5, weight: .bold, design: .rounded))
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(14)
-                                }
-                                .padding(.top, 2)
-                            }
-                            
-                            // 5. Кнопка «Применить и обновить виджеты»
-                            Button {
-                                let generator = UINotificationFeedbackGenerator()
-                                generator.prepare()
-                                generator.notificationOccurred(.success)
-                                manager.syncLockScreenWidget()
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                        .font(.system(size: 14, weight: .semibold))
-                                    Text("update_widgets_now_button".localized(for: selectedLanguage))
-                                        .font(.system(size: 14, weight: .bold))
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(hex: selectedTheme.colorHex))
-                                )
-                            }
-                            .buttonStyle(ScaleButtonStyle())
-                            .padding(.top, 4)
-                        }
-                        .padding(16)
-                        .background(cardBackgroundColor)
-                        .cornerRadius(18)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(cardBorderColor, lineWidth: 1)
-                        )
-                        .padding(.horizontal, 4)
-                        
-                        Divider()
-                            .opacity(0.1)
-                            .padding(.vertical, 8)
-                        
-                        // MARK: - О приложении
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("about_app_title".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
-                            
-                            HStack {
-                                Text("about_app_version".localized(for: selectedLanguage))
-                                Spacer()
-                                Text("1.0.1")
-                                    .foregroundColor(.secondary)
-                            }
-                            .font(.system(size: 14))
-                            
-                            HStack {
-                                Text("about_app_developer".localized(for: selectedLanguage))
-                                Spacer()
-                                Text("Samvel")
-                                    .foregroundColor(.secondary)
-                            }
-                            .font(.system(size: 14))
-                        }
-                        .padding(18)
-                        .background(aboutBlockBgColor)
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(aboutBlockBorderColor, lineWidth: 1)
-                        )
+                        aiProviderSection
+                        appLanguageSection
+                        colorThemeSection
+                        apiKeysSection
+                        dailyNotificationsSection
+                        updateIntervalSection
+                        verseSourceScopeSection
+                        contentTypeSection
+                        lockScreenWidgetSection
+                        aboutSection
                     }
                     .padding(20)
                 }
@@ -2154,7 +1557,630 @@ struct SettingsView: View {
         }
         .environment(\.locale, Locale(identifier: selectedLanguage.localeCode))
     }
+    
+    // MARK: - Подсекции настроек
+    @ViewBuilder
+    private var aiProviderSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("ai_provider".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            Text("ai_provider_description".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(4)
+            
+            Picker("ai_provider", selection: $selectedProvider) {
+                ForEach(AIProvider.allCases) { provider in
+                    Text(provider.displayName).tag(provider)
+                }
+            }
+            .pickerStyle(.segmented)
+            .tint(colorScheme == .dark ? .white : .primary)
+            .padding(.vertical, 4)
+            .onChange(of: selectedProvider) { newProvider in
+                manager.setActiveProvider(newProvider)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 10)
+    }
+    
+    @ViewBuilder
+    private var appLanguageSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("ai_language".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            Text("ai_language_description".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(4)
+            
+            Picker("ai_language", selection: $selectedLanguage) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.displayName).tag(language)
+                }
+            }
+            .pickerStyle(.segmented)
+            .tint(colorScheme == .dark ? .white : .primary)
+            .padding(.vertical, 4)
+            .onChange(of: selectedLanguage) { newLang in
+                manager.setAppLanguage(newLang)
+                manager.forceRefreshUI()
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var colorThemeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("theme_section_title".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            HStack(spacing: 16) {
+                ForEach(AccentColorTheme.allCases) { theme in
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: theme.colorHex))
+                            .frame(width: 40, height: 40)
+                            .shadow(color: Color(hex: theme.colorHex).opacity(0.3), radius: 4, y: 2)
+                        
+                        if selectedTheme == theme {
+                            Circle()
+                                .stroke(primaryTextColor, lineWidth: 2)
+                                .frame(width: 48, height: 48)
+                        }
+                    }
+                    .contentShape(Circle())
+                    .onTapGesture {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.prepare()
+                        generator.impactOccurred()
+                        selectedTheme = theme
+                        manager.setAccentTheme(theme)
+                    }
+                }
+            }
+            .padding(.vertical, 6)
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var apiKeysSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            switch selectedProvider {
+            case .gemini:
+                Text("gemini_settings_title".localized(for: selectedLanguage))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+                
+                Text("gemini_settings_description".localized(for: selectedLanguage))
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .lineSpacing(4)
+                    .padding(.bottom, 6)
+                
+                SecureField("placeholder_gemini_key".localized(for: selectedLanguage), text: $geminiKeyInput)
+                    .font(.system(size: 15, design: .monospaced))
+                    .foregroundColor(primaryTextColor)
+                    .padding()
+                    .background(inputFieldBgColor)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(inputFieldBorderColor, lineWidth: 1)
+                    )
+                    .onChange(of: geminiKeyInput) { val in
+                        manager.geminiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                
+                if !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty {
+                    Text("api_key_saved".localized(for: selectedLanguage))
+                        .font(.system(size: 12))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 4)
+                }
+                
+            case .chatgpt:
+                Text("chatgpt_settings_title".localized(for: selectedLanguage))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+                
+                Text("chatgpt_settings_description".localized(for: selectedLanguage))
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .lineSpacing(4)
+                    .padding(.bottom, 6)
+                
+                SecureField("placeholder_openai_key".localized(for: selectedLanguage), text: $openaiKeyInput)
+                    .font(.system(size: 15, design: .monospaced))
+                    .foregroundColor(primaryTextColor)
+                    .padding()
+                    .background(inputFieldBgColor)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(inputFieldBorderColor, lineWidth: 1)
+                    )
+                    .onChange(of: openaiKeyInput) { val in
+                        manager.openaiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                
+                if !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty {
+                    Text("api_key_saved".localized(for: selectedLanguage))
+                        .font(.system(size: 12))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 4)
+                }
+                
+            case .claude:
+                Text("claude_settings_title".localized(for: selectedLanguage))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+                
+                Text("claude_settings_description".localized(for: selectedLanguage))
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .lineSpacing(4)
+                    .padding(.bottom, 6)
+                
+                SecureField("placeholder_anthropic_key".localized(for: selectedLanguage), text: $anthropicKeyInput)
+                    .font(.system(size: 15, design: .monospaced))
+                    .foregroundColor(primaryTextColor)
+                    .padding()
+                    .background(inputFieldBgColor)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(inputFieldBorderColor, lineWidth: 1)
+                    )
+                    .onChange(of: anthropicKeyInput) { val in
+                        manager.anthropicApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                
+                if !manager.anthropicApiKey.isEmpty && !anthropicKeyInput.isEmpty {
+                    Text("api_key_saved".localized(for: selectedLanguage))
+                        .font(.system(size: 12))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 4)
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var dailyNotificationsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("notification_section_title".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            Toggle(isOn: $notificationsEnabled) {
+                Text("notification_enable_title".localized(for: selectedLanguage))
+                    .font(.system(size: 14))
+                    .foregroundColor(primaryTextColor)
+            }
+            .tint(Color(hex: selectedTheme.colorHex))
+            .onChange(of: notificationsEnabled) { newValue in
+                manager.setDailyNotificationsEnabled(newValue)
+                if newValue {
+                    manager.requestNotificationPermission { granted in
+                        if !granted {
+                            self.notificationsEnabled = false
+                            manager.setDailyNotificationsEnabled(false)
+                        }
+                    }
+                }
+            }
+            
+            if notificationsEnabled {
+                DatePicker("notification_time_title".localized(for: selectedLanguage), selection: $notificationTime, displayedComponents: .hourAndMinute)
+                    .font(.system(size: 14))
+                    .foregroundColor(primaryTextColor)
+                    .padding(.vertical, 4)
+                    .onChange(of: notificationTime) { newTime in
+                        manager.setDailyNotificationTime(newTime)
+                    }
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var updateIntervalSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("update_interval_title".localized(for: selectedLanguage))
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+                
+                Spacer()
+                
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.prepare()
+                    generator.impactOccurred()
+                    isShowingWidgetInstruction = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        Text("widget_instruction_title".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    }
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+            
+            Text("update_interval_description".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(4)
+            
+            Picker("update_interval_title", selection: $selectedInterval) {
+                ForEach(UpdateInterval.allCases) { interval in
+                    Text(interval.localizedTitle(for: selectedLanguage)).tag(interval)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(colorScheme == .dark ? .white : .primary)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(inputFieldBgColor)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(inputFieldBorderColor, lineWidth: 1)
+            )
+            .onChange(of: selectedInterval) { newInt in
+                manager.setUpdateInterval(newInt)
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var verseSourceScopeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("verse_source_scope_title".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            Text("verse_source_scope_description".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(4)
+            
+            VStack(spacing: 8) {
+                ForEach(VerseSourceScope.allCases) { scope in
+                    Button {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.prepare()
+                        generator.impactOccurred()
+                        selectedScope = scope
+                        manager.updateVerseSourceScope(scope)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: scope.icon)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(selectedScope == scope ? Color(hex: selectedTheme.colorHex) : .secondary)
+                                .frame(width: 24)
+                            
+                            Text(scope.title(for: selectedLanguage))
+                                .font(.system(size: 14, weight: selectedScope == scope ? .bold : .medium))
+                                .foregroundColor(primaryTextColor)
+                            
+                            Spacer()
+                            
+                            if selectedScope == scope {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(selectedScope == scope ? Color(hex: selectedTheme.colorHex).opacity(0.12) : inputFieldBgColor)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(selectedScope == scope ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var contentTypeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("content_type_title".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            Text("content_type_description".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(4)
+            
+            Picker("content_type_title", selection: $selectedCategory) {
+                ForEach(TextCategory.allCases) { category in
+                    Text(category.localizedTitle(for: selectedLanguage)).tag(category)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(colorScheme == .dark ? .white : .primary)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(inputFieldBgColor)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(inputFieldBorderColor, lineWidth: 1)
+            )
+            .onChange(of: selectedCategory) { newCat in
+                manager.setSelectedCategory(newCat)
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var lockScreenWidgetSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label {
+                    Text("lockscreen_widget_section_title".localized(for: selectedLanguage))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                } icon: {
+                    Image(systemName: "lock.iphone")
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                }
+                
+                Spacer()
+                
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.prepare()
+                    generator.impactOccurred()
+                    isShowingWidgetInstruction = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.system(size: 15))
+                        Text("widget_instruction_title".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+            
+            Text("lockscreen_widget_section_desc".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(4)
+            
+            // 1. Язык виджетов
+            VStack(alignment: .leading, spacing: 6) {
+                Text("widget_language_title".localized(for: selectedLanguage))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(primaryTextColor)
+                
+                Picker("widget_language_title", selection: $selectedWidgetLanguage) {
+                    ForEach(WidgetLanguage.allCases) { lang in
+                        Text(lang.localizedName(for: selectedLanguage)).tag(lang)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .tint(colorScheme == .dark ? .white : .primary)
+                .onChange(of: selectedWidgetLanguage) { newLang in
+                    manager.setWidgetLanguage(newLang)
+                }
+            }
+            .padding(.vertical, 4)
+            
+            // 2. Армянский перевод Библии
+            VStack(alignment: .leading, spacing: 6) {
+                Text("armenian_translation_title".localized(for: selectedLanguage))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(primaryTextColor)
+                
+                Picker("armenian_translation_title", selection: $selectedArmenianEdition) {
+                    ForEach(ArmenianBibleEdition.allCases) { edition in
+                        Text(edition.localizedTitle(for: selectedLanguage)).tag(edition)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .tint(colorScheme == .dark ? .white : .primary)
+                .onChange(of: selectedArmenianEdition) { newEd in
+                    manager.setArmenianEdition(newEd)
+                }
+            }
+            .padding(.vertical, 4)
+            
+            // 3. Категория цитат для Экрана Блокировки
+            VStack(alignment: .leading, spacing: 8) {
+                Text("lockscreen_category_title".localized(for: selectedLanguage))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(primaryTextColor)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(LockScreenCategory.allCases) { cat in
+                            Button {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.prepare()
+                                generator.impactOccurred()
+                                selectedLockCategory = cat
+                                manager.setLockScreenCategory(cat)
+                                
+                                if cat == .pearls {
+                                    previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                                } else {
+                                    previewVerse = BibleVerse.database.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(cat.icon)
+                                    Text(cat.localizedTitle(for: selectedLanguage))
+                                        .font(.system(size: 13, weight: selectedLockCategory == cat ? .bold : .medium))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex).opacity(0.18) : inputFieldBgColor)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: 1)
+                                )
+                                .foregroundColor(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex) : primaryTextColor)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            .padding(.vertical, 4)
+            
+            // 4. Интерактивный Live-превью экрана блокировки
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("lockscreen_preview_title".localized(for: selectedLanguage))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.prepare()
+                        generator.impactOccurred()
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "shuffle")
+                                .font(.system(size: 12))
+                            Text("button_random_verse".localized(for: selectedLanguage))
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    }
+                }
+                
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                    
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                            .font(.system(size: 15.0, weight: .bold, design: .rounded))
+                            .lineLimit(2)
+                            .foregroundColor(primaryTextColor)
+                        
+                        HStack(spacing: 4) {
+                            Text("✝️")
+                                .font(.system(size: 9))
+                            Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                }
+                .padding(.top, 2)
+            }
+            
+            // 5. Кнопка «Применить и обновить виджеты»
+            Button {
+                let generator = UINotificationFeedbackGenerator()
+                generator.prepare()
+                generator.notificationOccurred(.success)
+                manager.syncLockScreenWidget()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("update_widgets_now_button".localized(for: selectedLanguage))
+                        .font(.system(size: 14, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(hex: selectedTheme.colorHex))
+                )
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .padding(.top, 4)
+        }
+        .padding(16)
+        .background(cardBackgroundColor)
+        .cornerRadius(18)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var aboutSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("about_app_title".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            HStack {
+                Text("about_app_version".localized(for: selectedLanguage))
+                Spacer()
+                Text("1.0.1")
+                    .foregroundColor(.secondary)
+            }
+            .font(.system(size: 14))
+            
+            HStack {
+                Text("about_app_developer".localized(for: selectedLanguage))
+                Spacer()
+                Text("Samvel")
+                    .foregroundColor(.secondary)
+            }
+            .font(.system(size: 14))
+        }
+        .padding(18)
+        .background(aboutBlockBgColor)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(aboutBlockBorderColor, lineWidth: 1)
+        )
+    }
 }
+
 
 // MARK: - Вспомогательное представление: Строка инструкции
 struct InstructionRow: View {
