@@ -35,10 +35,14 @@ enum WidgetLanguageAppEnum: String, AppEnum {
 
 @available(iOS 17.0, *)
 enum TextCategoryAppEnum: String, AppEnum {
+    case pearls = "pearls"
     case both = "both"
     case verses = "verses"
     case prayers = "prayers"
     case favorites = "favorites"
+    case love = "love"
+    case psalms = "psalms"
+    case wisdom = "wisdom"
     
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         "Widget Content"
@@ -46,9 +50,13 @@ enum TextCategoryAppEnum: String, AppEnum {
     
     static var caseDisplayRepresentations: [TextCategoryAppEnum: DisplayRepresentation] {
         [
+            .pearls: DisplayRepresentation(title: "🕊️ Short Pearls (Lock Screen)", subtitle: "Ultra-compact inspiring verses (up to 45 chars)"),
             .both: DisplayRepresentation(title: "Verses & Prayers", subtitle: "Shows both Bible verses and prayers"),
             .verses: DisplayRepresentation(title: "Bible Verses Only", subtitle: "Shows only biblical verses"),
-            .prayers: DisplayRepresentation(title: "Prayers Only", subtitle: "Shows only christian prayers"),
+            .love: DisplayRepresentation(title: "❤️ Love & Peace", subtitle: "Verses about love, forgiveness and peace"),
+            .psalms: DisplayRepresentation(title: "✝️ Psalms", subtitle: "Verses from the Book of Psalms"),
+            .wisdom: DisplayRepresentation(title: "📖 Wisdom & Proverbs", subtitle: "Verses from Proverbs and Wisdom"),
+            .prayers: DisplayRepresentation(title: "🤲 Prayers Only", subtitle: "Shows christian prayers"),
             .favorites: DisplayRepresentation(title: "Favorites Only", subtitle: "Shows only your saved favorite items")
         ]
     }
@@ -59,6 +67,7 @@ enum TextCategoryAppEnum: String, AppEnum {
         case .verses: return .verses
         case .prayers: return .prayers
         case .favorites: return .favorites
+        default: return .both
         }
     }
 }
@@ -72,7 +81,7 @@ struct ConfigurationAppIntent: WidgetConfigurationIntent {
     @Parameter(title: "Language", default: .followApp)
     var language: WidgetLanguageAppEnum
     
-    @Parameter(title: "Content Type", default: .both)
+    @Parameter(title: "Content Style", default: .pearls)
     var category: TextCategoryAppEnum
 }
 
@@ -263,8 +272,8 @@ struct Provider: AppIntentTimelineProvider {
         var lastVerse = currentVerse
         
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
-        let database = getFilteredDatabase(for: configuration.category.textCategory, family: family, lang: lang)
-        let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
+        let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
+        let fallback = database.isEmpty ? BibleVerse.lockScreenPearls[0] : database[0]
         
         let intervalHours: Int
         switch interval {
@@ -293,57 +302,62 @@ struct Provider: AppIntentTimelineProvider {
         return Timeline(entries: entries, policy: .atEnd)
     }
     
-    private func getFilteredDatabase(for category: TextCategory, family: WidgetFamily? = nil, lang: AppLanguage = .armenian) -> [BibleVerse] {
-        var base: [BibleVerse]
-        switch category {
-        case .verses:
-            base = BibleVerse.database.filter { !$0.isPrayer }
-        case .prayers:
-            base = BibleVerse.database.filter { $0.isPrayer }
-        case .favorites:
-            if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-               let savedFavoritesData = defaults.data(forKey: "favorite_verses") {
-                if let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
-                   !decoded.isEmpty {
-                    let dailyFavorites = decoded.filter { $0.isDailyVerse }
-                    if !dailyFavorites.isEmpty {
-                        base = dailyFavorites.map { item in
-                            BibleVerse(
-                                id: item.id,
-                                textHy: item.textHy,
-                                textRu: item.textRu,
-                                textEn: item.textEn,
-                                refHy: item.refHy,
-                                refRu: item.refRu,
-                                refEn: item.refEn,
-                                isPrayer: false
-                            )
-                        }
-                    } else {
-                        base = decoded.map { item in
-                            BibleVerse(
-                                id: item.id,
-                                textHy: item.textHy,
-                                textRu: item.textRu,
-                                textEn: item.textEn,
-                                refHy: item.refHy,
-                                refRu: item.refRu,
-                                refEn: item.refEn,
-                                isPrayer: false
-                            )
-                        }
-                    }
-                } else if let decodedOld = try? JSONDecoder().decode([BibleVerse].self, from: savedFavoritesData),
-                          !decodedOld.isEmpty {
-                    base = decodedOld
-                } else {
-                    base = BibleVerse.database
+    private func getFilteredDatabase(for category: TextCategory, configuration: ConfigurationAppIntent? = nil, family: WidgetFamily? = nil, lang: AppLanguage) -> [BibleVerse] {
+        var base: [BibleVerse] = BibleVerse.database
+        
+        if let config = configuration {
+            switch config.category {
+            case .pearls:
+                return BibleVerse.lockScreenPearls
+            case .love:
+                let loveVerses = BibleVerse.database.filter {
+                    $0.textHy.localizedCaseInsensitiveContains("սեր") ||
+                    $0.textHy.localizedCaseInsensitiveContains("սիր") ||
+                    $0.textRu.localizedCaseInsensitiveContains("любов") ||
+                    $0.textEn.localizedCaseInsensitiveContains("love")
                 }
-            } else {
+                return loveVerses.isEmpty ? BibleVerse.lockScreenPearls : loveVerses
+            case .psalms:
+                let psalmVerses = BibleVerse.database.filter {
+                    $0.refHy.localizedCaseInsensitiveContains("սաղմոս") ||
+                    $0.refRu.localizedCaseInsensitiveContains("псалом") ||
+                    $0.refEn.localizedCaseInsensitiveContains("psalm")
+                }
+                return psalmVerses.isEmpty ? BibleVerse.lockScreenPearls : psalmVerses
+            case .wisdom:
+                let wisdomVerses = BibleVerse.database.filter {
+                    $0.refHy.localizedCaseInsensitiveContains("առակ") ||
+                    $0.refRu.localizedCaseInsensitiveContains("притч") ||
+                    $0.refEn.localizedCaseInsensitiveContains("proverbs")
+                }
+                return wisdomVerses.isEmpty ? BibleVerse.lockScreenPearls : wisdomVerses
+            case .verses:
+                base = BibleVerse.database.filter { !$0.isPrayer }
+            case .prayers:
+                base = BibleVerse.database.filter { $0.isPrayer }
+            case .favorites:
+                if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+                   let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
+                   let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
+                   !decoded.isEmpty {
+                    base = decoded.map { item in
+                        BibleVerse(
+                            id: item.id,
+                            textHy: item.textHy,
+                            textRu: item.textRu,
+                            textEn: item.textEn,
+                            refHy: item.refHy,
+                            refRu: item.refRu,
+                            refEn: item.refEn,
+                            isPrayer: false
+                        )
+                    }
+                } else {
+                    base = BibleVerse.lockScreenPearls
+                }
+            case .both:
                 base = BibleVerse.database
             }
-        case .both:
-            base = BibleVerse.database
         }
         
         guard let family = family else {
@@ -353,28 +367,18 @@ struct Provider: AppIntentTimelineProvider {
         // Интеллектуальный фильтр по длине стиха для конкретного размера виджета
         switch family {
         case .accessoryRectangular:
-            // Экран блокировки: короткие, ёмкие цитаты (до 65 символов) для гарантированного отображения всей мысли целиком
-            let shortVerses = base.filter { $0.text(for: lang).count <= 65 }
-            if !shortVerses.isEmpty {
-                return shortVerses
-            }
-            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }).prefix(25))
+            // Экран блокировки: жемчужины и сверх-краткие цитаты (до 48 символов)
+            return BibleVerse.lockScreenPearls
             
         case .systemSmall:
-            // Малый виджет 2x2: компактные стихи (до 100 символов) для крупного шрифта
-            let smallVerses = base.filter { $0.text(for: lang).count <= 100 }
-            if !smallVerses.isEmpty {
-                return smallVerses
-            }
-            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }).prefix(25))
+            // Малый виджет 2x2: компактные стихи (до 90 символов) для крупного шрифта
+            let smallVerses = base.filter { $0.text(for: lang).count <= 90 }
+            return !smallVerses.isEmpty ? smallVerses : BibleVerse.lockScreenPearls
             
         case .systemMedium:
-            // Средний виджет 4x2: стихи средней длины (до 175 символов)
-            let medVerses = base.filter { $0.text(for: lang).count <= 175 }
-            if !medVerses.isEmpty {
-                return medVerses
-            }
-            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }).prefix(35))
+            // Средний виджет 4x2: стихи средней длины (до 160 символов)
+            let medVerses = base.filter { $0.text(for: lang).count <= 160 }
+            return !medVerses.isEmpty ? medVerses : base
             
         case .systemLarge, .accessoryInline, .accessoryCircular:
             // Большой виджет 4x4 и строчные: доступны любые стихи
@@ -387,23 +391,28 @@ struct Provider: AppIntentTimelineProvider {
     
     private func getSharedVerse(for configuration: ConfigurationAppIntent, family: WidgetFamily? = nil) -> BibleVerse {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
-        let category = configuration.category.textCategory
-        let database = getFilteredDatabase(for: category, family: family, lang: lang)
-        let fallback = database.isEmpty ? BibleVerse.database[0] : database[0]
+        let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
+        let fallback = database.isEmpty ? BibleVerse.lockScreenPearls[0] : database[0]
+        
+        // Для экрана блокировки: берем ТОЛЬКО из lockScreenPearls или отфильтрованной базы коротких стихов
+        if let fam = family, fam == .accessoryRectangular {
+            if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+               let lockIdStr = defaults.string(forKey: "currentLockScreenVerseId"),
+               let lockId = UUID(uuidString: lockIdStr),
+               let foundPearl = BibleVerse.lockScreenPearls.first(where: { $0.id == lockId }) {
+                return foundPearl
+            }
+            return database.randomElement() ?? fallback
+        }
         
         if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
             if let savedIdString = defaults.string(forKey: "currentVerseId"),
                let savedId = UUID(uuidString: savedIdString),
                let foundVerse = BibleVerse.database.first(where: { $0.id == savedId }) {
                 
-                // Если для Lock Screen стих длиннее 65 символов или для Small больше 100 символов,
-                // отдаем гармоничный короткий стих из отфильтрованной базы, чтобы мысль никогда не обрезалась
-                if let fam = family {
-                    let maxLen = (fam == .accessoryRectangular) ? 65 : 100
-                    if (fam == .accessoryRectangular || fam == .systemSmall), foundVerse.text(for: lang).count > maxLen {
-                        if let shortVerse = database.randomElement() {
-                            return shortVerse
-                        }
+                if let fam = family, fam == .systemSmall, foundVerse.text(for: lang).count > 90 {
+                    if let shortVerse = database.randomElement() {
+                        return shortVerse
                     }
                 }
                 return foundVerse
@@ -417,12 +426,9 @@ struct Provider: AppIntentTimelineProvider {
                         $0.textRu.normalizedForComparison == normalizedSaved ||
                         $0.textEn.normalizedForComparison == normalizedSaved
                     }) {
-                        if let fam = family {
-                            let maxLen = (fam == .accessoryRectangular) ? 65 : 100
-                            if (fam == .accessoryRectangular || fam == .systemSmall), foundVerse.text(for: lang).count > maxLen {
-                                if let shortVerse = database.randomElement() {
-                                    return shortVerse
-                                }
+                        if let fam = family, fam == .systemSmall, foundVerse.text(for: lang).count > 90 {
+                            if let shortVerse = database.randomElement() {
+                                return shortVerse
                             }
                         }
                         return foundVerse

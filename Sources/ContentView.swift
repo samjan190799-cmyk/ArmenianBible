@@ -1436,6 +1436,9 @@ struct SettingsView: View {
     @State private var selectedScope: VerseSourceScope = .allBible
     @State private var selectedTheme: AccentColorTheme = .indigo
     @State private var selectedWidgetLanguage: WidgetLanguage = .followApp
+    @State private var selectedLockCategory: LockScreenCategory = .pearls
+    @State private var selectedArmenianEdition: ArmenianBibleEdition = .ararat
+    @State private var previewVerse: BibleVerse = BibleVerse.lockScreenPearls[0]
     
     // Переменные для уведомлений
     @State private var notificationsEnabled = false
@@ -1865,32 +1868,211 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal, 4)
                         
-                        // MARK: - Выбор языка виджета
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("widget_language_title".localized(for: selectedLanguage))
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(primaryTextColor)
+                        // MARK: - Раздел: Экран блокировки и Виджеты (Расширенные настройки)
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Label {
+                                    Text("lockscreen_widget_section_title".localized(for: selectedLanguage))
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(primaryTextColor)
+                                } icon: {
+                                    Image(systemName: "lock.iphone")
+                                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                }
+                                
+                                Spacer()
+                                
+                                Button {
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    isShowingWidgetInstruction = true
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "questionmark.circle.fill")
+                                            .font(.system(size: 15))
+                                        Text("widget_instruction_title".localized(for: selectedLanguage))
+                                            .font(.system(size: 12, weight: .semibold))
+                                    }
+                                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
                             
-                            Picker("widget_language_title", selection: $selectedWidgetLanguage) {
-                                ForEach(WidgetLanguage.allCases) { lang in
-                                    Text(lang.localizedName(for: selectedLanguage)).tag(lang)
+                            Text("lockscreen_widget_section_desc".localized(for: selectedLanguage))
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineSpacing(4)
+                            
+                            // 1. Язык виджетов
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("widget_language_title".localized(for: selectedLanguage))
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(primaryTextColor)
+                                
+                                Picker("widget_language_title", selection: $selectedWidgetLanguage) {
+                                    ForEach(WidgetLanguage.allCases) { lang in
+                                        Text(lang.localizedName(for: selectedLanguage)).tag(lang)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .tint(colorScheme == .dark ? .white : .primary)
+                                .onChange(of: selectedWidgetLanguage) { newLang in
+                                    manager.setWidgetLanguage(newLang)
                                 }
                             }
-                            .pickerStyle(.menu)
-                            .tint(colorScheme == .dark ? .white : .primary)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(inputFieldBgColor)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(inputFieldBorderColor, lineWidth: 1)
-                            )
-                            .onChange(of: selectedWidgetLanguage) { newLang in
-                                manager.setWidgetLanguage(newLang)
+                            .padding(.vertical, 4)
+                            
+                            // 2. Армянский перевод Библии
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("armenian_translation_title".localized(for: selectedLanguage))
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(primaryTextColor)
+                                
+                                Picker("armenian_translation_title", selection: $selectedArmenianEdition) {
+                                    ForEach(ArmenianBibleEdition.allCases) { edition in
+                                        Text(edition.localizedTitle(for: selectedLanguage)).tag(edition)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .tint(colorScheme == .dark ? .white : .primary)
+                                .onChange(of: selectedArmenianEdition) { newEd in
+                                    manager.setArmenianEdition(newEd)
+                                }
                             }
+                            .padding(.vertical, 4)
+                            
+                            // 3. Категория цитат для Экрана Блокировки
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("lockscreen_category_title".localized(for: selectedLanguage))
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(primaryTextColor)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(LockScreenCategory.allCases) { cat in
+                                            Button {
+                                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                                generator.prepare()
+                                                generator.impactOccurred()
+                                                selectedLockCategory = cat
+                                                manager.setLockScreenCategory(cat)
+                                                
+                                                if cat == .pearls {
+                                                    previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                                                } else {
+                                                    previewVerse = BibleVerse.database.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                                                }
+                                            } label: {
+                                                HStack(spacing: 6) {
+                                                    Text(cat.icon)
+                                                    Text(cat.localizedTitle(for: selectedLanguage))
+                                                        .font(.system(size: 13, weight: selectedLockCategory == cat ? .bold : .medium))
+                                                }
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 10)
+                                                        .fill(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex).opacity(0.18) : inputFieldBgColor)
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 10)
+                                                        .stroke(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: 1)
+                                                )
+                                                .foregroundColor(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex) : primaryTextColor)
+                                            }
+                                            .buttonStyle(ScaleButtonStyle())
+                                        }
+                                    }
+                                    .padding(.vertical, 2)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            
+                            // 4. Интерактивный Live-превью экрана блокировки
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("lockscreen_preview_title".localized(for: selectedLanguage))
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Button {
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.prepare()
+                                        generator.impactOccurred()
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                            previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "shuffle")
+                                                .font(.system(size: 12))
+                                            Text("button_random_verse".localized(for: selectedLanguage))
+                                                .font(.system(size: 12, weight: .semibold))
+                                        }
+                                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                    }
+                                }
+                                
+                                // Визуальный макет плашки экрана блокировки
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                                    
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                    
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                            .font(.system(size: 15.0, weight: .bold, design: .rounded))
+                                            .lineLimit(2)
+                                            .foregroundColor(primaryTextColor)
+                                        
+                                        HStack(spacing: 4) {
+                                            Text("✝️")
+                                                .font(.system(size: 9))
+                                            Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                                .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(14)
+                                }
+                                .padding(.top, 2)
+                            }
+                            
+                            // 5. Кнопка «Применить и обновить виджеты»
+                            Button {
+                                let generator = UINotificationFeedbackGenerator()
+                                generator.prepare()
+                                generator.notificationOccurred(.success)
+                                manager.syncLockScreenWidget()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    Text("update_widgets_now_button".localized(for: selectedLanguage))
+                                        .font(.system(size: 14, weight: .bold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(hex: selectedTheme.colorHex))
+                                )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            .padding(.top, 4)
                         }
+                        .padding(16)
+                        .background(cardBackgroundColor)
+                        .cornerRadius(18)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(cardBorderColor, lineWidth: 1)
+                        )
                         .padding(.horizontal, 4)
                         
                         Divider()
@@ -1956,6 +2138,9 @@ struct SettingsView: View {
                 notificationsEnabled = manager.dailyNotificationsEnabled
                 notificationTime = manager.dailyNotificationTime
                 selectedWidgetLanguage = manager.widgetLanguage
+                selectedLockCategory = manager.lockScreenCategory
+                selectedArmenianEdition = manager.armenianEdition
+                previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
             }
             .sheet(isPresented: $isShowingWidgetInstruction) {
                 WidgetInstructionSheetView(

@@ -53,6 +53,9 @@ class BibleManager: ObservableObject {
     private let accentThemeKey = "accent_theme"
     private let notificationsEnabledKey = "daily_notifications_enabled"
     private let notificationTimeKey = "daily_notification_time"
+    private let lockScreenCategoryKey = "lock_screen_category"
+    
+    @Published var lockScreenCategory: LockScreenCategory = .pearls
     
     private var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupSuiteName)
@@ -254,6 +257,15 @@ class BibleManager: ObservableObject {
             self.widgetLanguage = .followApp
         }
         
+        // Загрузка категории для экрана блокировки
+        if let defaults = sharedDefaults,
+           let savedLockCatRaw = defaults.string(forKey: lockScreenCategoryKey),
+           let savedLockCat = LockScreenCategory(rawValue: savedLockCatRaw) {
+            self.lockScreenCategory = savedLockCat
+        } else {
+            self.lockScreenCategory = .pearls
+        }
+        
         // Загрузка последнего места чтения
         if let defaults = sharedDefaults {
             let savedBookId = defaults.integer(forKey: "last_read_book_id")
@@ -321,6 +333,44 @@ class BibleManager: ObservableObject {
         if let defaults = sharedDefaults {
             defaults.set(language.rawValue, forKey: "widget_language")
             defaults.synchronize()
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Сохранение категории для экрана блокировки
+    func setLockScreenCategory(_ category: LockScreenCategory) {
+        self.lockScreenCategory = category
+        if let defaults = sharedDefaults {
+            defaults.set(category.rawValue, forKey: lockScreenCategoryKey)
+            defaults.synchronize()
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Сохранение армянского перевода Библии
+    func setArmenianEdition(_ edition: ArmenianBibleEdition) {
+        self.armenianEdition = edition
+        if let defaults = sharedDefaults {
+            defaults.set(edition.rawValue, forKey: "armenian_bible_edition")
+            defaults.synchronize()
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Мгновенная синхронизация и случайный стих для экрана блокировки
+    func syncLockScreenWidget() {
+        if let defaults = sharedDefaults {
+            let list = BibleVerse.lockScreenPearls
+            if let randomPearl = list.randomElement() {
+                defaults.set(randomPearl.id.uuidString, forKey: "currentLockScreenVerseId")
+                defaults.set(randomPearl.textHy, forKey: "currentLockScreenTextHy")
+                defaults.set(randomPearl.textRu, forKey: "currentLockScreenTextRu")
+                defaults.set(randomPearl.textEn, forKey: "currentLockScreenTextEn")
+                defaults.set(randomPearl.refHy, forKey: "currentLockScreenRefHy")
+                defaults.set(randomPearl.refRu, forKey: "currentLockScreenRefRu")
+                defaults.set(randomPearl.refEn, forKey: "currentLockScreenRefEn")
+                defaults.synchronize()
+            }
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
@@ -1423,6 +1473,7 @@ class BibleManager: ObservableObject {
 enum ArmenianBibleEdition: String, CaseIterable, Identifiable, Codable {
     case ararat = "ararat"
     case echmiadzin = "echmiadzin"
+    case grabar = "grabar"
     
     var id: String { rawValue }
     
@@ -1432,6 +1483,8 @@ enum ArmenianBibleEdition: String, CaseIterable, Identifiable, Codable {
             return "edition_ararat_title".localized(for: language)
         case .echmiadzin:
             return "edition_echmiadzin_title".localized(for: language)
+        case .grabar:
+            return "edition_grabar_title".localized(for: language)
         }
     }
 }

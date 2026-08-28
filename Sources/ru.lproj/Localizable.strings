@@ -278,3 +278,16 @@
 "days_left_passed" = "Прошел";
 "bible_reader_select_hint" = "Выделяйте любой текст или нажмите на номер стиха";
 
+
+
+/* Lock Screen & Widget Settings */
+"lockscreen_widget_section_title" = "Виджеты и Экран блокировки";
+"lockscreen_widget_section_desc" = "Настройте язык, перевод и стиль стихов для экрана блокировки и виджетов:";
+"armenian_translation_title" = "Армянский перевод Библии";
+"edition_ararat_title" = "Арарат (Восточноарм.)";
+"edition_echmiadzin_title" = "Эчмиадзин";
+"edition_grabar_title" = "Грабар (Древнеарм.)";
+"lockscreen_category_title" = "Стиль цитат для экрана блокировки";
+"lockscreen_preview_title" = "Предпросмотр экрана блокировки:";
+"update_widgets_now_button" = "Обновить все виджеты сейчас";
+"widget_language_title" = "Язык виджетов";

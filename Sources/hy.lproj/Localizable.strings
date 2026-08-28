@@ -278,3 +278,16 @@
 "days_left_passed" = "Անցել է";
 "bible_reader_select_hint" = "Ընտրեք ցանկացած տեքստ կամ սեղմեք համարի վրա";
 
+
+
+/* Lock Screen & Widget Settings */
+"lockscreen_widget_section_title" = "Վիջեթներ և Կողպեքի Էկրան";
+"lockscreen_widget_section_desc" = "Կարգավորեք լեզուն, թարգմանությունը և համարների ոճը կողպեքի էկրանի համար.";
+"armenian_translation_title" = "Աստվածաշնչի հայերեն թարգմանությունը";
+"edition_ararat_title" = "Արարատ (Արևելահայերեն)";
+"edition_echmiadzin_title" = "Էջմիածին";
+"edition_grabar_title" = "Գրաբար";
+"lockscreen_category_title" = "Կողպեքի էկրանի համարների ոճը";
+"lockscreen_preview_title" = "Կողպեքի էկրանի նախադիտում.";
+"update_widgets_now_button" = "Թարմացնել բոլոր վիջեթները";
+"widget_language_title" = "Վիջեթների լեզուն";
