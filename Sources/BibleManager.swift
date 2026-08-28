@@ -357,9 +357,10 @@ class BibleManager: ObservableObject {
         }
     }
     
-    // MARK: - Мгновенная синхронизация и случайный стих для экрана блокировки
+    // MARK: - Мгновенная синхронизация и случайные стихи для всех размеров виджетов
     func syncLockScreenWidget() {
         if let defaults = sharedDefaults {
+            // 1. Экран блокировки (Lock Screen)
             let list = BibleVerse.lockScreenPearls
             if let randomPearl = list.randomElement() {
                 defaults.set(randomPearl.id.uuidString, forKey: "currentLockScreenVerseId")
@@ -369,8 +370,27 @@ class BibleManager: ObservableObject {
                 defaults.set(randomPearl.refHy, forKey: "currentLockScreenRefHy")
                 defaults.set(randomPearl.refRu, forKey: "currentLockScreenRefRu")
                 defaults.set(randomPearl.refEn, forKey: "currentLockScreenRefEn")
-                defaults.synchronize()
             }
+            
+            // 2. Малый виджет (System Small 2x2) - строго до 45 символов
+            let smallPool = BibleVerse.lockScreenPearls
+            if let randomSmall = smallPool.randomElement() {
+                defaults.set(randomSmall.id.uuidString, forKey: "currentSmallVerseId")
+            }
+            
+            // 3. Средний виджет (System Medium 4x2) - 38-95 символов
+            let medPool = BibleVerse.database.filter { $0.textHy.count >= 38 && $0.textHy.count <= 95 }
+            if let randomMed = (medPool.isEmpty ? BibleVerse.database : medPool).randomElement() {
+                defaults.set(randomMed.id.uuidString, forKey: "currentMediumVerseId")
+            }
+            
+            // 4. Большой виджет (System Large 4x4) - от 85 символов
+            let largePool = BibleVerse.database.filter { $0.textHy.count >= 85 }
+            if let randomLarge = (largePool.isEmpty ? BibleVerse.database : largePool).randomElement() {
+                defaults.set(randomLarge.id.uuidString, forKey: "currentLargeVerseId")
+            }
+            
+            defaults.synchronize()
             WidgetCenter.shared.reloadAllTimelines()
         }
     }

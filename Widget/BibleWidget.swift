@@ -89,7 +89,18 @@ struct ConfigurationAppIntent: WidgetConfigurationIntent {
 @available(iOS 17.0, *)
 struct NextVerseIntent: AppIntent {
     static var title: LocalizedStringResource = "Next Verse"
-    static var description: LocalizedStringResource = "Changes the widget to a new random Bible verse or prayer."
+    static var description: LocalizedStringResource = "Changes to the next Bible verse tailored for this widget size."
+    
+    @Parameter(title: "Target Size")
+    var targetSize: String
+    
+    init() {
+        self.targetSize = "all"
+    }
+    
+    init(targetSize: String) {
+        self.targetSize = targetSize
+    }
     
     func perform() async throws -> some IntentResult {
         let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -97,54 +108,40 @@ struct NextVerseIntent: AppIntent {
             return .result()
         }
         
-        let categoryRaw = defaults.string(forKey: "selectedCategory") ?? "both"
-        let category = TextCategory(rawValue: categoryRaw) ?? .both
+        let target = targetSize
         
-        let database: [BibleVerse]
-        switch category {
-        case .verses:
-            database = BibleVerse.database.filter { !$0.isPrayer }
-        case .prayers:
-            database = BibleVerse.database.filter { $0.isPrayer }
-        case .favorites:
-            if let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
-               let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
-               !decoded.isEmpty {
-                database = decoded.map { item in
-                    BibleVerse(
-                        id: item.id,
-                        textHy: item.textHy,
-                        textRu: item.textRu,
-                        textEn: item.textEn,
-                        refHy: item.refHy,
-                        refRu: item.refRu,
-                        refEn: item.refEn,
-                        isPrayer: false
-                    )
-                }
-            } else {
-                database = BibleVerse.database
+        // 1. Для малого виджета (System Small) - строго короткие стихи до 45 символов
+        if target == "small" || target == "all" {
+            let smallPool = BibleVerse.lockScreenPearls
+            if let v = smallPool.randomElement() {
+                defaults.set(v.id.uuidString, forKey: "currentSmallVerseId")
             }
-        case .both:
-            database = BibleVerse.database
         }
         
-        if let randomVerse = database.randomElement() {
-            defaults.set(randomVerse.id.uuidString, forKey: "currentVerseId")
-            defaults.set(randomVerse.textHy, forKey: "currentVerseTextHy")
-            defaults.set(randomVerse.textRu, forKey: "currentVerseTextRu")
-            defaults.set(randomVerse.textEn, forKey: "currentVerseTextEn")
-            defaults.set(randomVerse.refHy, forKey: "currentVerseReferenceHy")
-            defaults.set(randomVerse.refRu, forKey: "currentVerseReferenceRu")
-            defaults.set(randomVerse.refEn, forKey: "currentVerseReferenceEn")
-            
-            let langRaw = defaults.string(forKey: "app_language") ?? "armenian"
-            let lang = AppLanguage(rawValue: langRaw) ?? .armenian
-            defaults.set(randomVerse.text(for: lang), forKey: "currentVerseText")
-            defaults.set(randomVerse.reference(for: lang), forKey: "currentVerseReference")
-            defaults.synchronize()
+        // 2. Для среднего виджета (System Medium) - стихи 38-95 символов
+        if target == "medium" || target == "all" {
+            let medPool = BibleVerse.database.filter { $0.textHy.count >= 38 && $0.textHy.count <= 95 }
+            if let v = (medPool.isEmpty ? BibleVerse.database : medPool).randomElement() {
+                defaults.set(v.id.uuidString, forKey: "currentMediumVerseId")
+            }
         }
         
+        // 3. Для большого виджета (System Large) - глубокие отрывки от 85 символов
+        if target == "large" || target == "all" {
+            let largePool = BibleVerse.database.filter { $0.textHy.count >= 85 }
+            if let v = (largePool.isEmpty ? BibleVerse.database : largePool).randomElement() {
+                defaults.set(v.id.uuidString, forKey: "currentLargeVerseId")
+            }
+        }
+        
+        // 4. Для экрана блокировки (Lock Screen)
+        if target == "lockScreen" || target == "all" {
+            if let v = BibleVerse.lockScreenPearls.randomElement() {
+                defaults.set(v.id.uuidString, forKey: "currentLockScreenVerseId")
+            }
+        }
+        
+        defaults.synchronize()
         return .result()
     }
 }
@@ -366,23 +363,24 @@ struct Provider: AppIntentTimelineProvider {
         
         // Интеллектуальный фильтр по длине стиха для конкретного размера виджета
         switch family {
-        case .accessoryRectangular:
-            // Экран блокировки: жемчужины и сверх-краткие цитаты (до 48 символов)
+        case .accessoryRectangular, .accessoryInline, .accessoryCircular:
+            // Экран блокировки: только ультра-краткие жемчужины до 45 символов
             return BibleVerse.lockScreenPearls
             
         case .systemSmall:
-            // Малый виджет 2x2: компактные стихи (до 90 символов) для крупного шрифта
-            let smallVerses = base.filter { $0.text(for: lang).count <= 90 }
+            // Малый виджет 2x2: строго короткие стихи до 45 символов для 100% видимости крупным шрифтом
+            let smallVerses = base.filter { $0.text(for: lang).count <= 45 }
             return !smallVerses.isEmpty ? smallVerses : BibleVerse.lockScreenPearls
             
         case .systemMedium:
-            // Средний виджет 4x2: стихи средней длины (до 160 символов)
-            let medVerses = base.filter { $0.text(for: lang).count <= 160 }
+            // Средний виджет 4x2: стихи средней длины 38-95 символов
+            let medVerses = base.filter { $0.text(for: lang).count >= 38 && $0.text(for: lang).count <= 95 }
             return !medVerses.isEmpty ? medVerses : base
             
-        case .systemLarge, .accessoryInline, .accessoryCircular:
-            // Большой виджет 4x4 и строчные: доступны любые стихи
-            return base
+        case .systemLarge:
+            // Большой виджет 4x4: глубокие развернутые отрывки от 85 символов
+            let largeVerses = base.filter { $0.text(for: lang).count >= 85 }
+            return !largeVerses.isEmpty ? largeVerses : base
             
         @unknown default:
             return base
@@ -394,52 +392,51 @@ struct Provider: AppIntentTimelineProvider {
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
         let fallback = database.isEmpty ? BibleVerse.lockScreenPearls[0] : database[0]
         
-        // Для экрана блокировки: берем ТОЛЬКО из lockScreenPearls или отфильтрованной базы коротких стихов
-        if let fam = family, fam == .accessoryRectangular {
-            if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-               let lockIdStr = defaults.string(forKey: "currentLockScreenVerseId"),
+        let defaults = UserDefaults(suiteName: appGroupSuiteName)
+        
+        switch family {
+        case .accessoryRectangular, .accessoryInline, .accessoryCircular:
+            if let def = defaults,
+               let lockIdStr = def.string(forKey: "currentLockScreenVerseId"),
                let lockId = UUID(uuidString: lockIdStr),
-               let foundPearl = BibleVerse.lockScreenPearls.first(where: { $0.id == lockId }) {
-                return foundPearl
+               let found = database.first(where: { $0.id == lockId }) ?? BibleVerse.lockScreenPearls.first(where: { $0.id == lockId }) {
+                return found
+            }
+            return database.randomElement() ?? BibleVerse.lockScreenPearls[0]
+            
+        case .systemSmall:
+            // Малый виджет: отдельный ключ "currentSmallVerseId" и строгий фильтр <= 45 символов
+            if let def = defaults,
+               let smallIdStr = def.string(forKey: "currentSmallVerseId"),
+               let smallId = UUID(uuidString: smallIdStr),
+               let found = database.first(where: { $0.id == smallId && $0.text(for: lang).count <= 45 }) {
+                return found
+            }
+            return database.randomElement() ?? BibleVerse.lockScreenPearls[0]
+            
+        case .systemMedium:
+            // Средний виджет: отдельный ключ "currentMediumVerseId" (38-95 символов)
+            if let def = defaults,
+               let medIdStr = def.string(forKey: "currentMediumVerseId"),
+               let medId = UUID(uuidString: medIdStr),
+               let found = database.first(where: { $0.id == medId }) {
+                return found
             }
             return database.randomElement() ?? fallback
-        }
-        
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
-            if let savedIdString = defaults.string(forKey: "currentVerseId"),
-               let savedId = UUID(uuidString: savedIdString),
-               let foundVerse = BibleVerse.database.first(where: { $0.id == savedId }) {
-                
-                if let fam = family, fam == .systemSmall, foundVerse.text(for: lang).count > 90 {
-                    if let shortVerse = database.randomElement() {
-                        return shortVerse
-                    }
-                }
-                return foundVerse
-            }
             
-            if let savedText = defaults.string(forKey: textKey) {
-                let normalizedSaved = savedText.normalizedForComparison
-                if !normalizedSaved.isEmpty {
-                    if let foundVerse = BibleVerse.database.first(where: {
-                        $0.textHy.normalizedForComparison == normalizedSaved ||
-                        $0.textRu.normalizedForComparison == normalizedSaved ||
-                        $0.textEn.normalizedForComparison == normalizedSaved
-                    }) {
-                        if let fam = family, fam == .systemSmall, foundVerse.text(for: lang).count > 90 {
-                            if let shortVerse = database.randomElement() {
-                                return shortVerse
-                            }
-                        }
-                        return foundVerse
-                    }
-                }
-                
-                let savedRef = defaults.string(forKey: referenceKey) ?? ""
-                return BibleVerse(text: savedText, reference: savedRef)
+        case .systemLarge:
+            // Большой виджет: отдельный ключ "currentLargeVerseId" (от 85 символов)
+            if let def = defaults,
+               let largeIdStr = def.string(forKey: "currentLargeVerseId"),
+               let largeId = UUID(uuidString: largeIdStr),
+               let found = database.first(where: { $0.id == largeId }) {
+                return found
             }
+            return database.randomElement() ?? fallback
+            
+        default:
+            return fallback
         }
-        return fallback
     }
     
     private func getSharedUpdateInterval() -> UpdateInterval {
@@ -624,19 +621,22 @@ struct BibleWidgetEntryView: View {
             else { return 14.5 }
             
         case .systemSmall:
-            if count <= 40 { return 19.5 }
-            else if count <= 75 { return 17.0 }
-            else { return 15.0 }
+            // Малый виджет: строго короткие стихи до 45 символов -> Крупный яркий шрифт
+            if count <= 25 { return 20.5 }
+            else if count <= 35 { return 19.0 }
+            else { return 17.5 }
             
         case .systemMedium:
-            if count <= 45 { return 23.0 }
-            else if count <= 85 { return 19.5 }
-            else { return 17.0 }
+            // Средний виджет: 38-95 символов
+            if count <= 55 { return 22.5 }
+            else if count <= 75 { return 20.0 }
+            else { return 18.0 }
             
         case .systemLarge:
-            if count <= 45 { return 28.0 }
-            else if count <= 85 { return 24.0 }
-            else if count <= 130 { return 21.0 }
+            // Большой виджет: 85+ символов
+            if count <= 100 { return 25.0 }
+            else if count <= 150 { return 22.5 }
+            else if count <= 200 { return 20.5 }
             else { return 18.5 }
             
         default:
@@ -689,7 +689,7 @@ struct BibleWidgetEntryView: View {
                 }
                 
             case .systemSmall:
-                // Маленький виджет на домашнем экране (System Small 2x2): крупный четкий шрифт для слабовидящих
+                // Маленький виджет на домашнем экране (System Small 2x2): крупный четкий шрифт для слабовидящих (только короткие цитаты до 45 символов)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "quote.opening")
@@ -698,7 +698,7 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                         
                         // Интерактивная кнопка следующего стиха
-                        Button(intent: NextVerseIntent()) {
+                        Button(intent: NextVerseIntent(targetSize: "small")) {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 11.5, weight: .bold))
                                 .foregroundColor(secondaryTextColor)
@@ -711,9 +711,9 @@ struct BibleWidgetEntryView: View {
                     
                     Text(entry.verse.text(for: getLanguage()))
                         .font(.system(size: dynamicFontSize(for: .systemSmall), weight: .bold, design: .rounded))
-                        .lineLimit(5)
+                        .lineLimit(4)
                         .minimumScaleFactor(0.75)
-                        .lineSpacing(2.5)
+                        .lineSpacing(2.0)
                         .foregroundColor(primaryTextColor)
                     
                     Spacer(minLength: 2)
@@ -730,6 +730,8 @@ struct BibleWidgetEntryView: View {
                         
                         Text(entry.verse.reference(for: getLanguage()))
                             .font(.system(size: 11.0, weight: .bold, design: .rounded))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.80)
                             .foregroundColor(secondaryTextColor)
                     }
                 }
@@ -763,7 +765,7 @@ struct BibleWidgetEntryView: View {
                     
                     // Интерактивная панель действий с 3 крупными кнопками
                     HStack(spacing: 6) {
-                        Button(intent: NextVerseIntent()) {
+                        Button(intent: NextVerseIntent(targetSize: "medium")) {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.system(size: 11, weight: .bold))
@@ -842,7 +844,7 @@ struct BibleWidgetEntryView: View {
                     
                     // Интерактивная панель действий с 3 крупными кнопками
                     HStack(spacing: 8) {
-                        Button(intent: NextVerseIntent()) {
+                        Button(intent: NextVerseIntent(targetSize: "large")) {
                             HStack(spacing: 6) {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.system(size: 13, weight: .bold))
