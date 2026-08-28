@@ -232,7 +232,7 @@ final class SubscriptionManager: ObservableObject {
         UserDefaults.standard.set(hasActivePremium, forKey: kPremiumOverrideKey)
     }
     
-    private static func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+    nonisolated private static func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
         case .unverified(_, let error):
             throw error
