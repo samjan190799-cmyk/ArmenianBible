@@ -2024,7 +2024,15 @@ struct SettingsView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(LockScreenCategory.allCases) { cat in
-                            Button {
+                            LockCategoryChipView(
+                                cat: cat,
+                                isSelected: selectedLockCategory == cat,
+                                selectedLanguage: selectedLanguage,
+                                themeColorHex: selectedTheme.colorHex,
+                                inputFieldBgColor: inputFieldBgColor,
+                                inputFieldBorderColor: inputFieldBorderColor,
+                                primaryTextColor: primaryTextColor
+                            ) {
                                 let generator = UIImpactFeedbackGenerator(style: .light)
                                 generator.prepare()
                                 generator.impactOccurred()
@@ -2036,25 +2044,7 @@ struct SettingsView: View {
                                 } else {
                                     previewVerse = BibleVerse.database.randomElement() ?? BibleVerse.lockScreenPearls[0]
                                 }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Text(cat.icon)
-                                    Text(cat.localizedTitle(for: selectedLanguage))
-                                        .font(.system(size: 13, weight: selectedLockCategory == cat ? .bold : .medium))
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex).opacity(0.18) : inputFieldBgColor)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: 1)
-                                )
-                                .foregroundColor(selectedLockCategory == cat ? Color(hex: selectedTheme.colorHex) : primaryTextColor)
                             }
-                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
                     .padding(.vertical, 2)
@@ -2087,30 +2077,12 @@ struct SettingsView: View {
                     }
                 }
                 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
-                    
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
-                            .font(.system(size: 15.0, weight: .bold, design: .rounded))
-                            .lineLimit(2)
-                            .foregroundColor(primaryTextColor)
-                        
-                        HStack(spacing: 4) {
-                            Text("✝️")
-                                .font(.system(size: 9))
-                            Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
-                                .font(.system(size: 11.5, weight: .bold, design: .rounded))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                }
+                LockScreenPreviewCardView(
+                    verse: previewVerse,
+                    language: selectedWidgetLanguage.appLanguage ?? selectedLanguage,
+                    primaryTextColor: primaryTextColor,
+                    isDarkMode: colorScheme == .dark
+                )
                 .padding(.top, 2)
             }
             
@@ -2453,6 +2425,77 @@ struct WidgetInstructionSheetView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
             }
+        }
+    }
+}
+
+
+
+// MARK: - Вспомогательное представление: Чип категории экрана блокировки
+struct LockCategoryChipView: View {
+    let cat: LockScreenCategory
+    let isSelected: Bool
+    let selectedLanguage: AppLanguage
+    let themeColorHex: String
+    let inputFieldBgColor: Color
+    let inputFieldBorderColor: Color
+    let primaryTextColor: Color
+    let onSelect: () -> Void
+    
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 6) {
+                Text(cat.icon)
+                Text(cat.localizedTitle(for: selectedLanguage))
+                    .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? Color(hex: themeColorHex).opacity(0.18) : inputFieldBgColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? Color(hex: themeColorHex) : inputFieldBorderColor, lineWidth: 1)
+            )
+            .foregroundColor(isSelected ? Color(hex: themeColorHex) : primaryTextColor)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Вспомогательное представление: Карточка предпросмотра экрана блокировки
+struct LockScreenPreviewCardView: View {
+    let verse: BibleVerse
+    let language: AppLanguage
+    let primaryTextColor: Color
+    let isDarkMode: Bool
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isDarkMode ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+            
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Text(verse.text(for: language))
+                    .font(.system(size: 15.0, weight: .bold, design: .rounded))
+                    .lineLimit(2)
+                    .foregroundColor(primaryTextColor)
+                
+                HStack(spacing: 4) {
+                    Text("✝️")
+                        .font(.system(size: 9))
+                    Text(verse.reference(for: language))
+                        .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
         }
     }
 }
