@@ -784,12 +784,12 @@ extension BibleVerse {
             refEn: "Psalm 119:9"
         ),
         BibleVerse(
-            textHy: "Դու ստեղծեցիր իմ երկամունքները, ծածկեցիր ինձ իմ մոր որովայնում։ Փառաբանում եմ Քեզ, որ ահավոր և զարմանալի կերպով ստեղծվեցի։",
-            textRu: "Ибо Ты устроил внутренности мои и соткал меня во чреве матери моей. Славлю Тебя, потому что я дивно устроен.",
-            textEn: "For thou hast possessed my reins: thou hast covered me in my mother's womb. I will praise thee; for I am fearfully and wonderfully made.",
-            refHy: "Սաղմոսներ 139:13-14",
-            refRu: "Псалом 138:13-14",
-            refEn: "Psalm 139:13-14"
+            textHy: "Փառաբանում եմ Քեզ, որ ահավոր և զարմանալի կերպով ստեղծվեցի։",
+            textRu: "Славлю Тебя, потому что я дивно устроен.",
+            textEn: "I will praise thee; for I am fearfully and wonderfully made.",
+            refHy: "Սաղմոսներ 139:14",
+            refRu: "Псалом 138:14",
+            refEn: "Psalm 139:14"
         ),
         BibleVerse(
             textHy: "Սովորեցրո՛ւ ինձ կատարել Քո կամքը, որովհետև Դու ես իմ Աստվածը. Քո բարի Հոգին թող ինձ առաջնորդի դեպի ուղիղ երկիր։",

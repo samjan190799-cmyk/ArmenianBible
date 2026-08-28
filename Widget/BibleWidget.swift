@@ -353,12 +353,12 @@ struct Provider: AppIntentTimelineProvider {
         // Интеллектуальный фильтр по длине стиха для конкретного размера виджета
         switch family {
         case .accessoryRectangular:
-            // Экран блокировки: короткие, ёмкие цитаты (до 85 символов) для отображения крупными жирными буквами
-            let shortVerses = base.filter { $0.text(for: lang).count <= 85 }
+            // Экран блокировки: короткие, ёмкие цитаты (до 65 символов) для гарантированного отображения всей мысли целиком
+            let shortVerses = base.filter { $0.text(for: lang).count <= 65 }
             if !shortVerses.isEmpty {
                 return shortVerses
             }
-            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }).prefix(20))
+            return Array(base.sorted(by: { $0.text(for: lang).count < $1.text(for: lang).count }).prefix(25))
             
         case .systemSmall:
             // Малый виджет 2x2: компактные стихи (до 100 символов) для крупного шрифта
@@ -396,11 +396,14 @@ struct Provider: AppIntentTimelineProvider {
                let savedId = UUID(uuidString: savedIdString),
                let foundVerse = BibleVerse.database.first(where: { $0.id == savedId }) {
                 
-                // Если для Lock Screen или Small виджета сохраненный стих слишком длинный,
-                // отдаем гармоничный короткий стих из отфильтрованной базы для отличной читаемости
-                if let fam = family, (fam == .accessoryRectangular || fam == .systemSmall), foundVerse.text(for: lang).count > 125 {
-                    if let shortVerse = database.randomElement() {
-                        return shortVerse
+                // Если для Lock Screen стих длиннее 65 символов или для Small больше 100 символов,
+                // отдаем гармоничный короткий стих из отфильтрованной базы, чтобы мысль никогда не обрезалась
+                if let fam = family {
+                    let maxLen = (fam == .accessoryRectangular) ? 65 : 100
+                    if (fam == .accessoryRectangular || fam == .systemSmall), foundVerse.text(for: lang).count > maxLen {
+                        if let shortVerse = database.randomElement() {
+                            return shortVerse
+                        }
                     }
                 }
                 return foundVerse
@@ -414,9 +417,12 @@ struct Provider: AppIntentTimelineProvider {
                         $0.textRu.normalizedForComparison == normalizedSaved ||
                         $0.textEn.normalizedForComparison == normalizedSaved
                     }) {
-                        if let fam = family, (fam == .accessoryRectangular || fam == .systemSmall), foundVerse.text(for: lang).count > 125 {
-                            if let shortVerse = database.randomElement() {
-                                return shortVerse
+                        if let fam = family {
+                            let maxLen = (fam == .accessoryRectangular) ? 65 : 100
+                            if (fam == .accessoryRectangular || fam == .systemSmall), foundVerse.text(for: lang).count > maxLen {
+                                if let shortVerse = database.randomElement() {
+                                    return shortVerse
+                                }
                             }
                         }
                         return foundVerse
@@ -560,25 +566,25 @@ struct BibleWidgetEntryView: View {
         Group {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: крупные буквы стиха и четкая ссылка с номером главы
+                // Прямоугольный виджет на экране блокировки: крупный текст, который всегда виден целиком
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: 14.5, weight: .bold, design: .rounded))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.85)
+                        .font(.system(size: 13.5, weight: .bold, design: .rounded))
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.60)
                         .multilineTextAlignment(.leading)
                         .foregroundColor(.primary)
                     
                     Spacer(minLength: 0)
                     
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                         Text("✝️")
-                            .font(.system(size: 9))
+                            .font(.system(size: 8))
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 10.5, weight: .bold, design: .rounded))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                            .foregroundColor(.primary)
+                            .minimumScaleFactor(0.75)
+                            .foregroundColor(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
