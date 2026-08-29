@@ -1,39 +1,37 @@
-[ՀԱՅԵՐԵՆ / ARMENIAN]
-"Luys: Armenian Bible" - ոգեշնչող հոգևոր հավելված, որը բերում է Աստծո Խոսքը ձեր iPhone-ի Կողպեքրանին (Lock Screen) և Գլխավոր էկրանին:
+🇦🇲 ՀԱՅԵՐԵՆ:
+«Luys: Armenian Bible» — ոգեշնչող հոգևոր հավելված, որը բերում է Աստծո Խոսքը ձեր iPhone-ի Կողպեքրանին (Lock Screen) և Գլխավոր էկրանին:
 
-Հիմնական առանձնահատկությունները:
-- Կողպեքրանի Վիդջեթներ: Աստվածաշնչի ոգեշնչող տողեր ամեն ժամ ավտոմատ թարմացմամբ և սինխրոնացմամբ:
-- Ամբողջական Սուրբ Գիրք: Հին և Նոր Կտակարանների բոլոր գրքերը (Արարատ և Էջմիածնի թարգմանություններ):
-- Գրիգոր Նարեկացի "Մատյան Ողբերգության": Բոլոր 95 գլուխները ստուդիական աուդիոյով (Սոս Սարգսյան և Օլեգ Մոլենկո):
-- ԱԲ Հոգևոր Օգնական (AI Guide): Հարցեր և մեկնաբանություններ (Gemini, ChatGPT, Claude):
-- Աստվածաշնչյան Վիկտորինա: Ինտերակտիվ թեստեր գիտելիքների ստուգման համար:
-- Հոգևոր Բացիկներ և Էջանիշեր: Գեղեցիկ քարտերի ստեղծում և տողերի պահպանում:
-- 100% Անցանց և Գաղտնի: Աշխատում է առանց ինտերնետի, առանց գովազդի և տվյալների հավաքագրման:
+✨ ԱՌԱՆՁՆԱՀԱՏԿՈՒԹՅՈՒՆՆԵՐԸ.
+• Կողպեքրանի Վիդջեթներ — Աստվածաշնչի ոգեշնչող տողեր ամեն ժամ ավտոմատ թարմացմամբ և անկախ ռոտացիայով:
+• Ամբողջական Սուրբ Գիրք — Հին և Նոր Կտակարանների բոլոր գրքերը (Արարատ և Էջմիածնի թարգմանություններ):
+• Գրիգոր Նարեկացի՝ «Մատյան Ողբերգության» — Բոլոր 95 գլուխները ստուդիական աուդիոյով (Սոս Սարգսյան և Օլեգ Մոլենկո):
+• ԱԲ Հոգևոր Օգնական (AI Guide) — Խորը մեկնաբանություններ և պատասխաններ (Gemini, ChatGPT, Claude):
+• Աստվածաշնչյան Վիկտորինա — Ինտերակտիվ թեստեր գիտելիքների ամրապնդման համար:
+• Հոգևոր Պաստառներ և Էջանիշեր — Բացառիկ հայկական խաչքարերով պաստառների ստեղծում:
+• 100% Անցանց և Գաղտնի — Աշխատում է առանց ինտերնետի, առանց գովազդի և տվյալների հավաքագրման:
 
-----------------------------------------
-
-[ENGLISH]
+─────────────────────────
+🇬🇧 ENGLISH:
 "Luys: Armenian Bible" brings the inspiring Word of God directly to your iOS Lock Screen and Home Screen.
 
-Key Features:
-- Lock Screen Widgets: Daily Bible verses with automatic hourly updates and sync.
-- Complete Holy Bible: Old and New Testaments in Armenian, English, and Russian.
-- Saint Gregory of Narek - Book of Lamentations: Full 95 chapters with studio audio recitations (Sos Sargsyan and Oleg Molenko).
-- AI Spiritual Guide: Deep biblical reflections powered by Gemini, ChatGPT, and Claude.
-- Bible Quiz and Trivia: Strengthen your faith with interactive knowledge tests.
-- Spiritual Postcards and Bookmarks: Create elegant quote cards and save favorite verses.
-- 100% Offline and Private: No tracking, no ads, works fully offline.
+✨ KEY FEATURES:
+• Lock Screen & Home Widgets — Inspiring Bible verses with automatic hourly updates and independent rotation.
+• Complete Holy Bible — Old & New Testaments in Armenian, English, and Russian.
+• Saint Gregory of Narek — Book of Lamentations — Full 95 chapters with studio audio recitations (Sos Sargsyan & Oleg Molenko).
+• AI Spiritual Guide — Deep biblical reflections powered by Gemini, ChatGPT, and Claude.
+• Bible Quiz & Trivia — Strengthen your faith with interactive knowledge tests.
+• Spiritual Wallpapers & Bookmarks — Create elegant quote cards with ancient Armenian khachkars.
+• 100% Offline & Private — No tracking, no ads, works fully offline.
 
-----------------------------------------
+─────────────────────────
+🇷🇺 РУССКИЙ:
+«Luys: Armenian Bible» — вдохновляющие строки Священного Писания прямо на Экране блокировки (Lock Screen) и Главном экране вашего iPhone.
 
-[РУССКИЙ / RUSSIAN]
-"Luys: Armenian Bible" - вдохновляющие строки Священного Писания прямо на Экране блокировки (Lock Screen) и Главном экране вашего iPhone.
-
-Главные возможности:
-- Виджеты экрана блокировки: Библейские стихи с автоматическим обновлением каждый час.
-- Полный текст Библии: Ветхий и Новый Завет на армянском, русском и английском языках.
-- Григор Нарекаци - "Книга скорбных песнопений": Все 95 глав со студийной озвучкой (Сос Саргсян и Олег Моленко).
-- ИИ-помощник (AI Guide): Духовные ответы и толкования (Gemini, ChatGPT, Claude).
-- Библейская викторина: Интерактивные тесты на знание Священного Писания.
-- Духовные открытки и закладки: Создание красивых карточек и поиск по текстам.
-- 100% Оффлайн и Конфиденциальность: Без интернета, рекламы и сбора данных.
+✨ ГЛАВНЫЕ ВОЗМОЖНОСТИ:
+• Виджеты экрана блокировки и экрана «Домой» — Библейские стихи с автообновлением каждый час и независимой ротацией.
+• Полный текст Библии — Ветхий и Новый Завет на армянском, русском и английском языках.
+• Григор Нарекаци — «Книга скорбных песнопений» — Все 95 глав со студийной озвучкой (Сос Саргсян и Олег Моленко).
+• ИИ-помощник (AI Guide) — Духовные ответы и толкования (Gemini, ChatGPT, Claude).
+• Библейская викторина — Интерактивные тесты на знание Священного Писания.
+• Духовные обои и открытки — Создание премиальных карточек со стихами дня и древними хачкарами.
+• 100% Оффлайн и Конфиденциальность — Без интернета, рекламы и сбора данных.

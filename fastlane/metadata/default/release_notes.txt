@@ -1,4 +1,17 @@
-- Grigor Narekatsi: Complete 95 audio chapters and Book of Lamentations
-- Գրիգոր Նարեկացի: Բոլոր 95 գլուխները ստուդիական աուդիոյով
-- Lock Screen and Home Screen widget synchronization enhancements
-- Григор Нарекаци: Все 95 глав со студийной озвучкой и улучшенные виджеты
+- Armenian Bible Premium: StoreKit 2 subscriptions & Grandfathering for early adopters
+- Saint Gregory of Narek: Complete 95 audio chapters with studio narrations
+- AI Spiritual Guide: Deep biblical reflections & interpretations
+- Lock Screen & Home Screen widgets: High-legibility typography and independent verse rotation
+- Spiritual Wallpapers: Exclusive Armenian Christian wallpapers & khachkars
+
+- Armenian Bible Premium: Բաժանորդագրություն և անվճար հասանելիություն նախկին գնորդների համար
+- Գրիգոր Նարեկացի «Մատյան Ողբերգության»՝ Բոլոր 95 գլուխները ստուդիական աուդիոյով
+- ԱԲ Հոգևոր Օգնական՝ Աստվածաշնչի մեկնաբանություններ և պատասխաններ
+- Կողպեքրանի և Գլխավոր էկրանի վիդջեթների խոշոր տառատեսակներ և անկախ ռոտացիա
+- Հոգևոր Պաստառներ՝ Բացառիկ հայկական խաչքարեր և ֆոներ
+
+- Armenian Bible Premium: Подписки StoreKit 2 и пожизненный Premium для ранних покупателей
+- Григор Нарекаци «Книга скорбных песнопений»: Все 95 глав со студийной озвучкой
+- Духовный ИИ-помощник: Ответы на вопросы веры и толкования Священного Писания
+- Виджеты экрана блокировки и Главного экрана: Крупный четкий шрифт и независимая ротация
+- Духовные обои: Эксклюзивные армянские фоны с древними хачкарами и стихом дня
