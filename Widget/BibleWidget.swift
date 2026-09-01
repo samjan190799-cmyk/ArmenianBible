@@ -267,6 +267,7 @@ struct SimpleEntry: TimelineEntry {
     let language: AppLanguage
 }
 
+@available(iOS 17.0, *)
 typealias BibleWidgetEntry = SimpleEntry
 
 // MARK: - Провайдер временной шкалы виджета (Timeline Provider)
