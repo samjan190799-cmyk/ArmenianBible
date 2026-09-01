@@ -372,7 +372,7 @@ class BibleManager: ObservableObject {
     func syncLockScreenWidget() {
         if let defaults = sharedDefaults {
             // 1. Экран блокировки (Lock Screen)
-            let isPremium = SubscriptionManager.shared.isPremium
+            let isPremium = defaults.bool(forKey: "is_premium_active")
             let activeCategory = (isPremium || !lockScreenCategory.isPremiumRequired) ? lockScreenCategory : .pearls
             let list = BibleVerse.lockScreenVerses(for: activeCategory)
             
