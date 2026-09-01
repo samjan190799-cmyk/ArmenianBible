@@ -439,7 +439,7 @@ struct NarekHeroPlayerCard: View {
                                 .background(Color(hex: "FDE68A"))
                                 .cornerRadius(5)
                         } else if audioPlayer.isStreaming {
-                            Text("narek_loading_audio".localized(for: manager.appLanguage))
+                            Text("narek_loading_audio".localized(for: audioPlayer.voiceLanguage))
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
@@ -604,7 +604,7 @@ struct NarekHeroPlayerCard: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 11))
                         .foregroundColor(accentColor)
-                    Text(String(format: "narek_saved_position_format".localized(for: manager.appLanguage), formatTime(audioPlayer.savedTimeSeconds), audioPlayer.savedPrayerId))
+                    Text(String(format: "narek_saved_position_format".localized(for: audioPlayer.voiceLanguage), formatTime(audioPlayer.savedTimeSeconds), audioPlayer.savedPrayerId))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.secondary)
                 }
