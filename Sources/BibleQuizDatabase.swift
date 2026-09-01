@@ -1216,12 +1216,6 @@ struct QuizDatabase {
                 "Anger, jealousy, pride",
                 "Silence, solitude, fear"
             ],
-            optionsEn: [
-                "Love, joy, peace, patience, kindness, goodness, faithfulness",
-                "Wealth, power, glory",
-                "Anger, jealousy, pride",
-                "Silence, isolation, fear"
-            ],
             correctAnswerIndex: 0,
             explanationHy: "«Հոգու պտուղն է՝ սեր, խնդություն, խաղաղություն, երկայնամտություն...» (Գաղատացիս 5:22)։",
             explanationRu: "«Плод же духа: любовь, радость, мир, долготерпение, благость, милосердие, вера» (Гал 5:22).",
