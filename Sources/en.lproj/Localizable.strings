@@ -134,6 +134,9 @@
 "edition_armenian_subtitle" = "Eastern Armenian Translation";
 "edition_russian_subtitle" = "Synodal Translation";
 "edition_english_subtitle" = "King James Version (KJV)";
+"edition_russian" = "Russian (Synodal)";
+"edition_english" = "English (KJV)";
+"verse_label" = "Verse";
 
 /* Favorites Tab */
 "tab_favorites" = "Favorites";
@@ -171,7 +174,11 @@
 "quiz_result_expert" = "Excellent Score! 🏆";
 "quiz_result_good" = "Good Score! 👍";
 "quiz_result_try_again" = "Keep Studying the Bible! 📖";
+"quiz_result_subtitle" = "Keep exploring the Holy Scriptures every day!";
 "quiz_button_play_again" = "Play Again";
+"quiz_read_in_bible" = "Read in Bible";
+"quiz_share_result" = "Share Result";
+"quiz_share_text" = "I scored %d out of %d in the Armenian Bible Quiz! 📖✨";
 
 /* Achievements & Badges */
 "achievements_title" = "Achievements & Badges";
@@ -229,6 +236,19 @@
 "narekatsi_subtitle" = "Book of Lamentations (From the Depths of the Heart)";
 "button_listen_audio" = "Listen";
 "button_pause_audio" = "Pause";
+"narek_tab_text" = "Text (Matyan)";
+"narek_tab_audio" = "Audio Recording";
+"narek_playlist_title" = "📻 All 95 Chapters (Playlist)";
+"narek_prayers_count" = "95 prayers";
+"narek_loading_audio" = "• Loading audio...";
+"narek_saved_position_format" = "Saved position: %@ (Chapter %d)";
+"narek_listen_pro" = "Listen (PRO)";
+"narek_stop" = "Stop";
+"narek_listen_prayer" = "Listen to Prayer";
+"saint_gregory_narekatsi" = "St. Gregory of Narek";
+"alert_error_title" = "Error";
+"alert_success_title" = "Congratulations! 🕊️";
+"alert_amen" = "Amen";
 
 /* Notes & Tags */
 "notes_title" = "Notes & Highlights";

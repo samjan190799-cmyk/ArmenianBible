@@ -87,6 +87,10 @@ final class SubscriptionManager: ObservableObject {
     private init() {
         // Загружаем закэшированный статус
         self.isPremium = UserDefaults.standard.bool(forKey: kPremiumOverrideKey)
+        if let sharedDefaults = UserDefaults(suiteName: "group.com.samvel.ArmenianBible") {
+            sharedDefaults.set(self.isPremium, forKey: "is_premium_active")
+            sharedDefaults.synchronize()
+        }
         
         // Запуск слушателя транзакций StoreKit 2
         updateListenerTask = listenForTransactions()
@@ -247,6 +251,10 @@ final class SubscriptionManager: ObservableObject {
         
         self.isPremium = hasActivePremium
         UserDefaults.standard.set(hasActivePremium, forKey: kPremiumOverrideKey)
+        if let sharedDefaults = UserDefaults(suiteName: "group.com.samvel.ArmenianBible") {
+            sharedDefaults.set(hasActivePremium, forKey: "is_premium_active")
+            sharedDefaults.synchronize()
+        }
     }
     
     /// Определение ранних покупателей, купивших платное приложение до перехода на подписки (< 2.0)
@@ -277,6 +285,12 @@ final class SubscriptionManager: ObservableObject {
     }
     
     // MARK: - ОГРАНИЧИТЕЛИ (Gating Logic)
+    
+    /// Проверка доступа к категории экрана блокировки (Бесплатно: .pearls, Остальные: Premium)
+    func canAccessLockCategory(_ category: LockScreenCategory) -> Bool {
+        if isPremium { return true }
+        return !category.isPremiumRequired
+    }
     
     /// Проверка доступа к аудио Нарекаци (Глава 1 бесплатна для всех, остальные 2-95 требуют Premium)
     func canPlayNarekAudio(prayerId: Int) -> Bool {
@@ -329,5 +343,9 @@ final class SubscriptionManager: ObservableObject {
     func setDebugPremium(_ enabled: Bool) {
         self.isPremium = enabled
         UserDefaults.standard.set(enabled, forKey: kPremiumOverrideKey)
+        if let sharedDefaults = UserDefaults(suiteName: "group.com.samjan.armenianbible") {
+            sharedDefaults.set(enabled, forKey: "is_premium_active")
+            sharedDefaults.synchronize()
+        }
     }
 }

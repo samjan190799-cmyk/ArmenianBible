@@ -301,27 +301,30 @@ enum UpdateInterval: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-// MARK: - Категории для Экрана Блокировки и Виджетов
+// MARK: - Категории для Экрана Блокировки и Виджетов (iOS Lock Screen & Widgets)
 enum LockScreenCategory: String, CaseIterable, Identifiable, Codable {
-    case pearls = "pearls"          // Короткие золотые мысли (до 45-50 симв.)
-    case love = "love"              // Любовь и мир
-    case faith = "faith"            // Вера и упование
-    case psalms = "psalms"          // Псалмы Давида
-    case wisdom = "wisdom"          // Мудрость и притчи
-    case prayers = "prayers"        // Молитвы
-    case all = "all"                // Все стихи
+    case pearls = "pearls"          // 🕊️ Короткие жемчужины (Бесплатно)
+    case narekatsi = "narekatsi"    // 👑 Краткие молитвы Нарекаци (PRO)
+    case psalms = "psalms"          // ✝️ Короткие Псалмы Давида (PRO)
+    case wisdom = "wisdom"          // 📖 Краткая Мудрость Соломона (PRO)
+    case love = "love"              // ❤️ Короткие стихи о Любви (PRO)
+    case faith = "faith"            // ⚓ Короткие стихи о Вере (PRO)
     
     var id: String { rawValue }
+    
+    /// Требуется ли подписка Armenian Bible Premium
+    var isPremiumRequired: Bool {
+        return self != .pearls
+    }
     
     var icon: String {
         switch self {
         case .pearls: return "🕊️"
-        case .love: return "❤️"
-        case .faith: return "⚓"
+        case .narekatsi: return "👑"
         case .psalms: return "✝️"
         case .wisdom: return "📖"
-        case .prayers: return "🤲"
-        case .all: return "🌟"
+        case .love: return "❤️"
+        case .faith: return "⚓"
         }
     }
     
@@ -329,21 +332,15 @@ enum LockScreenCategory: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .pearls:
             switch language {
-            case .armenian: return "Կարճ մտքեր (մինչև 45 նիշ)"
-            case .russian: return "Короткие жемчужины (до 45 симв.)"
-            case .english: return "Short Pearls (up to 45 chars)"
+            case .armenian: return "Կարճ գոհարներ"
+            case .russian: return "Короткие жемчужины"
+            case .english: return "Short Pearls"
             }
-        case .love:
+        case .narekatsi:
             switch language {
-            case .armenian: return "Սեր և Խաղաղություն"
-            case .russian: return "Любовь и Мир"
-            case .english: return "Love & Peace"
-            }
-        case .faith:
-            switch language {
-            case .armenian: return "Հավատք և Հույս"
-            case .russian: return "Вера и Надежда"
-            case .english: return "Faith & Hope"
+            case .armenian: return "Նարեկացու աղոթքներ"
+            case .russian: return "Молитвы Нарекаци"
+            case .english: return "Narekatsi Prayers"
             }
         case .psalms:
             switch language {
@@ -357,34 +354,25 @@ enum LockScreenCategory: String, CaseIterable, Identifiable, Codable {
             case .russian: return "Мудрость и Притчи"
             case .english: return "Wisdom & Proverbs"
             }
-        case .prayers:
+        case .love:
             switch language {
-            case .armenian: return "Աղոթքներ"
-            case .russian: return "Молитвы"
-            case .english: return "Prayers"
+            case .armenian: return "Սեր և Խաղաղություն"
+            case .russian: return "Любовь и Мир"
+            case .english: return "Love & Peace"
             }
-        case .all:
+        case .faith:
             switch language {
-            case .armenian: return "Բոլոր համարները"
-            case .russian: return "Все стихи дня"
-            case .english: return "All Verses"
+            case .armenian: return "Հավատք և Քաջություն"
+            case .russian: return "Вера и Мужество"
+            case .english: return "Faith & Courage"
             }
         }
     }
 }
 
-// MARK: - База данных библейских стихов и молитв (на армянском, русском и английском)
 extension BibleVerse {
-    // MARK: - Короткие жемчужины веры для экрана блокировки (до 45-50 символов)
-    static let lockScreenPearls: [BibleVerse] = [
-        BibleVerse(
-            textHy: "Թո՛ղ ձեր ամեն գործ սիրով լինի։",
-            textRu: "Все у вас да будет с любовью.",
-            textEn: "Let all that you do be done in love.",
-            refHy: "Ա Կորնթացիս 16:14",
-            refRu: "1 Коринфянам 16:14",
-            refEn: "1 Corinthians 16:14"
-        ),
+    // MARK: - 1. 🕊️ Короткие жемчужины (Бесплатно / Free) — до 45 символов
+    static let shortPearls: [BibleVerse] = [
         BibleVerse(
             textHy: "Մի՛շտ ուրախ եղեք։",
             textRu: "Всегда радуйтесь.",
@@ -408,150 +396,6 @@ extension BibleVerse {
             refHy: "Ա Թեսաղոնիկեցիս 5:18",
             refRu: "1 Фессалоникийцам 5:18",
             refEn: "1 Thessalonians 5:18"
-        ),
-        BibleVerse(
-            textHy: "Աստված սեր է։",
-            textRu: "Бог есть любовь.",
-            textEn: "God is love.",
-            refHy: "Ա Հովհաննես 4:16",
-            refRu: "1 Иоанна 4:16",
-            refEn: "1 John 4:16"
-        ),
-        BibleVerse(
-            textHy: "Սերը երբեք չի դադարում։",
-            textRu: "Любовь никогда не перестает.",
-            textEn: "Charity never faileth.",
-            refHy: "Ա Կորնթացիս 13:8",
-            refRu: "1 Коринфянам 13:8",
-            refEn: "1 Corinthians 13:8"
-        ),
-        BibleVerse(
-            textHy: "Հավատքո՛վ ենք ընթանում։",
-            textRu: "Мы ходим верою, а не видением.",
-            textEn: "For we walk by faith, not by sight.",
-            refHy: "Բ Կորնթացիս 5:7",
-            refRu: "2 Коринфянам 5:7",
-            refEn: "2 Corinthians 5:7"
-        ),
-        BibleVerse(
-            textHy: "Մի՛ վախեցիր, միայն հավատա՛։",
-            textRu: "Не бойся, только веруй.",
-            textEn: "Be not afraid, only believe.",
-            refHy: "Մարկոս 5:36",
-            refRu: "Марка 5:36",
-            refEn: "Mark 5:36"
-        ),
-        BibleVerse(
-            textHy: "Ամեն ինչ հնարավոր է հավատացողին։",
-            textRu: "Все возможно верующему.",
-            textEn: "All things are possible to him that believeth.",
-            refHy: "Մարկոս 9:23",
-            refRu: "Марка 9:23",
-            refEn: "Mark 9:23"
-        ),
-        BibleVerse(
-            textHy: "Եթե Աստված մեզ հետ է, ո՞վ է մեզ հակառակ։",
-            textRu: "Если Бог за нас, кто против нас?",
-            textEn: "If God be for us, who can be against us?",
-            refHy: "Հռոմեացիս 8:31",
-            refRu: "Римлянам 8:31",
-            refEn: "Romans 8:31"
-        ),
-        BibleVerse(
-            textHy: "Չարին բարիո՛վ հաղթիր։",
-            textRu: "Побеждай зло добром.",
-            textEn: "Overcome evil with good.",
-            refHy: "Հռոմեացիս 12:21",
-            refRu: "Римлянам 12:21",
-            refEn: "Romans 12:21"
-        ),
-        BibleVerse(
-            textHy: "Տերն իմ հովիվն է, ես կարիք չունեմ։",
-            textRu: "Господь — Пастырь мой; я ни в чем не буду нуждаться.",
-            textEn: "The Lord is my shepherd; I shall not want.",
-            refHy: "Սաղմոսներ 23:1",
-            refRu: "Псалом 22:1",
-            refEn: "Psalm 23:1"
-        ),
-        BibleVerse(
-            textHy: "Տերն իմ լույսն է և իմ փրկությունը։",
-            textRu: "Господь — свет мой и спасение мое.",
-            textEn: "The Lord is my light and my salvation.",
-            refHy: "Սաղմոսներ 27:1",
-            refRu: "Псалом 26:1",
-            refEn: "Psalm 27:1"
-        ),
-        BibleVerse(
-            textHy: "Աստված մեր ապավենն է և զորությունը։",
-            textRu: "Бог нам прибежище и сила.",
-            textEn: "God is our refuge and strength.",
-            refHy: "Սաղմոսներ 46:1",
-            refRu: "Псалом 45:2",
-            refEn: "Psalm 46:1"
-        ),
-        BibleVerse(
-            textHy: "Երբ վախենամ, Քեզ պիտի ապավինեմ։",
-            textRu: "Когда я в страхе, на Тебя я уповаю.",
-            textEn: "What time I am afraid, I will trust in thee.",
-            refHy: "Սաղմոսներ 56:3",
-            refRu: "Псалом 55:4",
-            refEn: "Psalm 56:3"
-        ),
-        BibleVerse(
-            textHy: "Քո խոսքը ճրագ է իմ ոտքերի համար։",
-            textRu: "Слово Твое — светильник ноге моей.",
-            textEn: "Thy word is a lamp unto my feet.",
-            refHy: "Սաղմոսներ 119:105",
-            refRu: "Псалом 118:105",
-            refEn: "Psalm 119:105"
-        ),
-        BibleVerse(
-            textHy: "Ամբողջ սրտովդ Տիրո՛ջն ապավինիր։",
-            textRu: "Надейся на Господа всем сердцем твоим.",
-            textEn: "Trust in the Lord with all thine heart.",
-            refHy: "Առակաց 3:5",
-            refRu: "Притчи 3:5",
-            refEn: "Proverbs 3:5"
-        ),
-        BibleVerse(
-            textHy: "Տիրո՛ջը հանձնիր քո գործերը։",
-            textRu: "Предай Господу дела твои.",
-            textEn: "Commit thy works unto the Lord.",
-            refHy: "Առակաց 16:3",
-            refRu: "Притчи 16:3",
-            refEn: "Proverbs 16:3"
-        ),
-        BibleVerse(
-            textHy: "Հիսուս Քրիստոսը նույնն է հավիտյան։",
-            textRu: "Иисус Христос вчера и сегодня и вовеки Тот же.",
-            textEn: "Jesus Christ the same yesterday, and to day, and for ever.",
-            refHy: "Եբրայեցիս 13:8",
-            refRu: "Евреям 13:8",
-            refEn: "Hebrews 13:8"
-        ),
-        BibleVerse(
-            textHy: "Ամեն ինչ կարող եմ Քրիստոսով։",
-            textRu: "Все могу в укрепляющем меня Иисусе Христе.",
-            textEn: "I can do all things through Christ.",
-            refHy: "Փիլիպպեցիներին 4:13",
-            refRu: "Филиппийцам 4:13",
-            refEn: "Philippians 4:13"
-        ),
-        BibleVerse(
-            textHy: "Մի՛շտ ուրախ եղեք Տիրոջով։",
-            textRu: "Радуйтесь всегда в Господе.",
-            textEn: "Rejoice in the Lord alway.",
-            refHy: "Փիլիպպեցիներին 4:4",
-            refRu: "Филиппийцам 4:4",
-            refEn: "Philippians 4:4"
-        ),
-        BibleVerse(
-            textHy: "Հագե՛ք սերը, որ կատարելության կապն է։",
-            textRu: "Облекитесь в любовь, связующую совершенство.",
-            textEn: "Put on charity, which is the bond of perfectness.",
-            refHy: "Կողոսացիս 3:14",
-            refRu: "Колоссянам 3:14",
-            refEn: "Colossians 3:14"
         ),
         BibleVerse(
             textHy: "Ես եմ աշխարհի լույսը։",
@@ -594,84 +438,12 @@ extension BibleVerse {
             refEn: "James 1:17"
         ),
         BibleVerse(
-            textHy: "Բարի է Տերը, ապավեն՝ նեղության օրը։",
-            textRu: "Благ Господь, убежище в день скорби.",
-            textEn: "The Lord is good, a strong hold in the day of trouble.",
-            refHy: "Նաում 1:7",
-            refRu: "Наум 1:7",
-            refEn: "Nahum 1:7"
-        ),
-        BibleVerse(
-            textHy: "Իմացե՛ք, որ Տերն է Աստված։",
-            textRu: "Знайте, что Господь есть Бог.",
-            textEn: "Know ye that the Lord he is God.",
-            refHy: "Սաղմոսներ 100:3",
-            refRu: "Псалом 99:3",
-            refEn: "Psalm 100:3"
-        ),
-        BibleVerse(
-            textHy: "Տերը մոտ է բոլոր իրեն կանչողներին։",
-            textRu: "Близок Господь ко всем призывающим Его.",
-            textEn: "The Lord is nigh unto all them that call upon him.",
-            refHy: "Սաղմոսներ 145:18",
-            refRu: "Псалом 144:18",
-            refEn: "Psalm 145:18"
-        ),
-        BibleVerse(
-            textHy: "Զորացե՛ք Տիրոջով և Նրա զորությամբ։",
-            textRu: "Укрепляйтесь Господом и могуществом силы Его.",
-            textEn: "Be strong in the Lord, and in the power of his might.",
-            refHy: "Եփեսացիս 6:10",
-            refRu: "Ефесянам 6:10",
-            refEn: "Ephesians 6:10"
-        ),
-        BibleVerse(
-            textHy: "Փառաբանում եմ Քեզ, որ զարմանալի ստեղծվեցի։",
-            textRu: "Славлю Тебя, потому что я дивно устроен.",
-            textEn: "I will praise thee; for I am wonderfully made.",
-            refHy: "Սաղմոսներ 139:14",
-            refRu: "Псалом 138:14",
-            refEn: "Psalm 139:14"
-        ),
-        BibleVerse(
-            textHy: "Սովորեցրո՛ւ ինձ կատարել Քո կամքը։",
-            textRu: "Научи меня исполнять волю Твою.",
-            textEn: "Teach me to do thy will.",
-            refHy: "Սաղմոսներ 143:10",
-            refRu: "Псалом 142:10",
-            refEn: "Psalm 143:10"
-        ),
-        BibleVerse(
-            textHy: "Տիրոջո՛վ ուրախացիր, և Նա կտա քո փափագները։",
-            textRu: "Утешайся Господом, и Он исполнит желания сердца твоего.",
-            textEn: "Delight thyself also in the Lord; and he shall give thee the desires of thine heart.",
-            refHy: "Սաղմոսներ 37:4",
-            refRu: "Псалом 36:4",
-            refEn: "Psalm 37:4"
-        ),
-        BibleVerse(
-            textHy: "Տիրոջն ապավինողները չեն ամաչի։",
-            textRu: "Надеющиеся на Господа не постыдятся.",
-            textEn: "They shall not be ashamed that wait for me.",
-            refHy: "Եսայի 49:23",
-            refRu: "Исаия 49:23",
-            refEn: "Isaiah 49:23"
-        ),
-        BibleVerse(
-            textHy: "Ես Քեզ հետ եմ, մի՛ վախեցիր։",
-            textRu: "Не бойся, ибо Я с тобою.",
-            textEn: "Fear thou not; for I am with thee.",
-            refHy: "Եսայի 41:10",
-            refRu: "Исаия 41:10",
-            refEn: "Isaiah 41:10"
-        ),
-        BibleVerse(
-            textHy: "Միայն Աստծո մեջ է հանգստանում իմ անձը։",
-            textRu: "Только в Боге успокаивается душа моя.",
-            textEn: "Truly my soul waiteth upon God.",
-            refHy: "Սաղմոսներ 62:1",
-            refRu: "Псалом 61:2",
-            refEn: "Psalm 62:1"
+            textHy: "Մի՛շտ ուրախ եղեք Տիրոջով։",
+            textRu: "Радуйтесь всегда в Господе.",
+            textEn: "Rejoice in the Lord alway.",
+            refHy: "Փիլիպպեցիներին 4:4",
+            refRu: "Филиппийцам 4:4",
+            refEn: "Philippians 4:4"
         ),
         BibleVerse(
             textHy: "Նախ խնդրեցե՛ք Աստծո արքայությունը։",
@@ -690,14 +462,609 @@ extension BibleVerse {
             refEn: "Luke 1:37"
         ),
         BibleVerse(
-            textHy: "Խաղաղարարները Աստծո որդիներ կկոչվեն։",
-            textRu: "Блаженны миротворцы, ибо они нарекутся сынами Божиими.",
-            textEn: "Blessed are the peacemakers: for they shall be called the children of God.",
+            textHy: "Երանի՜ խաղաղարարներին։",
+            textRu: "Блаженны миротворцы.",
+            textEn: "Blessed are the peacemakers.",
             refHy: "Մատթեոս 5:9",
             refRu: "Матфея 5:9",
             refEn: "Matthew 5:9"
+        ),
+        BibleVerse(
+            textHy: "Հիսուս Քրիստոսը նույնն է հավիտյան։",
+            textRu: "Иисус Христос вчера и сегодня и вовеки Тот же.",
+            textEn: "Jesus Christ the same yesterday, today, and forever.",
+            refHy: "Եբրայեցիս 13:8",
+            refRu: "Евреям 13:8",
+            refEn: "Hebrews 13:8"
+        ),
+        BibleVerse(
+            textHy: "Խնդրեցե՛ք, և կտրվի ձեզ։",
+            textRu: "Просите, и дано будет вам.",
+            textEn: "Ask, and it shall be given you.",
+            refHy: "Մատթեոս 7:7",
+            refRu: "Матфея 7:7",
+            refEn: "Matthew 7:7"
+        ),
+        BibleVerse(
+            textHy: "Ես եմ Ալֆան և Օմեգան։",
+            textRu: "Я есмь Альфа и Омега.",
+            textEn: "I am Alpha and Omega.",
+            refHy: "Հայտնություն 22:13",
+            refRu: "Откровение 22:13",
+            refEn: "Revelation 22:13"
+        ),
+        BibleVerse(
+            textHy: "Երանի՜ նրանց, որ սրտով մաքուր են։",
+            textRu: "Блаженны чистые сердцем.",
+            textEn: "Blessed are the pure in heart.",
+            refHy: "Մատթեոս 5:8",
+            refRu: "Матфея 5:8",
+            refEn: "Matthew 5:8"
+        ),
+        BibleVerse(
+            textHy: "Աստծո խաղաղությունը թող իշխի ձեր սրտերում։",
+            textRu: "Да владычествует в сердцах ваших мир Божий.",
+            textEn: "Let the peace of God rule in your hearts.",
+            refHy: "Կողոսացիս 3:15",
+            refRu: "Колоссянам 3:15",
+            refEn: "Colossians 3:15"
+        ),
+        BibleVerse(
+            textHy: "Բարին գործելիս չձանձրանանք։",
+            textRu: "Делая добро, да не унываем.",
+            textEn: "Let us not be weary in well doing.",
+            refHy: "Գաղատացիս 6:9",
+            refRu: "Галатам 6:9",
+            refEn: "Galatians 6:9"
+        ),
+        BibleVerse(
+            textHy: "Հույսով ուրախացե՛ք, նեղությանը համբերեցե՛ք։",
+            textRu: "Утешайтесь надеждою; в скорби будьте терпеливы.",
+            textEn: "Rejoicing in hope; patient in tribulation.",
+            refHy: "Հռոմեացիս 12:12",
+            refRu: "Римлянам 12:12",
+            refEn: "Romans 12:12"
+        ),
+        BibleVerse(
+            textHy: "Ամեն ինչ փորձեցե՛ք, բարի՛ն պահեք։",
+            textRu: "Все испытывайте, хорошего держитесь.",
+            textEn: "Prove all things; hold fast that which is good.",
+            refHy: "Ա Թեսաղոնիկեցիս 5:21",
+            refRu: "1 Фессалоникийцам 5:21",
+            refEn: "1 Thessalonians 5:21"
         )
     ]
+
+    // MARK: - 2. 👑 Краткие молитвы Нарекаци (PRO) — до 55 символов
+    static let shortNarekatsi: [BibleVerse] = [
+        BibleVerse(
+            textHy: "Ընդո՛ւնիր քաղցրությամբ, Տե՛ր Աստված, աղաչանքս։",
+            textRu: "Прими с благосклонностью, Господи, мольбу мою.",
+            textEn: "Accept with sweetness, Lord God, my supplication.",
+            refHy: "Նարեկացի • Բան Ա",
+            refRu: "Нарекаци • Глава 1",
+            refEn: "Narekatsi • Prayer 1"
+        ),
+        BibleVerse(
+            textHy: "Դո՛ւ ես լույսը, հույսը և իմ հոգու բժշկությունը։",
+            textRu: "Ты — свет, Ты — надежда, Ты — исцеление души моей.",
+            textEn: "Thou art light, hope and healing of my soul.",
+            refHy: "Նարեկացի • Բան ԺԲ",
+            refRu: "Нарекаци • Глава 12",
+            refEn: "Narekatsi • Prayer 12"
+        ),
+        BibleVerse(
+            textHy: "Ողորմա՛ծ Տեր, խաղաղությո՛ւն տուր իմ սրտին։",
+            textRu: "Господи милосердный, даруй мир сердцу моему.",
+            textEn: "Merciful Lord, grant peace unto my heart.",
+            refHy: "Նարեկացի • Բան ԺԸ",
+            refRu: "Нарекаци • Глава 18",
+            refEn: "Narekatsi • Prayer 18"
+        ),
+        BibleVerse(
+            textHy: "Քո ձեռքերի մեջ եմ հանձնում իմ հոգին, Մարդասե՛ր։",
+            textRu: "В руки Твои, Человеколюбец, предаю душу мою.",
+            textEn: "Into Thy hands, Lover of mankind, I commit my soul.",
+            refHy: "Նարեկացի • Բան ԻԳ",
+            refRu: "Нарекаци • Глава 23",
+            refEn: "Narekatsi • Prayer 23"
+        ),
+        BibleVerse(
+            textHy: "Մաքրի՛ր մեղքերս, Քրիստո՛ս, և նորոգի՛ր հոգիս։",
+            textRu: "Очисти грехи мои, Христе, и обнови дух мой.",
+            textEn: "Cleanse my sins, O Christ, and renew my spirit.",
+            refHy: "Նարեկացի • Բան ԼԳ",
+            refRu: "Нарекаци • Глава 33",
+            refEn: "Narekatsi • Prayer 33"
+        ),
+        BibleVerse(
+            textHy: "Դո՛ւ ես կյանքը և փրկությունը, ողորմյա՛ ինձ, Աստվա՛ծ։",
+            textRu: "Ты — жизнь и спасение, помилуй меня, Боже.",
+            textEn: "Thou art life and salvation, have mercy on me, O God.",
+            refHy: "Նարեկացի • Բան ԽԱ",
+            refRu: "Нарекаци • Глава 41",
+            refEn: "Narekatsi • Prayer 41"
+        ),
+        BibleVerse(
+            textHy: "Թո՛ղ Քո շնորհի լույսը ծագի իմ խավարի մեջ։",
+            textRu: "Да воссияет свет благодати Твоей во тьме моей.",
+            textEn: "Let the light of Thy grace shine in my darkness.",
+            refHy: "Նարեկացի • Բան ԾԵ",
+            refRu: "Нарекаци • Глава 55",
+            refEn: "Narekatsi • Prayer 55"
+        ),
+        BibleVerse(
+            textHy: "Եղի՛ր ինձ պաշտպան և անսասան վեմ, ո՛վ Տեր։",
+            textRu: "Будь мне защитой и несокрушимой твердыней, Господи.",
+            textEn: "Be Thou my defense and an unshakeable rock, O Lord.",
+            refHy: "Նարեկացի • Բան ԿԷ",
+            refRu: "Нарекаци • Глава 67",
+            refEn: "Narekatsi • Prayer 67"
+        ),
+        BibleVerse(
+            textHy: "Մխիթարի՛ր սգավոր հոգիս երկնային ուրախությամբ։",
+            textRu: "Утешь скорбящую душу мою небесною радостью.",
+            textEn: "Comfort my sorrowful soul with heavenly joy.",
+            refHy: "Նարեկացի • Բան ՀԹ",
+            refRu: "Нарекаци • Глава 79",
+            refEn: "Narekatsi • Prayer 79"
+        ),
+        BibleVerse(
+            textHy: "Զորությունների՛ Տեր, օրհնի՛ր այս օրը Քո խաղաղությամբ։",
+            textRu: "Господи сил, благослови день сей миром Твоим.",
+            textEn: "Lord of hosts, bless this day with Thy peace.",
+            refHy: "Նարեկացի • Բան ՁԸ",
+            refRu: "Нарекаци • Глава 88",
+            refEn: "Narekatsi • Prayer 88"
+        ),
+        BibleVerse(
+            textHy: "Քե՛զ փառք և գոհություն հավիտյանս, Ամեն։",
+            textRu: "Тебе слава и благодарение вовеки, Аминь.",
+            textEn: "To Thee be glory and thanksgiving forever, Amen.",
+            refHy: "Նարեկացի • Բան ՂԳ",
+            refRu: "Нарекаци • Глава 93",
+            refEn: "Narekatsi • Prayer 93"
+        ),
+        BibleVerse(
+            textHy: "Նայի՛ր ինձ սիրով և փրկի՛ր, ո՛վ Փրկիչ իմ։",
+            textRu: "Взгляни на меня с любовью и спаси, Спаситель мой.",
+            textEn: "Look upon me with love and save me, my Savior.",
+            refHy: "Նարեկացի • Բան ՂԵ",
+            refRu: "Нарекаци • Глава 95",
+            refEn: "Narekatsi • Prayer 95"
+        )
+    ]
+
+    // MARK: - 3. ✝️ Короткие Псалмы Давида (PRO) — до 50 символов
+    static let shortPsalms: [BibleVerse] = [
+        BibleVerse(
+            textHy: "Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։",
+            textRu: "Господь — Пастырь мой; я ни в чем не буду нуждаться.",
+            textEn: "The Lord is my shepherd; I shall not want.",
+            refHy: "Սաղմոսներ 23:1",
+            refRu: "Псалом 22:1",
+            refEn: "Psalm 23:1"
+        ),
+        BibleVerse(
+            textHy: "Տերն իմ լույսն է ու փրկությունը, ումի՞ց վախենամ։",
+            textRu: "Господь — свет мой и спасение мое: кого мне бояться?",
+            textEn: "The Lord is my light and my salvation; whom shall I fear?",
+            refHy: "Սաղմոսներ 27:1",
+            refRu: "Псалом 26:1",
+            refEn: "Psalm 27:1"
+        ),
+        BibleVerse(
+            textHy: "Աստված մեր ապավենն է և զորությունը։",
+            textRu: "Бог нам прибежище и сила, скорый помощник в бедах.",
+            textEn: "God is our refuge and strength, a very present help.",
+            refHy: "Սաղմոսներ 46:1",
+            refRu: "Псалом 45:2",
+            refEn: "Psalm 46:1"
+        ),
+        BibleVerse(
+            textHy: "Քո խոսքը ճրագ է իմ ոտքերի համար։",
+            textRu: "Слово Твое — светильник ноге моей и свет стезе моей.",
+            textEn: "Thy word is a lamp unto my feet, and a light unto my path.",
+            refHy: "Սաղմոսներ 119:105",
+            refRu: "Псалом 118:105",
+            refEn: "Psalm 119:105"
+        ),
+        BibleVerse(
+            textHy: "Ճաշակեցե՛ք և տեսե՛ք, թե որքան քաղցր է Տերը։",
+            textRu: "Вкусите, и увидите, как благ Господь!",
+            textEn: "O taste and see that the Lord is good.",
+            refHy: "Սաղմոսներ 34:8",
+            refRu: "Псалом 33:9",
+            refEn: "Psalm 34:8"
+        ),
+        BibleVerse(
+            textHy: "Սուրբ սի՛րտ ստեղծիր իմ մեջ, Աստվա՛ծ։",
+            textRu: "Сердце чистое сотвори во мне, Боже.",
+            textEn: "Create in me a clean heart, O God.",
+            refHy: "Սաղմոսներ 51:10",
+            refRu: "Псалом 50:12",
+            refEn: "Psalm 51:10"
+        ),
+        BibleVerse(
+            textHy: "Օրհնի՛ր, ո՛վ իմ անձ, Տիրոջը։",
+            textRu: "Благослови, душа моя, Господа!",
+            textEn: "Bless the Lord, O my soul.",
+            refHy: "Սաղմոսներ 103:1",
+            refRu: "Псалом 102:1",
+            refEn: "Psalm 103:1"
+        ),
+        BibleVerse(
+            textHy: "Սա այն օրն է, որ Տերն արեց. ցնծա՛նք։",
+            textRu: "Сей день сотворил Господь: возрадуемся!",
+            textEn: "This is the day which the Lord hath made.",
+            refHy: "Սաղմոսներ 118:24",
+            refRu: "Псалом 117:24",
+            refEn: "Psalm 118:24"
+        ),
+        BibleVerse(
+            textHy: "Տերը մոտ է բոլոր իրեն կանչողներին։",
+            textRu: "Близок Господь ко всем призывающим Его.",
+            textEn: "The Lord is nigh unto all them that call upon him.",
+            refHy: "Սաղմոսներ 145:18",
+            refRu: "Псалом 144:18",
+            refEn: "Psalm 145:18"
+        ),
+        BibleVerse(
+            textHy: "Տիրոջո՛վ ուրախացիր, և Նա կտա քո սրտի փափագները։",
+            textRu: "Утешайся Господом, и Он исполнит желания сердца твоего.",
+            textEn: "Delight thyself in the Lord; he shall give thine heart desires.",
+            refHy: "Սաղմոսներ 37:4",
+            refRu: "Псалом 36:4",
+            refEn: "Psalm 37:4"
+        ),
+        BibleVerse(
+            textHy: "Իմ օգնությունը Տիրոջից է։",
+            textRu: "Помощь моя от Господа, сотворившего небо и землю.",
+            textEn: "My help cometh from the Lord, which made heaven and earth.",
+            refHy: "Սաղմոսներ 121:2",
+            refRu: "Псалом 120:2",
+            refEn: "Psalm 121:2"
+        ),
+        BibleVerse(
+            textHy: "Միայն Աստծո մեջ է հանգստանում իմ անձը։",
+            textRu: "Только в Боге успокаивается душа моя.",
+            textEn: "Truly my soul waiteth upon God.",
+            refHy: "Սաղմոսներ 62:1",
+            refRu: "Псалом 61:2",
+            refEn: "Psalm 62:1"
+        ),
+        BibleVerse(
+            textHy: "Իմացե՛ք, որ Տերն է Աստված։",
+            textRu: "Знайте, что Господь есть Бог.",
+            textEn: "Know ye that the Lord he is God.",
+            refHy: "Սաղմոսներ 100:3",
+            refRu: "Псалом 99:3",
+            refEn: "Psalm 100:3"
+        ),
+        BibleVerse(
+            textHy: "Սովորեցրո՛ւ ինձ կատարել Քո կամքը։",
+            textRu: "Научи меня исполнять волю Твою, ибо Ты Бог мой.",
+            textEn: "Teach me to do thy will; for thou art my God.",
+            refHy: "Սաղմոսներ 143:10",
+            refRu: "Псалом 142:10",
+            refEn: "Psalm 143:10"
+        )
+    ]
+
+    // MARK: - 4. 📖 Краткая Мудрость Соломона (PRO) — до 50 символов
+    static let shortWisdom: [BibleVerse] = [
+        BibleVerse(
+            textHy: "Ամբողջ սրտովդ Տիրո՛ջն ապավինիր։",
+            textRu: "Надейся на Господа всем сердцем твоим.",
+            textEn: "Trust in the Lord with all thine heart.",
+            refHy: "Առակաց 3:5",
+            refRu: "Притчи 3:5",
+            refEn: "Proverbs 3:5"
+        ),
+        BibleVerse(
+            textHy: "Տիրո՛ջը հանձնիր քո գործերը։",
+            textRu: "Предай Господу дела твои, и замыслы твои совершатся.",
+            textEn: "Commit thy works unto the Lord.",
+            refHy: "Առակաց 16:3",
+            refRu: "Притчи 16:3",
+            refEn: "Proverbs 16:3"
+        ),
+        BibleVerse(
+            textHy: "Մեղմ պատասխանը հանդարտեցնում է բարկությունը։",
+            textRu: "Кроткий ответ отвращает гнев.",
+            textEn: "A soft answer turneth away wrath.",
+            refHy: "Առակաց 15:1",
+            refRu: "Притчи 15:1",
+            refEn: "Proverbs 15:1"
+        ),
+        BibleVerse(
+            textHy: "Ամեն զգուշությամբ պահի՛ր քո սիրտը։",
+            textRu: "Больше всего хранимого храни сердце твое.",
+            textEn: "Keep thy heart with all diligence.",
+            refHy: "Առակաց 4:23",
+            refRu: "Притчи 4:23",
+            refEn: "Proverbs 4:23"
+        ),
+        BibleVerse(
+            textHy: "Տիրոջ անունը ամուր աշտարակ է։",
+            textRu: "Имя Господа — крепкая башня: спасается в ней праведник.",
+            textEn: "The name of the Lord is a strong tower.",
+            refHy: "Առակաց 18:10",
+            refRu: "Притчи 18:10",
+            refEn: "Proverbs 18:10"
+        ),
+        BibleVerse(
+            textHy: "Ուրախ սիրտը բուժիչ դեղ է։",
+            textRu: "Веселое сердце благотворно, как врачевство.",
+            textEn: "A merry heart doeth good like a medicine.",
+            refHy: "Առակաց 17:22",
+            refRu: "Притчи 17:22",
+            refEn: "Proverbs 17:22"
+        ),
+        BibleVerse(
+            textHy: "Իմաստության սկիզբը Տիրոջ երկյուղն է։",
+            textRu: "Начало мудрости — страх Господень.",
+            textEn: "The fear of the Lord is the beginning of wisdom.",
+            refHy: "Առակաց 9:10",
+            refRu: "Притчи 9:10",
+            refEn: "Proverbs 9:10"
+        ),
+        BibleVerse(
+            textHy: "Տերն է ուղղում մարդու քայլերը։",
+            textRu: "Сердце человека обдумывает путь, но Господь управляет им.",
+            textEn: "A man's heart deviseth his way: but the Lord directeth.",
+            refHy: "Առակաց 16:9",
+            refRu: "Притчи 16:9",
+            refEn: "Proverbs 16:9"
+        ),
+        BibleVerse(
+            textHy: "Ինչպես ջրում երեսը՝ այնպես մարդու սիրտը մարդուն։",
+            textRu: "Как в воде лицо — к лицу, так сердце человека — к человеку.",
+            textEn: "As in water face answereth to face, so the heart of man.",
+            refHy: "Առակաց 27:19",
+            refRu: "Притчи 27:19",
+            refEn: "Proverbs 27:19"
+        ),
+        BibleVerse(
+            textHy: "Ամեն ինչ իր ժամանակն ունի երկնքի տակ։",
+            textRu: "Всему свое время, и время всякой вещи под небом.",
+            textEn: "To every thing there is a season under heaven.",
+            refHy: "Ժողովող 3:1",
+            refRu: "Екклесиаст 3:1",
+            refEn: "Ecclesiastes 3:1"
+        ),
+        BibleVerse(
+            textHy: "Տիրոջ օրհնությունն է հարստացնում։",
+            textRu: "Благословение Господне — оно обогащает.",
+            textEn: "The blessing of the Lord, it maketh rich.",
+            refHy: "Առակաց 10:22",
+            refRu: "Притчи 10:22",
+            refEn: "Proverbs 10:22"
+        ),
+        BibleVerse(
+            textHy: "Բարի խոսքը ուրախացնում է սիրտը։",
+            textRu: "Доброе слово развеселяет сердце.",
+            textEn: "A good word maketh the heart glad.",
+            refHy: "Առակաց 12:25",
+            refRu: "Притчи 12:25",
+            refEn: "Proverbs 12:25"
+        )
+    ]
+
+    // MARK: - 5. ❤️ Короткие стихи о Любви и Мире (PRO) — до 45 символов
+    static let shortLove: [BibleVerse] = [
+        BibleVerse(
+            textHy: "Թո՛ղ ձեր ամեն գործ սիրով լինի։",
+            textRu: "Все у вас да будет с любовью.",
+            textEn: "Let all that you do be done in love.",
+            refHy: "Ա Կորնթացիս 16:14",
+            refRu: "1 Коринфянам 16:14",
+            refEn: "1 Corinthians 16:14"
+        ),
+        BibleVerse(
+            textHy: "Աստված սեր է։",
+            textRu: "Бог есть любовь, пребывающий в любви пребывает в Боге.",
+            textEn: "God is love; and he that dwelleth in love dwelleth in God.",
+            refHy: "Ա Հովհաննես 4:16",
+            refRu: "1 Иоанна 4:16",
+            refEn: "1 John 4:16"
+        ),
+        BibleVerse(
+            textHy: "Սերը երբեք չի դադարում։",
+            textRu: "Любовь никогда не перестает.",
+            textEn: "Charity never faileth.",
+            refHy: "Ա Կորնթացիս 13:8",
+            refRu: "1 Коринфянам 13:8",
+            refEn: "1 Corinthians 13:8"
+        ),
+        BibleVerse(
+            textHy: "Սրանցից մեծագույնը սերն է։",
+            textRu: "Пребывают вера, надежда, любовь; но любовь из них больше.",
+            textEn: "Now abideth faith, hope, charity; greatest is charity.",
+            refHy: "Ա Կորնթացիս 13:13",
+            refRu: "1 Коринфянам 13:13",
+            refEn: "1 Corinthians 13:13"
+        ),
+        BibleVerse(
+            textHy: "Հագե՛ք սերը, որ կատարելության կապն է։",
+            textRu: "Облекитесь в любовь, союз совершенства.",
+            textEn: "Put on charity, which is the bond of perfectness.",
+            refHy: "Կողոսացիս 3:14",
+            refRu: "Колоссянам 3:14",
+            refEn: "Colossians 3:14"
+        ),
+        BibleVerse(
+            textHy: "Սիրեցե՛ք միմյանց։",
+            textRu: "Заповедь новую даю вам: да любите друг друга.",
+            textEn: "A new commandment I give: love one another.",
+            refHy: "Հովհաննես 13:34",
+            refRu: "Иоанна 13:34",
+            refEn: "John 13:34"
+        ),
+        BibleVerse(
+            textHy: "Մենք սիրում ենք Նրան, որովհետև Նա նախ սիրեց մեզ։",
+            textRu: "Будем любить Его, потому что Он прежде возлюбил нас.",
+            textEn: "We love him, because he first loved us.",
+            refHy: "Ա Հովհաննես 4:19",
+            refRu: "1 Иоанна 4:19",
+            refEn: "1 John 4:19"
+        ),
+        BibleVerse(
+            textHy: "Մնացե՛ք իմ սիրո մեջ։",
+            textRu: "Как возлюбил Меня Отец, так Я вас; пребудьте в любви Моей.",
+            textEn: "As the Father loved me, so I loved you: continue in my love.",
+            refHy: "Հովհաննես 15:9",
+            refRu: "Иоанна 15:9",
+            refEn: "John 15:9"
+        ),
+        BibleVerse(
+            textHy: "Սիրենք գործով և ճշմարտությամբ։",
+            textRu: "Будем любить не словом, но делом и истиною.",
+            textEn: "Let us love not in word, but in deed and in truth.",
+            refHy: "Ա Հովհաննես 3:18",
+            refRu: "1 Иоанна 3:18",
+            refEn: "1 John 3:18"
+        ),
+        BibleVerse(
+            textHy: "Սերը օրենքի լրումն է։",
+            textRu: "Любовь есть исполнение закона.",
+            textEn: "Love is the fulfilling of the law.",
+            refHy: "Հռոմեացիս 13:10",
+            refRu: "Римлянам 13:10",
+            refEn: "Romans 13:10"
+        ),
+        BibleVerse(
+            textHy: "Սերը ծածկում է մեղքերի բազմությունը։",
+            textRu: "Любовь покрывает множество грехов.",
+            textEn: "Charity shall cover the multitude of sins.",
+            refHy: "Ա Պետրոս 4:8",
+            refRu: "1 Петра 4:8",
+            refEn: "1 Peter 4:8"
+        )
+    ]
+
+    // MARK: - 6. ⚓ Короткие стихи о Вере и Мужестве (PRO) — до 45 символов
+    static let shortFaith: [BibleVerse] = [
+        BibleVerse(
+            textHy: "Հավատքո՛վ ենք ընթանում։",
+            textRu: "Мы ходим верою, а не видением.",
+            textEn: "For we walk by faith, not by sight.",
+            refHy: "Բ Կորնթացիս 5:7",
+            refRu: "2 Коринфянам 5:7",
+            refEn: "2 Corinthians 5:7"
+        ),
+        BibleVerse(
+            textHy: "Մի՛ վախեցիր, միայն հավատա՛։",
+            textRu: "Не бойся, только веруй.",
+            textEn: "Be not afraid, only believe.",
+            refHy: "Մարկոս 5:36",
+            refRu: "Марка 5:36",
+            refEn: "Mark 5:36"
+        ),
+        BibleVerse(
+            textHy: "Ամեն ինչ հնարավոր է հավատացողին։",
+            textRu: "Все возможно верующему.",
+            textEn: "All things are possible to him that believeth.",
+            refHy: "Մարկոս 9:23",
+            refRu: "Марка 9:23",
+            refEn: "Mark 9:23"
+        ),
+        BibleVerse(
+            textHy: "Ամեն ինչ կարող եմ ինձ զորացնող Քրիստոսով։",
+            textRu: "Все могу в укрепляющем меня Иисусе Христе.",
+            textEn: "I can do all things through Christ which strengtheneth me.",
+            refHy: "Փիլիպպեցիներին 4:13",
+            refRu: "Филиппийцам 4:13",
+            refEn: "Philippians 4:13"
+        ),
+        BibleVerse(
+            textHy: "Հավատը հուսացված բաների հաստատումն է։",
+            textRu: "Вера есть осуществление ожидаемого и уверенность в невидимом.",
+            textEn: "Faith is the substance of things hoped for.",
+            refHy: "Եբրայեցիս 11:1",
+            refRu: "Евреям 11:1",
+            refEn: "Hebrews 11:1"
+        ),
+        BibleVerse(
+            textHy: "Մի՛ վախեցիր, քանզի ես քեզ հետ եմ։",
+            textRu: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.",
+            textEn: "Fear thou not; for I am with thee.",
+            refHy: "Եսայի 41:10",
+            refRu: "Исаия 41:10",
+            refEn: "Isaiah 41:10"
+        ),
+        BibleVerse(
+            textHy: "Տիրոջն ապավինողները կնորոգվեն ուժով։",
+            textRu: "Надеющиеся на Господа обновятся в силе.",
+            textEn: "They that wait upon the Lord shall renew their strength.",
+            refHy: "Եսայի 40:31",
+            refRu: "Исаия 40:31",
+            refEn: "Isaiah 40:31"
+        ),
+        BibleVerse(
+            textHy: "Զորացե՛ք Տիրոջով և Նրա զորության կարողությամբ։",
+            textRu: "Укрепляйтесь Господом и могуществом силы Его.",
+            textEn: "Be strong in the Lord, and in the power of his might.",
+            refHy: "Եփեսացիս 6:10",
+            refRu: "Ефесянам 6:10",
+            refEn: "Ephesians 6:10"
+        ),
+        BibleVerse(
+            textHy: "Զորացի՛ր և քա՛ջ եղիր, Տերը քեզ հետ է։",
+            textRu: "Будь тверд и мужествен, не страшись, ибо с тобою Господь.",
+            textEn: "Be strong and of good courage; for the Lord is with thee.",
+            refHy: "Հեսու 1:9",
+            refRu: "Иисус Навин 1:9",
+            refEn: "Joshua 1:9"
+        ),
+        BibleVerse(
+            textHy: "Հավատարիմ է Խոստացողը։",
+            textRu: "Будем держаться исповедания неуклонно, ибо верен Обещавший.",
+            textEn: "Hold fast the profession of our faith; for he is faithful.",
+            refHy: "Եբրայեցիս 10:23",
+            refRu: "Евреям 10:23",
+            refEn: "Hebrews 10:23"
+        ),
+        BibleVerse(
+            textHy: "Եթե Աստված մեր կողմն է, ո՞վ է մեզ հակառակ։",
+            textRu: "Если Бог за нас, кто против нас?",
+            textEn: "If God be for us, who can be against us?",
+            refHy: "Հռոմեացիս 8:31",
+            refRu: "Римлянам 8:31",
+            refEn: "Romans 8:31"
+        ),
+        BibleVerse(
+            textHy: "Աստված մեզ զորության, սիրո և զգաստության ոգի տվեց։",
+            textRu: "Дал нам Бог духа не боязни, но силы, любви и целомудрия.",
+            textEn: "God hath not given us the spirit of fear; but of power and love.",
+            refHy: "Բ Տիմոթեոս 1:7",
+            refRu: "2 Тимофею 1:7",
+            refEn: "2 Timothy 1:7"
+        )
+    ]
+
+    /// Обратная совместимость для виджетов и представлений
+    static var lockScreenPearls: [BibleVerse] {
+        return shortPearls
+    }
+
+    /// Получение строго уникального массива коротких стихов для выбранной категории экрана блокировки
+    static func lockScreenVerses(for category: LockScreenCategory) -> [BibleVerse] {
+        switch category {
+        case .pearls:
+            return shortPearls
+        case .narekatsi:
+            return shortNarekatsi
+        case .psalms:
+            return shortPsalms
+        case .wisdom:
+            return shortWisdom
+        case .love:
+            return shortLove
+        case .faith:
+            return shortFaith
+        }
+    }
 
     static let database: [BibleVerse] = [
         BibleVerse(

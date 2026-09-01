@@ -54,7 +54,6 @@ struct HomeView: View {
     // Переменные для экспорта картинок
     @State private var shareItem: ShareItem? = nil
     @State private var isShowingWallpaperMaker = false
-    @ObservedObject var speechService = BibleSpeechService.shared
     
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
@@ -247,22 +246,7 @@ struct HomeView: View {
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // 3. Кнопка Аудио-Озвучки стиха
-                            Button {
-                                triggerHaptic(.light)
-                                let textToSpeak = "\(manager.currentVerse.text(for: manager.appLanguage)). \(manager.currentVerse.reference(for: manager.appLanguage))"
-                                speechService.speak(text: textToSpeak, language: manager.appLanguage)
-                            } label: {
-                                Image(systemName: speechService.isSpeaking && !speechService.isPaused ? "speaker.wave.3.fill" : "speaker.wave.2")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(speechService.isSpeaking && !speechService.isPaused ? accentColor : primaryTextColor.opacity(0.6))
-                                    .padding(11)
-                                    .background((speechService.isSpeaking && !speechService.isPaused ? accentColor.opacity(0.15) : primaryTextColor.opacity(0.05)))
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(ScaleButtonStyle())
-                            
-                            // 4. Кнопка Поделиться открыткой
+                            // 3. Кнопка Поделиться открыткой
                             Button {
                                 triggerHaptic(.medium)
                                 shareVerseAsImage()
@@ -323,7 +307,7 @@ struct HomeView: View {
                         primaryTextColor: primaryTextColor,
                         onOpenNarek: {
                             triggerHaptic(.medium)
-                            manager.activeTabSelection = 2
+                            manager.openNarekatsi()
                         }
                     )
                     
@@ -445,7 +429,7 @@ struct HomeView: View {
                             manager.deepLinkVerse = verse
                         }
                         
-                        manager.activeTabSelection = 3 // Переключаем на вкладку "Библия"
+                        manager.openBibleReader()
                     }
                 }
             }
@@ -1696,7 +1680,8 @@ struct SettingsView: View {
                 selectedWidgetLanguage = manager.widgetLanguage
                 selectedLockCategory = manager.lockScreenCategory
                 selectedArmenianEdition = manager.armenianEdition
-                previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
+                previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
             }
             .sheet(isPresented: $isShowingPaywall) {
                 PaywallView()
@@ -2300,25 +2285,33 @@ struct SettingsView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(LockScreenCategory.allCases) { cat in
+                            let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
                             LockCategoryChipView(
                                 cat: cat,
                                 isSelected: selectedLockCategory == cat,
+                                isLocked: isLocked,
                                 selectedLanguage: selectedLanguage,
                                 themeColorHex: selectedTheme.colorHex,
                                 inputFieldBgColor: inputFieldBgColor,
                                 inputFieldBorderColor: inputFieldBorderColor,
                                 primaryTextColor: primaryTextColor
                             ) {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.prepare()
-                                generator.impactOccurred()
-                                selectedLockCategory = cat
-                                manager.setLockScreenCategory(cat)
-                                
-                                if cat == .pearls {
-                                    previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                                if isLocked {
+                                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    isShowingPaywall = true
                                 } else {
-                                    previewVerse = BibleVerse.database.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    selectedLockCategory = cat
+                                    manager.setLockScreenCategory(cat)
+                                    
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        let pool = BibleVerse.lockScreenVerses(for: cat)
+                                        previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+                                    }
                                 }
                             }
                         }
@@ -2340,7 +2333,8 @@ struct SettingsView: View {
                         generator.prepare()
                         generator.impactOccurred()
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            previewVerse = BibleVerse.lockScreenPearls.randomElement() ?? BibleVerse.lockScreenPearls[0]
+                            let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
+                            previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
                         }
                     } label: {
                         HStack(spacing: 4) {
@@ -2711,6 +2705,7 @@ struct WidgetInstructionSheetView: View {
 struct LockCategoryChipView: View {
     let cat: LockScreenCategory
     let isSelected: Bool
+    let isLocked: Bool
     let selectedLanguage: AppLanguage
     let themeColorHex: String
     let inputFieldBgColor: Color
@@ -2724,6 +2719,12 @@ struct LockCategoryChipView: View {
                 Text(cat.icon)
                 Text(cat.localizedTitle(for: selectedLanguage))
                     .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                
+                if isLocked {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -2750,12 +2751,12 @@ struct LockScreenPreviewCardView: View {
     
     private var fontSize: CGFloat {
         let count = verse.text(for: language).count
-        if count <= 22 {
-            return 17.5
-        } else if count <= 36 {
+        if count <= 25 {
+            return 17.0
+        } else if count <= 42 {
             return 15.5
         } else {
-            return 14.5
+            return 14.0
         }
     }
     
@@ -2770,9 +2771,10 @@ struct LockScreenPreviewCardView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(verse.text(for: language))
                     .font(.system(size: fontSize, weight: .bold, design: .rounded))
-                    .lineLimit(2)
+                    .lineLimit(3)
                     .lineSpacing(-0.5)
                     .foregroundColor(primaryTextColor)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 HStack(spacing: 4) {
                     Text("✝️")

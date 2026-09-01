@@ -268,7 +268,27 @@ final class AchievementsManager: ObservableObject {
         self.badges = updated
     }
     
-    // MARK: - Запись результатов раунда и проверка на новые награды
+    // MARK: - Запись результатов раунда с точным распределением по категориям
+    func recordQuizResult(score: Int, total: Int, categoryBreakdown: [QuizCategory: Int]) -> [AchievementBadge] {
+        completedRoundsCount += 1
+        totalCorrectAnswers += score
+        
+        if score == total && total >= 5 {
+            perfectRoundsCount += 1
+        }
+        
+        oldTestamentCorrect += categoryBreakdown[.oldTestament] ?? 0
+        gospelsCorrect += categoryBreakdown[.gospels] ?? 0
+        newTestamentCorrect += categoryBreakdown[.newTestament] ?? 0
+        churchHistoryCorrect += categoryBreakdown[.churchHistory] ?? 0
+        versesCorrect += categoryBreakdown[.verses] ?? 0
+        
+        saveStats()
+        return evaluateBadges()
+    }
+    
+    // MARK: - Упрощенная запись с равномерным распределением (обратная совместимость)
+    @discardableResult
     func recordQuizResult(score: Int, total: Int, category: QuizCategory) -> [AchievementBadge] {
         completedRoundsCount += 1
         totalCorrectAnswers += score
@@ -279,12 +299,14 @@ final class AchievementsManager: ObservableObject {
         
         switch category {
         case .all:
-            // Для смешанных раундов распределяем пропорционально
-            let perCat = max(1, score / 4)
-            oldTestamentCorrect += perCat
-            gospelsCorrect += perCat
-            newTestamentCorrect += perCat
-            churchHistoryCorrect += perCat
+            // Распределяем честно без раздувания: сумма частей строго равна score
+            let base = score / 4
+            var remainder = score % 4
+            
+            oldTestamentCorrect += base + (remainder > 0 ? 1 : 0); if remainder > 0 { remainder -= 1 }
+            gospelsCorrect += base + (remainder > 0 ? 1 : 0); if remainder > 0 { remainder -= 1 }
+            newTestamentCorrect += base + (remainder > 0 ? 1 : 0); if remainder > 0 { remainder -= 1 }
+            churchHistoryCorrect += base + (remainder > 0 ? 1 : 0)
         case .oldTestament:
             oldTestamentCorrect += score
         case .gospels:
@@ -298,6 +320,10 @@ final class AchievementsManager: ObservableObject {
         }
         
         saveStats()
+        return evaluateBadges()
+    }
+    
+    private func evaluateBadges() -> [AchievementBadge] {
         
         // Проверяем, какие награды открылись только что
         var newUnlocks: [AchievementBadge] = []

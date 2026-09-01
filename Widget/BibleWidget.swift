@@ -36,13 +36,15 @@ enum WidgetLanguageAppEnum: String, AppEnum {
 @available(iOS 17.0, *)
 enum TextCategoryAppEnum: String, AppEnum {
     case pearls = "pearls"
+    case narekatsi = "narekatsi"
+    case psalms = "psalms"
+    case wisdom = "wisdom"
+    case love = "love"
+    case faith = "faith"
     case both = "both"
     case verses = "verses"
     case prayers = "prayers"
     case favorites = "favorites"
-    case love = "love"
-    case psalms = "psalms"
-    case wisdom = "wisdom"
     
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         "Widget Content"
@@ -50,12 +52,14 @@ enum TextCategoryAppEnum: String, AppEnum {
     
     static var caseDisplayRepresentations: [TextCategoryAppEnum: DisplayRepresentation] {
         [
-            .pearls: DisplayRepresentation(title: "🕊️ Short Pearls (Lock Screen)", subtitle: "Ultra-compact inspiring verses (up to 45 chars)"),
-            .both: DisplayRepresentation(title: "Verses & Prayers", subtitle: "Shows both Bible verses and prayers"),
+            .pearls: DisplayRepresentation(title: "🕊️ Short Pearls (Free)", subtitle: "Ultra-compact inspiring verses (up to 45 chars)"),
+            .narekatsi: DisplayRepresentation(title: "👑 Narekatsi Prayers (PRO)", subtitle: "Concise prayers of St. Gregory of Narek"),
+            .psalms: DisplayRepresentation(title: "✝️ Psalms (PRO)", subtitle: "Short verses from Psalms"),
+            .wisdom: DisplayRepresentation(title: "📖 Wisdom & Proverbs (PRO)", subtitle: "Short proverbs and wisdom"),
+            .love: DisplayRepresentation(title: "❤️ Love & Peace (PRO)", subtitle: "Short verses about love and peace"),
+            .faith: DisplayRepresentation(title: "⚓ Faith & Courage (PRO)", subtitle: "Short verses about faith and courage"),
+            .both: DisplayRepresentation(title: "All Verses & Prayers", subtitle: "Shows both Bible verses and prayers"),
             .verses: DisplayRepresentation(title: "Bible Verses Only", subtitle: "Shows only biblical verses"),
-            .love: DisplayRepresentation(title: "❤️ Love & Peace", subtitle: "Verses about love, forgiveness and peace"),
-            .psalms: DisplayRepresentation(title: "✝️ Psalms", subtitle: "Verses from the Book of Psalms"),
-            .wisdom: DisplayRepresentation(title: "📖 Wisdom & Proverbs", subtitle: "Verses from Proverbs and Wisdom"),
             .prayers: DisplayRepresentation(title: "🤲 Prayers Only", subtitle: "Shows christian prayers"),
             .favorites: DisplayRepresentation(title: "Favorites Only", subtitle: "Shows only your saved favorite items")
         ]
@@ -107,13 +111,17 @@ struct NextVerseIntent: AppIntent {
         guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
             return .result()
         }
+        let isPremium = defaults.bool(forKey: "is_premium_active")
+        let savedLockCatRaw = defaults.string(forKey: "lock_screen_category") ?? "pearls"
+        let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
+        let cat = (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls
+        let lockPool = BibleVerse.lockScreenVerses(for: cat)
         
         let target = targetSize
         
-        // 1. Для малого виджета (System Small) - строго короткие стихи до 45 символов
+        // 1. Для малого виджета (System Small) - строго короткие стихи активной категории
         if target == "small" || target == "all" {
-            let smallPool = BibleVerse.lockScreenPearls
-            if let v = smallPool.randomElement() {
+            if let v = lockPool.randomElement() {
                 defaults.set(v.id.uuidString, forKey: "currentSmallVerseId")
             }
         }
@@ -136,8 +144,14 @@ struct NextVerseIntent: AppIntent {
         
         // 4. Для экрана блокировки (Lock Screen)
         if target == "lockScreen" || target == "all" {
-            if let v = BibleVerse.lockScreenPearls.randomElement() {
+            if let v = lockPool.randomElement() {
                 defaults.set(v.id.uuidString, forKey: "currentLockScreenVerseId")
+                defaults.set(v.textHy, forKey: "currentLockScreenTextHy")
+                defaults.set(v.textRu, forKey: "currentLockScreenTextRu")
+                defaults.set(v.textEn, forKey: "currentLockScreenTextEn")
+                defaults.set(v.refHy, forKey: "currentLockScreenRefHy")
+                defaults.set(v.refRu, forKey: "currentLockScreenRefRu")
+                defaults.set(v.refEn, forKey: "currentLockScreenRefEn")
             }
         }
         
@@ -149,8 +163,10 @@ struct NextVerseIntent: AppIntent {
 // MARK: - Интерактивное намерение: Отметить молитву прочитанной / выполненной
 @available(iOS 17.0, *)
 struct TogglePrayerCompletedWidgetIntent: AppIntent {
-    static var title: LocalizedStringResource = "Mark Prayer as Completed"
-    static var description: LocalizedStringResource = "Toggles today's prayer completion status."
+    static var title: LocalizedStringResource = "Toggle Prayer Completed"
+    static var description: LocalizedStringResource = "Marks today's prayer as completed directly from the widget."
+    
+    init() {}
     
     func perform() async throws -> some IntentResult {
         let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -158,22 +174,25 @@ struct TogglePrayerCompletedWidgetIntent: AppIntent {
             return .result()
         }
         
-        if let lastDate = defaults.object(forKey: "daily_prayer_completed_date") as? Date,
-           Calendar.current.isDateInToday(lastDate) {
-            defaults.removeObject(forKey: "daily_prayer_completed_date")
-        } else {
-            defaults.set(Date(), forKey: "daily_prayer_completed_date")
-        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let todayStr = formatter.string(from: Date())
+        
+        let currentStatus = defaults.bool(forKey: "prayer_completed_\(todayStr)")
+        defaults.set(!currentStatus, forKey: "prayer_completed_\(todayStr)")
         defaults.synchronize()
+        
         return .result()
     }
 }
 
-// MARK: - Интерактивное намерение: Добавить/Удалить из Избранного
+// MARK: - Интерактивное намерение: Добавить / удалить из Избранного прямо из виджета
 @available(iOS 17.0, *)
 struct ToggleFavoriteWidgetIntent: AppIntent {
     static var title: LocalizedStringResource = "Toggle Favorite"
-    static var description: LocalizedStringResource = "Adds or removes the current verse from favorites."
+    static var description: LocalizedStringResource = "Adds or removes the current widget verse from favorites."
+    
+    init() {}
     
     func perform() async throws -> some IntentResult {
         let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -181,38 +200,55 @@ struct ToggleFavoriteWidgetIntent: AppIntent {
             return .result()
         }
         
+        // 1. Получаем текущий ID стиха из виджета
+        var currentVerseIdStr = defaults.string(forKey: "currentLockScreenVerseId")
+        if currentVerseIdStr == nil {
+            currentVerseIdStr = defaults.string(forKey: "currentMediumVerseId")
+        }
+        if currentVerseIdStr == nil {
+            currentVerseIdStr = defaults.string(forKey: "currentSmallVerseId")
+        }
+        
+        guard let idStr = currentVerseIdStr, let verseId = UUID(uuidString: idStr) else {
+            return .result()
+        }
+        
+        // 2. Находим сам стих в базе
+        guard let verse = BibleVerse.database.first(where: { $0.id == verseId }) ??
+                          BibleVerse.shortPearls.first(where: { $0.id == verseId }) ??
+                          BibleVerse.shortNarekatsi.first(where: { $0.id == verseId }) ??
+                          BibleVerse.shortPsalms.first(where: { $0.id == verseId }) ??
+                          BibleVerse.shortWisdom.first(where: { $0.id == verseId }) ??
+                          BibleVerse.shortLove.first(where: { $0.id == verseId }) ??
+                          BibleVerse.shortFaith.first(where: { $0.id == verseId }) else {
+            return .result()
+        }
+        
+        // 3. Загружаем сохраненный список избранного
         var favorites: [FavoriteItem] = []
-        if let data = defaults.data(forKey: "favorite_verses"),
-           let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: data) {
+        if let savedData = defaults.data(forKey: "favorite_verses"),
+           let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedData) {
             favorites = decoded
         }
         
-        let textHy = defaults.string(forKey: "currentVerseTextHy") ?? defaults.string(forKey: "currentVerseText") ?? ""
-        let textRu = defaults.string(forKey: "currentVerseTextRu") ?? defaults.string(forKey: "currentVerseText") ?? ""
-        let textEn = defaults.string(forKey: "currentVerseTextEn") ?? defaults.string(forKey: "currentVerseText") ?? ""
-        let refHy = defaults.string(forKey: "currentVerseReferenceHy") ?? defaults.string(forKey: "currentVerseReference") ?? ""
-        let refRu = defaults.string(forKey: "currentVerseReferenceRu") ?? defaults.string(forKey: "currentVerseReference") ?? ""
-        let refEn = defaults.string(forKey: "currentVerseReferenceEn") ?? defaults.string(forKey: "currentVerseReference") ?? ""
-        
-        if let existingIdx = favorites.firstIndex(where: { $0.refHy == refHy || ($0.textHy == textHy && !textHy.isEmpty) }) {
-            favorites.remove(at: existingIdx)
+        // 4. Добавляем или удаляем
+        if let index = favorites.firstIndex(where: { $0.id == verse.id }) {
+            favorites.remove(at: index)
         } else {
             let newItem = FavoriteItem(
-                id: UUID(),
-                isDailyVerse: true,
-                bookId: nil,
-                chapter: nil,
-                verseNumber: nil,
-                textHy: textHy,
-                textRu: textRu,
-                textEn: textEn,
-                refHy: refHy,
-                refRu: refRu,
-                refEn: refEn
+                id: verse.id,
+                textHy: verse.textHy,
+                textRu: verse.textRu,
+                textEn: verse.textEn,
+                refHy: verse.refHy,
+                refRu: verse.refRu,
+                refEn: verse.refEn,
+                dateAdded: Date()
             )
             favorites.insert(newItem, at: 0)
         }
         
+        // 5. Сохраняем обратно в App Group
         if let encoded = try? JSONEncoder().encode(favorites) {
             defaults.set(encoded, forKey: "favorite_verses")
             defaults.synchronize()
@@ -228,106 +264,121 @@ struct SimpleEntry: TimelineEntry {
     let date: Date
     let verse: BibleVerse
     let configuration: ConfigurationAppIntent
+    let language: AppLanguage
 }
 
-// MARK: - Провайдер временной шкалы (Timeline Provider)
+typealias BibleWidgetEntry = SimpleEntry
+
+// MARK: - Провайдер временной шкалы виджета (Timeline Provider)
 @available(iOS 17.0, *)
 struct Provider: AppIntentTimelineProvider {
     typealias Entry = SimpleEntry
     typealias Intent = ConfigurationAppIntent
     
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-    private let textKey = "currentVerseText"
-    private let referenceKey = "currentVerseReference"
+    private let textCategoryKey = "selected_category"
     private let updateIntervalKey = "widgetUpdateInterval"
     
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), verse: BibleVerse.database[0], configuration: ConfigurationAppIntent())
+        SimpleEntry(
+            date: Date(),
+            verse: BibleVerse.shortPearls[0],
+            configuration: ConfigurationAppIntent(),
+            language: .armenian
+        )
     }
     
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
+        let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let verse = getSharedVerse(for: configuration, family: context.family)
-        return SimpleEntry(date: Date(), verse: verse, configuration: configuration)
+        return SimpleEntry(date: Date(), verse: verse, configuration: configuration, language: lang)
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
-        var entries: [SimpleEntry] = []
+        var entries: [BibleWidgetEntry] = []
         let currentDate = Date()
+        let lang = configuration.language.appLanguage ?? getSharedLanguage()
+        let interval = getSharedUpdateInterval()
         let family = context.family
         
-        let currentVerse = getSharedVerse(for: configuration, family: family)
-        entries.append(SimpleEntry(date: currentDate, verse: currentVerse, configuration: configuration))
-        
-        let interval = getSharedUpdateInterval()
-        
-        if interval == .onTapOnly || interval == .onScreenActivation {
-            let timeline = Timeline(entries: entries, policy: .never)
-            return timeline
-        }
-        
-        let calendar = Calendar.current
-        var lastVerse = currentVerse
-        
-        let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
-        let fallback = database.isEmpty ? BibleVerse.lockScreenPearls[0] : database[0]
+        let fallback = database.isEmpty ? BibleVerse.shortPearls[0] : database[0]
         
-        let intervalHours: Int
-        switch interval {
-        case .everyHour:
-            intervalHours = 1
-        case .every6Hours:
-            intervalHours = 6
-        case .every12Hours:
-            intervalHours = 12
-        case .every24Hours:
-            intervalHours = 24
-        default:
-            intervalHours = 1
-        }
+        let minutesStep = interval.minutes
+        let totalEntries = max(1, min(12, 1440 / max(1, minutesStep)))
         
-        for offset in 1..<5 {
-            if let entryDate = calendar.date(byAdding: .hour, value: offset * intervalHours, to: currentDate) {
-                let availableVerses = database.filter { $0.id != lastVerse.id }
-                let randomVerse = availableVerses.randomElement() ?? fallback
-                
-                entries.append(SimpleEntry(date: entryDate, verse: randomVerse, configuration: configuration))
-                lastVerse = randomVerse
+        var currentVerse = getSharedVerse(for: configuration, family: family)
+        
+        for i in 0..<totalEntries {
+            guard let entryDate = Calendar.current.date(byAdding: .minute, value: i * minutesStep, to: currentDate) else { continue }
+            
+            let entryVerse: BibleVerse
+            if i == 0 {
+                entryVerse = currentVerse
+            } else {
+                entryVerse = database.randomElement() ?? fallback
             }
+            
+            let entry = BibleWidgetEntry(
+                date: entryDate,
+                verse: entryVerse,
+                configuration: configuration,
+                language: lang
+            )
+            entries.append(entry)
         }
         
-        return Timeline(entries: entries, policy: .atEnd)
+        let reloadDate = Calendar.current.date(byAdding: .minute, value: minutesStep, to: currentDate) ?? currentDate.addingTimeInterval(3600)
+        return Timeline(entries: entries, policy: .after(reloadDate))
     }
     
     private func getFilteredDatabase(for category: TextCategory, configuration: ConfigurationAppIntent? = nil, family: WidgetFamily? = nil, lang: AppLanguage) -> [BibleVerse] {
+        let defaults = UserDefaults(suiteName: appGroupSuiteName)
+        let isPremium = defaults?.bool(forKey: "is_premium_active") ?? false
+        let savedLockCatRaw = defaults?.string(forKey: "lock_screen_category") ?? "pearls"
+        let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
+        let activeLockVerses = BibleVerse.lockScreenVerses(for: (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls)
+        
+        // Для виджетов экрана блокировки
+        if let family = family, family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular {
+            if let config = configuration {
+                switch config.category {
+                case .pearls:
+                    return BibleVerse.shortPearls
+                case .narekatsi:
+                    return isPremium ? BibleVerse.shortNarekatsi : BibleVerse.shortPearls
+                case .psalms:
+                    return isPremium ? BibleVerse.shortPsalms : BibleVerse.shortPearls
+                case .wisdom:
+                    return isPremium ? BibleVerse.shortWisdom : BibleVerse.shortPearls
+                case .love:
+                    return isPremium ? BibleVerse.shortLove : BibleVerse.shortPearls
+                case .faith:
+                    return isPremium ? BibleVerse.shortFaith : BibleVerse.shortPearls
+                default:
+                    return activeLockVerses
+                }
+            } else {
+                return activeLockVerses
+            }
+        }
+        
         var base: [BibleVerse] = BibleVerse.database
         
         if let config = configuration {
             switch config.category {
             case .pearls:
-                return BibleVerse.lockScreenPearls
-            case .love:
-                let loveVerses = BibleVerse.database.filter {
-                    $0.textHy.localizedCaseInsensitiveContains("սեր") ||
-                    $0.textHy.localizedCaseInsensitiveContains("սիր") ||
-                    $0.textRu.localizedCaseInsensitiveContains("любов") ||
-                    $0.textEn.localizedCaseInsensitiveContains("love")
-                }
-                return loveVerses.isEmpty ? BibleVerse.lockScreenPearls : loveVerses
+                return BibleVerse.shortPearls
+            case .narekatsi:
+                return isPremium ? BibleVerse.shortNarekatsi : BibleVerse.shortPearls
             case .psalms:
-                let psalmVerses = BibleVerse.database.filter {
-                    $0.refHy.localizedCaseInsensitiveContains("սաղմոս") ||
-                    $0.refRu.localizedCaseInsensitiveContains("псалом") ||
-                    $0.refEn.localizedCaseInsensitiveContains("psalm")
-                }
-                return psalmVerses.isEmpty ? BibleVerse.lockScreenPearls : psalmVerses
+                return isPremium ? BibleVerse.shortPsalms : BibleVerse.shortPearls
             case .wisdom:
-                let wisdomVerses = BibleVerse.database.filter {
-                    $0.refHy.localizedCaseInsensitiveContains("առակ") ||
-                    $0.refRu.localizedCaseInsensitiveContains("притч") ||
-                    $0.refEn.localizedCaseInsensitiveContains("proverbs")
-                }
-                return wisdomVerses.isEmpty ? BibleVerse.lockScreenPearls : wisdomVerses
+                return isPremium ? BibleVerse.shortWisdom : BibleVerse.shortPearls
+            case .love:
+                return isPremium ? BibleVerse.shortLove : BibleVerse.shortPearls
+            case .faith:
+                return isPremium ? BibleVerse.shortFaith : BibleVerse.shortPearls
             case .verses:
                 base = BibleVerse.database.filter { !$0.isPrayer }
             case .prayers:
@@ -350,7 +401,7 @@ struct Provider: AppIntentTimelineProvider {
                         )
                     }
                 } else {
-                    base = BibleVerse.lockScreenPearls
+                    base = activeLockVerses
                 }
             case .both:
                 base = BibleVerse.database
@@ -361,24 +412,18 @@ struct Provider: AppIntentTimelineProvider {
             return base
         }
         
-        // Интеллектуальный фильтр по длине стиха для конкретного размера виджета
         switch family {
         case .accessoryRectangular, .accessoryInline, .accessoryCircular:
-            // Экран блокировки: только ультра-краткие жемчужины до 45 символов
-            return BibleVerse.lockScreenPearls
+            return activeLockVerses
             
         case .systemSmall:
-            // Малый виджет 2x2: строго короткие стихи до 45 символов для 100% видимости крупным шрифтом
-            let smallVerses = base.filter { $0.text(for: lang).count <= 45 }
-            return !smallVerses.isEmpty ? smallVerses : BibleVerse.lockScreenPearls
+            return activeLockVerses
             
         case .systemMedium:
-            // Средний виджет 4x2: стихи средней длины 38-95 символов
             let medVerses = base.filter { $0.text(for: lang).count >= 38 && $0.text(for: lang).count <= 95 }
             return !medVerses.isEmpty ? medVerses : base
             
         case .systemLarge:
-            // Большой виджет 4x4: глубокие развернутые отрывки от 85 символов
             let largeVerses = base.filter { $0.text(for: lang).count >= 85 }
             return !largeVerses.isEmpty ? largeVerses : base
             
@@ -390,7 +435,7 @@ struct Provider: AppIntentTimelineProvider {
     private func getSharedVerse(for configuration: ConfigurationAppIntent, family: WidgetFamily? = nil) -> BibleVerse {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
-        let fallback = database.isEmpty ? BibleVerse.lockScreenPearls[0] : database[0]
+        let fallback = database.isEmpty ? BibleVerse.shortPearls[0] : database[0]
         
         let defaults = UserDefaults(suiteName: appGroupSuiteName)
         
@@ -399,23 +444,21 @@ struct Provider: AppIntentTimelineProvider {
             if let def = defaults,
                let lockIdStr = def.string(forKey: "currentLockScreenVerseId"),
                let lockId = UUID(uuidString: lockIdStr),
-               let found = database.first(where: { $0.id == lockId }) ?? BibleVerse.lockScreenPearls.first(where: { $0.id == lockId }) {
+               let found = database.first(where: { $0.id == lockId }) {
                 return found
             }
-            return database.randomElement() ?? BibleVerse.lockScreenPearls[0]
+            return database.randomElement() ?? fallback
             
         case .systemSmall:
-            // Малый виджет: отдельный ключ "currentSmallVerseId" и строгий фильтр <= 45 символов
             if let def = defaults,
                let smallIdStr = def.string(forKey: "currentSmallVerseId"),
                let smallId = UUID(uuidString: smallIdStr),
-               let found = database.first(where: { $0.id == smallId && $0.text(for: lang).count <= 45 }) {
+               let found = database.first(where: { $0.id == smallId }) {
                 return found
             }
-            return database.randomElement() ?? BibleVerse.lockScreenPearls[0]
+            return database.randomElement() ?? fallback
             
         case .systemMedium:
-            // Средний виджет: отдельный ключ "currentMediumVerseId" (38-95 символов)
             if let def = defaults,
                let medIdStr = def.string(forKey: "currentMediumVerseId"),
                let medId = UUID(uuidString: medIdStr),
@@ -425,7 +468,6 @@ struct Provider: AppIntentTimelineProvider {
             return database.randomElement() ?? fallback
             
         case .systemLarge:
-            // Большой виджет: отдельный ключ "currentLargeVerseId" (от 85 символов)
             if let def = defaults,
                let largeIdStr = def.string(forKey: "currentLargeVerseId"),
                let largeId = UUID(uuidString: largeIdStr),

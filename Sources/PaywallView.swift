@@ -238,16 +238,16 @@ struct PaywallView: View {
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(
-                title: Text("Սխալ"),
+                title: Text("alert_error_title".localized(for: manager.appLanguage)),
                 message: Text(errorMessage),
                 dismissButton: .default(Text("OK"))
             )
         }
         .alert(isPresented: $showSuccessAlert) {
             Alert(
-                title: Text("Շնորհավորում ենք! 🕊️"),
+                title: Text("alert_success_title".localized(for: manager.appLanguage)),
                 message: Text(successMessage),
-                dismissButton: .default(Text("Ամեն"), action: {
+                dismissButton: .default(Text("alert_amen".localized(for: manager.appLanguage)), action: {
                     dismiss()
                 })
             )

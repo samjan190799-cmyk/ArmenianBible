@@ -134,6 +134,9 @@
 "edition_armenian_subtitle" = "Արևելահայերեն թարգմանություն";
 "edition_russian_subtitle" = "Սինոդալ (ռուսերեն) թարգմանություն";
 "edition_english_subtitle" = "King James Version (KJV)";
+"edition_russian" = "Ռուսերեն (Սինոդալ)";
+"edition_english" = "Անգլերեն (KJV)";
+"verse_label" = "Համար";
 
 /* Favorites Tab */
 "tab_favorites" = "Ընտրյալներ";
@@ -171,7 +174,11 @@
 "quiz_result_expert" = "Գերազանց արդյունք! 🏆";
 "quiz_result_good" = "Լավ արդյունք! 👍";
 "quiz_result_try_again" = "Շարունակեք ուսումնասիրել Աստվածաշունչը: 📖";
+"quiz_result_subtitle" = "Շարունակեք ուսումնասիրել Սուրբ Գիրքը ամեն օր:";
 "quiz_button_play_again" = "Խաղալ նորից";
+"quiz_read_in_bible" = "Կարդալ Աստվածաշնչում";
+"quiz_share_result" = "Կիսվել արդյունքով";
+"quiz_share_text" = "Ես հավաքեցի %d / %d Աստվածաշնչյան Վիկտորինայում: 📖✨";
 
 /* Achievements & Badges */
 "achievements_title" = "Պարգևներ և Կրծքանշաններ";
@@ -229,6 +236,19 @@
 "narekatsi_subtitle" = "Մատյան Ողբերգության (Ի խորոց սրտի)";
 "button_listen_audio" = "Լսել աղոթքը";
 "button_pause_audio" = "Դադար";
+"narek_tab_text" = "Տեքստ (Մատյան)";
+"narek_tab_audio" = "Ձայնագրություն";
+"narek_playlist_title" = "📻 Բոլոր 95 Գլուխները (Փլեյլիստ)";
+"narek_prayers_count" = "95 աղոթք";
+"narek_loading_audio" = "• Բեռնվում է...";
+"narek_saved_position_format" = "Պահպանված դիրք՝ %@ (Գլուխ %d)";
+"narek_listen_pro" = "Լսել (PRO)";
+"narek_stop" = "Դադարեցնել";
+"narek_listen_prayer" = "Լսել աղոթքը";
+"saint_gregory_narekatsi" = "Սբ. Գրիգոր Նարեկացի";
+"alert_error_title" = "Սխալ";
+"alert_success_title" = "Շնորհավորում ենք! 🕊️";
+"alert_amen" = "Ամեն";
 
 /* Notes & Tags */
 "notes_title" = "Նշումներ & Ընդգծումներ";

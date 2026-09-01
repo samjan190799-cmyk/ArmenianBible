@@ -23,6 +23,7 @@ class BibleManager: ObservableObject {
     // Переменные для полной Библии и Deep Link
     @Published var bibleFontSize: Double = 18.0
     @Published var activeTabSelection: Int = 0
+    @Published var selectedReaderSection: Int = 0 // 0: Библия, 1: Нарекаци
     @Published var quizBestScore: Int = 0
     @Published var highlightedVerses: [String: String] = [:]
     @Published var annotations: [String: VerseAnnotation] = [:]
@@ -35,6 +36,16 @@ class BibleManager: ObservableObject {
     @Published var deepLinkVerse: Int? = nil
     @Published var lastReadBookId: Int? = nil
     @Published var lastReadChapter: Int? = nil
+    
+    func openNarekatsi() {
+        self.selectedReaderSection = 1
+        self.activeTabSelection = 3
+    }
+    
+    func openBibleReader() {
+        self.selectedReaderSection = 0
+        self.activeTabSelection = 3
+    }
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
@@ -343,8 +354,8 @@ class BibleManager: ObservableObject {
         if let defaults = sharedDefaults {
             defaults.set(category.rawValue, forKey: lockScreenCategoryKey)
             defaults.synchronize()
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        syncLockScreenWidget()
     }
     
     // MARK: - Сохранение армянского перевода Библии
@@ -361,8 +372,11 @@ class BibleManager: ObservableObject {
     func syncLockScreenWidget() {
         if let defaults = sharedDefaults {
             // 1. Экран блокировки (Lock Screen)
-            let list = BibleVerse.lockScreenPearls
-            if let randomPearl = list.randomElement() {
+            let isPremium = SubscriptionManager.shared.isPremium
+            let activeCategory = (isPremium || !lockScreenCategory.isPremiumRequired) ? lockScreenCategory : .pearls
+            let list = BibleVerse.lockScreenVerses(for: activeCategory)
+            
+            if let randomPearl = list.randomElement() ?? BibleVerse.shortPearls.first {
                 defaults.set(randomPearl.id.uuidString, forKey: "currentLockScreenVerseId")
                 defaults.set(randomPearl.textHy, forKey: "currentLockScreenTextHy")
                 defaults.set(randomPearl.textRu, forKey: "currentLockScreenTextRu")
@@ -372,9 +386,9 @@ class BibleManager: ObservableObject {
                 defaults.set(randomPearl.refEn, forKey: "currentLockScreenRefEn")
             }
             
-            // 2. Малый виджет (System Small 2x2) - строго до 45 символов
-            let smallPool = BibleVerse.lockScreenPearls
-            if let randomSmall = smallPool.randomElement() {
+            // 2. Малый виджет (System Small 2x2) - строго короткие стихи активной категории
+            let smallPool = list
+            if let randomSmall = smallPool.randomElement() ?? BibleVerse.shortPearls.first {
                 defaults.set(randomSmall.id.uuidString, forKey: "currentSmallVerseId")
             }
             

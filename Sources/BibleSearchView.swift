@@ -181,8 +181,7 @@ struct BibleSearchView: View {
         isPresented = false
         
         if let book = BibleDatabase.shared.getBook(id: result.bookId) {
-            // Переключаем вкладку и осуществляем переход в стек
-            manager.activeTabSelection = 3 // Вкладка "Библия"
+            manager.openBibleReader()
             
             // Задержка, чтобы дать закрыться sheet
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

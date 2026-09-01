@@ -4,11 +4,10 @@ import MediaPlayer
 import Combine
 
 // MARK: - Полнофункциональный Аудиоплеер Нарекаци (Запоминание позиции, перемотка, плейлист)
-class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+class NarekAudioPlayer: NSObject, ObservableObject {
     static let shared = NarekAudioPlayer()
     
     private var player: AVPlayer?
-    private let synthesizer = AVSpeechSynthesizer()
     private var statusObservation: NSKeyValueObservation?
     private var timeObserverToken: Any?
     
@@ -29,7 +28,6 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     
     override private init() {
         super.init()
-        synthesizer.delegate = self
         restorePlaybackState()
         setupRemoteCommandCenter()
     }
@@ -152,8 +150,8 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
                         self.isStreaming = false
                         self.updateNowPlayingInfo(prayer: prayer)
                     } else if item.status == .failed {
-                        print("⚠️ Ошибка потока Нарекаци, запуск офлайн-синтеза...")
-                        self.fallbackToSpeech(prayer: prayer, language: language)
+                        print("⚠️ Ошибка потока Нарекаци: \(item.error?.localizedDescription ?? "unknown error")")
+                        self.isPlaying = false
                     }
                 }
             }
@@ -185,49 +183,10 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
             )
             
             newPlayer.play()
-            
-            // Таймаут на случай отсутствия сети
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                guard let self = self, self.currentlyPlayingId == prayer.id else { return }
-                if self.isStreaming && self.player?.timeControlStatus != .playing && !self.synthesizer.isSpeaking {
-                    print("⚠️ Сетевой таймаут аудио, переключение на локальный голос...")
-                    self.fallbackToSpeech(prayer: prayer, language: language)
-                }
-            }
         } else {
-            fallbackToSpeech(prayer: prayer, language: language)
+            print("⚠️ Аудиофайл для главы Нарекаци не найден")
+            isPlaying = false
         }
-    }
-    
-    func speak(prayer: NarekPrayer, language: AppLanguage) {
-        togglePlay(prayer: prayer, language: language)
-    }
-    
-    private func fallbackToSpeech(prayer: NarekPrayer, language: AppLanguage) {
-        cleanupPlayer()
-        isStreaming = false
-        
-        let textToSpeak = "\(prayer.title(for: language)). \(prayer.text(for: language))"
-        let utterance = AVSpeechUtterance(string: textToSpeak)
-        
-        let localeCode: String
-        switch language {
-        case .armenian:
-            localeCode = "hy-AM"
-        case .russian:
-            localeCode = "ru-RU"
-        case .english:
-            localeCode = "en-US"
-        }
-        
-        utterance.voice = AVSpeechSynthesisVoice(language: localeCode) ?? AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.88
-        utterance.pitchMultiplier = 0.96
-        
-        duration = Double(textToSpeak.count) * 0.08
-        isPlaying = true
-        synthesizer.speak(utterance)
-        updateNowPlayingInfo(prayer: prayer)
     }
     
     // MARK: - Управление
@@ -236,9 +195,6 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         if let p = player {
             p.pause()
         }
-        if synthesizer.isSpeaking {
-            synthesizer.pauseSpeaking(at: .immediate)
-        }
         isPlaying = false
         savePlaybackState()
     }
@@ -246,9 +202,6 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     func resume() {
         if let p = player {
             p.play()
-            isPlaying = true
-        } else if synthesizer.isPaused {
-            synthesizer.continueSpeaking()
             isPlaying = true
         } else if let currentId = currentlyPlayingId,
                   let prayer = NarekatsiDatabase.shared.prayers.first(where: { $0.id == currentId }) {
@@ -294,9 +247,6 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
     func stop() {
         savePlaybackState()
         cleanupPlayer()
-        if synthesizer.isSpeaking {
-            synthesizer.stopSpeaking(at: .immediate)
-        }
         isPlaying = false
         isStreaming = false
     }
@@ -382,18 +332,5 @@ class NarekAudioPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate 
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
-    
-    // MARK: - AVSpeechSynthesizerDelegate
-    
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async {
-            self.playNextPrayer()
-        }
-    }
-    
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async {
-            self.isPlaying = false
-        }
-    }
 }
+

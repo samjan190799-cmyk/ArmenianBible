@@ -134,6 +134,9 @@
 "edition_armenian_subtitle" = "Восточноармянский перевод";
 "edition_russian_subtitle" = "Синодальный перевод";
 "edition_english_subtitle" = "King James Version (KJV)";
+"edition_russian" = "Русский (Синодальный)";
+"edition_english" = "English (KJV)";
+"verse_label" = "Стих";
 
 /* Favorites Tab */
 "tab_favorites" = "Избранное";
@@ -171,7 +174,11 @@
 "quiz_result_expert" = "Отличный результат! 🏆";
 "quiz_result_good" = "Хороший результат! 👍";
 "quiz_result_try_again" = "Продолжайте изучать Библию! 📖";
+"quiz_result_subtitle" = "Продолжайте исследовать Священное Писание каждый день!";
 "quiz_button_play_again" = "Сыграть снова";
+"quiz_read_in_bible" = "Читать в Библии";
+"quiz_share_result" = "Поделиться результатом";
+"quiz_share_text" = "Я набрал %d из %d в Библейской Викторине Armenian Bible! 📖✨";
 
 /* Achievements & Badges */
 "achievements_title" = "Награды и Значки";
@@ -229,6 +236,19 @@
 "narekatsi_subtitle" = "Книга скорбных песнопений (Из глубины сердца)";
 "button_listen_audio" = "Слушать";
 "button_pause_audio" = "Пауза";
+"narek_tab_text" = "Текст (Матьян)";
+"narek_tab_audio" = "Аудиозапись";
+"narek_playlist_title" = "📻 Все 95 Глав (Плейлист)";
+"narek_prayers_count" = "95 молитв";
+"narek_loading_audio" = "• Загрузка аудио...";
+"narek_saved_position_format" = "Сохраненная позиция: %@ (Глава %d)";
+"narek_listen_pro" = "Слушать (PRO)";
+"narek_stop" = "Остановить";
+"narek_listen_prayer" = "Слушать молитву";
+"saint_gregory_narekatsi" = "Св. Григор Нарекаци";
+"alert_error_title" = "Ошибка";
+"alert_success_title" = "Поздравляем! 🕊️";
+"alert_amen" = "Аминь";
 
 /* Notes & Tags */
 "notes_title" = "Заметки и Выделения";

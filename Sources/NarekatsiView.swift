@@ -72,7 +72,7 @@ struct NarekatsiView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "doc.text.fill")
                             .font(.system(size: 13, weight: .bold))
-                        Text("Տեքստ (Մատյան)")
+                        Text("narek_tab_text".localized(for: manager.appLanguage))
                             .font(.system(size: 13, weight: .bold))
                     }
                     .foregroundColor(subTab == 0 ? accentColor : .secondary)
@@ -95,7 +95,7 @@ struct NarekatsiView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "headphones")
                             .font(.system(size: 13, weight: .bold))
-                        Text("Ձայնագրություն")
+                        Text("narek_tab_audio".localized(for: manager.appLanguage))
                             .font(.system(size: 13, weight: .bold))
                         
                         if audioPlayer.isPlaying {
@@ -216,11 +216,11 @@ struct NarekatsiView: View {
                         
                         // ЗАГОЛОВОК ПЛЕЙЛИСТА
                         HStack {
-                            Text("📻 Բոլոր 95 Գլուխները (Плейлист)")
+                            Text("narek_playlist_title".localized(for: manager.appLanguage))
                                 .font(.system(size: 16, weight: .bold, design: .serif))
                                 .foregroundColor(primaryTextColor)
                             Spacer()
-                            Text("95 աղոթք")
+                            Text("narek_prayers_count".localized(for: manager.appLanguage))
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
@@ -439,7 +439,7 @@ struct NarekHeroPlayerCard: View {
                                 .background(Color(hex: "FDE68A"))
                                 .cornerRadius(5)
                         } else if audioPlayer.isStreaming {
-                            Text("• Բեռնվում է...")
+                            Text("narek_loading_audio".localized(for: manager.appLanguage))
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
@@ -604,7 +604,7 @@ struct NarekHeroPlayerCard: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 11))
                         .foregroundColor(accentColor)
-                    Text("Պահպանված դիրք՝ \(formatTime(audioPlayer.savedTimeSeconds)) (Գլուխ \(audioPlayer.savedPrayerId))")
+                    Text(String(format: "narek_saved_position_format".localized(for: manager.appLanguage), formatTime(audioPlayer.savedTimeSeconds), audioPlayer.savedPrayerId))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.secondary)
                 }
@@ -664,13 +664,13 @@ struct NarekCardView: View {
                             Image(systemName: "crown.fill")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.white)
-                            Text("Լսել (PRO)")
+                            Text("narek_listen_pro".localized(for: language))
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.white)
                         } else {
                             Image(systemName: isPlaying ? "stop.fill" : "speaker.wave.2.fill")
                                 .font(.system(size: 12, weight: .bold))
-                            Text(isPlaying ? "Դադարեցնել" : "Լսել աղոթքը")
+                            Text(isPlaying ? "narek_stop".localized(for: language) : "narek_listen_prayer".localized(for: language))
                                 .font(.system(size: 12, weight: .bold))
                         }
                     }
@@ -701,7 +701,7 @@ struct NarekCardView: View {
             
             // Нижняя панель действий (Виджет, Копировать, Поделиться)
             HStack {
-                Text("Գրիգոր Նարեկացի")
+                Text("saint_gregory_narekatsi".localized(for: language))
                     .font(.system(size: 12, weight: .semibold, design: .serif))
                     .foregroundColor(accentColor.opacity(0.8))
                 

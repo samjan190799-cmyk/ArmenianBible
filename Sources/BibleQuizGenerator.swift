@@ -125,6 +125,87 @@ final class BibleQuizGenerator {
             chapter: 11,
             verse: 28,
             category: .gospels
+        ),
+        GoldenVerseQuote(
+            textHy: "«Քո խոսքը ճրագ է իմ ոտքերի համար և լույս՝ իմ շավիղների համար»։",
+            textRu: "«Слово Твое — светильник ноге моей и свет стезе моей».",
+            textEn: "«Your word is a lamp for my feet, a light on my path».",
+            bookId: 19, // Псалтирь
+            chapter: 119,
+            verse: 105,
+            category: .oldTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Արդարը հավատքով պիտի ապրի»։",
+            textRu: "«Праведный верою жив будет».",
+            textEn: "«The righteous will live by faith».",
+            bookId: 45, // Римлянам
+            chapter: 1,
+            verse: 17,
+            category: .newTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Եթե Աստված մեր կողմն է, ո՞վ կարող է լինել մեզ հակառակ»։",
+            textRu: "«Если Бог за нас, кто против нас?»",
+            textEn: "«If God is for us, who can be against us?»",
+            bookId: 45, // Римлянам
+            chapter: 8,
+            verse: 31,
+            category: .newTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Ամեն գիրք աստվածաշունչ է և օգտակար՝ ուսուցանելու, հանդիմանելու, ուղղելու...»։",
+            textRu: "«Все Писание богодухновенно и полезно для научения, для обличения, для исправления...».",
+            textEn: "«All Scripture is God-breathed and is useful for teaching, rebuking, correcting...».",
+            bookId: 55, // 2 Тимофею
+            chapter: 3,
+            verse: 16,
+            category: .newTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Խաղաղություն եմ թողնում ձեզ, Իմ խաղաղությունն եմ տալիս ձեզ»։",
+            textRu: "«Мир оставляю вам, мир Мой даю вам; не так, как мир дает, Я даю вам».",
+            textEn: "«Peace I leave with you; my peace I give you. I do not give to you as the world gives».",
+            bookId: 43, // Иоанна
+            chapter: 14,
+            verse: 27,
+            category: .gospels
+        ),
+        GoldenVerseQuote(
+            textHy: "«Որովհետև ես գիտեմ այն խորհուրդները, որ խորհում եմ ձեր մասին... խաղաղության և ոչ թե չարիքի»։",
+            textRu: "«Ибо только Я знаю намерения, какие имею о вас, говорит Господь, намерения во благо, а не на зло...».",
+            textEn: "«For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you...».",
+            bookId: 24, // Иеремия
+            chapter: 29,
+            verse: 11,
+            category: .oldTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Մի՛ վախեցիր, որովհետև Ես քեզ հետ եմ. մի՛ զարհուրիր, որովհետև Ես քո Աստվածն եմ»։",
+            textRu: "«Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой; Я укреплю тебя...».",
+            textEn: "«Do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you...».",
+            bookId: 23, // Исаия
+            chapter: 41,
+            verse: 10,
+            category: .oldTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Հիսուս Քրիստոսը նույնն է երեկ, այսօր և հավիտյան»։",
+            textRu: "«Иисус Христос вчера и сегодня и во веки Тот же».",
+            textEn: "«Jesus Christ is the same yesterday and today and forever».",
+            bookId: 58, // Евреям
+            chapter: 13,
+            verse: 8,
+            category: .newTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Աստված սեր է, և ով մնում է սիրո մեջ, բնակվում է Աստծո մեջ»։",
+            textRu: "«Бог есть любовь, и пребывающий в любви пребывает в Боге, и Бог в нем».",
+            textEn: "«God is love. Whoever lives in love lives in God, and God in them».",
+            bookId: 62, // 1 Иоанна
+            chapter: 4,
+            verse: 16,
+            category: .newTestament
         )
     ]
     
@@ -177,15 +258,22 @@ final class BibleQuizGenerator {
         
         var generated: [QuizQuestion] = []
         
-        // 1. Сколько глав в Евангелиях и великих книгах
+        // Сколько глав в ключевых книгах Библии
         let prominentBooks = allBooks.filter { [1, 19, 20, 40, 41, 42, 43, 44, 45, 66].contains($0.id) }
         for book in prominentBooks {
             let correctCount = book.chaptersCount
-            var wrongCounts = [correctCount - 4, correctCount + 4, correctCount + 8].filter { $0 > 0 }
-            if wrongCounts.count < 3 {
-                wrongCounts = [correctCount + 2, correctCount + 6, correctCount + 10]
+            var wrongCandidates: Set<Int> = []
+            let offsets = [-6, -4, -2, 2, 4, 6, 8, 10, 12]
+            for offset in offsets {
+                let val = correctCount + offset
+                if val > 0 && val != correctCount {
+                    wrongCandidates.insert(val)
+                }
             }
-            var options = ([correctCount] + wrongCounts.prefix(3)).shuffled()
+            let wrongArray = Array(wrongCandidates).shuffled()
+            guard wrongArray.count >= 3 else { continue }
+            
+            let options = (Array(wrongArray.prefix(3)) + [correctCount]).shuffled()
             let correctIndex = options.firstIndex(of: correctCount) ?? 0
             
             let q = QuizQuestion(
@@ -211,7 +299,7 @@ final class BibleQuizGenerator {
         return generated
     }
     
-    // MARK: - Сборка пула вопросов для викторины любого размера (до 1000+)
+    // MARK: - Сборка пула вопросов для викторины любого размера
     func fetchQuestions(category: QuizCategory, count: Int = 10) -> [QuizQuestion] {
         var pool: [QuizQuestion] = []
         
@@ -240,6 +328,10 @@ final class BibleQuizGenerator {
         }
         
         pool.shuffle()
+        if pool.isEmpty {
+            pool = QuizDatabase.allQuestions.shuffled()
+        }
         return Array(pool.prefix(count))
     }
 }
+

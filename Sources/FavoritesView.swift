@@ -463,7 +463,7 @@ struct FavoritesView: View {
         if let verse = item.verseNumber {
             manager.deepLinkVerse = verse
         }
-        manager.activeTabSelection = 3 // Переход во вкладку "Библия"
+        manager.openBibleReader()
     }
     
     private func openAnnotationInBible(_ ann: VerseAnnotation) {
@@ -471,7 +471,7 @@ struct FavoritesView: View {
         manager.deepLinkBookId = ann.bookId
         manager.deepLinkChapter = ann.chapter
         manager.deepLinkVerse = ann.verseNumber
-        manager.activeTabSelection = 3 // Переход во вкладку "Библия"
+        manager.openBibleReader()
     }
     
     private func pinFavoriteToWidget(_ item: FavoriteItem) {

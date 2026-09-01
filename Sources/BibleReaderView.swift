@@ -6,8 +6,6 @@ struct BibleReaderView: View {
     @State private var showingSearch = false
     @State private var hasRestoredLocation = false
     
-    @State private var selectedSection: Int = 0 // 0: Библия, 1: Нарекаци
-    
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
     }
@@ -22,7 +20,7 @@ struct BibleReaderView: View {
                 backgroundColor.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    Picker("", selection: $selectedSection) {
+                    Picker("", selection: $manager.selectedReaderSection) {
                         Text("tab_bible".localized(for: manager.appLanguage)).tag(0)
                         Text("narekatsi_title".localized(for: manager.appLanguage)).tag(1)
                     }
@@ -30,15 +28,22 @@ struct BibleReaderView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     
-                    if selectedSection == 0 {
+                    if manager.selectedReaderSection == 0 {
                         BibleBookListView(navigationPath: $navigationPath)
                     } else {
                         NarekatsiView()
                     }
                 }
             }
+            .onChange(of: manager.selectedReaderSection) { newSection in
+                if newSection == 1 {
+                    navigationPath = []
+                }
+            }
             .onAppear {
-                if !hasRestoredLocation {
+                if manager.selectedReaderSection == 1 {
+                    navigationPath = []
+                } else if !hasRestoredLocation {
                     hasRestoredLocation = true
                     if let bookId = manager.lastReadBookId,
                        let chapter = manager.lastReadChapter,
@@ -49,16 +54,18 @@ struct BibleReaderView: View {
                     }
                 }
             }
-            .navigationTitle("tab_bible".localized(for: manager.appLanguage))
+            .navigationTitle(manager.selectedReaderSection == 0 ? "tab_bible".localized(for: manager.appLanguage) : "narekatsi_title".localized(for: manager.appLanguage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingSearch = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(accentColor)
+                if manager.selectedReaderSection == 0 {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            showingSearch = true
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(accentColor)
+                        }
                     }
                 }
             }
@@ -350,7 +357,6 @@ struct BibleChapterReaderView: View {
     let targetVerse: Int?
     
     @ObservedObject var manager = BibleManager.shared
-    @ObservedObject var speechService = BibleSpeechService.shared
     @State private var currentChapterIndex: Int = 0
     @State private var showNavigationHints = true
     @State private var animateHint = false
@@ -440,25 +446,6 @@ struct BibleChapterReaderView: View {
             
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 14) {
-                    // Кнопка аудио-озвучки главы
-                    Button {
-                        triggerHaptic(.light)
-                        let chapterNum = currentChapterIndex + 1
-                        if speechService.isSpeaking && !speechService.isPaused {
-                            speechService.stop()
-                        } else {
-                            if let chapterData = BibleDatabase.shared.getChapterText(bookId: book.id, chapter: chapterNum) {
-                                let versesText = chapterData.verses.map { $0.text(for: manager.appLanguage) }.joined(separator: ". ")
-                                let fullText = "\(book.name), \(chapterNum) \("chapter_title_label".localized(for: manager.appLanguage)). \(versesText)"
-                                speechService.speak(text: fullText, language: manager.appLanguage)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: speechService.isSpeaking && !speechService.isPaused ? "speaker.wave.3.fill" : "speaker.wave.2")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(speechService.isSpeaking && !speechService.isPaused ? accentColor : (colorScheme == .dark ? .white : Color(hex: "1E293B")))
-                    }
-                    
                     // Меню выбора перевода Библии
                     Menu {
                         Section("menu_translation_title".localized(for: manager.appLanguage)) {
