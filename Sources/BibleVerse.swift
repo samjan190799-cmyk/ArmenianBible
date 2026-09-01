@@ -278,6 +278,17 @@ enum UpdateInterval: String, CaseIterable, Identifiable, Codable {
     
     var id: String { self.rawValue }
     
+    var minutes: Int {
+        switch self {
+        case .everyHour: return 60
+        case .every6Hours: return 360
+        case .every12Hours: return 720
+        case .every24Hours: return 1440
+        case .onScreenActivation: return 60
+        case .onTapOnly: return 60
+        }
+    }
+    
     var titleArmenian: String {
         switch self {
         case .everyHour: return "Ամեն ժամ"

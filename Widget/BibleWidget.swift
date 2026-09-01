@@ -213,14 +213,15 @@ struct ToggleFavoriteWidgetIntent: AppIntent {
             return .result()
         }
         
-        // 2. Находим сам стих в базе
-        guard let verse = BibleVerse.database.first(where: { $0.id == verseId }) ??
-                          BibleVerse.shortPearls.first(where: { $0.id == verseId }) ??
-                          BibleVerse.shortNarekatsi.first(where: { $0.id == verseId }) ??
-                          BibleVerse.shortPsalms.first(where: { $0.id == verseId }) ??
-                          BibleVerse.shortWisdom.first(where: { $0.id == verseId }) ??
-                          BibleVerse.shortLove.first(where: { $0.id == verseId }) ??
-                          BibleVerse.shortFaith.first(where: { $0.id == verseId }) else {
+        // 2. Находим сам стих в базе (разбито на под-выражения для компилятора Swift)
+        var foundVerse: BibleVerse? = BibleVerse.database.first(where: { $0.id == verseId })
+        if foundVerse == nil { foundVerse = BibleVerse.shortPearls.first(where: { $0.id == verseId }) }
+        if foundVerse == nil { foundVerse = BibleVerse.shortNarekatsi.first(where: { $0.id == verseId }) }
+        if foundVerse == nil { foundVerse = BibleVerse.shortPsalms.first(where: { $0.id == verseId }) }
+        if foundVerse == nil { foundVerse = BibleVerse.shortWisdom.first(where: { $0.id == verseId }) }
+        if foundVerse == nil { foundVerse = BibleVerse.shortLove.first(where: { $0.id == verseId }) }
+        if foundVerse == nil { foundVerse = BibleVerse.shortFaith.first(where: { $0.id == verseId }) }
+        guard let verse = foundVerse else {
             return .result()
         }
         
@@ -237,13 +238,16 @@ struct ToggleFavoriteWidgetIntent: AppIntent {
         } else {
             let newItem = FavoriteItem(
                 id: verse.id,
+                isDailyVerse: true,
+                bookId: nil,
+                chapter: nil,
+                verseNumber: nil,
                 textHy: verse.textHy,
                 textRu: verse.textRu,
                 textEn: verse.textEn,
                 refHy: verse.refHy,
                 refRu: verse.refRu,
-                refEn: verse.refEn,
-                dateAdded: Date()
+                refEn: verse.refEn
             )
             favorites.insert(newItem, at: 0)
         }
