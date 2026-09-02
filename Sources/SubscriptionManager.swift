@@ -82,12 +82,16 @@ final class SubscriptionManager: ObservableObject {
     private let maxFreeDailyAiQueries = 3
     
     private let kPremiumOverrideKey = "armenian_bible_is_premium_cached"
+    private let kLegacyPremiumKey   = "arm_bible_premium_unlocked"   // ключ из v1.x
+    private let appGroupSuite       = "group.com.samvel.ArmenianBible"
     private var updateListenerTask: Task<Void, Never>? = nil
     
     private init() {
-        // Загружаем закэшированный статус
-        self.isPremium = UserDefaults.standard.bool(forKey: kPremiumOverrideKey)
-        if let sharedDefaults = UserDefaults(suiteName: "group.com.samvel.ArmenianBible") {
+        // Загружаем закэшированный статус (с учётом старого ключа v1.x для миграции)
+        let cached    = UserDefaults.standard.bool(forKey: kPremiumOverrideKey)
+        let legacyCached = UserDefaults.standard.bool(forKey: kLegacyPremiumKey)
+        self.isPremium = cached || legacyCached
+        if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
             sharedDefaults.set(self.isPremium, forKey: "is_premium_active")
             sharedDefaults.synchronize()
         }
@@ -233,25 +237,29 @@ final class SubscriptionManager: ObservableObject {
             }
         }
         
-        // 2. Grandfathering (Сохранение пожизненного доступа для пользователей, купивших платную версию за $3)
-        // Если у пользователя нет активной новой подписки, проверяем чек покупки самого приложения (до версии 2.0)
+        // 2. Grandfathering: пользователи купили платное приложение (v1.x) за $3 до модели подписок.
+        // ВАЖНО: проверяем только для Production окружения App Store, не для Sandbox/TestFlight!
+        // В TestFlight originalAppVersion возвращает "1.0" для ВСЕХ тестировщиков → ложные срабатывания.
         if !hasActivePremium {
             do {
                 let appTxResult = try await AppTransaction.shared
                 let appTransaction = try Self.checkVerified(appTxResult)
-                let originalVersion = appTransaction.originalAppVersion
                 
-                if isPaidEarlyAdopter(versionString: originalVersion) {
-                    hasActivePremium = true
+                // Применяем grandfathering ТОЛЬКО в Production App Store
+                if appTransaction.environment == .production {
+                    let originalVersion = appTransaction.originalAppVersion
+                    if isPaidEarlyAdopter(versionString: originalVersion) {
+                        hasActivePremium = true
+                    }
                 }
             } catch {
-                // Если чек App Store еще не синхронизирован или в тестовой среде
+                // Чек App Store не синхронизирован или ошибка верификации — пропускаем
             }
         }
         
         self.isPremium = hasActivePremium
         UserDefaults.standard.set(hasActivePremium, forKey: kPremiumOverrideKey)
-        if let sharedDefaults = UserDefaults(suiteName: "group.com.samvel.ArmenianBible") {
+        if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
             sharedDefaults.set(hasActivePremium, forKey: "is_premium_active")
             sharedDefaults.synchronize()
         }
@@ -343,7 +351,7 @@ final class SubscriptionManager: ObservableObject {
     func setDebugPremium(_ enabled: Bool) {
         self.isPremium = enabled
         UserDefaults.standard.set(enabled, forKey: kPremiumOverrideKey)
-        if let sharedDefaults = UserDefaults(suiteName: "group.com.samjan.armenianbible") {
+        if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
             sharedDefaults.set(enabled, forKey: "is_premium_active")
             sharedDefaults.synchronize()
         }

@@ -2400,7 +2400,7 @@ struct SettingsView: View {
             HStack {
                 Text("about_app_version".localized(for: selectedLanguage))
                 Spacer()
-                Text("1.0.1")
+                Text("2.1")
                     .foregroundColor(.secondary)
             }
             .font(.system(size: 14))
@@ -2412,6 +2412,109 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
             }
             .font(.system(size: 14))
+            
+            Divider().opacity(0.4)
+            
+            // ─── Кнопка "Armenian Bible Premium" ────────────────────────
+            if subscriptionManager.isPremium {
+                // Уже Premium — показываем статус
+                HStack(spacing: 10) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("ARMENIAN BIBLE PREMIUM")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                        Text({
+                            switch selectedLanguage {
+                            case .armenian: return "Ձեր բաժանորդագրությունն ակտիվ է ✓"
+                            case .russian:  return "Ваша подписка активна ✓"
+                            case .english:  return "Your subscription is active ✓"
+                            }
+                        }())
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundColor(.green)
+                }
+                .padding(12)
+                .background(Color(hex: "F59E0B").opacity(0.08))
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
+            } else {
+                // Не Premium — кнопка открытия Paywall
+                Button {
+                    let g = UIImpactFeedbackGenerator(style: .medium)
+                    g.prepare(); g.impactOccurred()
+                    isShowingPaywall = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("ARMENIAN BIBLE PREMIUM")
+                                .font(.system(size: 12, weight: .black))
+                                .foregroundColor(Color(hex: "F59E0B"))
+                            Text({
+                                switch selectedLanguage {
+                                case .armenian: return "Բացեք բոլոր հնարավորությունները →"
+                                case .russian:  return "Открыть все возможности →"
+                                case .english:  return "Unlock all features →"
+                                }
+                            }())
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Color(hex: "F59E0B").opacity(0.7))
+                    }
+                    .padding(12)
+                    .background(Color(hex: "F59E0B").opacity(0.08))
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+            
+            // ─── Кнопка "Восстановить покупки" ──────────────────────────
+            Button {
+                let g = UINotificationFeedbackGenerator()
+                g.prepare(); g.notificationOccurred(.success)
+                Task {
+                    let restored = await subscriptionManager.restorePurchases()
+                    if restored {
+                        let s = UINotificationFeedbackGenerator()
+                        s.notificationOccurred(.success)
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text({
+                        switch selectedLanguage {
+                        case .armenian: return "Վերականգնել գնումները"
+                        case .russian:  return "Восстановить покупки"
+                        case .english:  return "Restore Purchases"
+                        }
+                    }())
+                    .font(.system(size: 13, weight: .medium))
+                }
+                .foregroundColor(Color(hex: selectedTheme.colorHex))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color(hex: selectedTheme.colorHex).opacity(0.07))
+                .cornerRadius(10)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: selectedTheme.colorHex).opacity(0.2), lineWidth: 1))
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .disabled(subscriptionManager.isPurchasing)
         }
         .padding(18)
         .background(aboutBlockBgColor)
