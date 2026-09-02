@@ -371,6 +371,7 @@ struct FavoritesView: View {
                     chapter: ann.chapter,
                     verseNumber: ann.verseNumber,
                     textHy: ann.textHy,
+                    textHyArarat: "",
                     textRu: ann.textRu,
                     textEn: ann.textEn
                 )
