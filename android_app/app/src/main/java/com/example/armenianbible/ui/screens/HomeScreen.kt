@@ -66,7 +66,7 @@ fun HomeScreen(
     val haptic = LocalHapticFeedback.current
 
     var currentVerse by remember {
-        mutableStateOf(dbHelper.getRandomVerse() ?: BibleVerse(
+        mutableStateOf(dbHelper.getRandomVerse(armenianEdition) ?: BibleVerse(
             textHy = "ՉԷ՞ որ ես քեզ պատվիրեցի․ զորացի՛ր և քա՛ջ եղիր, մի՛ վախեցիր և մի՛ զարհուրիր, որովհետև քո Տեր Աստվածը քեզ հետ է ամեն տեղ, ուր էլ որ գնաս։",
             textRu = "Вот Я повелеваю тебе: будь тверд и мужествен, не страшись и не ужасайся; ибо с тобою Господь Бог твой везде, куда ни пойдешь.",
             textEn = "Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the Lord thy God is with thee whithersoever thou goest.",
@@ -250,7 +250,7 @@ fun HomeScreen(
                     IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            val newVerse = dbHelper.getRandomVerse()
+                            val newVerse = dbHelper.getRandomVerse(armenianEdition)
                             if (newVerse != null) currentVerse = newVerse
                         },
                         modifier = Modifier

@@ -29,6 +29,7 @@ import com.example.armenianbible.data.*
 fun SearchScreen(
     dbHelper: BibleDatabaseHelper,
     appLanguage: AppLanguage,
+    edition: ArmenianEdition = ArmenianEdition.ARARAT,
     onOpenReader: (Int, Int) -> Unit
 ) {
     val context = LocalContext.current
@@ -39,7 +40,7 @@ fun SearchScreen(
     LaunchedEffect(queryText) {
         if (queryText.trim().length >= 2) {
             isSearching = true
-            results = dbHelper.searchVerses(queryText, appLanguage)
+            results = dbHelper.searchVerses(queryText, appLanguage, edition)
             isSearching = false
         } else {
             results = emptyList()

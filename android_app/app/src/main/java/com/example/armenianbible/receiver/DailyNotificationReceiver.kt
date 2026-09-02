@@ -34,7 +34,7 @@ class DailyNotificationReceiver : BroadcastReceiver() {
         if (!prefs.dailyNotificationsEnabled) return
 
         val dbHelper = BibleDatabaseHelper.getInstance(context)
-        val verse = dbHelper.getRandomVerse() ?: return
+        val verse = dbHelper.getRandomVerse(prefs.armenianEdition) ?: return
 
         // Update widget with new verse
         prefs.saveCurrentVerseForWidget(verse)

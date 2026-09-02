@@ -29,7 +29,7 @@ class BibleAppWidget : AppWidgetProvider() {
                 val dbHelper = BibleDatabaseHelper.getInstance(context)
 
                 val newVerse: BibleVerse? = when (prefs.selectedCategory) {
-                    TextCategory.VERSES -> dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse()
+                    TextCategory.VERSES -> dbHelper.getRandomShortVerse(edition = prefs.armenianEdition) ?: dbHelper.getRandomVerse(prefs.armenianEdition)
                     TextCategory.PRAYERS -> {
                         val prayer = NarekatsiDatabase.prayers.randomOrNull()
                         if (prayer != null) {
@@ -42,7 +42,7 @@ class BibleAppWidget : AppWidgetProvider() {
                                 refEn = prayer.banNumber,
                                 isPrayer = true
                             )
-                        } else (dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse())
+                        } else (dbHelper.getRandomShortVerse(edition = prefs.armenianEdition) ?: dbHelper.getRandomVerse(prefs.armenianEdition))
                     }
                     TextCategory.FAVORITES -> {
                         val favs = prefs.getFavorites()
@@ -56,11 +56,11 @@ class BibleAppWidget : AppWidgetProvider() {
                                 refRu = f.refRu,
                                 refEn = f.refEn
                             )
-                        } else (dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse())
+                        } else (dbHelper.getRandomShortVerse(edition = prefs.armenianEdition) ?: dbHelper.getRandomVerse(prefs.armenianEdition))
                     }
                     TextCategory.BOTH -> {
                         if ((0..1).random() == 0) {
-                            dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse()
+                            dbHelper.getRandomShortVerse(edition = prefs.armenianEdition) ?: dbHelper.getRandomVerse(prefs.armenianEdition)
                         } else {
                             val prayer = NarekatsiDatabase.prayers.randomOrNull()
                             if (prayer != null) {
@@ -73,7 +73,7 @@ class BibleAppWidget : AppWidgetProvider() {
                                     refEn = prayer.banNumber,
                                     isPrayer = true
                                 )
-                            } else (dbHelper.getRandomShortVerse() ?: dbHelper.getRandomVerse())
+                            } else (dbHelper.getRandomShortVerse(edition = prefs.armenianEdition) ?: dbHelper.getRandomVerse(prefs.armenianEdition))
                         }
                     }
                 }

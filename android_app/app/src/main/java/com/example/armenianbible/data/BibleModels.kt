@@ -150,6 +150,7 @@ data class BibleVerseText(
     val chapter: Int,
     val verseNumber: Int,
     val textHy: String,
+    val textHyArarat: String = "",  // Нор Арарат 2018
     val textRu: String,
     val textEn: String
 ) {
@@ -157,7 +158,7 @@ data class BibleVerseText(
         return when (language) {
             AppLanguage.ARMENIAN -> {
                 when (edition) {
-                    ArmenianEdition.ARARAT -> convertToArarat(textHy)
+                    ArmenianEdition.ARARAT -> if (textHyArarat.isNotEmpty()) textHyArarat else textHy
                     ArmenianEdition.WESTERN -> convertToWestern(textHy)
                     ArmenianEdition.GRABAR -> textHy
                 }
@@ -169,25 +170,6 @@ data class BibleVerseText(
 
     fun reference(language: AppLanguage, bookName: String): String {
         return "$bookName $chapter:$verseNumber"
-    }
-
-    private fun convertToArarat(text: String): String {
-        var res = text
-        res = res.replace("Աստուած", "Աստված")
-        res = res.replace("Աստուծոյ", "Աստծո")
-        res = res.replace("Աստուծով", "Աստծով")
-        res = res.replace("Յիսուս", "Հիսուս")
-        res = res.replace("Յովհաննէս", "Հովհաննես")
-        res = res.replace("եւ ", "և ")
-        res = res.replace("եւ", "և")
-        res = res.replace("ւած", "ված")
-        res = res.replace("ւէ", "վե")
-        res = res.replace("ւի", "վի")
-        res = res.replace("ւո", "վո")
-        res = res.replace("ւա", "վա")
-        res = res.replace("՚", "")
-        res = res.replace("'", "")
-        return res
     }
 
     private fun convertToWestern(text: String): String {

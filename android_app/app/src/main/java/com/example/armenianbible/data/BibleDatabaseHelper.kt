@@ -90,7 +90,10 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
     fun getChapterVerses(bookId: Int, chapter: Int): List<BibleVerseText> {
         val verses = mutableListOf<BibleVerseText>()
         val db = readableDatabase
-        val cursor = db.rawQuery("SELECT id, verse, text_hy, text_ru, text_en FROM verses WHERE book_id = ? AND chapter = ? ORDER BY verse ASC;", arrayOf(bookId.toString(), chapter.toString()))
+        val cursor = db.rawQuery(
+            "SELECT id, verse, text_hy, text_ru, text_en, COALESCE(text_hy_ararat, '') FROM verses WHERE book_id = ? AND chapter = ? ORDER BY verse ASC;",
+            arrayOf(bookId.toString(), chapter.toString())
+        )
         cursor.use { c ->
             while (c.moveToNext()) {
                 verses.add(
@@ -101,7 +104,8 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
                         verseNumber = c.getInt(1),
                         textHy = c.getString(2) ?: "",
                         textRu = c.getString(3) ?: "",
-                        textEn = c.getString(4) ?: ""
+                        textEn = c.getString(4) ?: "",
+                        textHyArarat = c.getString(5) ?: ""
                     )
                 )
             }
@@ -109,10 +113,10 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
         return verses
     }
 
-    fun getRandomVerse(): BibleVerse? {
+    fun getRandomVerse(edition: ArmenianEdition = ArmenianEdition.ARARAT): BibleVerse? {
         val db = readableDatabase
         val query = """
-            SELECT v.text_hy, v.text_ru, v.text_en, v.chapter, v.verse, b.name_hy, b.name_ru, b.name_en
+            SELECT v.text_hy, v.text_ru, v.text_en, v.chapter, v.verse, b.name_hy, b.name_ru, b.name_en, COALESCE(v.text_hy_ararat, '')
             FROM verses v
             JOIN books b ON v.book_id = b.id
             ORDER BY RANDOM() LIMIT 1;
@@ -128,8 +132,11 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
                 val bHy = c.getString(5) ?: ""
                 val bRu = c.getString(6) ?: ""
                 val bEn = c.getString(7) ?: ""
+                val textHyArarat = c.getString(8) ?: ""
+                // Выбираем правильный армянский текст по настройке
+                val finalTextHy = if (edition == ArmenianEdition.ARARAT && textHyArarat.isNotEmpty()) textHyArarat else textHy
                 return BibleVerse(
-                    textHy = textHy,
+                    textHy = finalTextHy,
                     textRu = textRu,
                     textEn = textEn,
                     refHy = "$bHy $ch:$v",
@@ -141,10 +148,10 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
         return null
     }
 
-    fun getRandomShortVerse(maxLength: Int = 120): BibleVerse? {
+    fun getRandomShortVerse(maxLength: Int = 120, edition: ArmenianEdition = ArmenianEdition.ARARAT): BibleVerse? {
         val db = readableDatabase
         val query = """
-            SELECT v.text_hy, v.text_ru, v.text_en, v.chapter, v.verse, b.name_hy, b.name_ru, b.name_en
+            SELECT v.text_hy, v.text_ru, v.text_en, v.chapter, v.verse, b.name_hy, b.name_ru, b.name_en, COALESCE(v.text_hy_ararat, '')
             FROM verses v
             JOIN books b ON v.book_id = b.id
             WHERE LENGTH(v.text_hy) <= ?
@@ -161,8 +168,10 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
                 val bHy = c.getString(5) ?: ""
                 val bRu = c.getString(6) ?: ""
                 val bEn = c.getString(7) ?: ""
+                val textHyArarat = c.getString(8) ?: ""
+                val finalTextHy = if (edition == ArmenianEdition.ARARAT && textHyArarat.isNotEmpty()) textHyArarat else textHy
                 return BibleVerse(
-                    textHy = textHy,
+                    textHy = finalTextHy,
                     textRu = textRu,
                     textEn = textEn,
                     refHy = "$bHy $ch:$v",
@@ -171,14 +180,15 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
                 )
             }
         }
-        return getRandomVerse()
+        return getRandomVerse(edition)
     }
 
-    fun searchVerses(queryText: String, language: AppLanguage): List<BibleSearchResult> {
+    fun searchVerses(queryText: String, language: AppLanguage, edition: ArmenianEdition = ArmenianEdition.ARARAT): List<BibleSearchResult> {
         if (queryText.trim().length < 2) return emptyList()
         val db = readableDatabase
+        // Для армянского ищем по нужной колонке в зависимости от издания
         val colName = when (language) {
-            AppLanguage.ARMENIAN -> "text_hy"
+            AppLanguage.ARMENIAN -> if (edition == ArmenianEdition.ARARAT) "text_hy_ararat" else "text_hy"
             AppLanguage.RUSSIAN -> "text_ru"
             AppLanguage.ENGLISH -> "text_en"
         }
