@@ -47,36 +47,24 @@ struct BibleVerseText: Identifiable, Codable, Hashable {
     let bookId: Int
     let chapter: Int
     let verseNumber: Int
-    let textHy: String
+    let textHy: String          // Эчмиадзин 1895
+    let textHyArarat: String    // Нор Арарат 2018
     let textRu: String
     let textEn: String
     
     func text(for language: AppLanguage) -> String {
         switch language {
         case .armenian:
-            if BibleManager.shared.armenianEdition == .ararat {
-                return convertToArarat(textHy)
-            } else {
+            // Выбираем перевод по настройке пользователя
+            switch BibleManager.shared.armenianEdition {
+            case .ararat:
+                return textHyArarat.isEmpty ? textHy : textHyArarat
+            case .echmiadzin, .grabar:
                 return textHy
             }
         case .russian: return textRu
         case .english: return textEn
         }
-    }
-    
-    private func convertToArarat(_ text: String) -> String {
-        var res = text
-        res = res.replacingOccurrences(of: "Աստուած", with: "Աստված")
-        res = res.replacingOccurrences(of: "Աստուծոյ", with: "Աստծո")
-        res = res.replacingOccurrences(of: "Աստուծով", with: "Աստծով")
-        res = res.replacingOccurrences(of: "Յիսուս", with: "Հիսուս")
-        res = res.replacingOccurrences(of: "Յովհաննէս", with: "Հովհաննես")
-        res = res.replacingOccurrences(of: "եւ ", with: "և ")
-        res = res.replacingOccurrences(of: "եւ", with: "և")
-        res = res.replacingOccurrences(of: "Սկզբումն ", with: "Սկզբում ")
-        res = res.replacingOccurrences(of: "ւն ", with: "յուն ")
-        res = res.replacingOccurrences(of: "ւն", with: "յուն")
-        return res
     }
     
     func reference(for language: AppLanguage, bookName: String) -> String {
@@ -239,7 +227,7 @@ class BibleDatabase {
         guard let book = getBook(id: bookId) else { return nil }
         
         var verses: [BibleVerseText] = []
-        let query = "SELECT id, verse, text_hy, text_ru, text_en FROM verses WHERE book_id = ? AND chapter = ? ORDER BY verse ASC;"
+        let query = "SELECT id, verse, text_hy, text_ru, text_en, COALESCE(text_hy_ararat, '') FROM verses WHERE book_id = ? AND chapter = ? ORDER BY verse ASC;"
         var statement: OpaquePointer?
         
         guard db != nil else { return nil }
@@ -254,6 +242,7 @@ class BibleDatabase {
                 let textHy = String(cString: sqlite3_column_text(statement, 2))
                 let textRu = String(cString: sqlite3_column_text(statement, 3))
                 let textEn = String(cString: sqlite3_column_text(statement, 4))
+                let textHyArarat = String(cString: sqlite3_column_text(statement, 5))
                 
                 let verse = BibleVerseText(
                     id: id,
@@ -261,6 +250,7 @@ class BibleDatabase {
                     chapter: chapter,
                     verseNumber: verseNum,
                     textHy: textHy,
+                    textHyArarat: textHyArarat,
                     textRu: textRu,
                     textEn: textEn
                 )
@@ -277,7 +267,7 @@ class BibleDatabase {
     // MARK: - Получение конкретного стиха
     
     func getVerseText(bookId: Int, chapter: Int, verse: Int) -> BibleVerseText? {
-        let query = "SELECT id, text_hy, text_ru, text_en FROM verses WHERE book_id = ? AND chapter = ? AND verse = ? LIMIT 1;"
+        let query = "SELECT id, text_hy, text_ru, text_en, COALESCE(text_hy_ararat, '') FROM verses WHERE book_id = ? AND chapter = ? AND verse = ? LIMIT 1;"
         var statement: OpaquePointer?
         var verseText: BibleVerseText? = nil
         
@@ -293,6 +283,7 @@ class BibleDatabase {
                 let textHy = String(cString: sqlite3_column_text(statement, 1))
                 let textRu = String(cString: sqlite3_column_text(statement, 2))
                 let textEn = String(cString: sqlite3_column_text(statement, 3))
+                let textHyArarat = String(cString: sqlite3_column_text(statement, 4))
                 
                 verseText = BibleVerseText(
                     id: id,
@@ -300,6 +291,7 @@ class BibleDatabase {
                     chapter: chapter,
                     verseNumber: verse,
                     textHy: textHy,
+                    textHyArarat: textHyArarat,
                     textRu: textRu,
                     textEn: textEn
                 )
@@ -321,7 +313,8 @@ class BibleDatabase {
         let searchColumn: String
         switch language {
         case .armenian:
-            searchColumn = "text_hy"
+            // Для поиска по армянскому используем нужную колонку
+            searchColumn = BibleManager.shared.armenianEdition == .ararat ? "text_hy_ararat" : "text_hy"
         case .russian:
             searchColumn = "text_ru"
         case .english:
@@ -329,7 +322,7 @@ class BibleDatabase {
         }
         
         let sql = """
-        SELECT v.book_id, b.name_hy, b.name_ru, b.name_en, v.chapter, v.verse, v.text_hy, v.text_ru, v.text_en
+        SELECT v.book_id, b.name_hy, b.name_ru, b.name_en, v.chapter, v.verse, v.text_hy, v.text_ru, v.text_en, COALESCE(v.text_hy_ararat, '')
         FROM verses_fts f
         JOIN verses v ON v.id = f.rowid
         JOIN books b ON b.id = v.book_id
@@ -361,13 +354,19 @@ class BibleDatabase {
                 let textHy = String(cString: sqlite3_column_text(statement, 6))
                 let textRu = String(cString: sqlite3_column_text(statement, 7))
                 let textEn = String(cString: sqlite3_column_text(statement, 8))
+                let textHyArarat = String(cString: sqlite3_column_text(statement, 9))
                 
                 let bookName: String
                 let displayedText: String
                 switch language {
                 case .armenian:
                     bookName = bNameHy
-                    displayedText = textHy
+                    // Показываем Аараратский или Эчмиадзинский в зависимости от настройки
+                    if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
+                        displayedText = textHyArarat
+                    } else {
+                        displayedText = textHy
+                    }
                 case .russian:
                     bookName = bNameRu
                     displayedText = textRu
@@ -422,7 +421,7 @@ class BibleDatabase {
         }
         
         let sql = """
-        SELECT v.id, b.name_hy, b.name_ru, b.name_en, v.chapter, v.verse, v.text_hy, v.text_ru, v.text_en
+        SELECT v.id, b.name_hy, b.name_ru, b.name_en, v.chapter, v.verse, v.text_hy, v.text_ru, v.text_en, COALESCE(v.text_hy_ararat, '')
         FROM verses v
         JOIN books b ON b.id = v.book_id
         WHERE \(condition) AND LENGTH(v.text_hy) > 15
@@ -444,13 +443,22 @@ class BibleDatabase {
                 let textHy = String(cString: sqlite3_column_text(statement, 6))
                 let textRu = String(cString: sqlite3_column_text(statement, 7))
                 let textEn = String(cString: sqlite3_column_text(statement, 8))
+                let textHyArarat = String(cString: sqlite3_column_text(statement, 9))
+                
+                // Выбираем нужный армянский текст по настройке
+                let finalTextHy: String
+                if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
+                    finalTextHy = textHyArarat
+                } else {
+                    finalTextHy = textHy
+                }
                 
                 let refHy = "\(bNameHy) \(chapter):\(verseNum)"
                 let refRu = "\(bNameRu) \(chapter):\(verseNum)"
                 let refEn = "\(bNameEn) \(chapter):\(verseNum)"
                 
                 verse = BibleVerse(
-                    textHy: textHy,
+                    textHy: finalTextHy,
                     textRu: textRu,
                     textEn: textEn,
                     refHy: refHy,
