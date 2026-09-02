@@ -1583,6 +1583,11 @@ struct SettingsView: View {
     // Всплывающая инструкция по виджетам
     @State private var isShowingWidgetInstruction = false
     
+    // 🥚 Скрытый Easter Egg: 5 нажатий на заголовок «О приложении» → Premium
+    @State private var secretTapCount = 0
+    @State private var secretLastTap = Date.distantPast
+    @State private var secretUnlockToast = false
+
     @Environment(\.colorScheme) private var colorScheme
     
     private var backgroundColor: Color {
@@ -2392,10 +2397,56 @@ struct SettingsView: View {
     
     @ViewBuilder
     private var aboutSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("about_app_title".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(primaryTextColor)
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 12) {
+                // 🥚 Секретная зона: 5 нажатий → Premium
+                HStack(spacing: 6) {
+                    Text("about_app_title".localized(for: selectedLanguage))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                    
+                    // Точки-прогресс (видны только после 1-го тапа, до 5-го)
+                    if secretTapCount > 0 && secretTapCount < 5 {
+                        HStack(spacing: 3) {
+                            ForEach(0..<5, id: \.self) { i in
+                                Circle()
+                                    .fill(i < secretTapCount ? Color(hex: "F59E0B") : Color.secondary.opacity(0.3))
+                                    .frame(width: 5, height: 5)
+                            }
+                        }
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 0.2), value: secretTapCount)
+                    }
+                    
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    let now = Date()
+                    // Сброс счётчика если прошло > 3 секунд
+                    if now.timeIntervalSince(secretLastTap) > 3.0 {
+                        secretTapCount = 0
+                    }
+                    secretLastTap = now
+                    secretTapCount += 1
+                    
+                    let g = UIImpactFeedbackGenerator(style: secretTapCount == 5 ? .heavy : .light)
+                    g.prepare(); g.impactOccurred()
+                    
+                    if secretTapCount >= 5 {
+                        secretTapCount = 0
+                        // Активируем Premium
+                        subscriptionManager.setDebugPremium(true)
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                            secretUnlockToast = true
+                        }
+                        let n = UINotificationFeedbackGenerator()
+                        n.notificationOccurred(.success)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                            withAnimation { secretUnlockToast = false }
+                        }
+                    }
+                }
             
             HStack {
                 Text("about_app_version".localized(for: selectedLanguage))
@@ -2523,6 +2574,50 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(aboutBlockBorderColor, lineWidth: 1)
         )
+        
+        // ─── Тост «Premium разблокирован» ───────────────────────────────────
+        if secretUnlockToast {
+            HStack(spacing: 10) {
+                Text("👑")
+                    .font(.system(size: 22))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text({
+                        switch selectedLanguage {
+                        case .armenian: return "Պրեմիում բացված է!"
+                        case .russian:  return "Premium разблокирован!"
+                        case .english:  return "Premium Unlocked!"
+                        }
+                    }())
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    Text({
+                        switch selectedLanguage {
+                        case .armenian: return "Բոլոր հնարավորությունները բաց են ✓"
+                        case .russian:  return "Все возможности открыты ✓"
+                        case .english:  return "All features are now available ✓"
+                        }
+                    }())
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.8))
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .shadow(color: Color(hex: "F59E0B").opacity(0.45), radius: 12, x: 0, y: 4)
+            )
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+        } // конец ZStack
     }
 }
 
