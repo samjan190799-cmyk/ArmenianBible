@@ -2295,6 +2295,11 @@ extension String {
     }
 }
 
+private func isAraratEditionSelected() -> Bool {
+    let savedEdition = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "armenian_bible_edition")
+    return savedEdition != "echmiadzin"
+}
+
 // MARK: - Элемент Избранного (Объединенная модель для стихов дня и стихов из Библии)
 struct FavoriteItem: Identifiable, Codable, Hashable {
     let id: UUID
@@ -2369,7 +2374,7 @@ struct FavoriteItem: Identifiable, Codable, Hashable {
         } else if lang.hasPrefix("en") || lang == "english" {
             return textEn
         } else {
-            if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
+            if isAraratEditionSelected() && !textHyArarat.isEmpty {
                 return textHyArarat
             }
             return textHy
@@ -2391,7 +2396,7 @@ struct FavoriteItem: Identifiable, Codable, Hashable {
     func text(for language: AppLanguage) -> String {
         switch language {
         case .armenian:
-            if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
+            if isAraratEditionSelected() && !textHyArarat.isEmpty {
                 return textHyArarat
             }
             return textHy
@@ -2578,7 +2583,7 @@ struct VerseAnnotation: Identifiable, Codable, Hashable {
     func text(for language: AppLanguage) -> String {
         switch language {
         case .armenian:
-            if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
+            if isAraratEditionSelected() && !textHyArarat.isEmpty {
                 return textHyArarat
             }
             return textHy
