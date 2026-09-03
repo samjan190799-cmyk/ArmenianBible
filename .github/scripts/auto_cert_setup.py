@@ -154,6 +154,7 @@ if cer_b64:
         ], check=True)
     
     keychain_path = os.environ.get("KEYCHAIN_PATH", "")
+    keychain_password = os.environ.get("KEYCHAIN_PASSWORD", "123456")
     if keychain_path and Path(keychain_path).exists():
         print(f"🔑 Импорт .p12 сертификата в Keychain: {keychain_path}")
         subprocess.run([
@@ -165,11 +166,14 @@ if cer_b64:
         subprocess.run([
             "security", "list-keychains", "-d", "user", "-s", keychain_path, "login.keychain-db"
         ], check=True)
-        subprocess.run([
-            "security", "set-key-partition-list",
-            "-S", "apple-tool:,apple:,codesign:",
-            "-s", "-k", "123456", keychain_path
-        ], check=True)
+        try:
+            subprocess.run([
+                "security", "set-key-partition-list",
+                "-S", "apple-tool:,apple:,codesign:",
+                "-s", "-k", keychain_password, keychain_path
+            ], check=True)
+        except Exception as e:
+            print(f"⚠️ Warning during set-key-partition-list: {e}")
         print("✅ Сертификат подписи успешно импортирован и зарегистирован в Keychain!")
 
     # Привязываем новый сертификат к профилям

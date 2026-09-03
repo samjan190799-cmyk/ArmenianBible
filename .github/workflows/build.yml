@@ -77,7 +77,7 @@ jobs:
       - name: Setup Keychain for Xcode
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
-          KP="ArmenianBibleKeychain2026"
+          KP="123456"
 
           security create-keychain -p "$KP" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
@@ -85,6 +85,7 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+          echo "KEYCHAIN_PASSWORD=$KP" >> $GITHUB_ENV
           echo "✅ Временный Keychain настроен"
 
       # ─── Генерация Xcode Проекта ─────────────────────────────────
