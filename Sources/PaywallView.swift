@@ -215,7 +215,7 @@ struct PaywallView: View {
                         Text("•")
                             .foregroundColor(.white.opacity(0.3))
                         
-                        Link(termsTitle, destination: URL(string: "https://samjan190799-cmyk.github.io/ArmenianBible/privacy.html")!)
+                        Link(termsTitle, destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                         

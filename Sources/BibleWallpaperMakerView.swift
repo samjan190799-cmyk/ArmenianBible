@@ -512,6 +512,24 @@ struct BibleWallpaperMakerView: View {
             return
         }
         
+        let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        if status == .notDetermined {
+            PHPhotoLibrary.requestAuthorization(for: .addOnly) { newStatus in
+                DispatchQueue.main.async {
+                    if newStatus == .authorized || newStatus == .limited {
+                        self.executeSaveWallpaper()
+                    }
+                }
+            }
+        } else if status == .authorized || status == .limited {
+            executeSaveWallpaper()
+        } else {
+            triggerHaptic(.medium)
+        }
+    }
+    
+    @MainActor
+    private func executeSaveWallpaper() {
         isExporting = true
         
         let fullResView = FullResolutionWallpaperView(
@@ -523,29 +541,38 @@ struct BibleWallpaperMakerView: View {
         )
         .frame(width: 1170, height: 2532)
         
-        let renderer = ImageRenderer(content: fullResView)
-        renderer.scale = 1.0
-        renderer.proposedSize = ProposedViewSize(width: 1170, height: 2532)
+        let hostingController = UIHostingController(rootView: fullResView)
+        hostingController.view.frame = CGRect(x: 0, y: 0, width: 1170, height: 2532)
+        hostingController.view.backgroundColor = UIColor.clear
+        hostingController.view.setNeedsLayout()
+        hostingController.view.layoutIfNeeded()
         
-        if let uiImage = renderer.uiImage {
-            UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
-            
-            let generator = UINotificationFeedbackGenerator()
-            generator.prepare()
-            generator.notificationOccurred(.success)
-            
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                showSaveSuccessToast = true
-                isExporting = false
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    showSaveSuccessToast = false
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1170, height: 2532))
+        let uiImage = renderer.image { _ in
+            hostingController.view.drawHierarchy(in: hostingController.view.bounds, afterScreenUpdates: true)
+        }
+        
+        PHPhotoLibrary.shared().performChanges({
+            PHAssetChangeRequest.creationRequestForAsset(from: uiImage)
+        }) { success, _ in
+            DispatchQueue.main.async {
+                self.isExporting = false
+                if success {
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.prepare()
+                    generator.notificationOccurred(.success)
+                    
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        self.showSaveSuccessToast = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            self.showSaveSuccessToast = false
+                        }
+                    }
                 }
             }
-        } else {
-            isExporting = false
         }
     }
     

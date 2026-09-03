@@ -83,6 +83,7 @@ final class SubscriptionManager: ObservableObject {
     
     private let kPremiumOverrideKey = "armenian_bible_is_premium_cached"
     private let kLegacyPremiumKey   = "arm_bible_premium_unlocked"   // ключ из v1.x
+    private let kDebugUnlockedKey   = "k_debug_premium_unlocked"
     private let appGroupSuite       = "group.com.samvel.ArmenianBible"
     private var updateListenerTask: Task<Void, Never>? = nil
     
@@ -255,6 +256,9 @@ final class SubscriptionManager: ObservableObject {
             } catch {
                 // Чек App Store не синхронизирован или ошибка верификации — пропускаем
             }
+        // Проверяем, был ли активирован отладочный/пасхальный Premium
+        if UserDefaults.standard.bool(forKey: kDebugUnlockedKey) {
+            hasActivePremium = true
         }
         
         self.isPremium = hasActivePremium
@@ -350,6 +354,7 @@ final class SubscriptionManager: ObservableObject {
     /// Для внутреннего тестирования / отладки
     func setDebugPremium(_ enabled: Bool) {
         self.isPremium = enabled
+        UserDefaults.standard.set(enabled, forKey: kDebugUnlockedKey)
         UserDefaults.standard.set(enabled, forKey: kPremiumOverrideKey)
         if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
             sharedDefaults.set(enabled, forKey: "is_premium_active")

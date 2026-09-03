@@ -21,6 +21,8 @@ targets:
         ITSAppUsesNonExemptEncryption: "NO"
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
+        UIBackgroundModes:
+          - audio
         UIRequiresFullScreen: true
         UILaunchScreen:
           UIColorName: LaunchBackground
@@ -55,7 +57,7 @@ targets:
   BibleWidget:
     type: app-extension
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
     sources:
       - path: Widget
       - path: Sources/BibleVerse.swift

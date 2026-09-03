@@ -441,49 +441,53 @@ struct Provider: AppIntentTimelineProvider {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
         let fallback = database.isEmpty ? BibleVerse.shortPearls[0] : database[0]
-        
         let defaults = UserDefaults(suiteName: appGroupSuiteName)
         
-        switch family {
-        case .accessoryRectangular, .accessoryInline, .accessoryCircular:
-            if let def = defaults,
-               let lockIdStr = def.string(forKey: "currentLockScreenVerseId"),
-               let lockId = UUID(uuidString: lockIdStr),
-               let found = database.first(where: { $0.id == lockId }) {
-                return found
+        let key: String
+        if let family {
+            switch family {
+            case .accessoryRectangular, .accessoryInline, .accessoryCircular:
+                key = "currentLockScreenVerseId"
+            case .systemSmall:
+                key = "currentSmallVerseId"
+            case .systemMedium:
+                key = "currentMediumVerseId"
+            case .systemLarge:
+                key = "currentLargeVerseId"
+            default:
+                key = "currentVerseId"
             }
-            return database.randomElement() ?? fallback
-            
-        case .systemSmall:
-            if let def = defaults,
-               let smallIdStr = def.string(forKey: "currentSmallVerseId"),
-               let smallId = UUID(uuidString: smallIdStr),
-               let found = database.first(where: { $0.id == smallId }) {
-                return found
-            }
-            return database.randomElement() ?? fallback
-            
-        case .systemMedium:
-            if let def = defaults,
-               let medIdStr = def.string(forKey: "currentMediumVerseId"),
-               let medId = UUID(uuidString: medIdStr),
-               let found = database.first(where: { $0.id == medId }) {
-                return found
-            }
-            return database.randomElement() ?? fallback
-            
-        case .systemLarge:
-            if let def = defaults,
-               let largeIdStr = def.string(forKey: "currentLargeVerseId"),
-               let largeId = UUID(uuidString: largeIdStr),
-               let found = database.first(where: { $0.id == largeId }) {
-                return found
-            }
-            return database.randomElement() ?? fallback
-            
-        default:
-            return fallback
+        } else {
+            key = "currentVerseId"
         }
+        
+        if let def = defaults {
+            let idStr = def.string(forKey: key) ?? def.string(forKey: "currentVerseId")
+            if let idStr, let uuid = UUID(uuidString: idStr), let found = database.first(where: { $0.id == uuid }) {
+                return found
+            }
+            
+            // Если стих был сгенерирован ИИ или выбран из базы SQLite
+            if let textHy = def.string(forKey: "currentVerseTextHy"), !textHy.isEmpty {
+                let textRu = def.string(forKey: "currentVerseTextRu") ?? ""
+                let textEn = def.string(forKey: "currentVerseTextEn") ?? ""
+                let refHy = def.string(forKey: "currentVerseRefHy") ?? ""
+                let refRu = def.string(forKey: "currentVerseRefRu") ?? ""
+                let refEn = def.string(forKey: "currentVerseRefEn") ?? ""
+                let id = idStr.flatMap { UUID(uuidString: $0) } ?? UUID()
+                return BibleVerse(
+                    id: id,
+                    textHy: textHy,
+                    textRu: textRu,
+                    textEn: textEn,
+                    refHy: refHy,
+                    refRu: refRu,
+                    refEn: refEn
+                )
+            }
+        }
+        
+        return database.randomElement() ?? fallback
     }
     
     private func getSharedUpdateInterval() -> UpdateInterval {

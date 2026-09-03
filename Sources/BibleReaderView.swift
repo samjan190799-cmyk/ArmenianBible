@@ -272,6 +272,13 @@ struct PageCurlReaderView<Content: View>: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
+        context.coordinator.parent = self
+        
+        if context.coordinator.currentBookId != book.id {
+            context.coordinator.currentBookId = book.id
+            context.coordinator.controllersMap.removeAll()
+        }
+        
         let displayedVC = uiViewController.viewControllers?.first as? PageViewControllerContainer<Content>
         if let currentChapter = displayedVC?.chapter, currentChapter - 1 != currentChapterIndex {
             let direction: UIPageViewController.NavigationDirection = (currentChapter - 1 < currentChapterIndex) ? .forward : .reverse
@@ -286,19 +293,32 @@ struct PageCurlReaderView<Content: View>: UIViewControllerRepresentable {
     
     class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate {
         var parent: PageCurlReaderView
+        var currentBookId: Int
         var controllersMap: [Int: PageViewControllerContainer<Content>] = [:]
         
         init(_ parent: PageCurlReaderView) {
             self.parent = parent
+            self.currentBookId = parent.book.id
         }
         
         func viewController(for index: Int) -> UIViewController {
-            if let cached = controllersMap[index] {
-                return cached
+            // Ограничиваем кэш до 5 страниц вокруг текущей, предотвращая утечку памяти
+            if controllersMap.count > 5 {
+                let keepRange = max(0, index - 2)...min(parent.book.chaptersCount, index + 2)
+                for k in Array(controllersMap.keys) {
+                    if !keepRange.contains(k) {
+                        controllersMap.removeValue(forKey: k)
+                    }
+                }
             }
             
             let targetV = (index + 1 == parent.initialChapter) ? parent.targetVerse : nil
             let contentView = parent.contentBuilder(parent.book, index + 1, targetV)
+            
+            if let cached = controllersMap[index] {
+                cached.rootView = contentView
+                return cached
+            }
             
             let hostVC = PageViewControllerContainer(rootView: contentView, chapter: index + 1)
             controllersMap[index] = hostVC
@@ -1471,6 +1491,7 @@ struct VerseActionSheetView: View {
             bookNameRu: book.nameRu,
             bookNameEn: book.nameEn,
             textHy: verse.textHy,
+            textHyArarat: verse.textHyArarat,
             textRu: verse.textRu,
             textEn: verse.textEn
         )
@@ -1488,6 +1509,7 @@ struct VerseActionSheetView: View {
             bookNameRu: book.nameRu,
             bookNameEn: book.nameEn,
             textHy: verse.textHy,
+            textHyArarat: verse.textHyArarat,
             textRu: verse.textRu,
             textEn: verse.textEn
         )

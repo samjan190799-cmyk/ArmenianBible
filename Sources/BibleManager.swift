@@ -496,6 +496,7 @@ class BibleManager: ObservableObject {
                 chapter: verseText.chapter,
                 verseNumber: verseText.verseNumber,
                 textHy: verseText.textHy,
+                textHyArarat: verseText.textHyArarat,
                 textRu: verseText.textRu,
                 textEn: verseText.textEn,
                 refHy: refHy,
@@ -638,6 +639,19 @@ class BibleManager: ObservableObject {
         objectWillChange.send()
         if let defaults = sharedDefaults {
             defaults.set(verse.id.uuidString, forKey: "currentVerseId")
+            defaults.set(verse.id.uuidString, forKey: "currentLockScreenVerseId")
+            defaults.set(verse.id.uuidString, forKey: "currentSmallVerseId")
+            defaults.set(verse.id.uuidString, forKey: "currentMediumVerseId")
+            defaults.set(verse.id.uuidString, forKey: "currentLargeVerseId")
+            
+            // Сохраняем мультиязычные тексты стиха для виджета
+            defaults.set(verse.textHy, forKey: "currentVerseTextHy")
+            defaults.set(verse.textRu, forKey: "currentVerseTextRu")
+            defaults.set(verse.textEn, forKey: "currentVerseTextEn")
+            defaults.set(verse.refHy, forKey: "currentVerseRefHy")
+            defaults.set(verse.refRu, forKey: "currentVerseRefRu")
+            defaults.set(verse.refEn, forKey: "currentVerseRefEn")
+            
             defaults.set(verse.text, forKey: textKey)
             defaults.set(verse.reference, forKey: referenceKey)
             defaults.synchronize()
@@ -708,8 +722,10 @@ class BibleManager: ObservableObject {
         
         switch activeProvider {
         case .gemini:
-            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=\(apiKey)") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
@@ -722,7 +738,9 @@ class BibleManager: ObservableObject {
                 ]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -732,17 +750,21 @@ class BibleManager: ObservableObject {
             
         case .chatgpt:
             guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "gpt-5.5",
+                "model": "gpt-4o-mini",
                 "messages": [
                     ["role": "user", "content": prompt]
                 ]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -753,18 +775,22 @@ class BibleManager: ObservableObject {
             
         case .claude:
             guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "claude-sonnet-5",
+                "model": "claude-3-5-haiku-20241022",
                 "max_tokens": 1024,
                 "messages": [
                     ["role": "user", "content": prompt]
                 ]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -783,12 +809,16 @@ class BibleManager: ObservableObject {
             }
             
             if let error = error {
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
                 return
             }
             
             guard let data = data else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                }
                 return
             }
             
@@ -806,18 +836,24 @@ class BibleManager: ObservableObject {
                     
                     if let msg = errorMsg {
                         let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
-                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                        }
                         return
                     }
                 }
                 let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
-                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                }
                 return
             }
             
             do {
                 guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    DispatchQueue.main.async {
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    }
                     return
                 }
                 
@@ -848,7 +884,9 @@ class BibleManager: ObservableObject {
                 }
                 
                 guard let textResult = extractedText else {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                    DispatchQueue.main.async {
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                    }
                     return
                 }
                 
@@ -865,8 +903,8 @@ class BibleManager: ObservableObject {
                     
                     DispatchQueue.main.async {
                         self?.updateCurrentVerse(newVerse)
+                        completion(.success(newVerse))
                     }
-                    completion(.success(newVerse))
                 } else {
                     // Попытка использовать всю полученную строку, если нет разделителя |
                     let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -875,14 +913,18 @@ class BibleManager: ObservableObject {
                         let newVerse = BibleVerse(text: cleanText, reference: NSLocalizedString("widget_title", comment: ""))
                         DispatchQueue.main.async {
                             self?.updateCurrentVerse(newVerse)
+                            completion(.success(newVerse))
                         }
-                        completion(.success(newVerse))
                     } else {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
+                        }
                     }
                 }
             } catch {
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
             }
         }.resume()
     }
@@ -903,15 +945,19 @@ class BibleManager: ObservableObject {
         }
         
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is missing"])))
+            DispatchQueue.main.async {
+                completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is missing"])))
+            }
             return
         }
         
         var request: URLRequest
         switch activeProvider {
         case .gemini:
-            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=\(apiKey)") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
@@ -924,7 +970,9 @@ class BibleManager: ObservableObject {
                 ]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -934,17 +982,21 @@ class BibleManager: ObservableObject {
             
         case .chatgpt:
             guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "gpt-5.5",
+                "model": "gpt-4o-mini",
                 "messages": [
                     ["role": "user", "content": prompt]
                 ]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -955,18 +1007,22 @@ class BibleManager: ObservableObject {
             
         case .claude:
             guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "claude-sonnet-5",
+                "model": "claude-3-5-haiku-20241022",
                 "max_tokens": 1024,
                 "messages": [
                     ["role": "user", "content": prompt]
                 ]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -987,12 +1043,16 @@ class BibleManager: ObservableObject {
             }
             
             if let error = error {
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
                 return
             }
             
             guard let data = data else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                }
                 return
             }
             
@@ -1006,18 +1066,24 @@ class BibleManager: ObservableObject {
                     }
                     if let msg = errorMsg {
                         let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
-                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                        }
                         return
                     }
                 }
                 let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
-                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                }
                 return
             }
             
             do {
                 guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    DispatchQueue.main.async {
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    }
                     return
                 }
                 
@@ -1047,12 +1113,18 @@ class BibleManager: ObservableObject {
                 }
                 
                 if let resultText = extractedText {
-                    completion(.success(resultText.trimmingCharacters(in: .whitespacesAndNewlines)))
+                    DispatchQueue.main.async {
+                        completion(.success(resultText.trimmingCharacters(in: .whitespacesAndNewlines)))
+                    }
                 } else {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                    DispatchQueue.main.async {
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                    }
                 }
             } catch {
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
             }
         }.resume()
     }
@@ -1082,22 +1154,28 @@ class BibleManager: ObservableObject {
         }
         
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is missing"])))
+            DispatchQueue.main.async {
+                completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is missing"])))
+            }
             return
         }
         
         var request: URLRequest
         switch activeProvider {
         case .gemini:
-            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=\(apiKey)") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
                 "contents": [["parts": [["text": prompt]]]]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -1107,15 +1185,19 @@ class BibleManager: ObservableObject {
             
         case .chatgpt:
             guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "gpt-5.5",
+                "model": "gpt-4o-mini",
                 "messages": [["role": "user", "content": prompt]]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -1126,16 +1208,20 @@ class BibleManager: ObservableObject {
             
         case .claude:
             guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-                completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
+                }
                 return
             }
             let requestBody: [String: Any] = [
-                "model": "claude-sonnet-5",
+                "model": "claude-3-5-haiku-20241022",
                 "max_tokens": 1024,
                 "messages": [["role": "user", "content": prompt]]
             ]
             guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
+                }
                 return
             }
             request = URLRequest(url: url)
@@ -1154,12 +1240,16 @@ class BibleManager: ObservableObject {
             }
             
             if let error = error {
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
                 return
             }
             
             guard let data = data else {
-                completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                }
                 return
             }
             
@@ -1173,18 +1263,24 @@ class BibleManager: ObservableObject {
                     }
                     if let msg = errorMsg {
                         let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
-                        completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                        }
                         return
                     }
                 }
                 let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
-                completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
+                }
                 return
             }
             
             do {
                 guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    DispatchQueue.main.async {
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
+                    }
                     return
                 }
                 
@@ -1214,7 +1310,9 @@ class BibleManager: ObservableObject {
                 }
                 
                 guard let textResult = extractedText else {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                    DispatchQueue.main.async {
+                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
+                    }
                     return
                 }
                 
@@ -1230,8 +1328,8 @@ class BibleManager: ObservableObject {
                     let newVerse = BibleVerse(text: text, reference: reference)
                     DispatchQueue.main.async {
                         self?.updateCurrentVerse(newVerse)
+                        completion(.success(newVerse))
                     }
-                    completion(.success(newVerse))
                 } else {
                     let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
                         .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
@@ -1239,14 +1337,18 @@ class BibleManager: ObservableObject {
                         let newVerse = BibleVerse(text: cleanText, reference: "Armenian Bible")
                         DispatchQueue.main.async {
                             self?.updateCurrentVerse(newVerse)
+                            completion(.success(newVerse))
                         }
-                        completion(.success(newVerse))
                     } else {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
+                        DispatchQueue.main.async {
+                            completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
+                        }
                     }
                 }
             } catch {
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
             }
         }.resume()
     }
@@ -1334,10 +1436,14 @@ class BibleManager: ObservableObject {
                         )
                     }
                 }
-                completion(.success(BibleAnswer(answerText: answerText, verse: verse)))
+                DispatchQueue.main.async {
+                    completion(.success(BibleAnswer(answerText: answerText, verse: verse)))
+                }
                 
             case .failure(let error):
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
             }
         }
     }
@@ -1406,6 +1512,7 @@ class BibleManager: ObservableObject {
         bookNameRu: String = "",
         bookNameEn: String = "",
         textHy: String = "",
+        textHyArarat: String = "",
         textRu: String = "",
         textEn: String = ""
     ) {
@@ -1418,11 +1525,30 @@ class BibleManager: ObservableObject {
             bookNameRu: bookNameRu,
             bookNameEn: bookNameEn,
             textHy: textHy,
+            textHyArarat: textHyArarat,
             textRu: textRu,
             textEn: textEn
         )
         item.colorHex = colorHex
-        if !bookNameHy.isEmpty { item = VerseAnnotation(id: item.id, bookId: bookId, chapter: chapter, verseNumber: verseNumber, bookNameHy: bookNameHy, bookNameRu: bookNameRu, bookNameEn: bookNameEn, textHy: textHy, textRu: textRu, textEn: textEn, colorHex: colorHex, note: item.note, tags: item.tags, updatedAt: Date()) }
+        if !bookNameHy.isEmpty {
+            item = VerseAnnotation(
+                id: item.id,
+                bookId: bookId,
+                chapter: chapter,
+                verseNumber: verseNumber,
+                bookNameHy: bookNameHy,
+                bookNameRu: bookNameRu,
+                bookNameEn: bookNameEn,
+                textHy: textHy,
+                textHyArarat: textHyArarat.isEmpty ? item.textHyArarat : textHyArarat,
+                textRu: textRu,
+                textEn: textEn,
+                colorHex: colorHex,
+                note: item.note,
+                tags: item.tags,
+                updatedAt: Date()
+            )
+        }
         saveAnnotation(item)
     }
     

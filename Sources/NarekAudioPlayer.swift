@@ -104,9 +104,9 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         isPlaying = true
         currentTime = startAtSeconds
         
-        // Настройка AVAudioSession для фонового и громкого звука
+        // Настройка AVAudioSession для фонового и чистого звука
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [.duckOthers, .defaultToSpeaker])
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Failed to set AVAudioSession category: \(error)")

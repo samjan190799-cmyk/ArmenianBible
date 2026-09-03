@@ -457,17 +457,19 @@ struct HomeView: View {
         }
         
         manager.generateVerseWithAI { result in
-            switch result {
-            case .success(_):
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    animateVerse = true
-                }
-            case .failure(let error):
-                let prefix = "error_generation_prefix".localized(for: manager.appLanguage)
-                errorMessage = "\(prefix)\(error.localizedDescription)"
-                showingErrorAlert = true
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    animateVerse = true
+            DispatchQueue.main.async {
+                switch result {
+                case .success(_):
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        animateVerse = true
+                    }
+                case .failure(let error):
+                    let prefix = "error_generation_prefix".localized(for: manager.appLanguage)
+                    errorMessage = "\(prefix)\(error.localizedDescription)"
+                    showingErrorAlert = true
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        animateVerse = true
+                    }
                 }
             }
         }

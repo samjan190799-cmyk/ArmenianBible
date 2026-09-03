@@ -99,6 +99,13 @@ class BibleDatabase {
     
     private var db: OpaquePointer?
     private let dbName = "bible"
+    private let lock = NSLock()
+    
+    @inline(__always)
+    private func columnText(_ statement: OpaquePointer?, _ index: Int32) -> String {
+        guard let statement, let cStr = sqlite3_column_text(statement, index) else { return "" }
+        return String(cString: cStr)
+    }
     
     private init() {
         openDatabase()
@@ -127,6 +134,8 @@ class BibleDatabase {
     }
     
     private func closeDatabase() {
+        lock.lock()
+        defer { lock.unlock() }
         if db != nil {
             sqlite3_close(db)
             db = nil
@@ -141,6 +150,9 @@ class BibleDatabase {
     }
     
     func getBooks() -> [BibleBook] {
+        lock.lock()
+        defer { lock.unlock() }
+        
         var books: [BibleBook] = []
         let query = "SELECT id, name_hy, name_ru, name_en, short_name_hy, short_name_ru, short_name_en, chapters_count FROM books ORDER BY id ASC;"
         var statement: OpaquePointer?
@@ -150,14 +162,12 @@ class BibleDatabase {
         if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
             while sqlite3_step(statement) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(statement, 0))
-                let nameHy = String(cString: sqlite3_column_text(statement, 1))
-                let nameRu = String(cString: sqlite3_column_text(statement, 2))
-                let nameEn = String(cString: sqlite3_column_text(statement, 3))
-                
-                let shortNameHy = sqlite3_column_text(statement, 4) != nil ? String(cString: sqlite3_column_text(statement, 4)) : ""
-                let shortNameRu = sqlite3_column_text(statement, 5) != nil ? String(cString: sqlite3_column_text(statement, 5)) : ""
-                let shortNameEn = sqlite3_column_text(statement, 6) != nil ? String(cString: sqlite3_column_text(statement, 6)) : ""
-                
+                let nameHy = columnText(statement, 1)
+                let nameRu = columnText(statement, 2)
+                let nameEn = columnText(statement, 3)
+                let shortNameHy = columnText(statement, 4)
+                let shortNameRu = columnText(statement, 5)
+                let shortNameEn = columnText(statement, 6)
                 let chaptersCount = Int(sqlite3_column_int(statement, 7))
                 
                 let book = BibleBook(
@@ -183,6 +193,9 @@ class BibleDatabase {
     // MARK: - Получение книги по ID
     
     func getBook(id: Int) -> BibleBook? {
+        lock.lock()
+        defer { lock.unlock() }
+        
         let query = "SELECT id, name_hy, name_ru, name_en, short_name_hy, short_name_ru, short_name_en, chapters_count FROM books WHERE id = ? LIMIT 1;"
         var statement: OpaquePointer?
         var book: BibleBook? = nil
@@ -194,14 +207,12 @@ class BibleDatabase {
             
             if sqlite3_step(statement) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(statement, 0))
-                let nameHy = String(cString: sqlite3_column_text(statement, 1))
-                let nameRu = String(cString: sqlite3_column_text(statement, 2))
-                let nameEn = String(cString: sqlite3_column_text(statement, 3))
-                
-                let shortNameHy = sqlite3_column_text(statement, 4) != nil ? String(cString: sqlite3_column_text(statement, 4)) : ""
-                let shortNameRu = sqlite3_column_text(statement, 5) != nil ? String(cString: sqlite3_column_text(statement, 5)) : ""
-                let shortNameEn = sqlite3_column_text(statement, 6) != nil ? String(cString: sqlite3_column_text(statement, 6)) : ""
-                
+                let nameHy = columnText(statement, 1)
+                let nameRu = columnText(statement, 2)
+                let nameEn = columnText(statement, 3)
+                let shortNameHy = columnText(statement, 4)
+                let shortNameRu = columnText(statement, 5)
+                let shortNameEn = columnText(statement, 6)
                 let chaptersCount = Int(sqlite3_column_int(statement, 7))
                 
                 book = BibleBook(
@@ -226,6 +237,9 @@ class BibleDatabase {
     func getChapterText(bookId: Int, chapter: Int) -> BibleChapterText? {
         guard let book = getBook(id: bookId) else { return nil }
         
+        lock.lock()
+        defer { lock.unlock() }
+        
         var verses: [BibleVerseText] = []
         let query = "SELECT id, verse, text_hy, text_ru, text_en, COALESCE(text_hy_ararat, '') FROM verses WHERE book_id = ? AND chapter = ? ORDER BY verse ASC;"
         var statement: OpaquePointer?
@@ -239,10 +253,10 @@ class BibleDatabase {
             while sqlite3_step(statement) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(statement, 0))
                 let verseNum = Int(sqlite3_column_int(statement, 1))
-                let textHy = String(cString: sqlite3_column_text(statement, 2))
-                let textRu = String(cString: sqlite3_column_text(statement, 3))
-                let textEn = String(cString: sqlite3_column_text(statement, 4))
-                let textHyArarat = String(cString: sqlite3_column_text(statement, 5))
+                let textHy = columnText(statement, 2)
+                let textRu = columnText(statement, 3)
+                let textEn = columnText(statement, 4)
+                let textHyArarat = columnText(statement, 5)
                 
                 let verse = BibleVerseText(
                     id: id,
@@ -267,6 +281,9 @@ class BibleDatabase {
     // MARK: - Получение конкретного стиха
     
     func getVerseText(bookId: Int, chapter: Int, verse: Int) -> BibleVerseText? {
+        lock.lock()
+        defer { lock.unlock() }
+        
         let query = "SELECT id, text_hy, text_ru, text_en, COALESCE(text_hy_ararat, '') FROM verses WHERE book_id = ? AND chapter = ? AND verse = ? LIMIT 1;"
         var statement: OpaquePointer?
         var verseText: BibleVerseText? = nil
@@ -280,10 +297,10 @@ class BibleDatabase {
             
             if sqlite3_step(statement) == SQLITE_ROW {
                 let id = Int(sqlite3_column_int(statement, 0))
-                let textHy = String(cString: sqlite3_column_text(statement, 1))
-                let textRu = String(cString: sqlite3_column_text(statement, 2))
-                let textEn = String(cString: sqlite3_column_text(statement, 3))
-                let textHyArarat = String(cString: sqlite3_column_text(statement, 4))
+                let textHy = columnText(statement, 1)
+                let textRu = columnText(statement, 2)
+                let textEn = columnText(statement, 3)
+                let textHyArarat = columnText(statement, 4)
                 
                 verseText = BibleVerseText(
                     id: id,
@@ -305,15 +322,17 @@ class BibleDatabase {
     // MARK: - Полнотекстовый поиск FTS5
     
     func search(query: String, language: AppLanguage) -> [BibleSearchResult] {
-        var results: [BibleSearchResult] = []
-        
         let cleanQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard cleanQuery.count >= 2 else { return [] }
+        
+        lock.lock()
+        defer { lock.unlock() }
+        
+        var results: [BibleSearchResult] = []
         
         let searchColumn: String
         switch language {
         case .armenian:
-            // Для поиска по армянскому используем нужную колонку
             searchColumn = BibleManager.shared.armenianEdition == .ararat ? "text_hy_ararat" : "text_hy"
         case .russian:
             searchColumn = "text_ru"
@@ -339,29 +358,29 @@ class BibleDatabase {
                 .replacingOccurrences(of: "'", with: "")
             let ftsQuery = "\"\(escapedQuery)\" OR \(escapedQuery)*"
             
-            sqlite3_bind_text(statement, 1, (ftsQuery as NSString).utf8String, -1, nil)
+            let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+            sqlite3_bind_text(statement, 1, (ftsQuery as NSString).utf8String, -1, SQLITE_TRANSIENT)
             
             while sqlite3_step(statement) == SQLITE_ROW {
                 let bookId = Int(sqlite3_column_int(statement, 0))
                 
-                let bNameHy = String(cString: sqlite3_column_text(statement, 1))
-                let bNameRu = String(cString: sqlite3_column_text(statement, 2))
-                let bNameEn = String(cString: sqlite3_column_text(statement, 3))
+                let bNameHy = columnText(statement, 1)
+                let bNameRu = columnText(statement, 2)
+                let bNameEn = columnText(statement, 3)
                 
                 let chapter = Int(sqlite3_column_int(statement, 4))
                 let verseNum = Int(sqlite3_column_int(statement, 5))
                 
-                let textHy = String(cString: sqlite3_column_text(statement, 6))
-                let textRu = String(cString: sqlite3_column_text(statement, 7))
-                let textEn = String(cString: sqlite3_column_text(statement, 8))
-                let textHyArarat = String(cString: sqlite3_column_text(statement, 9))
+                let textHy = columnText(statement, 6)
+                let textRu = columnText(statement, 7)
+                let textEn = columnText(statement, 8)
+                let textHyArarat = columnText(statement, 9)
                 
                 let bookName: String
                 let displayedText: String
                 switch language {
                 case .armenian:
                     bookName = bNameHy
-                    // Показываем Аараратский или Эчмиадзинский в зависимости от настройки
                     if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
                         displayedText = textHyArarat
                     } else {
@@ -402,6 +421,9 @@ class BibleDatabase {
             return BibleVerse.database.randomElement()
         }
         
+        lock.lock()
+        defer { lock.unlock() }
+        
         guard db != nil else {
             return BibleVerse.database.randomElement()
         }
@@ -435,17 +457,16 @@ class BibleDatabase {
         if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
             if sqlite3_step(statement) == SQLITE_ROW {
                 let _ = Int(sqlite3_column_int(statement, 0))
-                let bNameHy = String(cString: sqlite3_column_text(statement, 1))
-                let bNameRu = String(cString: sqlite3_column_text(statement, 2))
-                let bNameEn = String(cString: sqlite3_column_text(statement, 3))
+                let bNameHy = columnText(statement, 1)
+                let bNameRu = columnText(statement, 2)
+                let bNameEn = columnText(statement, 3)
                 let chapter = Int(sqlite3_column_int(statement, 4))
                 let verseNum = Int(sqlite3_column_int(statement, 5))
-                let textHy = String(cString: sqlite3_column_text(statement, 6))
-                let textRu = String(cString: sqlite3_column_text(statement, 7))
-                let textEn = String(cString: sqlite3_column_text(statement, 8))
-                let textHyArarat = String(cString: sqlite3_column_text(statement, 9))
+                let textHy = columnText(statement, 6)
+                let textRu = columnText(statement, 7)
+                let textEn = columnText(statement, 8)
+                let textHyArarat = columnText(statement, 9)
                 
-                // Выбираем нужный армянский текст по настройке
                 let finalTextHy: String
                 if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
                     finalTextHy = textHyArarat

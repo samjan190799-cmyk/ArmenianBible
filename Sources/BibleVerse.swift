@@ -2304,11 +2304,62 @@ struct FavoriteItem: Identifiable, Codable, Hashable {
     let verseNumber: Int?             // Номер стиха (для стихов из Библии)
     
     let textHy: String
+    let textHyArarat: String
     let textRu: String
     let textEn: String
     let refHy: String
     let refRu: String
     let refEn: String
+    
+    init(
+        id: UUID,
+        isDailyVerse: Bool,
+        bookId: Int? = nil,
+        chapter: Int? = nil,
+        verseNumber: Int? = nil,
+        textHy: String,
+        textHyArarat: String = "",
+        textRu: String,
+        textEn: String,
+        refHy: String,
+        refRu: String,
+        refEn: String
+    ) {
+        self.id = id
+        self.isDailyVerse = isDailyVerse
+        self.bookId = bookId
+        self.chapter = chapter
+        self.verseNumber = verseNumber
+        self.textHy = textHy
+        self.textHyArarat = textHyArarat
+        self.textRu = textRu
+        self.textEn = textEn
+        self.refHy = refHy
+        self.refRu = refRu
+        self.refEn = refEn
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, isDailyVerse, bookId, chapter, verseNumber
+        case textHy, textHyArarat, textRu, textEn
+        case refHy, refRu, refEn
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        isDailyVerse = try container.decode(Bool.self, forKey: .isDailyVerse)
+        bookId = try container.decodeIfPresent(Int.self, forKey: .bookId)
+        chapter = try container.decodeIfPresent(Int.self, forKey: .chapter)
+        verseNumber = try container.decodeIfPresent(Int.self, forKey: .verseNumber)
+        textHy = try container.decode(String.self, forKey: .textHy)
+        textHyArarat = try container.decodeIfPresent(String.self, forKey: .textHyArarat) ?? ""
+        textRu = try container.decode(String.self, forKey: .textRu)
+        textEn = try container.decode(String.self, forKey: .textEn)
+        refHy = try container.decode(String.self, forKey: .refHy)
+        refRu = try container.decode(String.self, forKey: .refRu)
+        refEn = try container.decode(String.self, forKey: .refEn)
+    }
     
     var text: String {
         let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
@@ -2318,6 +2369,9 @@ struct FavoriteItem: Identifiable, Codable, Hashable {
         } else if lang.hasPrefix("en") || lang == "english" {
             return textEn
         } else {
+            if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
+                return textHyArarat
+            }
             return textHy
         }
     }
@@ -2336,7 +2390,11 @@ struct FavoriteItem: Identifiable, Codable, Hashable {
     
     func text(for language: AppLanguage) -> String {
         switch language {
-        case .armenian: return textHy
+        case .armenian:
+            if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
+                return textHyArarat
+            }
+            return textHy
         case .russian: return textRu
         case .english: return textEn
         }
@@ -2445,6 +2503,7 @@ struct VerseAnnotation: Identifiable, Codable, Hashable {
     let bookNameRu: String
     let bookNameEn: String
     let textHy: String
+    let textHyArarat: String
     let textRu: String
     let textEn: String
     var colorHex: String?              // Выделение маркером (например, "FACC15", "4ADE80", etc.)
@@ -2461,6 +2520,7 @@ struct VerseAnnotation: Identifiable, Codable, Hashable {
         bookNameRu: String = "",
         bookNameEn: String = "",
         textHy: String,
+        textHyArarat: String = "",
         textRu: String,
         textEn: String,
         colorHex: String? = nil,
@@ -2476,6 +2536,7 @@ struct VerseAnnotation: Identifiable, Codable, Hashable {
         self.bookNameRu = bookNameRu
         self.bookNameEn = bookNameEn
         self.textHy = textHy
+        self.textHyArarat = textHyArarat
         self.textRu = textRu
         self.textEn = textEn
         self.colorHex = colorHex
@@ -2484,13 +2545,43 @@ struct VerseAnnotation: Identifiable, Codable, Hashable {
         self.updatedAt = updatedAt
     }
     
+    enum CodingKeys: String, CodingKey {
+        case id, bookId, chapter, verseNumber
+        case bookNameHy, bookNameRu, bookNameEn
+        case textHy, textHyArarat, textRu, textEn
+        case colorHex, note, tags, updatedAt
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        bookId = try container.decode(Int.self, forKey: .bookId)
+        chapter = try container.decode(Int.self, forKey: .chapter)
+        verseNumber = try container.decode(Int.self, forKey: .verseNumber)
+        bookNameHy = try container.decodeIfPresent(String.self, forKey: .bookNameHy) ?? ""
+        bookNameRu = try container.decodeIfPresent(String.self, forKey: .bookNameRu) ?? ""
+        bookNameEn = try container.decodeIfPresent(String.self, forKey: .bookNameEn) ?? ""
+        textHy = try container.decode(String.self, forKey: .textHy)
+        textHyArarat = try container.decodeIfPresent(String.self, forKey: .textHyArarat) ?? ""
+        textRu = try container.decode(String.self, forKey: .textRu)
+        textEn = try container.decode(String.self, forKey: .textEn)
+        colorHex = try container.decodeIfPresent(String.self, forKey: .colorHex)
+        note = try container.decodeIfPresent(String.self, forKey: .note) ?? ""
+        tags = try container.decodeIfPresent([VerseTag].self, forKey: .tags) ?? []
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+    }
+    
     var key: String {
         "\(bookId)_\(chapter)_\(verseNumber)"
     }
     
     func text(for language: AppLanguage) -> String {
         switch language {
-        case .armenian: return textHy
+        case .armenian:
+            if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
+                return textHyArarat
+            }
+            return textHy
         case .russian: return textRu
         case .english: return textEn
         }

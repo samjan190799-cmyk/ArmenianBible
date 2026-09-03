@@ -16,3 +16,6 @@ android_app/local.properties
 android_app/app/build/
 *.apk
 
+# Scratch and analysis tools
+scratch/
+
