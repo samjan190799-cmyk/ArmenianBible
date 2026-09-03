@@ -256,6 +256,8 @@ final class SubscriptionManager: ObservableObject {
             } catch {
                 // Чек App Store не синхронизирован или ошибка верификации — пропускаем
             }
+        }
+        
         // Проверяем, был ли активирован отладочный/пасхальный Premium
         if UserDefaults.standard.bool(forKey: kDebugUnlockedKey) {
             hasActivePremium = true
