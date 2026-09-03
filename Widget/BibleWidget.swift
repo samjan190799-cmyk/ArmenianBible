@@ -667,9 +667,9 @@ struct BibleWidgetEntryView: View {
         
         switch family {
         case .accessoryRectangular:
-            if count <= 22 { return 17.5 }
-            else if count <= 36 { return 15.5 }
-            else { return 14.5 }
+            if count <= 28 { return 13.0 }
+            else if count <= 55 { return 11.5 }
+            else { return 10.5 }
             
         case .systemSmall:
             // Малый виджет: строго короткие стихи до 45 символов -> Крупный яркий шрифт
@@ -699,25 +699,24 @@ struct BibleWidgetEntryView: View {
         Group {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: крупный адаптивный текст и четкая ссылка
-                VStack(alignment: .leading, spacing: 3) {
+                // Прямоугольный виджет на экране блокировки: адаптивный читаемый текст и гарантированная ссылка со стихом
+                VStack(alignment: .leading, spacing: 2) {
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .bold, design: .rounded))
-                        .lineLimit(2)
+                        .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .semibold, design: .rounded))
+                        .lineLimit(3)
                         .lineSpacing(-0.5)
-                        .minimumScaleFactor(0.75)
+                        .minimumScaleFactor(0.65)
                         .multilineTextAlignment(.leading)
                         .foregroundColor(.primary)
                     
-                    Spacer(minLength: 1)
-                    
-                    HStack(spacing: 4) {
-                        Text("✝️")
-                            .font(.system(size: 9.5))
+                    HStack(spacing: 3) {
+                        Text("✝")
+                            .font(.system(size: 8))
+                            .foregroundColor(.secondary)
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 9.5, weight: .bold, design: .rounded))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.80)
+                            .minimumScaleFactor(0.70)
                             .foregroundColor(.secondary)
                     }
                 }

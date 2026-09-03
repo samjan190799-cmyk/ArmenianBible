@@ -115,21 +115,58 @@ class BibleDatabase {
         closeDatabase()
     }
     
+    private func ensureDatabaseOpen() {
+        if db == nil {
+            openDatabase()
+        }
+    }
+    
     private func openDatabase() {
-        guard let dbPath = Bundle.main.path(forResource: dbName, ofType: "db") else {
+        guard let bundlePath = Bundle.main.path(forResource: dbName, ofType: "db") else {
             print("Bible database file '\(dbName).db' not found in bundle resources.")
             return
         }
         
-        // Открываем базу данных в режиме Read-Only, так как она лежит в Bundle приложения
-        if sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY, nil) != SQLITE_OK {
-            print("Error opening Bible database at path: \(dbPath)")
-            if let errorMsg = sqlite3_errmsg(db) {
-                print("SQLite Error: \(String(cString: errorMsg))")
+        // 1. Попытка открыть напрямую из Bundle через URI с флагом immutable=1
+        // Флаг immutable сообщает SQLite, что база лежит на носителе 'только для чтения'
+        // и отключает попытки создания служебных файлов (-wal, -shm) в папке Bundle.
+        let uri = "file:\(bundlePath)?immutable=1"
+        if sqlite3_open_v2(uri, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX, nil) == SQLITE_OK {
+            print("Successfully opened Bible database directly from bundle (immutable mode).")
+            return
+        }
+        
+        // 2. Если прямой доступ к Bundle ограничен ОС (iOS Sandbox), копируем базу в Application Support
+        do {
+            let fileManager = FileManager.default
+            let appSupportDir = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let destUrl = appSupportDir.appendingPathComponent("\(dbName).db")
+            
+            let bundleSize = (try? fileManager.attributesOfItem(atPath: bundlePath)[.size] as? Int64) ?? 0
+            let destSize = (try? fileManager.attributesOfItem(atPath: destUrl.path)[.size] as? Int64) ?? 0
+            
+            if !fileManager.fileExists(atPath: destUrl.path) || destSize != bundleSize {
+                if fileManager.fileExists(atPath: destUrl.path) {
+                    try? fileManager.removeItem(at: destUrl)
+                }
+                try fileManager.copyItem(atPath: bundlePath, toPath: destUrl.path)
+                print("Copied Bible database to Application Support.")
             }
+            
+            if sqlite3_open_v2(destUrl.path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, nil) == SQLITE_OK {
+                print("Successfully opened Bible database from Application Support.")
+                return
+            }
+        } catch {
+            print("Error copying/opening Bible database in Application Support: \(error)")
+        }
+        
+        // 3. Fallback — обычный вызов
+        if sqlite3_open_v2(bundlePath, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, nil) != SQLITE_OK {
+            print("Error opening Bible database at path: \(bundlePath)")
             db = nil
         } else {
-            print("Successfully opened Bible database.")
+            print("Successfully opened Bible database in fallback mode.")
         }
     }
     
@@ -153,11 +190,12 @@ class BibleDatabase {
         lock.lock()
         defer { lock.unlock() }
         
+        ensureDatabaseOpen()
+        guard db != nil else { return [] }
+        
         var books: [BibleBook] = []
         let query = "SELECT id, name_hy, name_ru, name_en, short_name_hy, short_name_ru, short_name_en, chapters_count FROM books ORDER BY id ASC;"
         var statement: OpaquePointer?
-        
-        guard db != nil else { return [] }
         
         if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
             while sqlite3_step(statement) == SQLITE_ROW {
@@ -196,11 +234,12 @@ class BibleDatabase {
         lock.lock()
         defer { lock.unlock() }
         
+        ensureDatabaseOpen()
+        guard db != nil else { return nil }
+        
         let query = "SELECT id, name_hy, name_ru, name_en, short_name_hy, short_name_ru, short_name_en, chapters_count FROM books WHERE id = ? LIMIT 1;"
         var statement: OpaquePointer?
         var book: BibleBook? = nil
-        
-        guard db != nil else { return nil }
         
         if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
             sqlite3_bind_int(statement, 1, Int32(id))
@@ -240,11 +279,12 @@ class BibleDatabase {
         lock.lock()
         defer { lock.unlock() }
         
+        ensureDatabaseOpen()
+        guard db != nil else { return nil }
+        
         var verses: [BibleVerseText] = []
         let query = "SELECT id, verse, text_hy, text_ru, text_en, COALESCE(text_hy_ararat, '') FROM verses WHERE book_id = ? AND chapter = ? ORDER BY verse ASC;"
         var statement: OpaquePointer?
-        
-        guard db != nil else { return nil }
         
         if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
             sqlite3_bind_int(statement, 1, Int32(bookId))
@@ -284,11 +324,12 @@ class BibleDatabase {
         lock.lock()
         defer { lock.unlock() }
         
+        ensureDatabaseOpen()
+        guard db != nil else { return nil }
+        
         let query = "SELECT id, text_hy, text_ru, text_en, COALESCE(text_hy_ararat, '') FROM verses WHERE book_id = ? AND chapter = ? AND verse = ? LIMIT 1;"
         var statement: OpaquePointer?
         var verseText: BibleVerseText? = nil
-        
-        guard db != nil else { return nil }
         
         if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
             sqlite3_bind_int(statement, 1, Int32(bookId))
@@ -328,6 +369,9 @@ class BibleDatabase {
         lock.lock()
         defer { lock.unlock() }
         
+        ensureDatabaseOpen()
+        guard db != nil else { return [] }
+        
         var results: [BibleSearchResult] = []
         
         let searchColumn: String
@@ -350,7 +394,6 @@ class BibleDatabase {
         """
         
         var statement: OpaquePointer?
-        guard db != nil else { return [] }
         
         if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
             let escapedQuery = cleanQuery
@@ -424,6 +467,7 @@ class BibleDatabase {
         lock.lock()
         defer { lock.unlock() }
         
+        ensureDatabaseOpen()
         guard db != nil else {
             return BibleVerse.database.randomElement()
         }

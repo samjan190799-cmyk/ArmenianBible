@@ -128,7 +128,7 @@ enum BibleNavigationState: Hashable {
 struct BibleBookListView: View {
     @ObservedObject var manager = BibleManager.shared
     @Binding var navigationPath: [BibleNavigationState]
-    @State private var books: [BibleBook] = []
+    @State private var books: [BibleBook] = BibleDatabase.shared.getBooks()
     @State private var selectedTestament = 0 // 0 - Ветхий Завет, 1 - Новый Завет
     @State private var showingLibrarySheet = false
     
@@ -150,6 +150,14 @@ struct BibleBookListView: View {
         colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)
     }
     
+    private var retryButtonText: String {
+        switch manager.appLanguage {
+        case .armenian: return "Կրկնել բեռնումը"
+        case .russian: return "Повторить загрузку"
+        case .english: return "Retry Loading"
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 16) {
             // Переключатель Заветов
@@ -167,45 +175,66 @@ struct BibleBookListView: View {
                 LazyVStack(spacing: 8) {
                     let filteredBooks = books.filter { selectedTestament == 0 ? !$0.isNewTestament : $0.isNewTestament }
                     
-                    ForEach(filteredBooks) { book in
-                        Button {
-                            let savedChapter = manager.getBookLastReadChapter(bookId: book.id)
-                            navigationPath.append(.reader(book: book, chapter: savedChapter, targetVerse: nil))
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(book.name)
-                                        .font(.system(size: 16, weight: .bold, design: .serif))
-                                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
-                                    Text("\(book.chaptersCount) \("chapters_count_label".localized(for: manager.appLanguage))")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Text(book.shortName)
-                                    .font(.system(size: 13, weight: .bold, design: .monospaced))
-                                    .foregroundColor(accentColor.opacity(0.8))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(accentColor.opacity(0.08))
-                                    .cornerRadius(6)
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.secondary.opacity(0.5))
+                    if filteredBooks.isEmpty {
+                        VStack(spacing: 12) {
+                            Spacer(minLength: 40)
+                            Image(systemName: "book.closed")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary.opacity(0.4))
+                            Button {
+                                books = BibleDatabase.shared.getBooks()
+                            } label: {
+                                Text(retryButtonText)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(accentColor)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(accentColor.opacity(0.1))
+                                    .cornerRadius(8)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(cardBgColor)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(cardBorderColor, lineWidth: 1.0)
-                            )
+                            Spacer(minLength: 40)
                         }
-                        .buttonStyle(ScaleButtonStyle())
+                    } else {
+                        ForEach(filteredBooks) { book in
+                            Button {
+                                let savedChapter = manager.getBookLastReadChapter(bookId: book.id)
+                                navigationPath.append(.reader(book: book, chapter: savedChapter, targetVerse: nil))
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(book.name)
+                                            .font(.system(size: 16, weight: .bold, design: .serif))
+                                            .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                                        Text("\(book.chaptersCount) \("chapters_count_label".localized(for: manager.appLanguage))")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Text(book.shortName)
+                                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                        .foregroundColor(accentColor.opacity(0.8))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(accentColor.opacity(0.08))
+                                        .cornerRadius(6)
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.secondary.opacity(0.5))
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                                .background(cardBgColor)
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(cardBorderColor, lineWidth: 1.0)
+                                    )
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
