@@ -183,16 +183,20 @@ if cer_b64:
 
     if cert_id_new:
         print("🔄 Проверка и генерация точных профилей провижининга для приложения и виджета...")
-        b_list = api_request("GET", "/bundleIds")
-        main_b_id = None
-        widget_b_id = None
         
-        for b in b_list.get("data", []):
-            bid_identifier = b.get("attributes", {}).get("identifier")
-            if bid_identifier == "com.samvel.armenianbible":
-                main_b_id = b.get("id")
-            elif bid_identifier == "com.samvel.armenianbible.BibleWidget":
-                widget_b_id = b.get("id")
+        def find_bundle_id(target_identifier):
+            res_filtered = api_request("GET", f"/bundleIds?filter[identifier]={target_identifier}")
+            for item in res_filtered.get("data", []):
+                if item.get("attributes", {}).get("identifier") == target_identifier:
+                    return item["id"]
+            res_all = api_request("GET", "/bundleIds?limit=100")
+            for item in res_all.get("data", []):
+                if item.get("attributes", {}).get("identifier") == target_identifier:
+                    return item["id"]
+            return None
+        
+        main_b_id = find_bundle_id("com.samvel.armenianbible")
+        widget_b_id = find_bundle_id("com.samvel.armenianbible.BibleWidget")
                 
         if not widget_b_id:
             print("⚙️ Регистрация нового Bundle ID [com.samvel.armenianbible.BibleWidget]...")
@@ -210,7 +214,7 @@ if cer_b64:
                 widget_b_id = create_bid_res["data"]["id"]
                 print(f"✅ Bundle ID виджета зарегистрирован: {widget_b_id}")
 
-        p_list = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
+        p_list = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE&limit=100")
         for p_item in p_list.get("data", []):
             p_id = p_item["id"]
             p_name = p_item["attributes"]["name"]
@@ -253,7 +257,7 @@ if cer_b64:
             print("✅ Профиль ArmenianBible_Widget_AppStore создан!")
 
 print("📲 [3/4] Скачивание профилей для приложения и виджета...")
-profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE")
+profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE&limit=100")
 pp_dir = Path.home() / "Library/MobileDevice/Provisioning Profiles"
 pp_dir.mkdir(parents=True, exist_ok=True)
 

@@ -127,10 +127,16 @@ jobs:
         run: |
           set -o pipefail
 
-          PROFILES_DICT="<key>com.samvel.armenianbible</key><string>${MAIN_APP_PROFILE_UUID}</string>"
-          if [ -n "$WIDGET_PROFILE_UUID" ]; then
-            PROFILES_DICT="${PROFILES_DICT}<key>com.samvel.armenianbible.BibleWidget</key><string>${WIDGET_PROFILE_UUID}</string>"
+          if [ -z "$MAIN_APP_PROFILE_UUID" ]; then
+            echo "::error::MAIN_APP_PROFILE_UUID не найден!"
+            exit 1
           fi
+          if [ -z "$WIDGET_PROFILE_UUID" ]; then
+            echo "::error::WIDGET_PROFILE_UUID не найден!"
+            exit 1
+          fi
+
+          PROFILES_DICT="<key>com.samvel.armenianbible</key><string>${MAIN_APP_PROFILE_UUID}</string><key>com.samvel.armenianbible.BibleWidget</key><string>${WIDGET_PROFILE_UUID}</string>"
 
           cat > "$RUNNER_TEMP/ExportOptions.plist" << PLIST_EOF
           <?xml version="1.0" encoding="UTF-8"?>
