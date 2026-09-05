@@ -1,6 +1,11 @@
 name: ArmenianBible
 options:
   bundleIdPrefix: com.samvel.armenianbible
+packages:
+  FBAudienceNetwork:
+    url: https://github.com/facebook/FBAudienceNetwork
+    from: 6.22.0
+
 targets:
   ArmenianBible:
     type: application
@@ -21,6 +26,12 @@ targets:
         ITSAppUsesNonExemptEncryption: "NO"
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
+        NSUserTrackingUsageDescription: "We use this identifier to deliver relevant and high-quality ads."
+        SKAdNetworkItems:
+          - SKAdNetworkIdentifier: v9wttpbfk9.skadnetwork
+          - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
+        FacebookAppID: "2096476450939558"
+        FacebookDisplayName: Armenian Bible
         UIBackgroundModes:
           - audio
         UIRequiresFullScreen: true
@@ -51,6 +62,8 @@ targets:
         ASSETCATALOG_COMPILER_PRIMARY_APPICON_SET_NAME: AppIcon
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: "YES"
     dependencies:
+      - package: FBAudienceNetwork
+        product: FBAudienceNetwork
       - target: BibleWidget
       - sdk: libsqlite3.dylib
 

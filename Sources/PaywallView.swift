@@ -112,6 +112,12 @@ struct PaywallView: View {
                     // MARK: - Список Преимуществ (Feature List)
                     VStack(spacing: 14) {
                         featureRow(
+                            icon: "slash.circle.fill",
+                            iconColor: Color(hex: "10B981"),
+                            title: featureTitleAds,
+                            subtitle: featureDescAds
+                        )
+                        featureRow(
                             icon: "headphones",
                             iconColor: Color(hex: "38BDF8"),
                             title: featureTitle1,
@@ -414,6 +420,22 @@ struct PaywallView: View {
         case .armenian: return "Բացեք Նարեկացու բոլոր 95 աղոթքների ձայնագրությունները և անսահմանափակ AI-ն"
         case .russian: return "Откройте все 95 аудио-глав Нарекаци, безлимитный ИИ и эксклюзивные шрифты"
         case .english: return "Unlock all 95 Narekatsi audio chapters, unlimited AI & exclusive wallpapers"
+        }
+    }
+    
+    private var featureTitleAds: String {
+        switch language {
+        case .armenian: return "100% Առանց Գովազդի"
+        case .russian: return "Полное Отключение Рекламы"
+        case .english: return "100% Ad-Free Experience"
+        }
+    }
+    
+    private var featureDescAds: String {
+        switch language {
+        case .armenian: return "Վայելեք Սուրբ Գիրքը առանց ընդհատումների և շեղումների"
+        case .russian: return "Погружайтесь в чтение Писания без баннеров и отвлечений"
+        case .english: return "Immerse in Scripture with zero ads or interruptions"
         }
     }
     

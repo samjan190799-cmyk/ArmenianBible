@@ -334,6 +334,10 @@ struct FavoritesView: View {
                                     )
                                 }
                             }
+                            
+                            // MARK: - Баннерная Реклама Meta
+                            BannerAdView()
+                                .padding(.top, 8)
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)

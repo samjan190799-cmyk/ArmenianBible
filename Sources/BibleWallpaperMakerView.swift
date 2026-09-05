@@ -566,6 +566,9 @@ struct BibleWallpaperMakerView: View {
                         self.showSaveSuccessToast = true
                     }
                     
+                    // Показ межстраничной рекламы Meta при соблюдении кулдауна
+                    AdManager.shared.recordActionAndShowInterstitialIfReady()
+                    
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                         withAnimation(.easeOut(duration: 0.3)) {
                             self.showSaveSuccessToast = false

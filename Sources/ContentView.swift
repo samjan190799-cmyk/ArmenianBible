@@ -354,6 +354,10 @@ struct HomeView: View {
                             isShowingPaywall = true
                         }
                     )
+                    
+                    // MARK: - Баннерная Реклама Meta
+                    BannerAdView()
+                        .padding(.top, 6)
                 }
                 .padding(.bottom, 30)
             }
@@ -883,6 +887,7 @@ struct AIGuideView: View {
     @State private var currentAnswer: BibleAnswer? = nil
     @State private var isAskingAI = false
     @State private var isShowingPaywall = false
+    @State private var isShowingRewardedOffer = false
     
     // Ошибки
     @State private var showingErrorAlert = false
@@ -1192,6 +1197,9 @@ struct AIGuideView: View {
                                 animateAnswer = true
                             }
                         }
+                        // MARK: - Баннерная Реклама Meta
+                        BannerAdView()
+                            .padding(.top, 10)
                     }
                 }
                 .padding(.bottom, 40)
@@ -1202,6 +1210,26 @@ struct AIGuideView: View {
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
+        }
+        .confirmationDialog(
+            limitDialogTitle,
+            isPresented: $isShowingRewardedOffer,
+            titleVisibility: .visible
+        ) {
+            Button(limitDialogWatchAdTitle) {
+                triggerHaptic(.medium)
+                AdManager.shared.showRewardedAd {
+                    subscriptionManager.grantBonusAiQuestionFromAd()
+                    submitQuestion(questionText)
+                }
+            }
+            Button(limitDialogPaywallTitle) {
+                triggerHaptic(.light)
+                isShowingPaywall = true
+            }
+            Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
+        } message: {
+            Text(limitDialogMessage)
         }
         .alert("alert_empty_key_title".localized(for: manager.appLanguage), isPresented: $showingNoKeyAlert) {
             Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
@@ -1215,10 +1243,43 @@ struct AIGuideView: View {
         }
     }
     
+    // MARK: - Локализация предложений Rewarded рекламы
+    private var limitDialogTitle: String {
+        switch manager.appLanguage {
+        case .armenian: return "Հարցերի սահմանաչափը սպառվել է"
+        case .russian: return "Лимит вопросов исчерпан"
+        case .english: return "Daily Question Limit Reached"
+        }
+    }
+    
+    private var limitDialogMessage: String {
+        switch manager.appLanguage {
+        case .armenian: return "Դիտեք կարճ գովազդ՝ ևս 1 անվճար հարց ստանալու համար, կամ ակտիվացրեք Premium-ը:"
+        case .russian: return "Посмотрите короткий ролик Meta, чтобы получить +1 вопрос бесплатно, или оформите Premium для безлимита:"
+        case .english: return "Watch a short Meta video ad to get +1 question for free, or upgrade to Premium for unlimited access:"
+        }
+    }
+    
+    private var limitDialogWatchAdTitle: String {
+        switch manager.appLanguage {
+        case .armenian: return "Դիտել գովազդ (+1 հարց)"
+        case .russian: return "Смотреть рекламу (+1 вопрос)"
+        case .english: return "Watch Ad (+1 Question)"
+        }
+    }
+    
+    private var limitDialogPaywallTitle: String {
+        switch manager.appLanguage {
+        case .armenian: return "Ակտիվացնել Premium"
+        case .russian: return "Оформить Premium"
+        case .english: return "Upgrade to Premium"
+        }
+    }
+    
     private func submitQuestion(_ question: String) {
         if !subscriptionManager.canAskAI() {
             triggerHaptic(.heavy)
-            isShowingPaywall = true
+            isShowingRewardedOffer = true
             return
         }
         

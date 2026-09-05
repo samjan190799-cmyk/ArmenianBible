@@ -187,6 +187,10 @@ struct NarekatsiView: View {
                                     }
                                 )
                             }
+                            
+                            // MARK: - Баннерная Реклама Meta
+                            BannerAdView()
+                                .padding(.top, 8)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 30)
@@ -314,6 +318,10 @@ struct NarekatsiView: View {
                                 }
                                 .buttonStyle(ScaleButtonStyle())
                             }
+                            
+                            // MARK: - Баннерная Реклама Meta
+                            BannerAdView()
+                                .padding(.top, 8)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 40)

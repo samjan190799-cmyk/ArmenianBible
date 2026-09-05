@@ -312,19 +312,30 @@ final class SubscriptionManager: ObservableObject {
         return prayerId <= 1
     }
     
-    /// Проверка доступности ИИ-ассистента (3 бесплатных вопроса в сутки, далее Premium)
+    private let kDailyAiBonusKey = "daily_ai_bonus_reward_count_key"
+    
+    /// Проверка доступности ИИ-ассистента (3 бесплатных вопроса в сутки + бонусы за рекламу, далее Premium)
     func canAskAI() -> Bool {
         if isPremium { return true }
         
         let (todayCount, _) = currentDailyAiUsage()
-        return todayCount < maxFreeDailyAiQueries
+        let bonus = UserDefaults.standard.integer(forKey: kDailyAiBonusKey)
+        return todayCount < (maxFreeDailyAiQueries + bonus)
     }
     
     /// Количество оставшихся бесплатных вопросов к ИИ на сегодня
     var remainingFreeAiQuestions: Int {
         if isPremium { return 999 }
         let (todayCount, _) = currentDailyAiUsage()
-        return max(0, maxFreeDailyAiQueries - todayCount)
+        let bonus = UserDefaults.standard.integer(forKey: kDailyAiBonusKey)
+        return max(0, (maxFreeDailyAiQueries + bonus) - todayCount)
+    }
+    
+    /// Добавление бонусного вопроса к ИИ за просмотр рекламы с вознаграждением (Meta Rewarded Video)
+    func grantBonusAiQuestionFromAd() {
+        let currentBonus = UserDefaults.standard.integer(forKey: kDailyAiBonusKey)
+        UserDefaults.standard.set(currentBonus + 1, forKey: kDailyAiBonusKey)
+        objectWillChange.send()
     }
     
     /// Фиксация одного использованного бесплатного вопроса к ИИ
@@ -349,6 +360,7 @@ final class SubscriptionManager: ObservableObject {
             // Новый день - сброс
             UserDefaults.standard.set(todayString, forKey: kDailyAiDateKey)
             UserDefaults.standard.set(0, forKey: kDailyAiCountKey)
+            UserDefaults.standard.set(0, forKey: kDailyAiBonusKey)
             return (0, todayString)
         }
     }
