@@ -143,19 +143,21 @@ struct MetaBannerRepresentable: UIViewRepresentable {
         let containerView = MetaBannerContainerUIView()
         containerView.backgroundColor = .clear
         
-        context.coordinator.containerView = containerView
-        containerView.onAttachedToWindow = { [weak context] in
-            context?.coordinator.setupAdViewIfNeeded()
+        let coordinator = context.coordinator
+        coordinator.containerView = containerView
+        containerView.onAttachedToWindow = { [weak coordinator] in
+            coordinator?.setupAdViewIfNeeded()
         }
         
         // Попытка первичной инициализации
-        context.coordinator.setupAdViewIfNeeded()
+        coordinator.setupAdViewIfNeeded()
         return containerView
     }
     
     func updateUIView(_ uiView: MetaBannerContainerUIView, context: Context) {}
     
-    class Coordinator: NSObject, FBAdViewDelegate {
+    @MainActor
+    final class Coordinator: NSObject, FBAdViewDelegate {
         var parent: MetaBannerRepresentable
         weak var adView: FBAdView?
         weak var containerView: MetaBannerContainerUIView?
@@ -214,7 +216,7 @@ struct MetaBannerRepresentable: UIViewRepresentable {
             #endif
         }
         
-        func adViewDidLoad(_ adView: FBAdView) {
+        nonisolated func adViewDidLoad(_ adView: FBAdView) {
             Task { @MainActor in
                 self.parent.isLoaded = true
                 #if DEBUG
@@ -223,44 +225,44 @@ struct MetaBannerRepresentable: UIViewRepresentable {
             }
         }
         
-        func adView(_ adView: FBAdView, didFailWithError error: Error) {
-            #if DEBUG
-            print("⚠️ [BannerAdView] Ошибка загрузки боевого баннера: \(error.localizedDescription)")
-            #endif
-            
-            // Если в боевом режиме нет показа (No fill / код 1001) или аккаунт на проверке,
-            // мгновенно переключаемся на гарантированный тестовый баннер Meta для показа в UI
-            if !hasFallenBackToTest, let container = containerView, let root = rootVC {
-                hasFallenBackToTest = true
+        nonisolated func adView(_ adView: FBAdView, didFailWithError error: Error) {
+            Task { @MainActor in
                 #if DEBUG
-                print("🔄 [BannerAdView] Авто-переключение на гарантированный тестовый креатив Meta...")
+                print("⚠️ [BannerAdView] Ошибка загрузки боевого баннера: \(error.localizedDescription)")
                 #endif
                 
-                adView.removeFromSuperview()
-                let testAdView = FBAdView(
-                    placementID: AdConfig.testBannerPlacementID,
-                    adSize: kFBAdSizeHeight50Banner,
-                    rootViewController: root
-                )
-                testAdView.delegate = self
-                testAdView.translatesAutoresizingMaskIntoConstraints = false
-                container.addSubview(testAdView)
+                // Если в боевом режиме нет показа (No fill / код 1001) или аккаунт на проверке,
+                // мгновенно переключаемся на гарантированный тестовый баннер Meta для показа в UI
+                if !self.hasFallenBackToTest, let container = self.containerView, let root = self.rootVC {
+                    self.hasFallenBackToTest = true
+                    #if DEBUG
+                    print("🔄 [BannerAdView] Авто-переключение на гарантированный тестовый креатив Meta...")
+                    #endif
+                    
+                    adView.removeFromSuperview()
+                    let testAdView = FBAdView(
+                        placementID: AdConfig.testBannerPlacementID,
+                        adSize: kFBAdSizeHeight50Banner,
+                        rootViewController: root
+                    )
+                    testAdView.delegate = self
+                    testAdView.translatesAutoresizingMaskIntoConstraints = false
+                    container.addSubview(testAdView)
+                    
+                    NSLayoutConstraint.activate([
+                        testAdView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+                        testAdView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                        testAdView.topAnchor.constraint(equalTo: container.topAnchor),
+                        testAdView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                        testAdView.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor),
+                        testAdView.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor)
+                    ])
+                    
+                    self.adView = testAdView
+                    testAdView.loadAd()
+                    return
+                }
                 
-                NSLayoutConstraint.activate([
-                    testAdView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                    testAdView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                    testAdView.topAnchor.constraint(equalTo: container.topAnchor),
-                    testAdView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-                    testAdView.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor),
-                    testAdView.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor)
-                ])
-                
-                self.adView = testAdView
-                testAdView.loadAd()
-                return
-            }
-            
-            Task { @MainActor in
                 self.parent.isLoaded = false
             }
         }
