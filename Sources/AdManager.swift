@@ -171,7 +171,7 @@ public final class AdManager: NSObject, ObservableObject {
         let targetVC = viewController ?? getTopViewController()
         guard let presenter = targetVC else { return false }
         
-        interstitial.show(from: presenter)
+        interstitial.show(fromRootViewController: presenter)
         lastInterstitialTime = Date()
         actionCounter = 0
         isInterstitialReady = false
@@ -196,7 +196,7 @@ public final class AdManager: NSObject, ObservableObject {
             self.onRewardCompletion = onReward
             let targetVC = viewController ?? getTopViewController()
             if let presenter = targetVC {
-                rewarded.show(from: presenter)
+                rewarded.show(fromRootViewController: presenter)
                 isRewardedReady = false
                 return
             }
@@ -235,7 +235,7 @@ public final class AdManager: NSObject, ObservableObject {
 // MARK: - Делегаты Meta Audience Network
 #if canImport(FBAudienceNetwork)
 extension AdManager: FBInterstitialAdDelegate {
-    public func interstitialAdDidLoad(_ interstitialAd: FBInterstitialAd) {
+    nonisolated public func interstitialAdDidLoad(_ interstitialAd: FBInterstitialAd) {
         Task { @MainActor in
             self.isInterstitialReady = true
             #if DEBUG
@@ -244,7 +244,7 @@ extension AdManager: FBInterstitialAdDelegate {
         }
     }
     
-    public func interstitialAd(_ interstitialAd: FBInterstitialAd, didFailWithError error: Error) {
+    nonisolated public func interstitialAd(_ interstitialAd: FBInterstitialAd, didFailWithError error: Error) {
         Task { @MainActor in
             self.isInterstitialReady = false
             #if DEBUG
@@ -253,7 +253,7 @@ extension AdManager: FBInterstitialAdDelegate {
         }
     }
     
-    public func interstitialAdDidClose(_ interstitialAd: FBInterstitialAd) {
+    nonisolated public func interstitialAdDidClose(_ interstitialAd: FBInterstitialAd) {
         Task { @MainActor in
             self.isInterstitialReady = false
             self.preloadInterstitial()
@@ -262,7 +262,7 @@ extension AdManager: FBInterstitialAdDelegate {
 }
 
 extension AdManager: FBRewardedVideoAdDelegate {
-    public func rewardedVideoAdDidLoad(_ rewardedVideoAd: FBRewardedVideoAd) {
+    nonisolated public func rewardedVideoAdDidLoad(_ rewardedVideoAd: FBRewardedVideoAd) {
         Task { @MainActor in
             self.isRewardedReady = true
             #if DEBUG
@@ -271,7 +271,7 @@ extension AdManager: FBRewardedVideoAdDelegate {
         }
     }
     
-    public func rewardedVideoAd(_ rewardedVideoAd: FBRewardedVideoAd, didFailWithError error: Error) {
+    nonisolated public func rewardedVideoAd(_ rewardedVideoAd: FBRewardedVideoAd, didFailWithError error: Error) {
         Task { @MainActor in
             self.isRewardedReady = false
             #if DEBUG
@@ -280,7 +280,7 @@ extension AdManager: FBRewardedVideoAdDelegate {
         }
     }
     
-    public func rewardedVideoAdVideoComplete(_ rewardedVideoAd: FBRewardedVideoAd) {
+    nonisolated public func rewardedVideoAdVideoComplete(_ rewardedVideoAd: FBRewardedVideoAd) {
         Task { @MainActor in
             #if DEBUG
             print("🎉 [AdManager] Rewarded Video завершено — выдача награды!")
@@ -290,7 +290,7 @@ extension AdManager: FBRewardedVideoAdDelegate {
         }
     }
     
-    public func rewardedVideoAdDidClose(_ rewardedVideoAd: FBRewardedVideoAd) {
+    nonisolated public func rewardedVideoAdDidClose(_ rewardedVideoAd: FBRewardedVideoAd) {
         Task { @MainActor in
             self.isRewardedReady = false
             self.preloadRewarded()
