@@ -70,7 +70,6 @@ targets:
     dependencies:
       - package: FBAudienceNetwork
         product: FBAudienceNetwork
-        embed: true
       - target: BibleWidget
       - sdk: libsqlite3.dylib
       - sdk: libxml2.tbd
