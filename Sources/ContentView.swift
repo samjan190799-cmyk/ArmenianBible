@@ -296,6 +296,11 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 6)
                     
+                    // MARK: - Баннерная Реклама Meta (на самом видном месте сразу под стихом дня)
+                    BannerAdView()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 2)
+                    
                     // MARK: - Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
 
                     NarekatsiBannerCardView(
@@ -354,10 +359,6 @@ struct HomeView: View {
                             isShowingPaywall = true
                         }
                     )
-                    
-                    // MARK: - Баннерная Реклама Meta
-                    BannerAdView()
-                        .padding(.top, 6)
                 }
                 .padding(.bottom, 30)
             }
@@ -1077,6 +1078,11 @@ struct AIGuideView: View {
                     }
                     .padding(.horizontal, 20)
                     
+                    // MARK: - Баннерная Реклама Meta (на видном месте под блоком ввода)
+                    BannerAdView()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 4)
+                    
                     // Блок вывода результата
                     if isAskingAI {
                         VStack(spacing: 12) {
@@ -1197,9 +1203,6 @@ struct AIGuideView: View {
                                 animateAnswer = true
                             }
                         }
-                        // MARK: - Баннерная Реклама Meta
-                        BannerAdView()
-                            .padding(.top, 10)
                     }
                 }
                 .padding(.bottom, 40)

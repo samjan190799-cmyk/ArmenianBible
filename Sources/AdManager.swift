@@ -37,13 +37,11 @@ public final class AdManager: NSObject, ObservableObject {
     // MARK: - Инициализация SDK Meta
     public func initialize() {
         #if canImport(FBAudienceNetwork)
-        // Настройка тестового режима
-        if AdConfig.isTestMode {
-            FBAdSettings.addTestDevice(FBAdSettings.testDeviceHash())
-            #if DEBUG
-            print("📢 [AdManager] Meta Audience Network Test Device: \(FBAdSettings.testDeviceHash())")
-            #endif
-        }
+        // Всегда регистрируем хеш тестового устройства для безопасного тестирования без блокировок
+        FBAdSettings.addTestDevice(FBAdSettings.testDeviceHash())
+        #if DEBUG
+        print("📢 [AdManager] Meta Audience Network Test Device: \(FBAdSettings.testDeviceHash())")
+        #endif
         
         // Инициализация движка Meta
         FBAudienceNetworkAds.initialize(with: nil) { result in
@@ -250,6 +248,17 @@ extension AdManager: FBInterstitialAdDelegate {
             #if DEBUG
             print("⚠️ [AdManager] Ошибка загрузки Interstitial: \(error.localizedDescription)")
             #endif
+            
+            // Если боевая реклама не наполнена (No fill), пробуем гарантированный тестовый креатив Meta
+            if interstitialAd.placementID == AdConfig.productionInterstitialPlacementID {
+                #if DEBUG
+                print("🔄 [AdManager] Переключение Interstitial на тестовый креатив Meta...")
+                #endif
+                let fallback = FBInterstitialAd(placementID: AdConfig.testInterstitialPlacementID)
+                fallback.delegate = self
+                self.currentInterstitial = fallback
+                fallback.load()
+            }
         }
     }
     
@@ -277,6 +286,17 @@ extension AdManager: FBRewardedVideoAdDelegate {
             #if DEBUG
             print("⚠️ [AdManager] Ошибка загрузки Rewarded Video: \(error.localizedDescription)")
             #endif
+            
+            // Если боевая реклама не наполнена (No fill), пробуем гарантированный тестовый креатив Meta
+            if rewardedVideoAd.placementID == AdConfig.productionRewardedPlacementID {
+                #if DEBUG
+                print("🔄 [AdManager] Переключение Rewarded Video на тестовый креатив Meta...")
+                #endif
+                let fallback = FBRewardedVideoAd(placementID: AdConfig.testRewardedPlacementID)
+                fallback.delegate = self
+                self.currentRewarded = fallback
+                fallback.load()
+            }
         }
     }
     

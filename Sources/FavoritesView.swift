@@ -248,7 +248,12 @@ struct FavoritesView: View {
                     )
                     .padding(.horizontal, 20)
                 }
-                .padding(.bottom, 12)
+                .padding(.bottom, 6)
+                
+                // MARK: - Баннерная Реклама Meta (на самом видном месте под поиском)
+                BannerAdView()
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 6)
                 
                 // MARK: - Список карточек или Пустое состояние
                 let showFavorites = (selectedSectionTab == 0 || selectedSectionTab == 1) && selectedTagFilter == nil
@@ -334,10 +339,6 @@ struct FavoritesView: View {
                                     )
                                 }
                             }
-                            
-                            // MARK: - Баннерная Реклама Meta
-                            BannerAdView()
-                                .padding(.top, 8)
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
