@@ -1646,10 +1646,16 @@ struct SettingsView: View {
     // Всплывающая инструкция по виджетам
     @State private var isShowingWidgetInstruction = false
     
-    // 🥚 Скрытый Easter Egg: 5 нажатий на заголовок «О приложении» → Premium
+    // 🔐 Панель разработчика (переключение Premium/Free по PIN-коду)
     @State private var secretTapCount = 0
     @State private var secretLastTap = Date.distantPast
-    @State private var secretUnlockToast = false
+    @State private var isShowingDevPasscodeAlert = false
+    @State private var devPasscodeInput = ""
+    @State private var devToastMessage = ""
+    @State private var devToastSubtitle = ""
+    @State private var devToastIcon = "crown.fill"
+    @State private var devToastColor: [Color] = [Color(hex: "F59E0B"), Color(hex: "D97706")]
+    @State private var showDevToast = false
 
     @Environment(\.colorScheme) private var colorScheme
     
@@ -1762,6 +1768,23 @@ struct SettingsView: View {
                     cardBorderColor: cardBorderColor,
                     primaryTextColor: primaryTextColor
                 )
+            }
+            .alert("Панель разработчика", isPresented: $isShowingDevPasscodeAlert) {
+                SecureField("Секретный PIN-код", text: $devPasscodeInput)
+                
+                Button("Включить Free (для теста рекламы)") {
+                    handleDevToggle(enablePremium: false)
+                }
+                
+                Button("Включить Premium") {
+                    handleDevToggle(enablePremium: true)
+                }
+                
+                Button("Отмена", role: .cancel) {
+                    devPasscodeInput = ""
+                }
+            } message: {
+                Text("Текущий статус: \(subscriptionManager.isPremium ? "👑 Premium активен" : "🆓 Free режим")\n\nВведите PIN для переключения режима.")
             }
         }
         .environment(\.locale, Locale(identifier: selectedLanguage.localeCode))
@@ -2462,59 +2485,38 @@ struct SettingsView: View {
     private var aboutSection: some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 12) {
-                // 🥚 Секретная зона: 5 нажатий → Premium
+                // 🔐 Секретная зона разработчика: 5 быстрых тапов → диалог PIN-кода
                 HStack(spacing: 6) {
                     Text("about_app_title".localized(for: selectedLanguage))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(primaryTextColor)
-                    
-                    // Точки-прогресс (видны только после 1-го тапа, до 5-го)
-                    if secretTapCount > 0 && secretTapCount < 5 {
-                        HStack(spacing: 3) {
-                            ForEach(0..<5, id: \.self) { i in
-                                Circle()
-                                    .fill(i < secretTapCount ? Color(hex: "F59E0B") : Color.secondary.opacity(0.3))
-                                    .frame(width: 5, height: 5)
-                            }
-                        }
-                        .transition(.opacity)
-                        .animation(.easeInOut(duration: 0.2), value: secretTapCount)
-                    }
-                    
                     Spacer()
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
                     let now = Date()
-                    // Сброс счётчика если прошло > 3 секунд
-                    if now.timeIntervalSince(secretLastTap) > 3.0 {
+                    // Сброс счётчика если пауза между тапами > 2.5 секунд
+                    if now.timeIntervalSince(secretLastTap) > 2.5 {
                         secretTapCount = 0
                     }
                     secretLastTap = now
                     secretTapCount += 1
                     
-                    let g = UIImpactFeedbackGenerator(style: secretTapCount == 5 ? .heavy : .light)
-                    g.prepare(); g.impactOccurred()
+                    let g = UIImpactFeedbackGenerator(style: secretTapCount >= 5 ? .heavy : .light)
+                    g.prepare()
+                    g.impactOccurred()
                     
                     if secretTapCount >= 5 {
                         secretTapCount = 0
-                        // Активируем Premium
-                        subscriptionManager.setDebugPremium(true)
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                            secretUnlockToast = true
-                        }
-                        let n = UINotificationFeedbackGenerator()
-                        n.notificationOccurred(.success)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                            withAnimation { secretUnlockToast = false }
-                        }
+                        devPasscodeInput = ""
+                        isShowingDevPasscodeAlert = true
                     }
                 }
             
             HStack {
                 Text("about_app_version".localized(for: selectedLanguage))
                 Spacer()
-                Text("2.1")
+                Text("2.2")
                     .foregroundColor(.secondary)
             }
             .font(.system(size: 14))
@@ -2638,30 +2640,19 @@ struct SettingsView: View {
                 .stroke(aboutBlockBorderColor, lineWidth: 1)
         )
         
-        // ─── Тост «Premium разблокирован» ───────────────────────────────────
-        if secretUnlockToast {
-            HStack(spacing: 10) {
-                Text("👑")
-                    .font(.system(size: 22))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text({
-                        switch selectedLanguage {
-                        case .armenian: return "Պրեմիում բացված է!"
-                        case .russian:  return "Premium разблокирован!"
-                        case .english:  return "Premium Unlocked!"
-                        }
-                    }())
-                    .font(.system(size: 14, weight: .bold))
+        // ─── Всплывающее уведомление режима разработчика ────────────────────
+        if showDevToast {
+            HStack(spacing: 12) {
+                Image(systemName: devToastIcon)
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
-                    Text({
-                        switch selectedLanguage {
-                        case .armenian: return "Բոլոր հնարավորությունները բաց են ✓"
-                        case .russian:  return "Все возможности открыты ✓"
-                        case .english:  return "All features are now available ✓"
-                        }
-                    }())
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.8))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(devToastMessage)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(devToastSubtitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.85))
                 }
                 Spacer()
             }
@@ -2671,16 +2662,50 @@ struct SettingsView: View {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                            colors: devToastColor,
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                    .shadow(color: Color(hex: "F59E0B").opacity(0.45), radius: 12, x: 0, y: 4)
+                    .shadow(color: (devToastColor.first ?? .clear).opacity(0.45), radius: 12, x: 0, y: 4)
             )
+            .padding(.top, 10)
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
         } // конец ZStack
+    }
+    
+    // MARK: - Обработка переключения режима разработчика
+    private func handleDevToggle(enablePremium: Bool) {
+        let code = devPasscodeInput.trimmingCharacters(in: .whitespaces)
+        if code == "1907" || code == "7777" || code == "2026" {
+            subscriptionManager.toggleDeveloperPremium(to: enablePremium)
+            let n = UINotificationFeedbackGenerator()
+            n.notificationOccurred(.success)
+            
+            if enablePremium {
+                devToastIcon = "crown.fill"
+                devToastMessage = "👑 Premium активирован!"
+                devToastSubtitle = "Все возможности открыты, реклама полностью отключена."
+                devToastColor = [Color(hex: "F59E0B"), Color(hex: "D97706")]
+            } else {
+                devToastIcon = "hammer.fill"
+                devToastMessage = "🧪 Free-режим включен!"
+                devToastSubtitle = "Реклама Meta включена, лимиты активны для теста."
+                devToastColor = [Color(hex: "3B82F6"), Color(hex: "1D4ED8")]
+            }
+            
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                showDevToast = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                withAnimation { showDevToast = false }
+            }
+        } else {
+            let n = UINotificationFeedbackGenerator()
+            n.notificationOccurred(.error)
+        }
+        devPasscodeInput = ""
     }
 }
 

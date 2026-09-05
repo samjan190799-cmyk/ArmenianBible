@@ -84,14 +84,21 @@ final class SubscriptionManager: ObservableObject {
     private let kPremiumOverrideKey = "armenian_bible_is_premium_cached"
     private let kLegacyPremiumKey   = "arm_bible_premium_unlocked"   // ключ из v1.x
     private let kDebugUnlockedKey   = "k_debug_premium_unlocked"
+    private let kForceFreeModeKey   = "k_dev_force_free_mode"
     private let appGroupSuite       = "group.com.samvel.ArmenianBible"
     private var updateListenerTask: Task<Void, Never>? = nil
     
     private init() {
-        // Загружаем закэшированный статус (с учётом старого ключа v1.x для миграции)
-        let cached    = UserDefaults.standard.bool(forKey: kPremiumOverrideKey)
-        let legacyCached = UserDefaults.standard.bool(forKey: kLegacyPremiumKey)
-        self.isPremium = cached || legacyCached
+        // Загружаем закэшированный статус (с учётом принудительного Free-режима разработчика и старых ключей)
+        let isForceFree = UserDefaults.standard.bool(forKey: kForceFreeModeKey)
+        if isForceFree {
+            self.isPremium = false
+        } else {
+            let cached    = UserDefaults.standard.bool(forKey: kPremiumOverrideKey)
+            let legacyCached = UserDefaults.standard.bool(forKey: kLegacyPremiumKey)
+            let debugCached = UserDefaults.standard.bool(forKey: kDebugUnlockedKey)
+            self.isPremium = cached || legacyCached || debugCached
+        }
         if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
             sharedDefaults.set(self.isPremium, forKey: "is_premium_active")
             sharedDefaults.synchronize()
@@ -258,6 +265,17 @@ final class SubscriptionManager: ObservableObject {
             }
         }
         
+        // Если разработчик принудительно включил Free-режим для тестирования рекламы
+        if UserDefaults.standard.bool(forKey: kForceFreeModeKey) {
+            self.isPremium = false
+            UserDefaults.standard.set(false, forKey: kPremiumOverrideKey)
+            if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
+                sharedDefaults.set(false, forKey: "is_premium_active")
+                sharedDefaults.synchronize()
+            }
+            return
+        }
+        
         // Проверяем, был ли активирован отладочный/пасхальный Premium
         if UserDefaults.standard.bool(forKey: kDebugUnlockedKey) {
             hasActivePremium = true
@@ -373,6 +391,24 @@ final class SubscriptionManager: ObservableObject {
         if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
             sharedDefaults.set(enabled, forKey: "is_premium_active")
             sharedDefaults.synchronize()
+        }
+    }
+    
+    /// Переключение режима разработчика: принудительный Free для теста рекламы или Premium
+    func toggleDeveloperPremium(to enablePremium: Bool) {
+        if enablePremium {
+            UserDefaults.standard.set(false, forKey: kForceFreeModeKey)
+            setDebugPremium(true)
+        } else {
+            UserDefaults.standard.set(true, forKey: kForceFreeModeKey)
+            UserDefaults.standard.set(false, forKey: kDebugUnlockedKey)
+            UserDefaults.standard.set(false, forKey: kLegacyPremiumKey)
+            UserDefaults.standard.set(false, forKey: kPremiumOverrideKey)
+            self.isPremium = false
+            if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
+                sharedDefaults.set(false, forKey: "is_premium_active")
+                sharedDefaults.synchronize()
+            }
         }
     }
 }
