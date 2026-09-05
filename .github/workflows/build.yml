@@ -162,6 +162,19 @@ jobs:
       - name: Export & Sign IPA
         run: |
           set -o pipefail
+
+          # Проверяем и явно подписываем все вложенные фреймворки в xcarchive
+          FW_DIR="$RUNNER_TEMP/ArmenianBible.xcarchive/Products/Applications/ArmenianBible.app/Frameworks"
+          if [ -d "$FW_DIR" ]; then
+            echo "🔐 Предварительная переподпись embedded фреймворков в xcarchive..."
+            for fw in "$FW_DIR"/*.framework; do
+              if [ -d "$fw" ]; then
+                echo "Codesigning embedded framework: $fw"
+                /usr/bin/codesign --force --sign "iPhone Distribution" --timestamp --options runtime "$fw" || true
+              fi
+            done
+          fi
+
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/ArmenianBible.xcarchive" \
             -exportPath "$RUNNER_TEMP/Export" \
@@ -178,6 +191,10 @@ jobs:
             tail -50 "$RUNNER_TEMP/export.log"
             exit 1
           fi
+
+          echo "📦 Проверка содержимого собранного IPA:"
+          unzip -l "$IPA" | grep -i "Frameworks" || echo "⚠️ Предупреждение: папка Frameworks не найдена в IPA!"
+
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
           echo "✅ IPA успешно создан и подписан: $IPA"
 
