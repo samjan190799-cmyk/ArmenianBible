@@ -327,6 +327,8 @@
 "edition_echmiadzin_title" = "Էջմիածին";
 "edition_grabar_title" = "Գրաբար";
 "lockscreen_category_title" = "Կողպեքի էկրանի համարների ոճը";
+"widget_medium_category_title" = "Միջին վիջեթի թեման (4x2)";
+"widget_large_category_title" = "Մեծ վիջեթի թեման (4x4)";
 "lockscreen_preview_title" = "Կողպեքի էկրանի նախադիտում.";
 "update_widgets_now_button" = "Թարմացնել բոլոր վիջեթները";
 "widget_language_title" = "Վիջեթների լեզուն";

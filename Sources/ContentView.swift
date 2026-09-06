@@ -1661,7 +1661,10 @@ struct SettingsView: View {
     @State private var selectedWidgetLanguage: WidgetLanguage = .followApp
     @State private var selectedWidgetStyle: WidgetVisualStyle = .oledStandby
     @State private var selectedLockCategory: LockScreenCategory = .pearls
+    @State private var selectedMediumCategory: HomeWidgetCategory = .all
+    @State private var selectedLargeCategory: HomeWidgetCategory = .all
     @State private var selectedArmenianEdition: ArmenianBibleEdition = .ararat
+    @State private var previewWidgetSize: PreviewWidgetSize = .small
     @State private var previewVerse: BibleVerse = BibleVerse.lockScreenPearls[0]
     
     // Переменные для уведомлений
@@ -1782,6 +1785,8 @@ struct SettingsView: View {
                 selectedWidgetLanguage = manager.widgetLanguage
                 selectedWidgetStyle = manager.widgetVisualStyle
                 selectedLockCategory = manager.lockScreenCategory
+                selectedMediumCategory = manager.mediumWidgetCategory
+                selectedLargeCategory = manager.largeWidgetCategory
                 selectedArmenianEdition = manager.armenianEdition
                 let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
                 previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
@@ -2468,10 +2473,7 @@ struct SettingsView: View {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.prepare()
                         generator.impactOccurred()
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
-                            previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
-                        }
+                        pickVerseForCurrentSize(previewWidgetSize)
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "shuffle")
@@ -2483,59 +2485,230 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Карточка в натуральную величину (StandBy / Small Widget 2x2)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Image(systemName: "quote.opening")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(selectedWidgetStyle.quoteIconColor(for: colorScheme, accentHex: selectedTheme.colorHex))
-                        
-                        Spacer()
-                        
-                        Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
-                            .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
-                            .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
-                    }
-                    
-                    Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
-                        .font(.system(size: 16, weight: .bold, design: selectedWidgetStyle.fontDesign))
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.8)
-                        .lineSpacing(3)
-                        .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
-                        .padding(.vertical, 2)
-                    
-                    HStack {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 12))
-                            Text("widget_pray_done_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
-                                .font(.system(size: 11, weight: .semibold, design: selectedWidgetStyle.fontDesign))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
-                        .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
-                        .cornerRadius(8)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 11, weight: .bold))
-                            .padding(6)
-                            .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
-                            .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
-                            .clipShape(Circle())
+                // Переключатель размера превью (Малый 2x2, Средний 4x2, Большой 4x4)
+                Picker("preview_widget_size", selection: $previewWidgetSize) {
+                    ForEach(PreviewWidgetSize.allCases) { size in
+                        Text(size.localizedTitle(for: selectedLanguage)).tag(size)
                     }
                 }
-                .padding(14)
-                .background(selectedWidgetStyle.backgroundGradient(for: colorScheme))
-                .cornerRadius(18)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(selectedWidgetStyle.borderStroke(for: colorScheme), lineWidth: 1.4)
-                )
+                .pickerStyle(.segmented)
+                .tint(colorScheme == .dark ? .white : .primary)
+                .onChange(of: previewWidgetSize) { newSize in
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.prepare()
+                    generator.impactOccurred()
+                    pickVerseForCurrentSize(newSize)
+                }
+                .padding(.bottom, 2)
+                
+                // Карточка в натуральную величину выбранного размера
+                Group {
+                    switch previewWidgetSize {
+                    case .small:
+                        // Малый 2x2 (StandBy / Small Widget)
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Image(systemName: "quote.opening")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(selectedWidgetStyle.quoteIconColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                
+                                Spacer()
+                                
+                                Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                    .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                    .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                            }
+                            
+                            Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                .font(.system(size: 16, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                .lineLimit(3)
+                                .minimumScaleFactor(0.8)
+                                .lineSpacing(3)
+                                .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
+                                .padding(.vertical, 2)
+                            
+                            HStack {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 12))
+                                    Text("widget_pray_done_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                        .font(.system(size: 11, weight: .semibold, design: selectedWidgetStyle.fontDesign))
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                                .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                .cornerRadius(8)
+                                
+                                Spacer()
+                                
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .padding(6)
+                                    .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                                    .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .padding(14)
+                        .background(selectedWidgetStyle.backgroundGradient(for: colorScheme))
+                        .cornerRadius(18)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(selectedWidgetStyle.borderStroke(for: colorScheme), lineWidth: 1.4)
+                        )
+                        
+                    case .medium:
+                        // Средний 4x2 (Medium Widget)
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Image(systemName: "quote.opening")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(selectedWidgetStyle.quoteIconColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                
+                                Spacer()
+                                
+                                Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                    .font(.system(size: 12.5, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                    .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                            }
+                            
+                            Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                .font(.system(size: 16.5, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                .lineLimit(4)
+                                .minimumScaleFactor(0.78)
+                                .lineSpacing(3.5)
+                                .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
+                                .padding(.vertical, 1)
+                            
+                            Spacer(minLength: 4)
+                            
+                            HStack(spacing: 6) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 10, weight: .bold))
+                                    Text("widget_next_verse_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                        .font(.system(size: 11, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 6)
+                                .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                                .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                .cornerRadius(9)
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: "heart")
+                                        .font(.system(size: 10, weight: .bold))
+                                    Text("widget_fav_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                        .font(.system(size: 11, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 6)
+                                .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                                .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
+                                .cornerRadius(9)
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: "hands.sparkles.fill")
+                                        .font(.system(size: 10, weight: .bold))
+                                    Text("widget_pray_todo_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                        .font(.system(size: 11, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 6)
+                                .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                                .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                .cornerRadius(9)
+                            }
+                        }
+                        .padding(14)
+                        .background(selectedWidgetStyle.backgroundGradient(for: colorScheme))
+                        .cornerRadius(18)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(selectedWidgetStyle.borderStroke(for: colorScheme), lineWidth: 1.4)
+                        )
+                        
+                    case .large:
+                        // Большой 4x4 (Large Widget)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "quote.opening")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(selectedWidgetStyle.quoteIconColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                
+                                Spacer()
+                                
+                                Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                    .font(.system(size: 14, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                    .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                            }
+                            
+                            Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                .font(.system(size: 17.5, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                .lineLimit(7)
+                                .minimumScaleFactor(0.75)
+                                .lineSpacing(4.5)
+                                .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
+                                .padding(.vertical, 2)
+                            
+                            Spacer(minLength: 6)
+                            
+                            HStack(spacing: 8) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("widget_next_verse_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                        .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                                .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                .cornerRadius(10)
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: "heart")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("widget_fav_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                        .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                                .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
+                                .cornerRadius(10)
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: "hands.sparkles.fill")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("widget_pray_todo_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                        .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                                .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                .cornerRadius(10)
+                            }
+                        }
+                        .padding(16)
+                        .background(selectedWidgetStyle.backgroundGradient(for: colorScheme))
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(selectedWidgetStyle.borderStroke(for: colorScheme), lineWidth: 1.4)
+                        )
+                    }
+                }
                 .shadow(color: Color.black.opacity(0.2), radius: 8, y: 4)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: previewWidgetSize)
             }
             .padding(.top, 4)
         }
@@ -2669,7 +2842,103 @@ struct SettingsView: View {
             }
             .padding(.vertical, 4)
             
-            // 4. Интерактивный Live-превью экрана блокировки
+            // 4. Категория цитат для Среднего виджета (4x2)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "rectangle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    Text("widget_medium_category_title".localized(for: selectedLanguage))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                }
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(HomeWidgetCategory.allCases) { cat in
+                            let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
+                            HomeCategoryChipView(
+                                cat: cat,
+                                isSelected: selectedMediumCategory == cat,
+                                isLocked: isLocked,
+                                selectedLanguage: selectedLanguage,
+                                themeColorHex: selectedTheme.colorHex,
+                                inputFieldBgColor: inputFieldBgColor,
+                                inputFieldBorderColor: inputFieldBorderColor,
+                                primaryTextColor: primaryTextColor
+                            ) {
+                                if isLocked {
+                                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    isShowingPaywall = true
+                                } else {
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    selectedMediumCategory = cat
+                                    manager.setMediumWidgetCategory(cat)
+                                    if previewWidgetSize == .medium {
+                                        pickVerseForCurrentSize(.medium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            .padding(.vertical, 4)
+            
+            // 5. Категория цитат для Большого виджета (4x4)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "square.split.2x2")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    Text("widget_large_category_title".localized(for: selectedLanguage))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                }
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(HomeWidgetCategory.allCases) { cat in
+                            let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
+                            HomeCategoryChipView(
+                                cat: cat,
+                                isSelected: selectedLargeCategory == cat,
+                                isLocked: isLocked,
+                                selectedLanguage: selectedLanguage,
+                                themeColorHex: selectedTheme.colorHex,
+                                inputFieldBgColor: inputFieldBgColor,
+                                inputFieldBorderColor: inputFieldBorderColor,
+                                primaryTextColor: primaryTextColor
+                            ) {
+                                if isLocked {
+                                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    isShowingPaywall = true
+                                } else {
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    selectedLargeCategory = cat
+                                    manager.setLargeWidgetCategory(cat)
+                                    if previewWidgetSize == .large {
+                                        pickVerseForCurrentSize(.large)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            .padding(.vertical, 4)
+            
+            // 6. Интерактивный Live-превью экрана блокировки
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("lockscreen_preview_title".localized(for: selectedLanguage))
@@ -2963,6 +3232,25 @@ struct SettingsView: View {
             n.notificationOccurred(.error)
         }
         devPasscodeInput = ""
+    }
+    
+    // MARK: - Выбор стиха для текущего размера виджета в предпросмотре
+    private func pickVerseForCurrentSize(_ size: PreviewWidgetSize) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            switch size {
+            case .small:
+                let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
+                previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+            case .medium:
+                let pool = BibleVerse.verses(for: selectedMediumCategory, isPremium: subscriptionManager.isPremium)
+                let filtered = pool.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
+                previewVerse = (!filtered.isEmpty ? filtered : pool).randomElement() ?? BibleVerse.database[1]
+            case .large:
+                let pool = BibleVerse.verses(for: selectedLargeCategory, isPremium: subscriptionManager.isPremium)
+                let filtered = pool.filter { $0.textHy.count >= 75 }
+                previewVerse = (!filtered.isEmpty ? filtered : pool).randomElement() ?? BibleVerse.database[0]
+            }
+        }
     }
 }
 
@@ -3260,6 +3548,48 @@ struct LockCategoryChipView: View {
         Button(action: onSelect) {
             HStack(spacing: 6) {
                 Text(cat.icon)
+                Text(cat.localizedTitle(for: selectedLanguage))
+                    .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                
+                if isLocked {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? Color(hex: themeColorHex).opacity(0.18) : inputFieldBgColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? Color(hex: themeColorHex) : inputFieldBorderColor, lineWidth: 1)
+            )
+            .foregroundColor(isSelected ? Color(hex: themeColorHex) : primaryTextColor)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Вспомогательное представление: Чип категории домашнего виджета (Medium 4x2 & Large 4x4)
+struct HomeCategoryChipView: View {
+    let cat: HomeWidgetCategory
+    let isSelected: Bool
+    let isLocked: Bool
+    let selectedLanguage: AppLanguage
+    let themeColorHex: String
+    let inputFieldBgColor: Color
+    let inputFieldBorderColor: Color
+    let primaryTextColor: Color
+    let onSelect: () -> Void
+    
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 6) {
+                Image(systemName: cat.icon)
+                    .font(.system(size: 12, weight: .semibold))
                 Text(cat.localizedTitle(for: selectedLanguage))
                     .font(.system(size: 13, weight: isSelected ? .bold : .medium))
                 

@@ -68,9 +68,13 @@ class BibleManager: ObservableObject {
     private let notificationsEnabledKey = "daily_notifications_enabled"
     private let notificationTimeKey = "daily_notification_time"
     private let lockScreenCategoryKey = "lock_screen_category"
+    private let mediumWidgetCategoryKey = "medium_widget_category"
+    private let largeWidgetCategoryKey = "large_widget_category"
     private let widgetVisualStyleKey = "widget_visual_style"
     
     @Published var lockScreenCategory: LockScreenCategory = .pearls
+    @Published var mediumWidgetCategory: HomeWidgetCategory = .all
+    @Published var largeWidgetCategory: HomeWidgetCategory = .all
     
     private var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupSuiteName)
@@ -299,6 +303,22 @@ class BibleManager: ObservableObject {
             self.lockScreenCategory = .pearls
         }
         
+        // Загрузка категорий для среднего и большого виджетов
+        if let defaults = sharedDefaults {
+            if let savedMedRaw = defaults.string(forKey: mediumWidgetCategoryKey),
+               let savedMed = HomeWidgetCategory(rawValue: savedMedRaw) {
+                self.mediumWidgetCategory = savedMed
+            } else {
+                self.mediumWidgetCategory = .all
+            }
+            if let savedLargeRaw = defaults.string(forKey: largeWidgetCategoryKey),
+               let savedLarge = HomeWidgetCategory(rawValue: savedLargeRaw) {
+                self.largeWidgetCategory = savedLarge
+            } else {
+                self.largeWidgetCategory = .all
+            }
+        }
+        
         // Загрузка последнего места чтения
         if let defaults = sharedDefaults {
             let savedBookId = defaults.integer(forKey: "last_read_book_id")
@@ -385,6 +405,26 @@ class BibleManager: ObservableObject {
         syncLockScreenWidget()
     }
     
+    // MARK: - Сохранение категории для среднего виджета (4x2)
+    func setMediumWidgetCategory(_ category: HomeWidgetCategory) {
+        self.mediumWidgetCategory = category
+        if let defaults = sharedDefaults {
+            defaults.set(category.rawValue, forKey: mediumWidgetCategoryKey)
+            defaults.synchronize()
+        }
+        syncLockScreenWidget()
+    }
+    
+    // MARK: - Сохранение категории для большого виджета (4x4)
+    func setLargeWidgetCategory(_ category: HomeWidgetCategory) {
+        self.largeWidgetCategory = category
+        if let defaults = sharedDefaults {
+            defaults.set(category.rawValue, forKey: largeWidgetCategoryKey)
+            defaults.synchronize()
+        }
+        syncLockScreenWidget()
+    }
+    
     // MARK: - Сохранение армянского перевода Библии
     func setArmenianEdition(_ edition: ArmenianBibleEdition) {
         self.armenianEdition = edition
@@ -420,15 +460,21 @@ class BibleManager: ObservableObject {
                 defaults.set(randomSmall.id.uuidString, forKey: "currentSmallVerseId")
             }
             
-            // 3. Средний виджет (System Medium 4x2) - 38-95 символов
-            let medPool = BibleVerse.database.filter { $0.textHy.count >= 38 && $0.textHy.count <= 95 }
-            if let randomMed = (medPool.isEmpty ? BibleVerse.database : medPool).randomElement() {
+            // 3. Средний виджет (System Medium 4x2) - стихи 35-100 символов с учетом mediumWidgetCategory
+            let activeMedCat = (isPremium || !mediumWidgetCategory.isPremiumRequired) ? mediumWidgetCategory : .all
+            let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
+            let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
+            let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
+            if let randomMed = medPool.randomElement() {
                 defaults.set(randomMed.id.uuidString, forKey: "currentMediumVerseId")
             }
             
-            // 4. Большой виджет (System Large 4x4) - от 85 символов
-            let largePool = BibleVerse.database.filter { $0.textHy.count >= 85 }
-            if let randomLarge = (largePool.isEmpty ? BibleVerse.database : largePool).randomElement() {
+            // 4. Большой виджет (System Large 4x4) - стихи от 75 символов с учетом largeWidgetCategory
+            let activeLargeCat = (isPremium || !largeWidgetCategory.isPremiumRequired) ? largeWidgetCategory : .all
+            let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
+            let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
+            let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
+            if let randomLarge = largePool.randomElement() {
                 defaults.set(randomLarge.id.uuidString, forKey: "currentLargeVerseId")
             }
             

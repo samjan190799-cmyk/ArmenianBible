@@ -327,6 +327,8 @@
 "edition_echmiadzin_title" = "Etchmiadzin";
 "edition_grabar_title" = "Grabar (Classical)";
 "lockscreen_category_title" = "Lock Screen Verse Style";
+"widget_medium_category_title" = "Medium Widget Topic (4x2)";
+"widget_large_category_title" = "Large Widget Topic (4x4)";
 "lockscreen_preview_title" = "Lock Screen Preview:";
 "update_widgets_now_button" = "Refresh All Widgets Now";
 "widget_language_title" = "Widget Language";

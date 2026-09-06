@@ -652,6 +652,126 @@ enum LockScreenCategory: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+// MARK: - Категории контента для Виджетов Домашнего Экрана (Medium 4x2 & Large 4x4)
+enum HomeWidgetCategory: String, CaseIterable, Identifiable, Codable {
+    case all = "all"                // 📚 Все разделы и темы (Бесплатно)
+    case gospels = "gospels"        // 📖 Святое Евангелие (Бесплатно)
+    case psalms = "psalms"          // ✝️ Псалмы Давида (PRO)
+    case wisdom = "wisdom"          // 💡 Притчи и Мудрость (PRO)
+    case narekatsi = "narekatsi"    // 👑 Молитвы Нарекаци (PRO)
+    case prayers = "prayers"        // 🤲 Молитвослов (PRO)
+    case favorites = "favorites"    // ❤️ Избранные стихи (PRO)
+    
+    var id: String { rawValue }
+    
+    var isPremiumRequired: Bool {
+        switch self {
+        case .all, .gospels: return false
+        default: return true
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .all: return "books.vertical.fill"
+        case .gospels: return "book.closed.fill"
+        case .psalms: return "cross.fill"
+        case .wisdom: return "lightbulb.fill"
+        case .narekatsi: return "crown.fill"
+        case .prayers: return "hands.sparkles.fill"
+        case .favorites: return "heart.fill"
+        }
+    }
+    
+    func localizedTitle(for language: AppLanguage) -> String {
+        switch self {
+        case .all:
+            switch language {
+            case .armenian: return "Բոլորը"
+            case .russian: return "Все разделы"
+            case .english: return "All Categories"
+            }
+        case .gospels:
+            switch language {
+            case .armenian: return "Ավետարան"
+            case .russian: return "Евангелие"
+            case .english: return "Gospels"
+            }
+        case .psalms:
+            switch language {
+            case .armenian: return "Սաղմոսներ"
+            case .russian: return "Псалмы"
+            case .english: return "Psalms"
+            }
+        case .wisdom:
+            switch language {
+            case .armenian: return "Իմաստություն"
+            case .russian: return "Притчи"
+            case .english: return "Wisdom"
+            }
+        case .narekatsi:
+            switch language {
+            case .armenian: return "Նարեկացի"
+            case .russian: return "Нарекаци"
+            case .english: return "Narekatsi"
+            }
+        case .prayers:
+            switch language {
+            case .armenian: return "Աղոթքներ"
+            case .russian: return "Молитвы"
+            case .english: return "Prayers"
+            }
+        case .favorites:
+            switch language {
+            case .armenian: return "Սիրված"
+            case .russian: return "Избранное"
+            case .english: return "Favorites"
+            }
+        }
+    }
+}
+
+// MARK: - Переключатель размеров превью виджетов в Настройках
+enum PreviewWidgetSize: String, CaseIterable, Identifiable {
+    case small = "small"            // 2x2 (StandBy / Small)
+    case medium = "medium"          // 4x2 (Medium)
+    case large = "large"            // 4x4 (Large)
+    
+    var id: String { rawValue }
+    
+    func localizedTitle(for language: AppLanguage) -> String {
+        switch self {
+        case .small:
+            switch language {
+            case .armenian: return "Փոքր 2x2"
+            case .russian: return "Малый 2x2"
+            case .english: return "Small 2x2"
+            }
+        case .medium:
+            switch language {
+            case .armenian: return "Միջին 4x2"
+            case .russian: return "Средний 4x2"
+            case .english: return "Medium 4x2"
+            }
+        case .large:
+            switch language {
+            case .armenian: return "Մեծ 4x4"
+            case .russian: return "Большой 4x4"
+            case .english: return "Large 4x4"
+            }
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .small: return "square"
+        case .medium: return "rectangle"
+        case .large: return "square.split.2x2"
+        }
+    }
+}
+
+
 extension BibleVerse {
     // MARK: - 1. 🕊️ Короткие жемчужины (Бесплатно / Free) — до 45 символов
     static let shortPearls: [BibleVerse] = [
@@ -2555,6 +2675,74 @@ extension BibleVerse {
             refEn: "Isaiah 55:6-9"
         )
     ]
+
+    // MARK: - Выборка стихов по категории домашнего виджета (HomeWidgetCategory)
+    static func verses(for category: HomeWidgetCategory, isPremium: Bool = true) -> [BibleVerse] {
+        let activeCat = (isPremium || !category.isPremiumRequired) ? category : .all
+        switch activeCat {
+        case .all:
+            return BibleVerse.database
+            
+        case .gospels:
+            let gospels = BibleVerse.database.filter { v in
+                let r = (v.refHy + " " + v.refRu + " " + v.refEn).lowercased()
+                return r.contains("մատթեոս") || r.contains("մարկոս") || r.contains("ղուկաս") || r.contains("հովհաննես") ||
+                       r.contains("матфе") || r.contains("марк") || r.contains("луки") || r.contains("иоанн") ||
+                       r.contains("matthew") || r.contains("mark") || r.contains("luke") || r.contains("john")
+            }
+            return !gospels.isEmpty ? gospels : BibleVerse.database
+            
+        case .psalms:
+            let p = BibleVerse.database.filter { v in
+                let r = (v.refHy + " " + v.refRu + " " + v.refEn).lowercased()
+                return r.contains("սաղմոս") || r.contains("псалом") || r.contains("psalm")
+            }
+            let list = p + BibleVerse.shortPsalms
+            return !list.isEmpty ? list : BibleVerse.database
+            
+        case .wisdom:
+            let w = BibleVerse.database.filter { v in
+                let r = (v.refHy + " " + v.refRu + " " + v.refEn).lowercased()
+                return r.contains("առակ") || r.contains("ժողովող") || r.contains("իմաստութ") ||
+                       r.contains("притч") || r.contains("екклесиаст") || r.contains("премудрост") ||
+                       r.contains("proverbs") || r.contains("ecclesiastes") || r.contains("wisdom")
+            }
+            let list = w + BibleVerse.shortWisdom
+            return !list.isEmpty ? list : BibleVerse.database
+            
+        case .narekatsi:
+            let n = BibleVerse.database.filter { v in
+                let r = (v.refHy + " " + v.refRu + " " + v.refEn).lowercased()
+                return r.contains("նարեկ") || r.contains("нарекаци") || r.contains("narek")
+            }
+            let list = n + BibleVerse.shortNarekatsi
+            return !list.isEmpty ? list : BibleVerse.shortNarekatsi
+            
+        case .prayers:
+            let prayers = BibleVerse.database.filter { $0.isPrayer }
+            return !prayers.isEmpty ? prayers : BibleVerse.database
+            
+        case .favorites:
+            if let defaults = UserDefaults(suiteName: "group.com.samvel.ArmenianBible"),
+               let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
+               let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
+               !decoded.isEmpty {
+                return decoded.map { item in
+                    BibleVerse(
+                        id: item.id,
+                        textHy: item.textHy,
+                        textRu: item.textRu,
+                        textEn: item.textEn,
+                        refHy: item.refHy,
+                        refRu: item.refRu,
+                        refEn: item.refEn,
+                        isPrayer: false
+                    )
+                }
+            }
+            return BibleVerse.database
+        }
+    }
 }
 
 // MARK: - Нормализация строк для сравнения без учета регистра и знаков препинания

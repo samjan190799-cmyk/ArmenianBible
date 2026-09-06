@@ -167,18 +167,28 @@ struct NextVerseIntent: AppIntent {
             }
         }
         
-        // 2. Для среднего виджета (System Medium) - стихи 38-95 символов
+        // 2. Для среднего виджета (System Medium) - стихи 35-100 символов с учетом medium_widget_category
         if target == "medium" || target == "all" {
-            let medPool = BibleVerse.database.filter { $0.textHy.count >= 38 && $0.textHy.count <= 95 }
-            if let v = (medPool.isEmpty ? BibleVerse.database : medPool).randomElement() {
+            let savedMedRaw = defaults.string(forKey: "medium_widget_category") ?? "all"
+            let medCat = HomeWidgetCategory(rawValue: savedMedRaw) ?? .all
+            let activeMedCat = (isPremium || !medCat.isPremiumRequired) ? medCat : .all
+            let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
+            let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
+            let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
+            if let v = medPool.randomElement() {
                 defaults.set(v.id.uuidString, forKey: "currentMediumVerseId")
             }
         }
         
-        // 3. Для большого виджета (System Large) - глубокие отрывки от 85 символов
+        // 3. Для большого виджета (System Large) - глубокие отрывки от 75 символов с учетом large_widget_category
         if target == "large" || target == "all" {
-            let largePool = BibleVerse.database.filter { $0.textHy.count >= 85 }
-            if let v = (largePool.isEmpty ? BibleVerse.database : largePool).randomElement() {
+            let savedLargeRaw = defaults.string(forKey: "large_widget_category") ?? "all"
+            let largeCat = HomeWidgetCategory(rawValue: savedLargeRaw) ?? .all
+            let activeLargeCat = (isPremium || !largeCat.isPremiumRequired) ? largeCat : .all
+            let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
+            let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
+            let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
+            if let v = largePool.randomElement() {
                 defaults.set(v.id.uuidString, forKey: "currentLargeVerseId")
             }
         }
@@ -494,12 +504,28 @@ struct Provider: AppIntentTimelineProvider {
             return activeLockVerses
             
         case .systemMedium:
-            let medVerses = base.filter { $0.text(for: lang).count >= 38 && $0.text(for: lang).count <= 95 }
-            return !medVerses.isEmpty ? medVerses : base
+            let pool: [BibleVerse]
+            if let config = configuration, config.category != .both && config.category != .pearls {
+                pool = base
+            } else {
+                let savedCatRaw = defaults?.string(forKey: "medium_widget_category") ?? "all"
+                let cat = HomeWidgetCategory(rawValue: savedCatRaw) ?? .all
+                pool = BibleVerse.verses(for: cat, isPremium: isPremium)
+            }
+            let medVerses = pool.filter { $0.text(for: lang).count >= 35 && $0.text(for: lang).count <= 100 }
+            return !medVerses.isEmpty ? medVerses : (!pool.isEmpty ? pool : base)
             
         case .systemLarge:
-            let largeVerses = base.filter { $0.text(for: lang).count >= 85 }
-            return !largeVerses.isEmpty ? largeVerses : base
+            let pool: [BibleVerse]
+            if let config = configuration, config.category != .both && config.category != .pearls {
+                pool = base
+            } else {
+                let savedCatRaw = defaults?.string(forKey: "large_widget_category") ?? "all"
+                let cat = HomeWidgetCategory(rawValue: savedCatRaw) ?? .all
+                pool = BibleVerse.verses(for: cat, isPremium: isPremium)
+            }
+            let largeVerses = pool.filter { $0.text(for: lang).count >= 75 }
+            return !largeVerses.isEmpty ? largeVerses : (!pool.isEmpty ? pool : base)
             
         @unknown default:
             return base
