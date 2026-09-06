@@ -85,6 +85,9 @@ struct QuizQuestion: Identifiable, Codable {
     let verseRefRu: String
     let verseRefEn: String
     
+    var isAIGenerated: Bool = false
+    var aiProviderName: String? = nil
+    
     init(
         id: UUID = UUID(),
         category: QuizCategory,
@@ -101,7 +104,9 @@ struct QuizQuestion: Identifiable, Codable {
         explanationEn: String,
         verseRefHy: String,
         verseRefRu: String,
-        verseRefEn: String
+        verseRefEn: String,
+        isAIGenerated: Bool = false,
+        aiProviderName: String? = nil
     ) {
         self.id = id
         self.category = category
@@ -119,6 +124,8 @@ struct QuizQuestion: Identifiable, Codable {
         self.verseRefHy = verseRefHy
         self.verseRefRu = verseRefRu
         self.verseRefEn = verseRefEn
+        self.isAIGenerated = isAIGenerated
+        self.aiProviderName = aiProviderName
     }
     
     func question(for lang: AppLanguage) -> String {

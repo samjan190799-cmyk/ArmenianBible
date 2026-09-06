@@ -19,3 +19,9 @@ android_app/app/build/
 # Scratch and analysis tools
 scratch/
 
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.bak
+

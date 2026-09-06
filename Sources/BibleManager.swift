@@ -801,7 +801,6 @@ class BibleManager: ObservableObject {
             return
         }
         
-        var request: URLRequest
         let prompt: String
         switch appLanguage {
         case .armenian:
@@ -812,213 +811,52 @@ class BibleManager: ObservableObject {
             prompt = "You are a Bible expert. Generate one random, inspiring, meaningful, and beautiful Bible quote in English (from KJV or ESV translation). Write the COMPLETE text of the quote without abbreviations or ellipses (...). Return only the quote text and the reference in the following format: [Quote] | [Reference] (example: The Lord is my shepherd; I shall not want. | Psalm 23:1). Do not write anything else."
         }
         
-        switch activeProvider {
-        case .gemini:
-            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "contents": [
-                    [
-                        "parts": [
-                            ["text": prompt]
-                        ]
-                    ]
-                ]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = jsonData
-            
-        case .chatgpt:
-            guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "model": "gpt-4o-mini",
-                "messages": [
-                    ["role": "user", "content": prompt]
-                ]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            request.httpBody = jsonData
-            
-        case .claude:
-            guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "model": "claude-3-5-haiku-20241022",
-                "max_tokens": 1024,
-                "messages": [
-                    ["role": "user", "content": prompt]
-                ]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            request.httpBody = jsonData
-        }
-        
         isGeneratingAI = true
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isGeneratingAI = false
-            }
-            
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-                return
-            }
-            
-            guard let data = data else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
-                }
-                return
-            }
-            
-            // Проверяем HTTP статус на наличие ошибок
-            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                // Пытаемся извлечь сообщение об ошибке от API
-                if let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    var errorMsg: String? = nil
-                    
-                    if let errorDict = errJson["error"] as? [String: Any] {
-                        errorMsg = errorDict["message"] as? String
-                    } else if let errorDict = errJson["error"] as? String {
-                        errorMsg = errorDict
-                    }
-                    
-                    if let msg = errorMsg {
-                        let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
-                        DispatchQueue.main.async {
-                            completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
-                        }
-                        return
-                    }
-                }
-                let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
-                }
-                return
-            }
-            
+        let provider = activeProvider
+        Task { [weak self] in
+            guard let self = self else { return }
             do {
-                guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    DispatchQueue.main.async {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
-                    }
-                    return
-                }
-                
-                var extractedText: String? = nil
-                
-                switch self?.activeProvider {
-                case .gemini:
-                    if let candidates = jsonResponse["candidates"] as? [[String: Any]],
-                       let firstCandidate = candidates.first,
-                       let content = firstCandidate["content"] as? [String: Any],
-                       let parts = content["parts"] as? [[String: Any]],
-                       let firstPart = parts.first {
-                        extractedText = firstPart["text"] as? String
-                    }
-                case .chatgpt:
-                    if let choices = jsonResponse["choices"] as? [[String: Any]],
-                       let firstChoice = choices.first,
-                       let message = firstChoice["message"] as? [String: Any] {
-                        extractedText = message["content"] as? String
-                    }
-                case .claude:
-                    if let contentList = jsonResponse["content"] as? [[String: Any]],
-                       let firstContent = contentList.first {
-                        extractedText = firstContent["text"] as? String
-                    }
-                default:
-                    break
-                }
-                
-                guard let textResult = extractedText else {
-                    DispatchQueue.main.async {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
-                    }
-                    return
-                }
-                
-                let cleanResult = textResult.trimmingCharacters(in: .whitespacesAndNewlines)
-                let components = cleanResult.components(separatedBy: "|")
-                
-                if components.count >= 2 {
-                    let text = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
-                    let reference = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
-                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"”'«»"))
+                let (textResult, _) = try await AIModelRegistry.shared.executeRequest(
+                    provider: provider,
+                    apiKey: apiKey,
+                    prompt: prompt,
+                    jsonMode: false,
+                    maxTokens: 1024
+                )
+                await MainActor.run {
+                    self.isGeneratingAI = false
+                    let cleanResult = textResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let components = cleanResult.components(separatedBy: "|")
                     
-                    let newVerse = BibleVerse(text: text, reference: reference)
-                    
-                    DispatchQueue.main.async {
-                        self?.updateCurrentVerse(newVerse)
+                    if components.count >= 2 {
+                        let text = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                        let reference = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"”'«»"))
+                        
+                        let newVerse = BibleVerse(text: text, reference: reference)
+                        self.updateCurrentVerse(newVerse)
                         completion(.success(newVerse))
-                    }
-                } else {
-                    // Попытка использовать всю полученную строку, если нет разделителя |
-                    let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
-                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
-                    if !cleanText.isEmpty {
-                        let newVerse = BibleVerse(text: cleanText, reference: NSLocalizedString("widget_title", comment: ""))
-                        DispatchQueue.main.async {
-                            self?.updateCurrentVerse(newVerse)
-                            completion(.success(newVerse))
-                        }
                     } else {
-                        DispatchQueue.main.async {
+                        let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                        if !cleanText.isEmpty {
+                            let newVerse = BibleVerse(text: cleanText, reference: NSLocalizedString("widget_title", comment: ""))
+                            self.updateCurrentVerse(newVerse)
+                            completion(.success(newVerse))
+                        } else {
                             completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
                         }
                     }
                 }
             } catch {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+                await MainActor.run {
+                    self.isGeneratingAI = false
+                    let friendlyMsg = self.getFriendlyErrorMessage(for: provider, statusCode: (error as NSError).code, rawMessage: error.localizedDescription)
+                    completion(.failure(NSError(domain: "BibleManager", code: (error as NSError).code, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                 }
             }
-        }.resume()
+        }
     }
     
     // MARK: - Состояние генерации текста толкования
@@ -1043,182 +881,32 @@ class BibleManager: ObservableObject {
             return
         }
         
-        var request: URLRequest
-        switch activeProvider {
-        case .gemini:
-            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "contents": [
-                    [
-                        "parts": [
-                            ["text": prompt]
-                        ]
-                    ]
-                ]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = jsonData
-            
-        case .chatgpt:
-            guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "model": "gpt-4o-mini",
-                "messages": [
-                    ["role": "user", "content": prompt]
-                ]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            request.httpBody = jsonData
-            
-        case .claude:
-            guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "model": "claude-3-5-haiku-20241022",
-                "max_tokens": 1024,
-                "messages": [
-                    ["role": "user", "content": prompt]
-                ]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            request.httpBody = jsonData
-        }
-        
         DispatchQueue.main.async {
             self.isGeneratingText = true
         }
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isGeneratingText = false
-            }
-            
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-                return
-            }
-            
-            guard let data = data else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
-                }
-                return
-            }
-            
-            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                if let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    var errorMsg: String? = nil
-                    if let errorDict = errJson["error"] as? [String: Any] {
-                        errorMsg = errorDict["message"] as? String
-                    } else if let errorDict = errJson["error"] as? String {
-                        errorMsg = errorDict
-                    }
-                    if let msg = errorMsg {
-                        let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
-                        DispatchQueue.main.async {
-                            completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
-                        }
-                        return
-                    }
-                }
-                let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
-                }
-                return
-            }
-            
+        let provider = activeProvider
+        Task { [weak self] in
+            guard let self = self else { return }
             do {
-                guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    DispatchQueue.main.async {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
-                    }
-                    return
-                }
-                
-                var extractedText: String? = nil
-                switch self?.activeProvider {
-                case .gemini:
-                    if let candidates = jsonResponse["candidates"] as? [[String: Any]],
-                       let firstCandidate = candidates.first,
-                       let content = firstCandidate["content"] as? [String: Any],
-                       let parts = content["parts"] as? [[String: Any]],
-                       let firstPart = parts.first {
-                        extractedText = firstPart["text"] as? String
-                    }
-                case .chatgpt:
-                    if let choices = jsonResponse["choices"] as? [[String: Any]],
-                       let firstChoice = choices.first,
-                       let message = firstChoice["message"] as? [String: Any] {
-                        extractedText = message["content"] as? String
-                    }
-                case .claude:
-                    if let contentList = jsonResponse["content"] as? [[String: Any]],
-                       let firstContent = contentList.first {
-                        extractedText = firstContent["text"] as? String
-                    }
-                default:
-                    break
-                }
-                
-                if let resultText = extractedText {
-                    DispatchQueue.main.async {
-                        completion(.success(resultText.trimmingCharacters(in: .whitespacesAndNewlines)))
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
-                    }
+                let (resultText, _) = try await AIModelRegistry.shared.executeRequest(
+                    provider: provider,
+                    apiKey: apiKey,
+                    prompt: prompt,
+                    jsonMode: false,
+                    maxTokens: 2048
+                )
+                await MainActor.run {
+                    self.isGeneratingText = false
+                    completion(.success(resultText.trimmingCharacters(in: .whitespacesAndNewlines)))
                 }
             } catch {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+                await MainActor.run {
+                    self.isGeneratingText = false
+                    let friendlyMsg = self.getFriendlyErrorMessage(for: provider, statusCode: (error as NSError).code, rawMessage: error.localizedDescription)
+                    completion(.failure(NSError(domain: "BibleManager", code: (error as NSError).code, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                 }
             }
-        }.resume()
+        }
     }
     
     // MARK: - Подбор библейского стиха под тему / настроение пользователя
@@ -1252,197 +940,52 @@ class BibleManager: ObservableObject {
             return
         }
         
-        var request: URLRequest
-        switch activeProvider {
-        case .gemini:
-            guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\(apiKey)") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "contents": [["parts": [["text": prompt]]]]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = jsonData
-            
-        case .chatgpt:
-            guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "model": "gpt-4o-mini",
-                "messages": [["role": "user", "content": prompt]]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            request.httpBody = jsonData
-            
-        case .claude:
-            guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])))
-                }
-                return
-            }
-            let requestBody: [String: Any] = [
-                "model": "claude-3-5-haiku-20241022",
-                "max_tokens": 1024,
-                "messages": [["role": "user", "content": prompt]]
-            ]
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Serialization Error"])))
-                }
-                return
-            }
-            request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            request.httpBody = jsonData
-        }
-        
         isGeneratingAI = true
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isGeneratingAI = false
-            }
-            
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-                return
-            }
-            
-            guard let data = data else {
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
-                }
-                return
-            }
-            
-            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                if let errJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    var errorMsg: String? = nil
-                    if let errorDict = errJson["error"] as? [String: Any] {
-                        errorMsg = errorDict["message"] as? String
-                    } else if let errorDict = errJson["error"] as? String {
-                        errorMsg = errorDict
-                    }
-                    if let msg = errorMsg {
-                        let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: msg) ?? msg
-                        DispatchQueue.main.async {
-                            completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
-                        }
-                        return
-                    }
-                }
-                let friendlyMsg = self?.getFriendlyErrorMessage(for: self?.activeProvider ?? .gemini, statusCode: httpResponse.statusCode, rawMessage: "HTTP Error \(httpResponse.statusCode)") ?? "HTTP Error"
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(domain: "BibleManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
-                }
-                return
-            }
-            
+        let provider = activeProvider
+        Task { [weak self] in
+            guard let self = self else { return }
             do {
-                guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    DispatchQueue.main.async {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"])))
-                    }
-                    return
-                }
-                
-                var extractedText: String? = nil
-                switch self?.activeProvider {
-                case .gemini:
-                    if let candidates = jsonResponse["candidates"] as? [[String: Any]],
-                       let firstCandidate = candidates.first,
-                       let content = firstCandidate["content"] as? [String: Any],
-                       let parts = content["parts"] as? [[String: Any]],
-                       let firstPart = parts.first {
-                        extractedText = firstPart["text"] as? String
-                    }
-                case .chatgpt:
-                    if let choices = jsonResponse["choices"] as? [[String: Any]],
-                       let firstChoice = choices.first,
-                       let message = firstChoice["message"] as? [String: Any] {
-                        extractedText = message["content"] as? String
-                    }
-                case .claude:
-                    if let contentList = jsonResponse["content"] as? [[String: Any]],
-                       let firstContent = contentList.first {
-                        extractedText = firstContent["text"] as? String
-                    }
-                default:
-                    break
-                }
-                
-                guard let textResult = extractedText else {
-                    DispatchQueue.main.async {
-                        completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Mismatched JSON structure"])))
-                    }
-                    return
-                }
-                
-                let cleanResult = textResult.trimmingCharacters(in: .whitespacesAndNewlines)
-                let components = cleanResult.components(separatedBy: "|")
-                
-                if components.count >= 2 {
-                    let text = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
-                    let reference = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
-                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"”'«»"))
+                let (textResult, _) = try await AIModelRegistry.shared.executeRequest(
+                    provider: provider,
+                    apiKey: apiKey,
+                    prompt: prompt,
+                    jsonMode: false,
+                    maxTokens: 1024
+                )
+                await MainActor.run {
+                    self.isGeneratingAI = false
+                    let cleanResult = textResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let components = cleanResult.components(separatedBy: "|")
                     
-                    let newVerse = BibleVerse(text: text, reference: reference)
-                    DispatchQueue.main.async {
-                        self?.updateCurrentVerse(newVerse)
+                    if components.count >= 2 {
+                        let text = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                        let reference = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"”'«»"))
+                        
+                        let newVerse = BibleVerse(text: text, reference: reference)
+                        self.updateCurrentVerse(newVerse)
                         completion(.success(newVerse))
-                    }
-                } else {
-                    let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
-                        .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
-                    if !cleanText.isEmpty {
-                        let newVerse = BibleVerse(text: cleanText, reference: "Armenian Bible")
-                        DispatchQueue.main.async {
-                            self?.updateCurrentVerse(newVerse)
-                            completion(.success(newVerse))
-                        }
                     } else {
-                        DispatchQueue.main.async {
+                        let cleanText = cleanResult.trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "[]\"“'«»"))
+                        if !cleanText.isEmpty {
+                            let newVerse = BibleVerse(text: cleanText, reference: "Armenian Bible")
+                            self.updateCurrentVerse(newVerse)
+                            completion(.success(newVerse))
+                        } else {
                             completion(.failure(NSError(domain: "BibleManager", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid formatting returned from AI"])))
                         }
                     }
                 }
             } catch {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+                await MainActor.run {
+                    self.isGeneratingAI = false
+                    let friendlyMsg = self.getFriendlyErrorMessage(for: provider, statusCode: (error as NSError).code, rawMessage: error.localizedDescription)
+                    completion(.failure(NSError(domain: "BibleManager", code: (error as NSError).code, userInfo: [NSLocalizedDescriptionKey: friendlyMsg])))
                 }
             }
-        }.resume()
+        }
     }
     
     // MARK: - Парсинг и локализация ошибок ИИ

@@ -300,6 +300,7 @@ final class BibleQuizGenerator {
     }
     
     // MARK: - Сборка пула вопросов для викторины любого размера
+    @MainActor
     func fetchQuestions(category: QuizCategory, count: Int = 10) -> [QuizQuestion] {
         var pool: [QuizQuestion] = []
         
@@ -327,11 +328,17 @@ final class BibleQuizGenerator {
             pool.append(contentsOf: structureQuestions.filter { $0.category == category })
         }
         
-        pool.shuffle()
-        if pool.isEmpty {
-            pool = QuizDatabase.allQuestions.shuffled()
+        // 4. Невидимая адаптивная фильтрация через дневник (исключаем недавние вопросы для активных игроков)
+        let filteredPool = pool.filter { q in
+            !QuizAdaptiveDiary.shared.shouldFilterOfflineQuestion(questionText: q.questionRu)
         }
-        return Array(pool.prefix(count))
+        
+        let resultPool = filteredPool.count >= count ? filteredPool : pool
+        let shuffled = resultPool.shuffled()
+        if shuffled.isEmpty {
+            return Array(QuizDatabase.allQuestions.shuffled().prefix(count))
+        }
+        return Array(shuffled.prefix(count))
     }
 }
 

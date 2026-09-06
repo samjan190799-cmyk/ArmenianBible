@@ -10,6 +10,13 @@ struct BibleQuizView: View {
     
     @State private var selectedCategory: QuizCategory = .all
     @State private var selectedQuestionCount = 10
+    @AppStorage("quiz_ai_generation_enabled") private var isAIGenerationEnabled = true
+    @State private var isGeneratingAI = false
+    @State private var showNoKeyAlert = false
+    @State private var showAIFailureAlert = false
+    @State private var aiErrorMessage = ""
+    @State private var aiGenerationStep = 0
+    @State private var aiStepTimer: Timer? = nil
     @State private var quizStarted = false
     @State private var currentQuestionIndex = 0
     @State private var score = 0
@@ -115,6 +122,7 @@ struct BibleQuizView: View {
                     QuizStartView(
                         selectedCategory: $selectedCategory,
                         selectedQuestionCount: $selectedQuestionCount,
+                        isAIGenerationEnabled: $isAIGenerationEnabled,
                         bestScore: manager.quizBestScore,
                         unlockedBadgesCount: achievements.unlockedCount,
                         totalBadgesCount: achievements.badges.count,
@@ -185,8 +193,44 @@ struct BibleQuizView: View {
                                 
                                 // Вопрос
                                 VStack(spacing: 12) {
+                                    // Бейдж происхождения вопроса: ИИ или База
+                                    HStack(spacing: 6) {
+                                        if question.isAIGenerated {
+                                            Image(systemName: "sparkles")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(Color(hex: "F59E0B"))
+                                            Text("\("quiz_badge_ai_generated".localized(for: manager.appLanguage)) • \(question.aiProviderName ?? QuizAIEngine.shared.currentProviderDisplayName)")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundStyle(
+                                                    LinearGradient(
+                                                        colors: [Color(hex: "F59E0B"), accentColor],
+                                                        startPoint: .leading,
+                                                        endPoint: .trailing
+                                                    )
+                                                )
+                                        } else {
+                                            Image(systemName: "book.closed.fill")
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                            Text("quiz_badge_offline_database".localized(for: manager.appLanguage))
+                                                .font(.system(size: 11, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        Capsule()
+                                            .fill(question.isAIGenerated ? Color(hex: "F59E0B").opacity(0.12) : Color.primary.opacity(0.06))
+                                    )
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(question.isAIGenerated ? Color(hex: "F59E0B").opacity(0.35) : Color.clear, lineWidth: 1)
+                                    )
+                                    .padding(.bottom, 2)
+                                    
                                     Image(systemName: "questionmark.bubble.fill")
-                                        .font(.system(size: 28))
+                                        .font(.system(size: 26))
                                         .foregroundColor(accentColor)
                                     
                                     Text(question.question(for: manager.appLanguage))
@@ -341,9 +385,118 @@ struct BibleQuizView: View {
                     }
                 }
             }
+            
+            // MARK: - Оверлей ожидания генерации вопросов через ИИ
+            if isGeneratingAI {
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "F59E0B").opacity(0.25), accentColor.opacity(0.15)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 76, height: 76)
+                        
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 32, weight: .semibold))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "F59E0B"), accentColor],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                    }
+                    
+                    VStack(spacing: 8) {
+                        Text("quiz_generating_title".localized(for: manager.appLanguage))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text(currentAIStepText)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .frame(height: 38)
+                            .padding(.horizontal, 14)
+                            .animation(.easeInOut(duration: 0.3), value: aiGenerationStep)
+                    }
+                    
+                    // Индикатор активного ИИ
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 7, height: 7)
+                        Text(QuizAIEngine.shared.currentProviderDisplayName)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.primary.opacity(0.05))
+                    .cornerRadius(12)
+                    
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: accentColor))
+                        .scaleEffect(1.1)
+                        .padding(.top, 2)
+                }
+                .padding(24)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(cardBackgroundColor)
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(cardBorderColor, lineWidth: 1.2)
+                )
+                .shadow(color: Color.black.opacity(0.25), radius: 25, y: 10)
+                .padding(28)
+                .transition(.scale.combined(with: .opacity))
+            }
         }
         .sheet(isPresented: $isShowingAchievements) {
             BibleAchievementsView()
+        }
+        .alert(isPresented: $showNoKeyAlert) {
+            Alert(
+                title: Text("quiz_ai_no_key_title".localized(for: manager.appLanguage)),
+                message: Text("quiz_ai_no_key_message".localized(for: manager.appLanguage)),
+                primaryButton: .default(Text("quiz_play_classic_button".localized(for: manager.appLanguage)), action: {
+                    isAIGenerationEnabled = false
+                    startOfflineQuiz()
+                }),
+                secondaryButton: .cancel()
+            )
+        }
+        .alert(isPresented: $showAIFailureAlert) {
+            Alert(
+                title: Text("quiz_ai_failed_title".localized(for: manager.appLanguage)),
+                message: Text(aiErrorMessage.isEmpty ? "quiz_ai_failed_message".localized(for: manager.appLanguage) : "\("quiz_ai_failed_message".localized(for: manager.appLanguage))\n\n(\(aiErrorMessage))"),
+                primaryButton: .default(Text("quiz_play_classic_button".localized(for: manager.appLanguage)), action: {
+                    startOfflineQuiz()
+                }),
+                secondaryButton: .cancel(Text("close_button".localized(for: manager.appLanguage)))
+            )
+        }
+        .onAppear {
+            QuizAdaptiveDiary.shared.recordSession()
+        }
+        .onDisappear {
+            stopAITimer()
         }
     }
     
@@ -395,8 +548,98 @@ struct BibleQuizView: View {
         return secondaryAccentColor
     }
     
+    private func startAITimer() {
+        aiGenerationStep = 0
+        aiStepTimer?.invalidate()
+        aiStepTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
+            Task { @MainActor in
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    aiGenerationStep = (aiGenerationStep + 1) % 4
+                }
+            }
+        }
+    }
+    
+    private func stopAITimer() {
+        aiStepTimer?.invalidate()
+        aiStepTimer = nil
+    }
+    
+    private var currentAIStepText: String {
+        let providerName = QuizAIEngine.shared.currentProviderDisplayName
+        switch aiGenerationStep {
+        case 0:
+            switch manager.appLanguage {
+            case .armenian: return "Կապվում ենք \(providerName) նեյրոցանցի հետ..."
+            case .russian: return "Подключение к нейросети \(providerName)..."
+            case .english: return "Connecting to \(providerName)..."
+            }
+        case 1:
+            switch manager.appLanguage {
+            case .armenian: return "Աստվածաշնչի ուսումնասիրություն և յուրահատուկ թեմաների ընտրություն..."
+            case .russian: return "Анализ Писания и подбор уникальных тем..."
+            case .english: return "Analyzing Scripture and selecting unique themes..."
+            }
+        case 2:
+            switch manager.appLanguage {
+            case .armenian: return "Հարցերի, պատասխանների և մեկնաբանությունների կազմում..."
+            case .russian: return "Формирование вариантов ответа и богословских пояснений..."
+            case .english: return "Generating questions, options and biblical explanations..."
+            }
+        default:
+            switch manager.appLanguage {
+            case .armenian: return "Ստուգում օրագրով՝ կրկնությունները բացառելու համար..."
+            case .russian: return "Проверка по адаптивному дневнику для исключения повторов..."
+            case .english: return "Verifying with adaptive diary to prevent repetition..."
+            }
+        }
+    }
+    
     private func startQuiz() {
         triggerHaptic(.medium)
+        
+        if isAIGenerationEnabled {
+            guard QuizAIEngine.shared.isAIAvailable else {
+                showNoKeyAlert = true
+                return
+            }
+            
+            isGeneratingAI = true
+            startAITimer()
+            
+            Task { @MainActor in
+                do {
+                    let questions = try await QuizAIEngine.shared.generateQuestions(
+                        category: selectedCategory,
+                        count: selectedQuestionCount,
+                        language: manager.appLanguage
+                    )
+                    stopAITimer()
+                    activeQuestions = questions
+                    currentQuestionIndex = 0
+                    score = 0
+                    selectedAnswerIndex = nil
+                    showAnswerDetails = false
+                    quizFinished = false
+                    newlyUnlockedBadges = []
+                    categoryBreakdown = [:]
+                    isGeneratingAI = false
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        quizStarted = true
+                    }
+                } catch {
+                    stopAITimer()
+                    isGeneratingAI = false
+                    aiErrorMessage = error.localizedDescription
+                    showAIFailureAlert = true
+                }
+            }
+        } else {
+            startOfflineQuiz()
+        }
+    }
+    
+    private func startOfflineQuiz() {
         activeQuestions = BibleQuizGenerator.shared.fetchQuestions(category: selectedCategory, count: selectedQuestionCount)
         currentQuestionIndex = 0
         score = 0
@@ -405,7 +648,7 @@ struct BibleQuizView: View {
         quizFinished = false
         newlyUnlockedBadges = []
         categoryBreakdown = [:]
-        withAnimation {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             quizStarted = true
         }
     }
@@ -413,6 +656,14 @@ struct BibleQuizView: View {
     private func selectAnswer(_ index: Int, question: QuizQuestion, proxy: ScrollViewProxy) {
         selectedAnswerIndex = index
         let isCorrect = (index == question.correctAnswerIndex)
+        
+        // Невидимая регистрация ответа в адаптивный дневник («Magic Under The Hood»)
+        QuizAdaptiveDiary.shared.recordQuestionAnswer(
+            questionText: question.question(for: manager.appLanguage),
+            category: question.category,
+            isCorrect: isCorrect
+        )
+        
         if isCorrect {
             triggerHapticNotification(.success)
             score += 1
@@ -470,6 +721,7 @@ struct BibleQuizView: View {
 struct QuizStartView: View {
     @Binding var selectedCategory: QuizCategory
     @Binding var selectedQuestionCount: Int
+    @Binding var isAIGenerationEnabled: Bool
     let bestScore: Int
     let unlockedBadgesCount: Int
     let totalBadgesCount: Int
@@ -482,7 +734,13 @@ struct QuizStartView: View {
     let onOpenAchievements: () -> Void
     let onStart: () -> Void
     
-    private let counts = [10, 20, 30]
+    private let counts = [5, 10, 15, 20]
+    
+    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
     
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -544,6 +802,78 @@ struct QuizStartView: View {
                     .buttonStyle(ScaleButtonStyle())
                 }
                 
+                // Выбор режима викторины (ИИ с адаптацией vs Офлайн база)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("quiz_mode_title".localized(for: language))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                    
+                    HStack(spacing: 10) {
+                        Button {
+                            triggerHaptic(.light)
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                isAIGenerationEnabled = true
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("quiz_mode_ai".localized(for: language))
+                                    .font(.system(size: 13, weight: isAIGenerationEnabled ? .bold : .medium))
+                            }
+                            .foregroundColor(isAIGenerationEnabled ? .white : primaryTextColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 11)
+                            .background(isAIGenerationEnabled ? accentColor : cardBackgroundColor)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(isAIGenerationEnabled ? accentColor : Color.primary.opacity(0.06), lineWidth: 1.2)
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        
+                        Button {
+                            triggerHaptic(.light)
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                isAIGenerationEnabled = false
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "book.closed.fill")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("quiz_mode_classic".localized(for: language))
+                                    .font(.system(size: 13, weight: !isAIGenerationEnabled ? .bold : .medium))
+                            }
+                            .foregroundColor(!isAIGenerationEnabled ? .white : primaryTextColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 11)
+                            .background(!isAIGenerationEnabled ? accentColor : cardBackgroundColor)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(!isAIGenerationEnabled ? accentColor : Color.primary.opacity(0.06), lineWidth: 1.2)
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                    
+                    // Подсказка о выбранном движке
+                    HStack(spacing: 6) {
+                        Image(systemName: isAIGenerationEnabled ? "sparkles" : "internaldrive.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(isAIGenerationEnabled ? Color(hex: "F59E0B") : secondaryAccentColor)
+                        Text(isAIGenerationEnabled ?
+                             "\("quiz_mode_ai_hint".localized(for: language)) • \(QuizAIEngine.shared.currentProviderDisplayName)" :
+                             "quiz_mode_classic_hint".localized(for: language))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 4)
+                }
+                .padding(.horizontal, 20)
+                
                 // Выбор количества вопросов
                 VStack(alignment: .leading, spacing: 8) {
                     Text("quiz_questions_count".localized(for: language))
@@ -554,6 +884,7 @@ struct QuizStartView: View {
                     HStack(spacing: 10) {
                         ForEach(counts, id: \.self) { count in
                             Button {
+                                triggerHaptic(.light)
                                 selectedQuestionCount = count
                             } label: {
                                 Text("\(count) " + "quiz_count_suffix".localized(for: language))

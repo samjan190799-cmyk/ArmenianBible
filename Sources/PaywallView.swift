@@ -118,6 +118,18 @@ struct PaywallView: View {
                             subtitle: featureDescAds
                         )
                         featureRow(
+                            icon: "app.dashed",
+                            iconColor: Color(hex: "F59E0B"),
+                            title: featureTitleIcons,
+                            subtitle: featureDescIcons
+                        )
+                        featureRow(
+                            icon: "brain.head.profile",
+                            iconColor: Color(hex: "8B5CF6"),
+                            title: featureTitleQuiz,
+                            subtitle: featureDescQuiz
+                        )
+                        featureRow(
                             icon: "headphones",
                             iconColor: Color(hex: "38BDF8"),
                             title: featureTitle1,
@@ -436,6 +448,38 @@ struct PaywallView: View {
         case .armenian: return "Վայելեք Սուրբ Գիրքը առանց ընդհատումների և շեղումների"
         case .russian: return "Погружайтесь в чтение Писания без баннеров и отвлечений"
         case .english: return "Immerse in Scripture with zero ads or interruptions"
+        }
+    }
+    
+    private var featureTitleIcons: String {
+        switch language {
+        case .armenian: return "Հավելվածի Բացառիկ Պատկերակներ"
+        case .russian: return "Эксклюзивные Иконки Приложения"
+        case .english: return "Exclusive App Icons"
+        }
+    }
+    
+    private var featureDescIcons: String {
+        switch language {
+        case .armenian: return "OLED Pitch Black, Ոսկեգույն փայլ և Արքայական ինդիգո"
+        case .russian: return "OLED Pitch Black, Золотое сияние и Королевский индиго"
+        case .english: return "OLED Pitch Black, Golden Glow & Royal Indigo"
+        }
+    }
+    
+    private var featureTitleQuiz: String {
+        switch language {
+        case .armenian: return "Անսահմանափակ AI Վիկտորինա"
+        case .russian: return "Безлимитная ИИ-Викторина"
+        case .english: return "Unlimited AI Bible Quiz"
+        }
+    }
+    
+    private var featureDescQuiz: String {
+        switch language {
+        case .armenian: return "Անհատական նոր հարցերի գեներացիա առանց կրկնությունների"
+        case .russian: return "Генерация новых вопросов без повторов с адаптацией"
+        case .english: return "Dynamic question generation with zero repetition"
         }
     }
     

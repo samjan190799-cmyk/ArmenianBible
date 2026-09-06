@@ -1645,6 +1645,7 @@ struct SettingsView: View {
     @Binding var isPresented: Bool
     @ObservedObject var manager = BibleManager.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    @ObservedObject private var appIconManager = AppIconManager.shared
     
     @State private var isShowingPaywall = false
     @State private var selectedProvider: AIProvider = .gemini
@@ -1744,6 +1745,7 @@ struct SettingsView: View {
                         appLanguageSection
                         appearanceModeSection
                         colorThemeSection
+                        appIconSection
                         apiKeysSection
                         dailyNotificationsSection
                         updateIntervalSection
@@ -2060,6 +2062,116 @@ struct SettingsView: View {
                 }
             }
             .padding(.vertical, 6)
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var appIconSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("settings_app_icon_title".localized(for: selectedLanguage))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                    
+                    Text("settings_app_icon_subtitle".localized(for: selectedLanguage))
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+            }
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(AppIconOption.allCases) { option in
+                        let isSelected = appIconManager.currentOption == option
+                        let isLocked = option.isPremium && !subscriptionManager.isPremium
+                        
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.impactOccurred()
+                            
+                            appIconManager.selectIcon(option) {
+                                isShowingPaywall = true
+                            }
+                        } label: {
+                            VStack(spacing: 8) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(option.assetPreviewName)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 68, height: 68)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .stroke(isSelected ? Color(hex: selectedTheme.colorHex) : Color.white.opacity(0.15), lineWidth: isSelected ? 2.5 : 1)
+                                        )
+                                        .shadow(color: isSelected ? Color(hex: selectedTheme.colorHex).opacity(0.4) : Color.black.opacity(0.15), radius: isSelected ? 8 : 4, y: 3)
+                                    
+                                    if isSelected {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color(hex: selectedTheme.colorHex))
+                                                .frame(width: 22, height: 22)
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 11, weight: .black))
+                                                .foregroundColor(.white)
+                                        }
+                                        .offset(x: 6, y: -6)
+                                    } else if isLocked {
+                                        ZStack {
+                                            Circle()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                                .frame(width: 22, height: 22)
+                                            Image(systemName: "lock.fill")
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(.black)
+                                        }
+                                        .offset(x: 6, y: -6)
+                                    }
+                                }
+                                
+                                VStack(spacing: 2) {
+                                    HStack(spacing: 4) {
+                                        Text(option.title(for: selectedLanguage))
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(primaryTextColor)
+                                            .lineLimit(1)
+                                        
+                                        if option.isPremium {
+                                            Text("PRO")
+                                                .font(.system(size: 8, weight: .heavy))
+                                                .foregroundColor(.black)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 1)
+                                                .background(Color(hex: "FDE68A"))
+                                                .cornerRadius(4)
+                                        }
+                                    }
+                                }
+                                .frame(width: 80)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(isSelected ? Color(hex: selectedTheme.colorHex).opacity(0.08) : Color.clear)
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
+            }
         }
         .padding(.horizontal, 4)
     }
