@@ -221,77 +221,86 @@ if cer_b64:
             if "ArmenianBible" in p_name or "Widget" in p_name:
                 print(f"🗑 Очистка старого профиля [{p_name}] ({p_id})...")
                 api_request("DELETE", f"/profiles/{p_id}")
+        time.sleep(2)
+
+        def create_profile_with_retry(base_name, bundle_id, cert_id):
+            for attempt in range(1, 4):
+                p_name = base_name if attempt == 1 else f"{base_name}_{int(time.time())}"
+                print(f"⚙️ Создание профиля [{p_name}] для bundle ID {bundle_id} (попытка {attempt}/3)...")
+                res = api_request("POST", "/profiles", {
+                    "data": {
+                        "type": "profiles",
+                        "attributes": {
+                            "name": p_name,
+                            "profileType": "IOS_APP_STORE"
+                        },
+                        "relationships": {
+                            "bundleId": {"data": {"type": "bundleIds", "id": bundle_id}},
+                            "certificates": {"data": [{"type": "certificates", "id": cert_id}]}
+                        }
+                    }
+                })
+                if "data" in res and "id" in res["data"]:
+                    print(f"✅ Профиль [{p_name}] успешно создан: {res['data']['id']}")
+                    return res["data"]["id"]
+                print(f"⚠️ Ошибка создания профиля, пауза 3 сек...")
+                time.sleep(3)
+            return None
 
         if main_b_id:
-            print("⚙️ Создание профиля провижининга для основного приложения...")
-            api_request("POST", "/profiles", {
-                "data": {
-                    "type": "profiles",
-                    "attributes": {
-                        "name": "ArmenianBible_Clean_AppStore",
-                        "profileType": "IOS_APP_STORE"
-                    },
-                    "relationships": {
-                        "bundleId": {"data": {"type": "bundleIds", "id": main_b_id}},
-                        "certificates": {"data": [{"type": "certificates", "id": cert_id_new}]}
-                    }
-                }
-            })
-            print("✅ Профиль ArmenianBible_Clean_AppStore создан!")
+            create_profile_with_retry("ArmenianBible_Clean_AppStore", main_b_id, cert_id_new)
 
         if widget_b_id:
-            print("⚙️ Создание профиля провижининга для виджета...")
-            api_request("POST", "/profiles", {
-                "data": {
-                    "type": "profiles",
-                    "attributes": {
-                        "name": "ArmenianBible_Widget_AppStore",
-                        "profileType": "IOS_APP_STORE"
-                    },
-                    "relationships": {
-                        "bundleId": {"data": {"type": "bundleIds", "id": widget_b_id}},
-                        "certificates": {"data": [{"type": "certificates", "id": cert_id_new}]}
-                    }
-                }
-            })
-            print("✅ Профиль ArmenianBible_Widget_AppStore создан!")
+            create_profile_with_retry("ArmenianBible_Widget_AppStore", widget_b_id, cert_id_new)
 
 print("📲 [3/4] Скачивание профилей для приложения и виджета...")
-profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE&limit=100")
+time.sleep(2)
 pp_dir = Path.home() / "Library/MobileDevice/Provisioning Profiles"
 pp_dir.mkdir(parents=True, exist_ok=True)
 
 main_uuid = None
 widget_uuid = None
+last_uuid = None
 
-for p in profiles_res.get("data", []):
-    name = p["attributes"]["name"]
-    pp_b64 = p["attributes"]["profileContent"]
-    pp_bytes = base64.b64decode(pp_b64)
-    
-    tmp_pp = runner_tmp / f"temp_{p['id']}.mobileprovision"
-    tmp_pp.write_bytes(pp_bytes)
-    
-    try:
-        uuid = subprocess.check_output(f"security cms -D -i '{tmp_pp}' | plutil -extract UUID raw -", shell=True, text=True).strip()
-    except Exception:
-        import uuid as u_lib
-        uuid = str(u_lib.uuid4())
-
-    try:
-        app_id = subprocess.check_output(f"security cms -D -i '{tmp_pp}' | plutil -extract Entitlements.application-identifier raw -", shell=True, text=True).strip()
-    except Exception:
-        app_id = ""
+def fetch_and_install_profiles():
+    global main_uuid, widget_uuid, last_uuid
+    profiles_res = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE&limit=100")
+    for p in profiles_res.get("data", []):
+        name = p["attributes"]["name"]
+        pp_b64 = p["attributes"]["profileContent"]
+        pp_bytes = base64.b64decode(pp_b64)
         
-    dest_pp = pp_dir / f"{uuid}.mobileprovision"
-    dest_pp.write_bytes(pp_bytes)
-    
-    if ("Widget" in name or app_id.endswith(".com.samvel.armenianbible.BibleWidget")) and not widget_uuid:
-        widget_uuid = uuid
-        print(f"✅ Профиль виджета смонтирован [{name}] (App ID: {app_id}): {uuid}")
-    elif ("ArmenianBible_Clean_AppStore" in name or app_id.endswith(".com.samvel.armenianbible")) and not main_uuid:
-        main_uuid = uuid
-        print(f"✅ Профиль основного приложения смонтирован [{name}] (App ID: {app_id}): {uuid}")
+        tmp_pp = runner_tmp / f"temp_{p['id']}.mobileprovision"
+        tmp_pp.write_bytes(pp_bytes)
+        
+        try:
+            uuid = subprocess.check_output(f"security cms -D -i '{tmp_pp}' | plutil -extract UUID raw -", shell=True, text=True).strip()
+        except Exception:
+            import uuid as u_lib
+            uuid = str(u_lib.uuid4())
+
+        try:
+            app_id = subprocess.check_output(f"security cms -D -i '{tmp_pp}' | plutil -extract Entitlements.application-identifier raw -", shell=True, text=True).strip()
+        except Exception:
+            app_id = ""
+            
+        dest_pp = pp_dir / f"{uuid}.mobileprovision"
+        dest_pp.write_bytes(pp_bytes)
+        last_uuid = uuid
+        
+        if (app_id.endswith(".com.samvel.armenianbible.BibleWidget") or "Widget" in name) and not widget_uuid:
+            widget_uuid = uuid
+            print(f"✅ Профиль виджета смонтирован [{name}] (App ID: {app_id}): {uuid}")
+        elif (app_id.endswith(".com.samvel.armenianbible") or "ArmenianBible" in name) and not main_uuid:
+            main_uuid = uuid
+            print(f"✅ Профиль основного приложения смонтирован [{name}] (App ID: {app_id}): {uuid}")
+
+fetch_and_install_profiles()
+
+if not main_uuid or not widget_uuid:
+    print("⏳ Ожидание обновления профилей в Apple API...")
+    time.sleep(3)
+    fetch_and_install_profiles()
 
 # Если один из профилей не разделился по имени, берем логические доступные
 if not main_uuid and last_uuid:
