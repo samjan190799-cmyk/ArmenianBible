@@ -799,7 +799,21 @@ struct WallpaperArtBackground: View {
     }
 }
 
-// MARK: - Холст предпросмотра обоев (без серого фона под текстом)
+// MARK: - Адаптивный расчет размера шрифта для слабовидящих
+func wallpaperFontSize(for text: String, isFullRes: Bool) -> CGFloat {
+    let count = text.count
+    if count <= 45 {
+        return isFullRes ? 80 : 20
+    } else if count <= 85 {
+        return isFullRes ? 68 : 17
+    } else if count <= 135 {
+        return isFullRes ? 58 : 14.5
+    } else {
+        return isFullRes ? 50 : 12.5
+    }
+}
+
+// MARK: - Холст предпросмотра обоев (адаптированный под весь экран)
 struct WallpaperCanvasView: View {
     let verse: BibleVerse
     let theme: WallpaperTheme
@@ -809,9 +823,20 @@ struct WallpaperCanvasView: View {
     let showOverlay: Bool
     
     var body: some View {
+        let verseText = verse.text(for: language)
+        let fontSize = wallpaperFontSize(for: verseText, isFullRes: false)
+        
         ZStack {
-            // Художественный фон
+            // 1. Художественный фон
             WallpaperArtBackground(theme: theme)
+            
+            // 2. Мягкая контрастная подложка для слабовидящих
+            RadialGradient(
+                colors: [Color.black.opacity(0.5), Color.black.opacity(0.15), Color.clear],
+                center: .center,
+                startRadius: 20,
+                endRadius: 180
+            )
             
             VStack(spacing: 0) {
                 // Верхний блок: Системные часы Lock Screen
@@ -821,47 +846,54 @@ struct WallpaperCanvasView: View {
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                             .shadow(color: .black.opacity(0.8), radius: 4)
-                            .padding(.top, 28)
+                            .padding(.top, 24)
                         
                         Text("09:41")
-                            .font(.system(size: 44, weight: .bold, design: .rounded))
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.8), radius: 6)
                     }
-                    .frame(height: 100)
+                    .frame(height: 105)
                 } else {
-                    Spacer().frame(height: 60)
+                    Spacer().frame(height: 80)
                 }
                 
-                Spacer()
-                
-                // Центральный блок: Стих и Ссылка (ЧИСТЫЙ ТЕКСТ БЕЗ СЕРОЙ ПЛАШКИ)
-                VStack(spacing: 12) {
+                // Центральный блок: Стих на весь экран для слабовидящих
+                VStack(spacing: 8) {
                     if decor != .minimal {
                         Image(systemName: decor.icon)
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(theme.accentColor)
-                            .shadow(color: .black.opacity(0.9), radius: 6, x: 0, y: 2)
+                            .shadow(color: .black.opacity(0.9), radius: 4, x: 0, y: 2)
                     }
                     
-                    Text(verse.text(for: language))
-                        .font(.system(size: 13.5, weight: .semibold, design: fontDesign.design))
+                    Text(verseText)
+                        .font(.system(size: fontSize, weight: .bold, design: fontDesign.design))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
-                        .lineSpacing(4.5)
-                        .shadow(color: .black.opacity(0.95), radius: 8, x: 0, y: 3)
-                        .shadow(color: .black.opacity(0.9), radius: 3, x: 0, y: 1)
-                        .padding(.horizontal, 16)
+                        .lineSpacing(fontSize * 0.3)
+                        .minimumScaleFactor(0.7)
+                        .shadow(color: .black.opacity(0.98), radius: 6, x: 0, y: 2)
+                        .shadow(color: .black.opacity(0.9), radius: 2, x: 0, y: 1)
+                        .padding(.horizontal, 12)
                     
-                    Text(verse.reference(for: language))
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(theme.accentColor)
-                        .shadow(color: .black.opacity(0.95), radius: 6, x: 0, y: 2)
-                        .padding(.top, 2)
+                    HStack(spacing: 4) {
+                        Text(verse.reference(for: language))
+                            .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                            .foregroundColor(theme.accentColor)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 3)
+                    .background(Color.black.opacity(0.4))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(theme.accentColor.opacity(0.6), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.9), radius: 4, x: 0, y: 1)
+                    .padding(.top, 2)
                 }
-                .padding(.horizontal, 14)
-                
-                Spacer()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
                 // Нижний блок: Кнопки фонарика и камеры Lock Screen
                 if showOverlay {
@@ -879,9 +911,9 @@ struct WallpaperCanvasView: View {
                             .overlay(Image(systemName: "camera.fill").font(.system(size: 11)).foregroundColor(.white))
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 22)
+                    .padding(.bottom, 20)
                 } else {
-                    Spacer().frame(height: 40)
+                    Spacer().frame(height: 50)
                 }
             }
         }
@@ -905,51 +937,78 @@ struct FullResolutionWallpaperView: View {
     let language: AppLanguage
     
     var body: some View {
+        let verseText = verse.text(for: language)
+        let fontSize = wallpaperFontSize(for: verseText, isFullRes: true)
+        
         ZStack {
-            // Художественный фон высокого разрешения
+            // 1. Художественный фон высокого разрешения
             WallpaperArtBackground(theme: theme)
             
-            VStack {
+            // 2. Мягкая контрастная подложка для слабовидящих (Accessibility Contrast Scrim)
+            RadialGradient(
+                colors: [Color.black.opacity(0.55), Color.black.opacity(0.2), Color.clear],
+                center: .center,
+                startRadius: 100,
+                endRadius: 850
+            )
+            .ignoresSafeArea()
+            
+            // 3. Компоновка контента с учетом защитных зон Lock Screen
+            VStack(spacing: 0) {
+                // Защитная зона системных часов и виджетов Apple (верхние ~680 px)
                 Spacer()
+                    .frame(height: 680)
                 
-                // Карточка со стихом в центре (ЧИСТЫЙ ТЕКСТ БЕЗ СЕРОЙ ПЛАШКИ)
-                VStack(spacing: 36) {
+                // Главная зона стиха (максимальный размер для слабовидящих)
+                VStack(spacing: 28) {
                     if decor != .minimal {
                         Image(systemName: decor.icon)
-                            .font(.system(size: 68, weight: .bold))
+                            .font(.system(size: 64, weight: .bold))
                             .foregroundColor(theme.accentColor)
-                            .shadow(color: .black.opacity(0.9), radius: 16, x: 0, y: 6)
+                            .shadow(color: .black.opacity(0.95), radius: 14, x: 0, y: 6)
                     }
                     
-                    Text(verse.text(for: language))
-                        .font(.system(size: 48, weight: .semibold, design: fontDesign.design))
+                    Text(verseText)
+                        .font(.system(size: fontSize, weight: .bold, design: fontDesign.design))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
-                        .lineSpacing(18)
-                        .shadow(color: .black.opacity(0.95), radius: 24, x: 0, y: 8)
+                        .lineSpacing(fontSize * 0.35)
+                        .minimumScaleFactor(0.7)
+                        .shadow(color: .black.opacity(0.98), radius: 24, x: 0, y: 8)
                         .shadow(color: .black.opacity(0.9), radius: 8, x: 0, y: 3)
-                        .padding(.horizontal, 60)
+                        .padding(.horizontal, 48)
                     
-                    Text(verse.reference(for: language))
-                        .font(.system(size: 34, weight: .bold, design: .monospaced))
-                        .foregroundColor(theme.accentColor)
-                        .shadow(color: .black.opacity(0.95), radius: 16, x: 0, y: 6)
-                        .padding(.top, 10)
+                    // Ссылка на стих в контрастном бейдже
+                    HStack(spacing: 8) {
+                        Text(verse.reference(for: language))
+                            .font(.system(size: 38, weight: .bold, design: .rounded))
+                            .foregroundColor(theme.accentColor)
+                    }
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 12)
+                    .background(Color.black.opacity(0.4))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(theme.accentColor.opacity(0.6), lineWidth: 2)
+                    )
+                    .shadow(color: .black.opacity(0.9), radius: 12, x: 0, y: 4)
+                    .padding(.top, 8)
                 }
-                .padding(.horizontal, 40)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                Spacer()
-                
-                // Подпись приложения внизу
-                VStack(spacing: 6) {
+                // Защитная зона кнопок фонарика, камеры и Home Indicator (нижние ~320 px)
+                VStack(spacing: 4) {
                     Text("ArmenianBible")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white.opacity(0.5))
-                        .shadow(color: .black.opacity(0.8), radius: 6)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.4))
+                        .shadow(color: .black.opacity(0.8), radius: 4)
                 }
-                .padding(.bottom, 90)
+                .frame(height: 320, alignment: .bottom)
+                .padding(.bottom, 45)
             }
         }
         .frame(width: 1170, height: 2532)
     }
 }
+
