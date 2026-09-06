@@ -7,19 +7,19 @@ import Foundation
 // 3. Фоновое обнаружение более новых моделей без задержек для пользователя (Zero User Latency).
 // 4. Полная изоляция от сбоев — генерация не прерывается даже при закрытии API устаревших моделей.
 
-public final class AIModelRegistry: @unchecked Sendable {
-    public static let shared = AIModelRegistry()
+final class AIModelRegistry: @unchecked Sendable {
+    static let shared = AIModelRegistry()
     
     // MARK: - Иерархии моделей в порядке убывания новизны (Актуальность: 2026 год)
     
-    public static let geminiHierarchy: [String] = [
+    static let geminiHierarchy: [String] = [
         "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
         "gemini-1.5-pro"
     ]
     
-    public static let openAIHierarchy: [String] = [
+    static let openAIHierarchy: [String] = [
         "gpt-5-mini",
         "gpt-4.5-preview",
         "gpt-4o-mini",
@@ -27,7 +27,7 @@ public final class AIModelRegistry: @unchecked Sendable {
         "gpt-3.5-turbo"
     ]
     
-    public static let claudeHierarchy: [String] = [
+    static let claudeHierarchy: [String] = [
         "claude-3-7-sonnet-latest",
         "claude-3-5-haiku-latest",
         "claude-3-5-sonnet-latest",
@@ -48,17 +48,17 @@ public final class AIModelRegistry: @unchecked Sendable {
     
     // MARK: - Активные модели (сохраняются в UserDefaults)
     
-    public var activeGeminiModel: String {
+    var activeGeminiModel: String {
         get { UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.5-flash" }
         set { UserDefaults.standard.set(newValue, forKey: "active_gemini_model") }
     }
     
-    public var activeOpenAIModel: String {
+    var activeOpenAIModel: String {
         get { UserDefaults.standard.string(forKey: "active_openai_model") ?? "gpt-4o-mini" }
         set { UserDefaults.standard.set(newValue, forKey: "active_openai_model") }
     }
     
-    public var activeClaudeModel: String {
+    var activeClaudeModel: String {
         get { UserDefaults.standard.string(forKey: "active_claude_model") ?? "claude-3-5-haiku-20241022" }
         set { UserDefaults.standard.set(newValue, forKey: "active_claude_model") }
     }
@@ -70,7 +70,7 @@ public final class AIModelRegistry: @unchecked Sendable {
     
     // MARK: - Получение активной модели и цепочки резерва
     
-    public func activeModel(for provider: AIProvider) -> String {
+    func activeModel(for provider: AIProvider) -> String {
         switch provider {
         case .gemini: return activeGeminiModel
         case .chatgpt: return activeOpenAIModel
@@ -78,7 +78,7 @@ public final class AIModelRegistry: @unchecked Sendable {
         }
     }
     
-    public func hierarchy(for provider: AIProvider) -> [String] {
+    func hierarchy(for provider: AIProvider) -> [String] {
         switch provider {
         case .gemini: return Self.geminiHierarchy
         case .chatgpt: return Self.openAIHierarchy
@@ -87,7 +87,7 @@ public final class AIModelRegistry: @unchecked Sendable {
     }
     
     /// Кандидаты для выполнения запроса: сначала активная, затем резервные из иерархии
-    public func candidateModels(for provider: AIProvider) -> [String] {
+    func candidateModels(for provider: AIProvider) -> [String] {
         let active = activeModel(for: provider)
         var list = [active]
         for m in hierarchy(for: provider) where !list.contains(m) {
@@ -97,7 +97,7 @@ public final class AIModelRegistry: @unchecked Sendable {
     }
     
     /// Красивое читаемое название текущей модели для UI
-    public func displayName(for provider: AIProvider) -> String {
+    func displayName(for provider: AIProvider) -> String {
         let current = activeModel(for: provider)
         switch provider {
         case .gemini:
@@ -124,7 +124,7 @@ public final class AIModelRegistry: @unchecked Sendable {
     
     /// Выполняет запрос к ИИ. Если основная модель возвращает ошибку несовместимости/доступности (404/400/410/429),
     /// код автоматически переходит к следующей резервной модели из списка.
-    public func executeRequest(
+    func executeRequest(
         provider: AIProvider,
         apiKey: String,
         prompt: String,
@@ -299,7 +299,7 @@ public final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Фоновое обнаружение и тестирование моделей (Zero User Latency)
     
     /// Тихий запуск фоновой проверки новых моделей
-    public func discoverNewerModelsInBackground(force: Bool = false) {
+    func discoverNewerModelsInBackground(force: Bool = false) {
         let defaults = UserDefaults.standard
         let lastProbe = defaults.double(forKey: "last_ai_model_probe_time")
         let now = Date().timeIntervalSince1970
@@ -317,7 +317,7 @@ public final class AIModelRegistry: @unchecked Sendable {
     
     /// Проверяет наличие доступных более новых моделей и автоматически повышает активную модель
     @discardableResult
-    public func performModelDiscovery() async -> [String: String] {
+    func performModelDiscovery() async -> [String: String] {
         let defaults = UserDefaults.standard
         let geminiKey = (defaults.string(forKey: "gemini_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let openAIKey = (defaults.string(forKey: "openai_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -372,7 +372,7 @@ public final class AIModelRegistry: @unchecked Sendable {
     
     // MARK: - Пинг-тесты моделей
     
-    public func testGeminiModel(name: String, apiKey: String) async -> Bool {
+    func testGeminiModel(name: String, apiKey: String) async -> Bool {
         guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(name):generateContent?key=\(apiKey)") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -388,7 +388,7 @@ public final class AIModelRegistry: @unchecked Sendable {
         return http.statusCode == 200
     }
     
-    public func testOpenAIModel(name: String, apiKey: String) async -> Bool {
+    func testOpenAIModel(name: String, apiKey: String) async -> Bool {
         guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -407,7 +407,7 @@ public final class AIModelRegistry: @unchecked Sendable {
         return http.statusCode == 200
     }
     
-    public func testClaudeModel(name: String, apiKey: String) async -> Bool {
+    func testClaudeModel(name: String, apiKey: String) async -> Bool {
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -429,7 +429,7 @@ public final class AIModelRegistry: @unchecked Sendable {
     
     // MARK: - Сохранение и сброс
     
-    public func saveActiveModel(_ model: String, for provider: AIProvider) {
+    func saveActiveModel(_ model: String, for provider: AIProvider) {
         let cleaned = model.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return }
         switch provider {
@@ -439,7 +439,7 @@ public final class AIModelRegistry: @unchecked Sendable {
         }
     }
     
-    public func resetToDefaults() {
+    func resetToDefaults() {
         activeGeminiModel = "gemini-2.0-flash"
         activeOpenAIModel = "gpt-4o-mini"
         activeClaudeModel = "claude-3-5-haiku-20241022"

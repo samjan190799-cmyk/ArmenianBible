@@ -187,7 +187,7 @@ def parse_current_models():
     content = REGISTRY_PATH.read_text(encoding="utf-8")
     
     def extract_hierarchy(var_name):
-        match = re.search(rf'public static let {var_name}:\s*\[String\]\s*=\s*\[(.*?)\]', content, re.DOTALL)
+        match = re.search(rf'(?:public\s+)?static let {var_name}:\s*\[String\]\s*=\s*\[(.*?)\]', content, re.DOTALL)
         if match:
             raw = match.group(1)
             items = [item.strip(' "\'\t\r\n') for item in raw.split(',') if item.strip(' "\'\t\r\n')]
@@ -263,8 +263,8 @@ def upgrade_models(gemini_model=None, openai_model=None, claude_model=None):
     # 1. Обновляем иерархии
     def replace_hierarchy(code, var_name, new_list):
         items_str = ",\n        ".join([f'"{m}"' for m in new_list])
-        pattern = rf'public static let {var_name}:\s*\[String\]\s*=\s*\[(.*?)\]'
-        replacement = f'public static let {var_name}: [String] = [\n        {items_str}\n    ]'
+        pattern = rf'(?:public\s+)?static let {var_name}:\s*\[String\]\s*=\s*\[(.*?)\]'
+        replacement = f'static let {var_name}: [String] = [\n        {items_str}\n    ]'
         return re.sub(pattern, replacement, code, flags=re.DOTALL)
 
     gemini_list = LATEST_HIERARCHIES["gemini"].copy()

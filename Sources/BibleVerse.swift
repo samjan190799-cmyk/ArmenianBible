@@ -183,7 +183,7 @@ enum WidgetLanguage: String, CaseIterable, Identifiable, Codable {
 }
 
 // MARK: - Провайдеры искусственного интеллекта
-enum AIProvider: String, CaseIterable, Identifiable, Codable {
+public enum AIProvider: String, CaseIterable, Identifiable, Codable {
     case gemini = "gemini"
     case chatgpt = "chatgpt"
     case claude = "claude"
