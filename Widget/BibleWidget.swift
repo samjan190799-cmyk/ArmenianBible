@@ -342,6 +342,10 @@ struct Provider: AppIntentTimelineProvider {
            let style = WidgetVisualStyle(rawValue: savedRaw) {
             return style
         }
+        if let savedRaw = UserDefaults.standard.string(forKey: "widget_visual_style"),
+           let style = WidgetVisualStyle(rawValue: savedRaw) {
+            return style
+        }
         return .oledStandby
     }
     
@@ -922,7 +926,7 @@ struct BibleWidgetEntryView: View {
                 // Прямоугольный виджет на экране блокировки: строгие 2 строки для текста стиха + гарантированно видимая ссылка внизу
                 VStack(alignment: .leading, spacing: 3) {
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .semibold, design: .rounded))
+                        .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .semibold, design: fontDesign))
                         .lineLimit(2)
                         .lineSpacing(-0.5)
                         .minimumScaleFactor(0.80)
@@ -937,7 +941,7 @@ struct BibleWidgetEntryView: View {
                             .font(.system(size: 8))
                             .foregroundColor(.secondary)
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 9.5, weight: .bold, design: fontDesign))
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
                             .foregroundColor(.secondary)
@@ -1011,11 +1015,11 @@ struct BibleWidgetEntryView: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(widgetBackgroundGradient)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(borderStrokeGradient, lineWidth: 1.2)
                 )
-                .widgetBackground(widgetBackgroundGradient)
                 
             case .systemMedium:
                 // Средний виджет на домашнем экране (System Medium 4x2) / Режим StandBy
@@ -1097,11 +1101,11 @@ struct BibleWidgetEntryView: View {
                 }
                 .padding(13)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(widgetBackgroundGradient)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(borderStrokeGradient, lineWidth: 1.2)
                 )
-                .widgetBackground(widgetBackgroundGradient)
                 
             case .systemLarge:
                 // Большой виджет на домашнем экране (System Large 4x4)
@@ -1182,17 +1186,22 @@ struct BibleWidgetEntryView: View {
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(widgetBackgroundGradient)
                 .overlay(
                     RoundedRectangle(cornerRadius: 22)
                         .stroke(borderStrokeGradient, lineWidth: 1.2)
                 )
-                .widgetBackground(widgetBackgroundGradient)
                 
             default:
                 EmptyView()
             }
         }
         .widgetURL(URL(string: "armenianbible://next-verse"))
+        .widgetBackground(
+            (family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular)
+                ? AnyShapeStyle(Color.clear)
+                : AnyShapeStyle(widgetBackgroundGradient)
+        )
     }
 }
 
@@ -1205,7 +1214,6 @@ struct BibleWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
             BibleWidgetEntryView(entry: entry)
-                .widgetBackground(.clear)
         }
         .configurationDisplayName("widget_title".localized(for: getSharedLanguage()))
         .description("widget_description".localized(for: getSharedLanguage()))

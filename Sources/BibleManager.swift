@@ -634,8 +634,10 @@ class BibleManager: ObservableObject {
         self.accentTheme = theme
         if let defaults = sharedDefaults {
             defaults.set(theme.rawValue, forKey: accentThemeKey)
+            defaults.synchronize()
             WidgetCenter.shared.reloadAllTimelines()
         }
+        UserDefaults.standard.set(theme.rawValue, forKey: accentThemeKey)
     }
     
     // MARK: - Сохранение стиля виджетов и режима StandBy
@@ -643,8 +645,10 @@ class BibleManager: ObservableObject {
         self.widgetVisualStyle = style
         if let defaults = sharedDefaults {
             defaults.set(style.rawValue, forKey: widgetVisualStyleKey)
+            defaults.synchronize()
             WidgetCenter.shared.reloadAllTimelines()
         }
+        UserDefaults.standard.set(style.rawValue, forKey: widgetVisualStyleKey)
     }
     
     // MARK: - Сохранение и планирование уведомлений

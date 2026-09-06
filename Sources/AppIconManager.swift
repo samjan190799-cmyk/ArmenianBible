@@ -115,6 +115,7 @@ final class AppIconManager: ObservableObject {
     private let storageKey = "selected_app_icon_option_v1"
     
     @Published private(set) var currentOption: AppIconOption = .classic
+    @Published var errorMessage: String? = nil
     
     private init() {
         syncWithSystem()
@@ -136,6 +137,11 @@ final class AppIconManager: ObservableObject {
         }
     }
     
+    /// Сброс ошибки
+    func clearError() {
+        errorMessage = nil
+    }
+    
     /// Попытка выбрать иконку
     /// - Returns: true, если иконка успешно установлена; false, если заблокирована (требуется Paywall)
     @discardableResult
@@ -148,8 +154,18 @@ final class AppIconManager: ObservableObject {
             return false
         }
         
+        // Если иконка уже выбрана
+        if currentOption == option {
+            let haptic = UIImpactFeedbackGenerator(style: .light)
+            haptic.impactOccurred()
+            return true
+        }
+        
         guard UIApplication.shared.supportsAlternateIcons else {
             print("⚠️ Device does not support alternate app icons")
+            self.errorMessage = "Alternate icons not supported on this device"
+            let haptic = UINotificationFeedbackGenerator()
+            haptic.notificationOccurred(.error)
             return false
         }
         
@@ -159,6 +175,9 @@ final class AppIconManager: ObservableObject {
             Task { @MainActor in
                 if let error = error {
                     print("❌ Error setting alternate app icon: \(error.localizedDescription)")
+                    self?.errorMessage = error.localizedDescription
+                    let haptic = UINotificationFeedbackGenerator()
+                    haptic.notificationOccurred(.error)
                 } else {
                     self?.currentOption = option
                     UserDefaults.standard.set(option.rawValue, forKey: self?.storageKey ?? "selected_app_icon_option_v1")

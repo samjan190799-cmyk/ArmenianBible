@@ -198,7 +198,7 @@ struct HomeView: View {
                         .padding(.horizontal, 8)
                         
                         Text(manager.currentVerse.text)
-                            .font(.system(size: 21, weight: .medium, design: .serif))
+                            .font(.system(size: 21, weight: .medium, design: manager.widgetVisualStyle.fontDesign))
                             .foregroundColor(primaryTextColor)
                             .multilineTextAlignment(.center)
                             .lineSpacing(8)
@@ -208,7 +208,7 @@ struct HomeView: View {
                             .offset(y: animateVerse ? 0 : 15)
                         
                         Text(manager.currentVerse.reference)
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .font(.system(size: 13, weight: .bold, design: manager.widgetVisualStyle.fontDesign))
                             .foregroundColor(secondaryAccentColor)
                             .padding(.top, 2)
                             .opacity(animateVerse ? 0.8 : 0)
@@ -1792,6 +1792,7 @@ struct SettingsView: View {
                 selectedArmenianEdition = manager.armenianEdition
                 let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
                 previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+                appIconManager.syncWithSystem()
             }
             .sheet(isPresented: $isShowingPaywall) {
                 PaywallView()
@@ -2081,6 +2082,27 @@ struct SettingsView: View {
                 }
                 
                 Spacer()
+            }
+            
+            if let errorMsg = appIconManager.errorMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 13))
+                    Text(errorMsg)
+                        .font(.system(size: 12))
+                        .foregroundColor(primaryTextColor)
+                        .lineLimit(2)
+                    Spacer()
+                    Button("OK") {
+                        appIconManager.clearError()
+                    }
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                }
+                .padding(10)
+                .background(Color.orange.opacity(0.12))
+                .cornerRadius(10)
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
