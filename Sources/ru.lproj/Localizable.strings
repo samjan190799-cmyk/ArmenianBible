@@ -62,6 +62,10 @@
 "color_blue" = "Синий";
 "color_green" = "Зеленый";
 "color_purple" = "Фиолетовый";
+"appearance_section_title" = "Тема оформления";
+"appearance_system" = "Системная";
+"appearance_light" = "Светлая";
+"appearance_dark" = "Темная";
 "theme_section_title" = "Цветовая тема оформления";
 "notification_section_title" = "Ежедневные уведомления";
 "notification_enable_title" = "Стих дня каждое утро";
@@ -70,6 +74,21 @@
 "save_image_success" = "Открытка сохранена в галерею!";
 "favorite_added" = "Добавлено в Избранное";
 "favorite_removed" = "Удалено из Избранного";
+
+/* Widget & StandBy Styles */
+"widget_style_section_title" = "Стиль виджетов и StandBy";
+"widget_style_section_desc" = "Выберите визуальное оформление для ночного режима StandBy и домашнего экрана:";
+"widget_style_oled" = "Золотой OLED (StandBy)";
+"widget_style_oled_desc" = "Глубокий черный OLED и благородное золото";
+"widget_style_glass" = "Стеклянный Минимализм";
+"widget_style_glass_desc" = "Матовое стекло и современный шрифт";
+"widget_style_parchment" = "Древний Пергамент";
+"widget_style_parchment_desc" = "Стиль армянских древних манускриптов";
+"widget_style_royal" = "Монастырский Синий";
+"widget_style_royal_desc" = "Ночной сапфир и небесные звезды";
+"widget_style_monochrome" = "Чистый Монохром";
+"widget_style_monochrome_desc" = "Контрастная ч/б типографика";
+"standby_preview_title" = "Интерактивный StandBy превью";
 
 /* Tabs */
 "tab_home" = "Главная";
@@ -311,3 +330,24 @@
 "lockscreen_preview_title" = "Предпросмотр экрана блокировки:";
 "update_widgets_now_button" = "Обновить все виджеты сейчас";
 "widget_language_title" = "Язык виджетов";
+
+/* Reading Plans & Streaks */
+"reading_plans_title" = "Планы чтения Библии";
+"streak_days_suffix" = "дн. в Слове";
+"streak_active_message" = "Серия чтения активна! Не останавливайтесь";
+"streak_start_message" = "Начните читать сегодня и зажгите серию";
+"streak_record_label" = "Рекорд";
+"active_plan_header" = "Текущий план";
+"day_label" = "День";
+"read_today_button" = "Читать сегодня";
+"view_plan_button" = "Весь план";
+"all_categories" = "Все";
+"days_suffix" = "дней";
+"completed_label" = "выполнено";
+"progress_label" = "Прогресс";
+"start_plan_button" = "Начать этот план";
+"abandon_plan_button" = "Остановить план";
+"reading_schedule_header" = "График чтения по дням";
+"read_button" = "Читать";
+"reading_plan_card_hint" = "Выберите план для ежедневного чтения";
+

@@ -62,6 +62,10 @@
 "color_blue" = "Blue";
 "color_green" = "Green";
 "color_purple" = "Purple";
+"appearance_section_title" = "Appearance";
+"appearance_system" = "System";
+"appearance_light" = "Light";
+"appearance_dark" = "Dark";
 "theme_section_title" = "Accent Color Theme";
 "notification_section_title" = "Daily Notifications";
 "notification_enable_title" = "Verse of the day every morning";
@@ -70,6 +74,21 @@
 "save_image_success" = "Card saved to photo gallery!";
 "favorite_added" = "Added to Favorites";
 "favorite_removed" = "Removed from Favorites";
+
+/* Widget & StandBy Styles */
+"widget_style_section_title" = "Widget & StandBy Style";
+"widget_style_section_desc" = "Choose visual styling for night StandBy mode and Home Screen widgets:";
+"widget_style_oled" = "Gold OLED (StandBy)";
+"widget_style_oled_desc" = "Pitch black OLED and sacred warm gold";
+"widget_style_glass" = "Glass Modern";
+"widget_style_glass_desc" = "Frosted glass and modern typography";
+"widget_style_parchment" = "Sacred Parchment";
+"widget_style_parchment_desc" = "Ancient Armenian manuscript aesthetic";
+"widget_style_royal" = "Royal Midnight";
+"widget_style_royal_desc" = "Monastic midnight sapphire and starlight azure";
+"widget_style_monochrome" = "Studio Monochrome";
+"widget_style_monochrome_desc" = "High-contrast black & white studio";
+"standby_preview_title" = "Interactive StandBy Preview";
 
 /* Tabs */
 "tab_home" = "Home";
@@ -311,3 +330,24 @@
 "lockscreen_preview_title" = "Lock Screen Preview:";
 "update_widgets_now_button" = "Refresh All Widgets Now";
 "widget_language_title" = "Widget Language";
+
+/* Reading Plans & Streaks */
+"reading_plans_title" = "Bible Reading Plans";
+"streak_days_suffix" = "days in Word";
+"streak_active_message" = "Reading streak is active! Keep going";
+"streak_start_message" = "Read today to start your daily streak";
+"streak_record_label" = "Best";
+"active_plan_header" = "Current Plan";
+"day_label" = "Day";
+"read_today_button" = "Read Today";
+"view_plan_button" = "View Plan";
+"all_categories" = "All";
+"days_suffix" = "days";
+"completed_label" = "completed";
+"progress_label" = "Progress";
+"start_plan_button" = "Start This Plan";
+"abandon_plan_button" = "Stop Plan";
+"reading_schedule_header" = "Daily Reading Schedule";
+"read_button" = "Read";
+"reading_plan_card_hint" = "Choose a plan for daily Bible reading";
+

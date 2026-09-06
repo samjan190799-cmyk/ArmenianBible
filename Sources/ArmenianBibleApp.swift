@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct ArmenianBibleApp: App {
+    @ObservedObject private var manager = BibleManager.shared
+    
     init() {
         AdManager.shared.initialize()
     }
@@ -9,6 +11,7 @@ struct ArmenianBibleApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(manager.appearanceMode.colorScheme)
         }
     }
 }

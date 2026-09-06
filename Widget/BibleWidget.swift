@@ -76,11 +76,51 @@ enum TextCategoryAppEnum: String, AppEnum {
     }
 }
 
+// MARK: - Перечисление стиля оформления виджета и StandBy
+@available(iOS 17.0, *)
+enum WidgetStyleAppEnum: String, AppEnum {
+    case followApp = "followApp"
+    case oledStandby = "oledStandby"
+    case modernMinimal = "modernMinimal"
+    case sacredParchment = "sacredParchment"
+    case royalMonastery = "royalMonastery"
+    case monochrome = "monochrome"
+    
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        "Widget & StandBy Style"
+    }
+    
+    static var caseDisplayRepresentations: [WidgetStyleAppEnum: DisplayRepresentation] {
+        [
+            .followApp: DisplayRepresentation(title: "Same as App", subtitle: "Uses visual style chosen in Settings"),
+            .oledStandby: DisplayRepresentation(title: "🌟 Gold OLED (StandBy)", subtitle: "Pure pitch black and sacred gold, ideal for StandBy"),
+            .modernMinimal: DisplayRepresentation(title: "💎 Glass Modern", subtitle: "Frosted glass and contemporary rounded typography"),
+            .sacredParchment: DisplayRepresentation(title: "📜 Sacred Parchment", subtitle: "Ancient manuscript sepia and illuminated bronze"),
+            .royalMonastery: DisplayRepresentation(title: "🌌 Royal Midnight", subtitle: "Monastic midnight sapphire and starlight azure"),
+            .monochrome: DisplayRepresentation(title: "⚪ Studio Monochrome", subtitle: "High-contrast black and white minimalism")
+        ]
+    }
+    
+    var widgetStyle: WidgetVisualStyle? {
+        switch self {
+        case .followApp: return nil
+        case .oledStandby: return .oledStandby
+        case .modernMinimal: return .modernMinimal
+        case .sacredParchment: return .sacredParchment
+        case .royalMonastery: return .royalMonastery
+        case .monochrome: return .monochrome
+        }
+    }
+}
+
 // MARK: - Намерение конфигурации виджета (AppIntent)
 @available(iOS 17.0, *)
 struct ConfigurationAppIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Widget Configuration"
-    static var description: LocalizedStringResource = "Customize your Bible widget language and content type."
+    static var description: LocalizedStringResource = "Customize your Bible widget visual style, language and content type."
+    
+    @Parameter(title: "Visual Style", default: .followApp)
+    var visualStyle: WidgetStyleAppEnum
     
     @Parameter(title: "Language", default: .followApp)
     var language: WidgetLanguageAppEnum
@@ -115,7 +155,8 @@ struct NextVerseIntent: AppIntent {
         let savedLockCatRaw = defaults.string(forKey: "lock_screen_category") ?? "pearls"
         let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
         let cat = (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls
-        let lockPool = BibleVerse.lockScreenVerses(for: cat)
+        let rawLockPool = BibleVerse.lockScreenVerses(for: cat).filter { $0.textHy.count <= 46 }
+        let lockPool = !rawLockPool.isEmpty ? rawLockPool : BibleVerse.shortPearls
         
         let target = targetSize
         
@@ -269,6 +310,7 @@ struct SimpleEntry: TimelineEntry {
     let verse: BibleVerse
     let configuration: ConfigurationAppIntent
     let language: AppLanguage
+    let visualStyle: WidgetVisualStyle
 }
 
 @available(iOS 17.0, *)
@@ -284,19 +326,30 @@ struct Provider: AppIntentTimelineProvider {
     private let textCategoryKey = "selected_category"
     private let updateIntervalKey = "widgetUpdateInterval"
     
+    private func getSharedVisualStyle() -> WidgetVisualStyle {
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+           let savedRaw = defaults.string(forKey: "widget_visual_style"),
+           let style = WidgetVisualStyle(rawValue: savedRaw) {
+            return style
+        }
+        return .oledStandby
+    }
+    
     func placeholder(in context: Context) -> SimpleEntry {
         SimpleEntry(
             date: Date(),
             verse: BibleVerse.shortPearls[0],
             configuration: ConfigurationAppIntent(),
-            language: .armenian
+            language: .armenian,
+            visualStyle: .oledStandby
         )
     }
     
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let verse = getSharedVerse(for: configuration, family: context.family)
-        return SimpleEntry(date: Date(), verse: verse, configuration: configuration, language: lang)
+        let style = configuration.visualStyle.widgetStyle ?? getSharedVisualStyle()
+        return SimpleEntry(date: Date(), verse: verse, configuration: configuration, language: lang, visualStyle: style)
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
@@ -304,6 +357,7 @@ struct Provider: AppIntentTimelineProvider {
         let currentDate = Date()
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let interval = getSharedUpdateInterval()
+        let style = configuration.visualStyle.widgetStyle ?? getSharedVisualStyle()
         let family = context.family
         
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
@@ -311,24 +365,35 @@ struct Provider: AppIntentTimelineProvider {
         
         let minutesStep = interval.minutes
         let totalEntries = max(1, min(12, 1440 / max(1, minutesStep)))
+        let isLockScreen = (family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular)
         
         var currentVerse = getSharedVerse(for: configuration, family: family)
         
         for i in 0..<totalEntries {
             guard let entryDate = Calendar.current.date(byAdding: .minute, value: i * minutesStep, to: currentDate) else { continue }
             
-            let entryVerse: BibleVerse
+            let rawVerse: BibleVerse
             if i == 0 {
-                entryVerse = currentVerse
+                rawVerse = currentVerse
             } else {
-                entryVerse = database.randomElement() ?? fallback
+                rawVerse = database.randomElement() ?? fallback
+            }
+            
+            // Гарантия: на экране блокировки стих ВСЕГДА строго <= 46 символов
+            let entryVerse: BibleVerse
+            if isLockScreen && rawVerse.text(for: lang).count > 46 {
+                let safeList = database.filter { $0.text(for: lang).count <= 46 }
+                entryVerse = safeList.randomElement() ?? BibleVerse.shortPearls.randomElement() ?? BibleVerse.shortPearls[0]
+            } else {
+                entryVerse = rawVerse
             }
             
             let entry = BibleWidgetEntry(
                 date: entryDate,
                 verse: entryVerse,
                 configuration: configuration,
-                language: lang
+                language: lang,
+                visualStyle: style
             )
             entries.append(entry)
         }
@@ -344,28 +409,31 @@ struct Provider: AppIntentTimelineProvider {
         let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
         let activeLockVerses = BibleVerse.lockScreenVerses(for: (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls)
         
-        // Для виджетов экрана блокировки
+        // Для виджетов экрана блокировки - строго короткие стихи <= 46 символов
         if let family = family, family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular {
+            let pool: [BibleVerse]
             if let config = configuration {
                 switch config.category {
                 case .pearls:
-                    return BibleVerse.shortPearls
+                    pool = BibleVerse.shortPearls
                 case .narekatsi:
-                    return isPremium ? BibleVerse.shortNarekatsi : BibleVerse.shortPearls
+                    pool = isPremium ? BibleVerse.shortNarekatsi : BibleVerse.shortPearls
                 case .psalms:
-                    return isPremium ? BibleVerse.shortPsalms : BibleVerse.shortPearls
+                    pool = isPremium ? BibleVerse.shortPsalms : BibleVerse.shortPearls
                 case .wisdom:
-                    return isPremium ? BibleVerse.shortWisdom : BibleVerse.shortPearls
+                    pool = isPremium ? BibleVerse.shortWisdom : BibleVerse.shortPearls
                 case .love:
-                    return isPremium ? BibleVerse.shortLove : BibleVerse.shortPearls
+                    pool = isPremium ? BibleVerse.shortLove : BibleVerse.shortPearls
                 case .faith:
-                    return isPremium ? BibleVerse.shortFaith : BibleVerse.shortPearls
+                    pool = isPremium ? BibleVerse.shortFaith : BibleVerse.shortPearls
                 default:
-                    return activeLockVerses
+                    pool = activeLockVerses
                 }
             } else {
-                return activeLockVerses
+                pool = activeLockVerses
             }
+            let validPool = pool.filter { $0.text(for: lang).count <= 46 }
+            return !validPool.isEmpty ? validPool : BibleVerse.shortPearls
         }
         
         var base: [BibleVerse] = BibleVerse.database
@@ -419,7 +487,8 @@ struct Provider: AppIntentTimelineProvider {
         
         switch family {
         case .accessoryRectangular, .accessoryInline, .accessoryCircular:
-            return activeLockVerses
+            let validPool = activeLockVerses.filter { $0.text(for: lang).count <= 46 }
+            return !validPool.isEmpty ? validPool : BibleVerse.shortPearls
             
         case .systemSmall:
             return activeLockVerses
@@ -442,6 +511,10 @@ struct Provider: AppIntentTimelineProvider {
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
         let fallback = database.isEmpty ? BibleVerse.shortPearls[0] : database[0]
         let defaults = UserDefaults(suiteName: appGroupSuiteName)
+        let isLockScreen: Bool = {
+            guard let family = family else { return false }
+            return family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular
+        }()
         
         let key: String
         if let family {
@@ -462,6 +535,45 @@ struct Provider: AppIntentTimelineProvider {
         }
         
         if let def = defaults {
+            if isLockScreen {
+                // Строгая изоляция экрана блокировки: используем только проверенные короткие стихи (<= 46 символов)
+                let idStr = def.string(forKey: "currentLockScreenVerseId")
+                if let idStr, let uuid = UUID(uuidString: idStr),
+                   let found = database.first(where: { $0.id == uuid }),
+                   found.text(for: lang).count <= 46 {
+                    return found
+                }
+                
+                // Если сохранен отдельный короткий текст для экрана блокировки
+                if let lockTextHy = def.string(forKey: "currentLockScreenTextHy"),
+                   !lockTextHy.isEmpty,
+                   lockTextHy.count <= 46 {
+                    let textRu = def.string(forKey: "currentLockScreenTextRu") ?? ""
+                    let textEn = def.string(forKey: "currentLockScreenTextEn") ?? ""
+                    let refHy = def.string(forKey: "currentLockScreenRefHy") ?? ""
+                    let refRu = def.string(forKey: "currentLockScreenRefRu") ?? ""
+                    let refEn = def.string(forKey: "currentLockScreenRefEn") ?? ""
+                    let id = idStr.flatMap { UUID(uuidString: $0) } ?? UUID()
+                    let customVerse = BibleVerse(
+                        id: id,
+                        textHy: lockTextHy,
+                        textRu: textRu,
+                        textEn: textEn,
+                        refHy: refHy,
+                        refRu: refRu,
+                        refEn: refEn
+                    )
+                    if customVerse.text(for: lang).count <= 46 {
+                        return customVerse
+                    }
+                }
+                
+                // Категорически запрещено брать currentVerseTextHy из основного приложения для экрана блокировки!
+                let safeLockList = database.filter { $0.text(for: lang).count <= 46 }
+                return safeLockList.randomElement() ?? BibleVerse.shortPearls.randomElement() ?? BibleVerse.shortPearls[0]
+            }
+            
+            // Логика для виджетов домашнего экрана (Small / Medium / Large)
             let idStr = def.string(forKey: key) ?? def.string(forKey: "currentVerseId")
             if let idStr, let uuid = UUID(uuidString: idStr), let found = database.first(where: { $0.id == uuid }) {
                 return found
@@ -485,6 +597,11 @@ struct Provider: AppIntentTimelineProvider {
                     refEn: refEn
                 )
             }
+        }
+        
+        if isLockScreen {
+            let safeLockList = database.filter { $0.text(for: lang).count <= 46 }
+            return safeLockList.randomElement() ?? BibleVerse.shortPearls.randomElement() ?? BibleVerse.shortPearls[0]
         }
         
         return database.randomElement() ?? fallback
@@ -585,6 +702,78 @@ extension String {
             case .russian: return "Вдохновляющие стихи из Библии на экране блокировки и домашнем экране."
             case .english: return "Inspiring Bible verses on Lock Screen and Home Screen."
             }
+        case "widget_style_oled":
+            switch language {
+            case .armenian: return "Ոսկե OLED (StandBy)"
+            case .russian: return "Золотой OLED (StandBy)"
+            case .english: return "Gold OLED (StandBy)"
+            }
+        case "widget_style_oled_desc":
+            switch language {
+            case .armenian: return "Խորը սև OLED և ազնիվ ոսկի"
+            case .russian: return "Глубокий черный OLED и благородное золото"
+            case .english: return "Pure pitch black OLED and sacred gold"
+            }
+        case "widget_style_glass":
+            switch language {
+            case .armenian: return "Ապակե Մինիմալիզմ"
+            case .russian: return "Стеклянный Минимализм"
+            case .english: return "Glass Modern"
+            }
+        case "widget_style_glass_desc":
+            switch language {
+            case .armenian: return "Անփայլ ապակի և ժամանակակից տառատեսակ"
+            case .russian: return "Матовое стекло и современный шрифт"
+            case .english: return "Frosted glass and modern typography"
+            }
+        case "widget_style_parchment":
+            switch language {
+            case .armenian: return "Սուրբ Մագաղաթ"
+            case .russian: return "Древний Пергамент"
+            case .english: return "Sacred Parchment"
+            }
+        case "widget_style_parchment_desc":
+            switch language {
+            case .armenian: return "Հայկական հին ձեռագրերի ոճ"
+            case .russian: return "Стиль армянских древних манускриптов"
+            case .english: return "Ancient Armenian manuscript aesthetic"
+            }
+        case "widget_style_royal":
+            switch language {
+            case .armenian: return "Արքայական Կապույտ"
+            case .russian: return "Монастырский Синий"
+            case .english: return "Royal Midnight"
+            }
+        case "widget_style_royal_desc":
+            switch language {
+            case .armenian: return "Գիշերային շափյուղա և երկնային աստղեր"
+            case .russian: return "Ночной сапфир и небесные звезды"
+            case .english: return "Monastic midnight sapphire and starlight azure"
+            }
+        case "widget_style_monochrome":
+            switch language {
+            case .armenian: return "Մաքուր Մոնոքրոմ"
+            case .russian: return "Чистый Монохром"
+            case .english: return "Studio Monochrome"
+            }
+        case "widget_style_monochrome_desc":
+            switch language {
+            case .armenian: return "Բարձր կոնտրաստով սև ու սպիտակ"
+            case .russian: return "Контрастная ч/б типографика"
+            case .english: return "High-contrast black & white studio"
+            }
+        case "widget_style_section_title":
+            switch language {
+            case .armenian: return "Վիջեթների և StandBy ոճ"
+            case .russian: return "Стиль виджетов и StandBy"
+            case .english: return "Widget & StandBy Style"
+            }
+        case "widget_style_section_desc":
+            switch language {
+            case .armenian: return "Ընտրեք ձևավորումը StandBy և գլխավոր էկրանների համար."
+            case .russian: return "Выберите оформление для экрана StandBy и домашнего экрана:"
+            case .english: return "Select visual theme for StandBy and Home Screen widgets:"
+            }
         default:
             guard let path = Bundle.main.path(forResource: language.localeCode, ofType: "lproj"),
                   let bundle = Bundle(path: path) else {
@@ -602,25 +791,17 @@ struct BibleWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
     @Environment(\.colorScheme) var colorScheme
 
-    // Адаптивные цвета для домашнего экрана
+    // Выбранный визуальный стиль виджета и режима StandBy
+    private var activeStyle: WidgetVisualStyle {
+        entry.visualStyle
+    }
+
     private var widgetBackgroundGradient: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [Color(hex: "0D0E15"), Color(hex: "151720")],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color(hex: "F8FAFC"), Color(hex: "E2E8F0")],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        activeStyle.backgroundGradient(for: colorScheme)
     }
     
     private var primaryTextColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.95) : Color(hex: "1E293B")
+        activeStyle.primaryTextColor(for: colorScheme)
     }
     
     private var accentColor: Color {
@@ -628,11 +809,23 @@ struct BibleWidgetEntryView: View {
     }
     
     private var secondaryTextColor: Color {
-        colorScheme == .dark ? Color(hex: getSharedTheme().secondaryColorHex) : accentColor
+        activeStyle.secondaryTextColor(for: colorScheme, accentHex: getSharedTheme().colorHex)
     }
     
     private var quoteIconColor: Color {
-        colorScheme == .dark ? Color(hex: getSharedTheme().secondaryColorHex).opacity(0.35) : accentColor.opacity(0.18)
+        activeStyle.quoteIconColor(for: colorScheme, accentHex: getSharedTheme().colorHex)
+    }
+    
+    private var buttonBackgroundColor: Color {
+        activeStyle.buttonBackground(for: colorScheme)
+    }
+    
+    private var borderStrokeGradient: LinearGradient {
+        activeStyle.borderStroke(for: colorScheme)
+    }
+    
+    private var fontDesign: Font.Design {
+        activeStyle.fontDesign
     }
     
     private func getLanguage() -> AppLanguage {
@@ -667,9 +860,10 @@ struct BibleWidgetEntryView: View {
         
         switch family {
         case .accessoryRectangular:
-            if count <= 28 { return 13.0 }
-            else if count <= 55 { return 11.5 }
-            else { return 10.5 }
+            // Строго короткие фразы (до 46 символов): красивый, четкий и читаемый размер
+            if count <= 25 { return 13.5 }
+            else if count <= 36 { return 12.5 }
+            else { return 11.5 }
             
         case .systemSmall:
             // Малый виджет: строго короткие стихи до 45 символов -> Крупный яркий шрифт
@@ -699,15 +893,18 @@ struct BibleWidgetEntryView: View {
         Group {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: адаптивный читаемый текст и гарантированная ссылка со стихом
-                VStack(alignment: .leading, spacing: 2) {
+                // Прямоугольный виджет на экране блокировки: строгие 2 строки для текста стиха + гарантированно видимая ссылка внизу
+                VStack(alignment: .leading, spacing: 3) {
                     Text(entry.verse.text(for: getLanguage()))
                         .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .semibold, design: .rounded))
-                        .lineLimit(3)
+                        .lineLimit(2)
                         .lineSpacing(-0.5)
-                        .minimumScaleFactor(0.65)
+                        .minimumScaleFactor(0.80)
                         .multilineTextAlignment(.leading)
                         .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Spacer(minLength: 0)
                     
                     HStack(spacing: 3) {
                         Text("✝")
@@ -716,9 +913,10 @@ struct BibleWidgetEntryView: View {
                         Text(entry.verse.reference(for: getLanguage()))
                             .font(.system(size: 9.5, weight: .bold, design: .rounded))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.70)
+                            .minimumScaleFactor(0.75)
                             .foregroundColor(.secondary)
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 
@@ -739,7 +937,7 @@ struct BibleWidgetEntryView: View {
                 }
                 
             case .systemSmall:
-                // Маленький виджет на домашнем экране (System Small 2x2): крупный четкий шрифт для слабовидящих (только короткие цитаты до 45 символов)
+                // Маленький виджет на домашнем экране (System Small 2x2) / Режим StandBy
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "quote.opening")
@@ -753,14 +951,14 @@ struct BibleWidgetEntryView: View {
                                 .font(.system(size: 11.5, weight: .bold))
                                 .foregroundColor(secondaryTextColor)
                                 .padding(5)
-                                .background(Color.primary.opacity(0.08))
+                                .background(buttonBackgroundColor)
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .systemSmall), weight: .bold, design: .rounded))
+                        .font(.system(size: dynamicFontSize(for: .systemSmall), weight: .bold, design: fontDesign))
                         .lineLimit(4)
                         .minimumScaleFactor(0.75)
                         .lineSpacing(2.0)
@@ -772,14 +970,14 @@ struct BibleWidgetEntryView: View {
                         Button(intent: TogglePrayerCompletedWidgetIntent()) {
                             Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "circle")
                                 .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(isPrayerDone ? .green : secondaryTextColor.opacity(0.8))
+                                .foregroundColor(isPrayerDone ? .green : secondaryTextColor.opacity(0.85))
                         }
                         .buttonStyle(.plain)
                         
                         Spacer()
                         
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 11.0, weight: .bold, design: .rounded))
+                            .font(.system(size: 11.0, weight: .bold, design: fontDesign))
                             .lineLimit(1)
                             .minimumScaleFactor(0.80)
                             .foregroundColor(secondaryTextColor)
@@ -787,10 +985,14 @@ struct BibleWidgetEntryView: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(borderStrokeGradient, lineWidth: 1.2)
+                )
                 .widgetBackground(widgetBackgroundGradient)
                 
             case .systemMedium:
-                // Средний виджет на домашнем экране (System Medium 4x2): просторный крупный текст
+                // Средний виджет на домашнем экране (System Medium 4x2) / Режим StandBy
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Image(systemName: "quote.opening")
@@ -800,12 +1002,12 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                         
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 13.0, weight: .bold, design: .rounded))
+                            .font(.system(size: 13.0, weight: .bold, design: fontDesign))
                             .foregroundColor(secondaryTextColor)
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .systemMedium), weight: .bold, design: .rounded))
+                        .font(.system(size: dynamicFontSize(for: .systemMedium), weight: .bold, design: fontDesign))
                         .lineLimit(4)
                         .minimumScaleFactor(0.78)
                         .lineSpacing(3.5)
@@ -819,13 +1021,15 @@ struct BibleWidgetEntryView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(secondaryTextColor)
                                 Text("widget_next_verse_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.system(size: 11, weight: .bold, design: fontDesign))
+                                    .foregroundColor(secondaryTextColor)
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
-                            .background(Color.primary.opacity(0.08))
+                            .background(buttonBackgroundColor)
                             .cornerRadius(9)
                         }
                         .buttonStyle(.plain)
@@ -836,13 +1040,13 @@ struct BibleWidgetEntryView: View {
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(isFavorite ? .red : primaryTextColor)
                                 Text("widget_fav_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.system(size: 11, weight: .bold, design: fontDesign))
                                     .foregroundColor(isFavorite ? .red : primaryTextColor)
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
-                            .background((isFavorite ? Color.red : Color.primary).opacity(0.08))
+                            .background(isFavorite ? Color.red.opacity(0.12) : buttonBackgroundColor)
                             .cornerRadius(9)
                         }
                         .buttonStyle(.plain)
@@ -853,13 +1057,13 @@ struct BibleWidgetEntryView: View {
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(isPrayerDone ? .green : accentColor)
                                 Text(isPrayerDone ? "widget_pray_done_btn".localized(for: getLanguage()) : "widget_pray_todo_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.system(size: 11, weight: .bold, design: fontDesign))
                                     .foregroundColor(isPrayerDone ? .green : accentColor)
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
-                            .background((isPrayerDone ? Color.green : accentColor).opacity(0.14))
+                            .background(isPrayerDone ? Color.green.opacity(0.16) : buttonBackgroundColor)
                             .cornerRadius(9)
                         }
                         .buttonStyle(.plain)
@@ -867,10 +1071,14 @@ struct BibleWidgetEntryView: View {
                 }
                 .padding(13)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(borderStrokeGradient, lineWidth: 1.2)
+                )
                 .widgetBackground(widgetBackgroundGradient)
                 
             case .systemLarge:
-                // Большой виджет на домашнем экране (System Large 4x4): максимальный комфорт и крупный кегль для слабовидящих
+                // Большой виджет на домашнем экране (System Large 4x4)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "quote.opening")
@@ -879,12 +1087,12 @@ struct BibleWidgetEntryView: View {
                         Spacer()
                         
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 15.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 15.5, weight: .bold, design: fontDesign))
                             .foregroundColor(secondaryTextColor)
                     }
                     
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .systemLarge), weight: .bold, design: .rounded))
+                        .font(.system(size: dynamicFontSize(for: .systemLarge), weight: .bold, design: fontDesign))
                         .lineLimit(8)
                         .minimumScaleFactor(0.75)
                         .lineSpacing(5.5)
@@ -898,13 +1106,15 @@ struct BibleWidgetEntryView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(secondaryTextColor)
                                 Text("widget_next_verse_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .font(.system(size: 13, weight: .bold, design: fontDesign))
+                                    .foregroundColor(secondaryTextColor)
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 9)
-                            .background(Color.primary.opacity(0.08))
+                            .background(buttonBackgroundColor)
                             .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
@@ -915,13 +1125,13 @@ struct BibleWidgetEntryView: View {
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(isFavorite ? .red : primaryTextColor)
                                 Text("widget_fav_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .font(.system(size: 13, weight: .bold, design: fontDesign))
                                     .foregroundColor(isFavorite ? .red : primaryTextColor)
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 9)
-                            .background((isFavorite ? Color.red : Color.primary).opacity(0.08))
+                            .background(isFavorite ? Color.red.opacity(0.12) : buttonBackgroundColor)
                             .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
@@ -932,13 +1142,13 @@ struct BibleWidgetEntryView: View {
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(isPrayerDone ? .green : accentColor)
                                 Text(isPrayerDone ? "widget_pray_done_btn".localized(for: getLanguage()) : "widget_pray_todo_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .font(.system(size: 13, weight: .bold, design: fontDesign))
                                     .foregroundColor(isPrayerDone ? .green : accentColor)
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 9)
-                            .background((isPrayerDone ? Color.green : accentColor).opacity(0.14))
+                            .background(isPrayerDone ? Color.green.opacity(0.16) : buttonBackgroundColor)
                             .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
@@ -946,6 +1156,10 @@ struct BibleWidgetEntryView: View {
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(borderStrokeGradient, lineWidth: 1.2)
+                )
                 .widgetBackground(widgetBackgroundGradient)
                 
             default:

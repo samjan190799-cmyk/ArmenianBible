@@ -14,10 +14,12 @@ class BibleManager: ObservableObject {
     @Published var activeProvider: AIProvider = .gemini
     @Published var appLanguage: AppLanguage = .armenian
     @Published var favoriteVerses: [FavoriteItem] = []
+    @Published var appearanceMode: AppAppearanceMode = .system
     @Published var accentTheme: AccentColorTheme = .indigo
     @Published var dailyNotificationsEnabled: Bool = false
     @Published var dailyNotificationTime: Date = Date()
     @Published var widgetLanguage: WidgetLanguage = .followApp
+    @Published var widgetVisualStyle: WidgetVisualStyle = .oledStandby
     @Published var verseSourceScope: VerseSourceScope = .allBible
     
     // Переменные для полной Библии и Deep Link
@@ -61,10 +63,12 @@ class BibleManager: ObservableObject {
     private let appLanguageKey = "app_language"
     private let favoritesKey = "favorite_verses"
     private let verseSourceScopeKey = "verse_source_scope"
+    private let appearanceModeKey = "app_appearance_mode"
     private let accentThemeKey = "accent_theme"
     private let notificationsEnabledKey = "daily_notifications_enabled"
     private let notificationTimeKey = "daily_notification_time"
     private let lockScreenCategoryKey = "lock_screen_category"
+    private let widgetVisualStyleKey = "widget_visual_style"
     
     @Published var lockScreenCategory: LockScreenCategory = .pearls
     
@@ -231,6 +235,15 @@ class BibleManager: ObservableObject {
         // Проверка статуса молитвы дня
         checkPrayerCompletionStatus()
         
+        // Загрузка темы оформления (System / Light / Dark)
+        if let defaults = sharedDefaults,
+           let savedModeRaw = defaults.string(forKey: appearanceModeKey),
+           let savedMode = AppAppearanceMode(rawValue: savedModeRaw) {
+            self.appearanceMode = savedMode
+        } else {
+            self.appearanceMode = .system
+        }
+        
         // Загрузка Цветовой темы
         if let defaults = sharedDefaults,
            let savedThemeRaw = defaults.string(forKey: accentThemeKey),
@@ -238,6 +251,15 @@ class BibleManager: ObservableObject {
             self.accentTheme = savedTheme
         } else {
             self.accentTheme = .indigo
+        }
+        
+        // Загрузка визуального стиля виджетов и StandBy
+        if let defaults = sharedDefaults,
+           let savedStyleRaw = defaults.string(forKey: widgetVisualStyleKey),
+           let savedStyle = WidgetVisualStyle(rawValue: savedStyleRaw) {
+            self.widgetVisualStyle = savedStyle
+        } else {
+            self.widgetVisualStyle = .oledStandby
         }
         
         // Загрузка Уведомлений
@@ -284,6 +306,11 @@ class BibleManager: ObservableObject {
             if savedBookId != 0 && savedChapter != 0 {
                 self.lastReadBookId = savedBookId
                 self.lastReadChapter = savedChapter
+            }
+            
+            // Гарантируем первоначальную инициализацию короткого стиха для экрана блокировки, если еще не настроен
+            if defaults.string(forKey: "currentLockScreenVerseId") == nil {
+                syncLockScreenWidget()
             }
         }
     }
@@ -371,10 +398,11 @@ class BibleManager: ObservableObject {
     // MARK: - Мгновенная синхронизация и случайные стихи для всех размеров виджетов
     func syncLockScreenWidget() {
         if let defaults = sharedDefaults {
-            // 1. Экран блокировки (Lock Screen)
+            // 1. Экран блокировки (Lock Screen) - строго короткие фразы <= 46 символов
             let isPremium = defaults.bool(forKey: "is_premium_active")
             let activeCategory = (isPremium || !lockScreenCategory.isPremiumRequired) ? lockScreenCategory : .pearls
-            let list = BibleVerse.lockScreenVerses(for: activeCategory)
+            let rawList = BibleVerse.lockScreenVerses(for: activeCategory).filter { $0.textHy.count <= 46 }
+            let list = !rawList.isEmpty ? rawList : BibleVerse.shortPearls
             
             if let randomPearl = list.randomElement() ?? BibleVerse.shortPearls.first {
                 defaults.set(randomPearl.id.uuidString, forKey: "currentLockScreenVerseId")
@@ -547,11 +575,28 @@ class BibleManager: ObservableObject {
         }
     }
     
+    // MARK: - Сохранение темы оформления (Системная / Светлая / Темная)
+    func setAppearanceMode(_ mode: AppAppearanceMode) {
+        self.appearanceMode = mode
+        if let defaults = sharedDefaults {
+            defaults.set(mode.rawValue, forKey: appearanceModeKey)
+        }
+    }
+    
     // MARK: - Сохранение цветовой темы
     func setAccentTheme(_ theme: AccentColorTheme) {
         self.accentTheme = theme
         if let defaults = sharedDefaults {
             defaults.set(theme.rawValue, forKey: accentThemeKey)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // MARK: - Сохранение стиля виджетов и режима StandBy
+    func setWidgetVisualStyle(_ style: WidgetVisualStyle) {
+        self.widgetVisualStyle = style
+        if let defaults = sharedDefaults {
+            defaults.set(style.rawValue, forKey: widgetVisualStyleKey)
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
@@ -639,12 +684,13 @@ class BibleManager: ObservableObject {
         objectWillChange.send()
         if let defaults = sharedDefaults {
             defaults.set(verse.id.uuidString, forKey: "currentVerseId")
-            defaults.set(verse.id.uuidString, forKey: "currentLockScreenVerseId")
+            // Экран блокировки (Lock Screen) строго изолирован: питается ТОЛЬКО короткими стихами из syncLockScreenWidget()
+            // Ни в коем случае не перезаписываем currentLockScreenVerseId стихами общего чтения из приложения!
             defaults.set(verse.id.uuidString, forKey: "currentSmallVerseId")
             defaults.set(verse.id.uuidString, forKey: "currentMediumVerseId")
             defaults.set(verse.id.uuidString, forKey: "currentLargeVerseId")
             
-            // Сохраняем мультиязычные тексты стиха для виджета
+            // Сохраняем мультиязычные тексты стиха для виджета домашнего экрана
             defaults.set(verse.textHy, forKey: "currentVerseTextHy")
             defaults.set(verse.textRu, forKey: "currentVerseTextRu")
             defaults.set(verse.textEn, forKey: "currentVerseTextEn")
@@ -656,7 +702,7 @@ class BibleManager: ObservableObject {
             defaults.set(verse.reference, forKey: referenceKey)
             defaults.synchronize()
             
-            // Заставляем виджеты немедленно обновиться
+            // Заставляем виджеты домашнего экрана немедленно обновиться
             WidgetCenter.shared.reloadAllTimelines()
         }
     }

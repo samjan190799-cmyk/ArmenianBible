@@ -34,6 +34,7 @@ struct ContentView: View {
                 .tag(3)
         }
         .tint(accentColor)
+        .preferredColorScheme(manager.appearanceMode.colorScheme)
     }
 }
 
@@ -42,6 +43,7 @@ struct HomeView: View {
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var animateVerse = false
     @State private var isShowingSettings = false
+    @State private var isShowingReadingPlans = false
     @State private var isShowingQuiz = false
     @State private var isShowingCalendar = false
     @State private var isShowingPaywall = false
@@ -316,6 +318,20 @@ struct HomeView: View {
                         }
                     )
                     
+                    // MARK: - Карточка Плана Чтения Библии и Стрика (Reading Plans & Daily Streak)
+                    ReadingPlanBannerCardView(
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        cardBackgroundColor: cardBackgroundColor,
+                        cardBorderColor: cardBorderColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpenPlans: {
+                            triggerHaptic(.medium)
+                            isShowingReadingPlans = true
+                        }
+                    )
+                    
                     // MARK: - Карточка Библейской Викторины
                     BibleQuizCardView(
                         bestScore: manager.quizBestScore,
@@ -376,6 +392,10 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings)
+        }
+        .sheet(isPresented: $isShowingReadingPlans) {
+            ReadingPlansCatalogView()
+                .preferredColorScheme(manager.appearanceMode.colorScheme)
         }
         .sheet(isPresented: $isShowingQuiz) {
             BibleQuizView()
@@ -1637,7 +1657,9 @@ struct SettingsView: View {
     @State private var selectedCategory: TextCategory = .both
     @State private var selectedScope: VerseSourceScope = .allBible
     @State private var selectedTheme: AccentColorTheme = .indigo
+    @State private var selectedAppearanceMode: AppAppearanceMode = .system
     @State private var selectedWidgetLanguage: WidgetLanguage = .followApp
+    @State private var selectedWidgetStyle: WidgetVisualStyle = .oledStandby
     @State private var selectedLockCategory: LockScreenCategory = .pearls
     @State private var selectedArmenianEdition: ArmenianBibleEdition = .ararat
     @State private var previewVerse: BibleVerse = BibleVerse.lockScreenPearls[0]
@@ -1717,12 +1739,14 @@ struct SettingsView: View {
                         premiumMembershipSection
                         aiProviderSection
                         appLanguageSection
+                        appearanceModeSection
                         colorThemeSection
                         apiKeysSection
                         dailyNotificationsSection
                         updateIntervalSection
                         verseSourceScopeSection
                         contentTypeSection
+                        widgetStyleSection
                         lockScreenWidgetSection
                         aboutSection
                     }
@@ -1752,9 +1776,11 @@ struct SettingsView: View {
                 selectedCategory = manager.selectedCategory
                 selectedScope = manager.verseSourceScope
                 selectedTheme = manager.accentTheme
+                selectedAppearanceMode = manager.appearanceMode
                 notificationsEnabled = manager.dailyNotificationsEnabled
                 notificationTime = manager.dailyNotificationTime
                 selectedWidgetLanguage = manager.widgetLanguage
+                selectedWidgetStyle = manager.widgetVisualStyle
                 selectedLockCategory = manager.lockScreenCategory
                 selectedArmenianEdition = manager.armenianEdition
                 let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
@@ -1790,6 +1816,7 @@ struct SettingsView: View {
                 Text("Текущий статус: \(subscriptionManager.isPremium ? "👑 Premium активен" : "🆓 Free режим")\n\nВведите PIN для переключения режима.")
             }
         }
+        .preferredColorScheme(manager.appearanceMode.colorScheme)
         .environment(\.locale, Locale(identifier: selectedLanguage.localeCode))
     }
     
@@ -1965,6 +1992,32 @@ struct SettingsView: View {
             .onChange(of: selectedLanguage) { newLang in
                 manager.setAppLanguage(newLang)
                 manager.forceRefreshUI()
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var appearanceModeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("appearance_section_title".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            Picker("appearance_section_title", selection: $selectedAppearanceMode) {
+                ForEach(AppAppearanceMode.allCases) { mode in
+                    Text(mode.localizedName(for: selectedLanguage))
+                        .tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .tint(colorScheme == .dark ? .white : .primary)
+            .padding(.vertical, 4)
+            .onChange(of: selectedAppearanceMode) { newMode in
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.prepare()
+                generator.impactOccurred()
+                manager.setAppearanceMode(newMode)
             }
         }
         .padding(.horizontal, 4)
@@ -2292,6 +2345,207 @@ struct SettingsView: View {
                 manager.setSelectedCategory(newCat)
             }
         }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var widgetStyleSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label {
+                    Text("widget_style_section_title".localized(for: selectedLanguage))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                } icon: {
+                    Image(systemName: "moon.stars.fill")
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                }
+                
+                Spacer()
+                
+                // StandBy бейдж
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 10))
+                    Text("STANDBY")
+                        .font(.system(size: 10, weight: .black))
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Color(hex: "F59E0B").opacity(0.18))
+                .foregroundColor(Color(hex: "F59E0B"))
+                .cornerRadius(6)
+            }
+            
+            Text("widget_style_section_desc".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(3)
+            
+            // Горизонтальный список 5 вариантов оформления
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(WidgetVisualStyle.allCases) { style in
+                        let isSelected = selectedWidgetStyle == style
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.prepare()
+                            generator.impactOccurred()
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                selectedWidgetStyle = style
+                            }
+                            manager.setWidgetVisualStyle(style)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Image(systemName: style.iconName)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                    
+                                    Spacer()
+                                    
+                                    if isSelected {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: selectedTheme.colorHex))
+                                    }
+                                }
+                                
+                                Spacer(minLength: 4)
+                                
+                                Text(style.localizedName(for: selectedLanguage))
+                                    .font(.system(size: 13, weight: .bold, design: style.fontDesign))
+                                    .foregroundColor(style.primaryTextColor(for: colorScheme))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                
+                                Text(style.localizedSubtitle(for: selectedLanguage))
+                                    .font(.system(size: 10))
+                                    .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex).opacity(0.85))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .padding(12)
+                            .frame(width: 135, height: 130)
+                            .background(style.backgroundGradient(for: colorScheme))
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(
+                                        isSelected ?
+                                            LinearGradient(
+                                                colors: [style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: selectedTheme.colorHex), Color.white.opacity(0.3)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                            : style.borderStroke(for: colorScheme),
+                                        lineWidth: isSelected ? 2.2 : 1.0
+                                    )
+                            )
+                            .shadow(color: isSelected ? (style == .oledStandby ? Color(hex: "F59E0B").opacity(0.3) : Color(hex: selectedTheme.colorHex).opacity(0.25)) : Color.black.opacity(0.15), radius: isSelected ? 8 : 4, y: 3)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 2)
+            }
+            
+            // Live Preview карточка виджета / StandBy
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    HStack(spacing: 5) {
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 11))
+                        Text("standby_preview_title".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Button {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.prepare()
+                        generator.impactOccurred()
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
+                            previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "shuffle")
+                                .font(.system(size: 11))
+                            Text("button_random_verse".localized(for: selectedLanguage))
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    }
+                }
+                
+                // Карточка в натуральную величину (StandBy / Small Widget 2x2)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "quote.opening")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(selectedWidgetStyle.quoteIconColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                        
+                        Spacer()
+                        
+                        Text(previewVerse.reference(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                            .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                            .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                    }
+                    
+                    Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                        .font(.system(size: 16, weight: .bold, design: selectedWidgetStyle.fontDesign))
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.8)
+                        .lineSpacing(3)
+                        .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
+                        .padding(.vertical, 2)
+                    
+                    HStack {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 12))
+                            Text("widget_pray_done_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
+                                .font(.system(size: 11, weight: .semibold, design: selectedWidgetStyle.fontDesign))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                        .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                        .cornerRadius(8)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 11, weight: .bold))
+                            .padding(6)
+                            .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
+                            .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(14)
+                .background(selectedWidgetStyle.backgroundGradient(for: colorScheme))
+                .cornerRadius(18)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(selectedWidgetStyle.borderStroke(for: colorScheme), lineWidth: 1.4)
+                )
+                .shadow(color: Color.black.opacity(0.2), radius: 8, y: 4)
+            }
+            .padding(.top, 4)
+        }
+        .padding(16)
+        .background(cardBackgroundColor)
+        .cornerRadius(18)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
         .padding(.horizontal, 4)
     }
     
@@ -3078,3 +3332,132 @@ struct LockScreenPreviewCardView: View {
         }
     }
 }
+
+// MARK: - Карточка Плана Чтения и Стрика для Главного Экрана
+struct ReadingPlanBannerCardView: View {
+    let language: AppLanguage
+    let accentColor: Color
+    let secondaryAccentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    let onOpenPlans: () -> Void
+    
+    @ObservedObject private var planManager = ReadingPlanManager.shared
+    
+    var body: some View {
+        Button {
+            onOpenPlans()
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "EF4444"), Color(hex: "F59E0B")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 48, height: 48)
+                            .shadow(color: Color(hex: "EF4444").opacity(0.35), radius: 6, y: 2)
+                        
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text("\(planManager.currentStreak) \("streak_days_suffix".localized(for: language))")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundColor(primaryTextColor)
+                            
+                            if planManager.currentStreak > 0 {
+                                Text("🔥")
+                                    .font(.system(size: 14))
+                            }
+                        }
+                        
+                        if let plan = planManager.activePlan,
+                           let day = planManager.nextIncompleteDay(for: plan.id) {
+                            Text("\("day_label".localized(for: language)) \(day.dayNumber): \(day.title(for: language))")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        } else {
+                            Text("reading_plan_card_hint".localized(for: language))
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary.opacity(0.6))
+                }
+                
+                // Если есть активный план — показываем прогресс-бар
+                if let plan = planManager.activePlan {
+                    let progress = planManager.progress(for: plan.id)
+                    let completed = planManager.completedDaysCount(for: plan.id)
+                    
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Text(plan.title(for: language))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.secondary)
+                            
+                            Spacer()
+                            
+                            Text("\(completed)/\(plan.daysCount)")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(height: 5)
+                                
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color(hex: "F59E0B"), Color(hex: "EF4444")],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: max(5, geo.size.width * CGFloat(progress)), height: 5)
+                            }
+                        }
+                        .frame(height: 5)
+                    }
+                    .padding(.top, 2)
+                }
+            }
+            .padding(16)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(cardBackgroundColor)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(cardBorderColor, lineWidth: 1.2)
+            )
+            .padding(.horizontal, 20)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+

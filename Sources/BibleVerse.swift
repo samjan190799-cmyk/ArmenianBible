@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Модель библейского текста (стиха или молитвы)
 struct BibleVerse: Identifiable, Codable, Hashable {
@@ -226,6 +227,39 @@ enum TextCategory: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+// MARK: - Режимы темы оформления (Системная / Светлая / Темная)
+enum AppAppearanceMode: String, CaseIterable, Identifiable, Codable {
+    case system = "system"
+    case light = "light"
+    case dark = "dark"
+    
+    var id: String { self.rawValue }
+    
+    func localizedName(for language: AppLanguage) -> String {
+        switch self {
+        case .system: return "appearance_system".localized(for: language)
+        case .light: return "appearance_light".localized(for: language)
+        case .dark: return "appearance_dark".localized(for: language)
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.fill"
+        }
+    }
+    
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
 // MARK: - Цветовые темы оформления
 enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
     case indigo = "indigo"
@@ -263,6 +297,243 @@ enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
         case .blue: return "38BDF8"
         case .green: return "34D399"
         case .purple: return "A78BFA"
+        }
+    }
+}
+
+// MARK: - Визуальные стили виджетов и режима StandBy
+enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
+    case oledStandby = "oledStandby"
+    case modernMinimal = "modernMinimal"
+    case sacredParchment = "sacredParchment"
+    case royalMonastery = "royalMonastery"
+    case monochrome = "monochrome"
+    
+    var id: String { self.rawValue }
+    
+    func localizedName(for language: AppLanguage) -> String {
+        switch self {
+        case .oledStandby: return "widget_style_oled".localized(for: language)
+        case .modernMinimal: return "widget_style_glass".localized(for: language)
+        case .sacredParchment: return "widget_style_parchment".localized(for: language)
+        case .royalMonastery: return "widget_style_royal".localized(for: language)
+        case .monochrome: return "widget_style_monochrome".localized(for: language)
+        }
+    }
+    
+    func localizedSubtitle(for language: AppLanguage) -> String {
+        switch self {
+        case .oledStandby: return "widget_style_oled_desc".localized(for: language)
+        case .modernMinimal: return "widget_style_glass_desc".localized(for: language)
+        case .sacredParchment: return "widget_style_parchment_desc".localized(for: language)
+        case .royalMonastery: return "widget_style_royal_desc".localized(for: language)
+        case .monochrome: return "widget_style_monochrome_desc".localized(for: language)
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .oledStandby: return "moon.stars.fill"
+        case .modernMinimal: return "sparkles"
+        case .sacredParchment: return "scroll.fill"
+        case .royalMonastery: return "crown.fill"
+        case .monochrome: return "circle.lefthalf.filled"
+        }
+    }
+    
+    var fontDesign: Font.Design {
+        switch self {
+        case .oledStandby: return .serif
+        case .modernMinimal: return .rounded
+        case .sacredParchment: return .serif
+        case .royalMonastery: return .serif
+        case .monochrome: return .default
+        }
+    }
+    
+    var isOled: Bool {
+        self == .oledStandby
+    }
+    
+    func backgroundGradient(for colorScheme: ColorScheme) -> LinearGradient {
+        switch self {
+        case .oledStandby:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [Color.black, Color(red: 0.04, green: 0.04, blue: 0.05)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [Color(red: 0.05, green: 0.05, blue: 0.06), Color(red: 0.09, green: 0.09, blue: 0.11)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        case .modernMinimal:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [Color(red: 0.06, green: 0.08, blue: 0.14), Color(red: 0.11, green: 0.14, blue: 0.22)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [Color(red: 0.97, green: 0.98, blue: 0.99), Color(red: 0.89, green: 0.91, blue: 0.94)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        case .sacredParchment:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [Color(red: 0.10, green: 0.07, blue: 0.05), Color(red: 0.15, green: 0.11, blue: 0.08)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [Color(red: 0.98, green: 0.96, blue: 0.92), Color(red: 0.94, green: 0.89, blue: 0.82)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        case .royalMonastery:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [Color(red: 0.03, green: 0.06, blue: 0.14), Color(red: 0.07, green: 0.12, blue: 0.25)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [Color(red: 0.94, green: 0.96, blue: 1.0), Color(red: 0.85, green: 0.91, blue: 0.98)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        case .monochrome:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [Color.black, Color(red: 0.03, green: 0.03, blue: 0.03)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [Color.white, Color(red: 0.95, green: 0.95, blue: 0.96)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        }
+    }
+    
+    func primaryTextColor(for colorScheme: ColorScheme) -> Color {
+        switch self {
+        case .oledStandby:
+            return Color(red: 1.0, green: 0.98, blue: 0.92)
+        case .modernMinimal:
+            return colorScheme == .dark ? Color.white.opacity(0.96) : Color(red: 0.08, green: 0.11, blue: 0.18)
+        case .sacredParchment:
+            return colorScheme == .dark ? Color(red: 0.99, green: 0.94, blue: 0.82) : Color(red: 0.16, green: 0.10, blue: 0.05)
+        case .royalMonastery:
+            return colorScheme == .dark ? Color(red: 0.96, green: 0.98, blue: 1.0) : Color(red: 0.05, green: 0.10, blue: 0.20)
+        case .monochrome:
+            return colorScheme == .dark ? Color.white : Color.black
+        }
+    }
+    
+    func secondaryTextColor(for colorScheme: ColorScheme, accentHex: String = "6366F1") -> Color {
+        switch self {
+        case .oledStandby:
+            return Color(red: 0.98, green: 0.75, blue: 0.14)
+        case .modernMinimal:
+            return colorScheme == .dark ? Color(red: 0.51, green: 0.55, blue: 0.97) : Color(red: 0.31, green: 0.27, blue: 0.90)
+        case .sacredParchment:
+            return colorScheme == .dark ? Color(red: 0.96, green: 0.62, blue: 0.04) : Color(red: 0.57, green: 0.25, blue: 0.05)
+        case .royalMonastery:
+            return colorScheme == .dark ? Color(red: 0.22, green: 0.74, blue: 0.97) : Color(red: 0.11, green: 0.31, blue: 0.85)
+        case .monochrome:
+            return colorScheme == .dark ? Color(red: 0.65, green: 0.68, blue: 0.72) : Color(red: 0.35, green: 0.38, blue: 0.42)
+        }
+    }
+    
+    func quoteIconColor(for colorScheme: ColorScheme, accentHex: String = "6366F1") -> Color {
+        switch self {
+        case .oledStandby:
+            return Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.85)
+        case .modernMinimal:
+            return colorScheme == .dark ? Color(red: 0.39, green: 0.40, blue: 0.95).opacity(0.40) : Color(red: 0.31, green: 0.27, blue: 0.90).opacity(0.20)
+        case .sacredParchment:
+            return colorScheme == .dark ? Color(red: 0.85, green: 0.47, blue: 0.04).opacity(0.60) : Color(red: 0.57, green: 0.25, blue: 0.05).opacity(0.25)
+        case .royalMonastery:
+            return colorScheme == .dark ? Color(red: 0.22, green: 0.74, blue: 0.97).opacity(0.55) : Color(red: 0.11, green: 0.31, blue: 0.85).opacity(0.22)
+        case .monochrome:
+            return colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.18)
+        }
+    }
+    
+    func borderStroke(for colorScheme: ColorScheme) -> LinearGradient {
+        switch self {
+        case .oledStandby:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.45),
+                    Color(red: 0.85, green: 0.47, blue: 0.04).opacity(0.12)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .modernMinimal:
+            let topAlpha: Double = colorScheme == .dark ? 0.20 : 0.10
+            let btmAlpha: Double = colorScheme == .dark ? 0.05 : 0.02
+            return LinearGradient(
+                colors: [Color.white.opacity(topAlpha), Color.white.opacity(btmAlpha)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .sacredParchment:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.71, green: 0.33, blue: 0.04).opacity(0.40),
+                    Color(red: 0.45, green: 0.20, blue: 0.02).opacity(0.15)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .royalMonastery:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.22, green: 0.74, blue: 0.97).opacity(0.40),
+                    Color(red: 0.07, green: 0.12, blue: 0.25).opacity(0.15)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .monochrome:
+            let alpha: Double = colorScheme == .dark ? 0.22 : 0.12
+            return LinearGradient(
+                colors: [Color.primary.opacity(alpha), Color.primary.opacity(alpha * 0.4)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+    
+    func buttonBackground(for colorScheme: ColorScheme) -> Color {
+        switch self {
+        case .oledStandby:
+            return Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.16)
+        case .modernMinimal:
+            return Color.primary.opacity(0.08)
+        case .sacredParchment:
+            return colorScheme == .dark ? Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.14) : Color(red: 0.45, green: 0.20, blue: 0.02).opacity(0.08)
+        case .royalMonastery:
+            return colorScheme == .dark ? Color(red: 0.22, green: 0.74, blue: 0.97).opacity(0.15) : Color(red: 0.11, green: 0.31, blue: 0.85).opacity(0.08)
+        case .monochrome:
+            return Color.primary.opacity(0.08)
         }
     }
 }
@@ -482,8 +753,8 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Հիսուս Քրիստոսը նույնն է հավիտյան։",
-            textRu: "Иисус Христос вчера и сегодня и вовеки Тот же.",
-            textEn: "Jesus Christ the same yesterday, today, and forever.",
+            textRu: "Иисус Христос Тот же вовеки.",
+            textEn: "Jesus Christ the same forever.",
             refHy: "Եբրայեցիս 13:8",
             refRu: "Евреям 13:8",
             refEn: "Hebrews 13:8"
@@ -530,8 +801,8 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Հույսով ուրախացե՛ք, նեղությանը համբերեցե՛ք։",
-            textRu: "Утешайтесь надеждою; в скорби будьте терпеливы.",
-            textEn: "Rejoicing in hope; patient in tribulation.",
+            textRu: "Утешайтесь надеждой, терпите в скорби.",
+            textEn: "Rejoice in hope; patient in tribulation.",
             refHy: "Հռոմեացիս 12:12",
             refRu: "Римлянам 12:12",
             refEn: "Romans 12:12"
@@ -539,7 +810,7 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Ամեն ինչ փորձեցե՛ք, բարի՛ն պահեք։",
             textRu: "Все испытывайте, хорошего держитесь.",
-            textEn: "Prove all things; hold fast that which is good.",
+            textEn: "Test all things; hold fast what is good.",
             refHy: "Ա Թեսաղոնիկեցիս 5:21",
             refRu: "1 Фессалоникийцам 5:21",
             refEn: "1 Thessalonians 5:21"
@@ -549,17 +820,17 @@ extension BibleVerse {
     // MARK: - 2. 👑 Краткие молитвы Нарекаци (PRO) — до 55 символов
     static let shortNarekatsi: [BibleVerse] = [
         BibleVerse(
-            textHy: "Ընդո՛ւնիր քաղցրությամբ, Տե՛ր Աստված, աղաչանքս։",
-            textRu: "Прими с благосклонностью, Господи, мольбу мою.",
-            textEn: "Accept with sweetness, Lord God, my supplication.",
+            textHy: "Ընդո՛ւնիր քաղցրությամբ, Տե՛ր, աղաչանքս։",
+            textRu: "Прими с благосклонностью мольбу мою, Господи.",
+            textEn: "Lord God, accept with favor my prayer.",
             refHy: "Նարեկացի • Բան Ա",
             refRu: "Нарекаци • Глава 1",
             refEn: "Narekatsi • Prayer 1"
         ),
         BibleVerse(
-            textHy: "Դո՛ւ ես լույսը, հույսը և իմ հոգու բժշկությունը։",
-            textRu: "Ты — свет, Ты — надежда, Ты — исцеление души моей.",
-            textEn: "Thou art light, hope and healing of my soul.",
+            textHy: "Դո՛ւ ես իմ հոգու լույսն ու հույսը։",
+            textRu: "Ты — свет и надежда души моей.",
+            textEn: "Thou art light and hope of my soul.",
             refHy: "Նարեկացի • Բան ԺԲ",
             refRu: "Нарекаци • Глава 12",
             refEn: "Narekatsi • Prayer 12"
@@ -573,41 +844,41 @@ extension BibleVerse {
             refEn: "Narekatsi • Prayer 18"
         ),
         BibleVerse(
-            textHy: "Քո ձեռքերի մեջ եմ հանձնում իմ հոգին, Մարդասե՛ր։",
-            textRu: "В руки Твои, Человеколюбец, предаю душу мою.",
-            textEn: "Into Thy hands, Lover of mankind, I commit my soul.",
+            textHy: "Քո ձեռքն եմ հանձնում հոգիս, Տե՛ր։",
+            textRu: "В Твои руки предаю душу мою, Господи.",
+            textEn: "Into Thy hands I commit my soul, Lord.",
             refHy: "Նարեկացի • Բան ԻԳ",
             refRu: "Нарекаци • Глава 23",
             refEn: "Narekatsi • Prayer 23"
         ),
         BibleVerse(
             textHy: "Մաքրի՛ր մեղքերս, Քրիստո՛ս, և նորոգի՛ր հոգիս։",
-            textRu: "Очисти грехи мои, Христе, и обнови дух мой.",
-            textEn: "Cleanse my sins, O Christ, and renew my spirit.",
+            textRu: "Очисти грехи мои и обнови дух мой.",
+            textEn: "Cleanse my sins, Lord, and renew my spirit.",
             refHy: "Նարեկացի • Բան ԼԳ",
             refRu: "Нарекаци • Глава 33",
             refEn: "Narekatsi • Prayer 33"
         ),
         BibleVerse(
-            textHy: "Դո՛ւ ես կյանքը և փրկությունը, ողորմյա՛ ինձ, Աստվա՛ծ։",
-            textRu: "Ты — жизнь и спасение, помилуй меня, Боже.",
-            textEn: "Thou art life and salvation, have mercy on me, O God.",
+            textHy: "Դո՛ւ ես կյանքը և փրկությունը, Աստվա՛ծ։",
+            textRu: "Ты — жизнь и спасение, помилуй, Боже.",
+            textEn: "Thou art life and salvation, O God.",
             refHy: "Նարեկացի • Բան ԽԱ",
             refRu: "Нарекаци • Глава 41",
             refEn: "Narekatsi • Prayer 41"
         ),
         BibleVerse(
             textHy: "Թո՛ղ Քո շնորհի լույսը ծագի իմ խավարի մեջ։",
-            textRu: "Да воссияет свет благодати Твоей во тьме моей.",
-            textEn: "Let the light of Thy grace shine in my darkness.",
+            textRu: "Да воссияет свет благодати Твоей во тьме.",
+            textEn: "Let the light of Thy grace shine on me.",
             refHy: "Նարեկացի • Բան ԾԵ",
             refRu: "Нарекаци • Глава 55",
             refEn: "Narekatsi • Prayer 55"
         ),
         BibleVerse(
-            textHy: "Եղի՛ր ինձ պաշտպան և անսասան վեմ, ո՛վ Տեր։",
-            textRu: "Будь мне защитой и несокрушимой твердыней, Господи.",
-            textEn: "Be Thou my defense and an unshakeable rock, O Lord.",
+            textHy: "Եղի՛ր ինձ պաշտպան և անսասան վեմ, Տե՛ր։",
+            textRu: "Будь мне защитой и твердыней, Господи.",
+            textEn: "Be my defense and rock, O Lord.",
             refHy: "Նարեկացի • Բան ԿԷ",
             refRu: "Нарекаци • Глава 67",
             refEn: "Narekatsi • Prayer 67"
@@ -621,9 +892,9 @@ extension BibleVerse {
             refEn: "Narekatsi • Prayer 79"
         ),
         BibleVerse(
-            textHy: "Զորությունների՛ Տեր, օրհնի՛ր այս օրը Քո խաղաղությամբ։",
-            textRu: "Господи сил, благослови день сей миром Твоим.",
-            textEn: "Lord of hosts, bless this day with Thy peace.",
+            textHy: "Տե՛ր, օրհնի՛ր այս օրը Քո խաղաղությամբ։",
+            textRu: "Господи, благослови сей день миром Твоим.",
+            textEn: "Lord, bless this day with Thy peace.",
             refHy: "Նարեկացի • Բան ՁԸ",
             refRu: "Нарекаци • Глава 88",
             refEn: "Narekatsi • Prayer 88"
@@ -631,15 +902,15 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Քե՛զ փառք և գոհություն հավիտյանս, Ամեն։",
             textRu: "Тебе слава и благодарение вовеки, Аминь.",
-            textEn: "To Thee be glory and thanksgiving forever, Amen.",
+            textEn: "To Thee be glory and thanks forever, Amen.",
             refHy: "Նարեկացի • Բան ՂԳ",
             refRu: "Нарекаци • Глава 93",
             refEn: "Narekatsi • Prayer 93"
         ),
         BibleVerse(
-            textHy: "Նայի՛ր ինձ սիրով և փրկի՛ր, ո՛վ Փրկիչ իմ։",
-            textRu: "Взгляни на меня с любовью и спаси, Спаситель мой.",
-            textEn: "Look upon me with love and save me, my Savior.",
+            textHy: "Նայի՛ր ինձ սիրով և փրկի՛ր, Փրկի՛չ իմ։",
+            textRu: "Взгляни с любовью и спаси, Спаситель мой.",
+            textEn: "Look with love and save me, my Savior.",
             refHy: "Նարեկացի • Բան ՂԵ",
             refRu: "Нарекаци • Глава 95",
             refEn: "Narekatsi • Prayer 95"
@@ -650,32 +921,32 @@ extension BibleVerse {
     static let shortPsalms: [BibleVerse] = [
         BibleVerse(
             textHy: "Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։",
-            textRu: "Господь — Пастырь мой; я ни в чем не буду нуждаться.",
+            textRu: "Господь — Пастырь мой, я не нуждаюсь.",
             textEn: "The Lord is my shepherd; I shall not want.",
             refHy: "Սաղմոսներ 23:1",
             refRu: "Псалом 22:1",
             refEn: "Psalm 23:1"
         ),
         BibleVerse(
-            textHy: "Տերն իմ լույսն է ու փրկությունը, ումի՞ց վախենամ։",
-            textRu: "Господь — свет мой и спасение мое: кого мне бояться?",
-            textEn: "The Lord is my light and my salvation; whom shall I fear?",
+            textHy: "Տերն իմ լույսն է ու փրկությունը։",
+            textRu: "Господь — свет мой и спасение мое.",
+            textEn: "The Lord is my light and my salvation.",
             refHy: "Սաղմոսներ 27:1",
             refRu: "Псалом 26:1",
             refEn: "Psalm 27:1"
         ),
         BibleVerse(
             textHy: "Աստված մեր ապավենն է և զորությունը։",
-            textRu: "Бог нам прибежище и сила, скорый помощник в бедах.",
-            textEn: "God is our refuge and strength, a very present help.",
+            textRu: "Бог нам прибежище и сила в бедах.",
+            textEn: "God is our refuge and our strength.",
             refHy: "Սաղմոսներ 46:1",
             refRu: "Псалом 45:2",
             refEn: "Psalm 46:1"
         ),
         BibleVerse(
             textHy: "Քո խոսքը ճրագ է իմ ոտքերի համար։",
-            textRu: "Слово Твое — светильник ноге моей и свет стезе моей.",
-            textEn: "Thy word is a lamp unto my feet, and a light unto my path.",
+            textRu: "Слово Твое — светильник ноге моей.",
+            textEn: "Thy word is a lamp unto my feet.",
             refHy: "Սաղմոսներ 119:105",
             refRu: "Псалом 118:105",
             refEn: "Psalm 119:105"
@@ -714,24 +985,24 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Տերը մոտ է բոլոր իրեն կանչողներին։",
-            textRu: "Близок Господь ко всем призывающим Его.",
-            textEn: "The Lord is nigh unto all them that call upon him.",
+            textRu: "Близок Господь ко всем зовущим Его.",
+            textEn: "The Lord is near to all who call on Him.",
             refHy: "Սաղմոսներ 145:18",
             refRu: "Псалом 144:18",
             refEn: "Psalm 145:18"
         ),
         BibleVerse(
-            textHy: "Տիրոջո՛վ ուրախացիր, և Նա կտա քո սրտի փափագները։",
-            textRu: "Утешайся Господом, и Он исполнит желания сердца твоего.",
-            textEn: "Delight thyself in the Lord; he shall give thine heart desires.",
+            textHy: "Տիրոջո՛վ ուրախացիր, և Նա կտա քո խնդրանքը։",
+            textRu: "Утешайся Господом, и Он исполнит желания.",
+            textEn: "Delight in the Lord, and He shall give.",
             refHy: "Սաղմոսներ 37:4",
             refRu: "Псалом 36:4",
             refEn: "Psalm 37:4"
         ),
         BibleVerse(
             textHy: "Իմ օգնությունը Տիրոջից է։",
-            textRu: "Помощь моя от Господа, сотворившего небо и землю.",
-            textEn: "My help cometh from the Lord, which made heaven and earth.",
+            textRu: "Помощь моя — от Господа Всевышнего.",
+            textEn: "My help cometh from the Lord.",
             refHy: "Սաղմոսներ 121:2",
             refRu: "Псалом 120:2",
             refEn: "Psalm 121:2"
@@ -754,8 +1025,8 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Սովորեցրո՛ւ ինձ կատարել Քո կամքը։",
-            textRu: "Научи меня исполнять волю Твою, ибо Ты Бог мой.",
-            textEn: "Teach me to do thy will; for thou art my God.",
+            textRu: "Научи меня исполнять волю Твою.",
+            textEn: "Teach me to do Thy will, my God.",
             refHy: "Սաղմոսներ 143:10",
             refRu: "Псалом 142:10",
             refEn: "Psalm 143:10"
@@ -774,7 +1045,7 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Տիրո՛ջը հանձնիր քո գործերը։",
-            textRu: "Предай Господу дела твои, и замыслы твои совершатся.",
+            textRu: "Предай Господу дела твои.",
             textEn: "Commit thy works unto the Lord.",
             refHy: "Առակաց 16:3",
             refRu: "Притчи 16:3",
@@ -798,7 +1069,7 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Տիրոջ անունը ամուր աշտարակ է։",
-            textRu: "Имя Господа — крепкая башня: спасается в ней праведник.",
+            textRu: "Имя Господа — крепкая башня праведника.",
             textEn: "The name of the Lord is a strong tower.",
             refHy: "Առակաց 18:10",
             refRu: "Притчи 18:10",
@@ -815,31 +1086,31 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Իմաստության սկիզբը Տիրոջ երկյուղն է։",
             textRu: "Начало мудрости — страх Господень.",
-            textEn: "The fear of the Lord is the beginning of wisdom.",
+            textEn: "The fear of the Lord is wisdom.",
             refHy: "Առակաց 9:10",
             refRu: "Притчи 9:10",
             refEn: "Proverbs 9:10"
         ),
         BibleVerse(
             textHy: "Տերն է ուղղում մարդու քայլերը։",
-            textRu: "Сердце человека обдумывает путь, но Господь управляет им.",
-            textEn: "A man's heart deviseth his way: but the Lord directeth.",
+            textRu: "Господь направляет шаги человека.",
+            textEn: "The Lord directeth a man's steps.",
             refHy: "Առակաց 16:9",
             refRu: "Притчи 16:9",
             refEn: "Proverbs 16:9"
         ),
         BibleVerse(
-            textHy: "Ինչպես ջրում երեսը՝ այնպես մարդու սիրտը մարդուն։",
-            textRu: "Как в воде лицо — к лицу, так сердце человека — к человеку.",
-            textEn: "As in water face answereth to face, so the heart of man.",
+            textHy: "Ինչպես ջուրը՝ այնպես սիրտը մարդու։",
+            textRu: "Как в воде лицо, так сердце — к человеку.",
+            textEn: "As in water face, so is heart to man.",
             refHy: "Առակաց 27:19",
             refRu: "Притчи 27:19",
             refEn: "Proverbs 27:19"
         ),
         BibleVerse(
-            textHy: "Ամեն ինչ իր ժամանակն ունի երկնքի տակ։",
-            textRu: "Всему свое время, и время всякой вещи под небом.",
-            textEn: "To every thing there is a season under heaven.",
+            textHy: "Ամեն ինչ իր ժամանակն ունի։",
+            textRu: "Всему свое время под небом.",
+            textEn: "To everything there is a season.",
             refHy: "Ժողովող 3:1",
             refRu: "Екклесиаст 3:1",
             refEn: "Ecclesiastes 3:1"
@@ -874,8 +1145,8 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Աստված սեր է։",
-            textRu: "Бог есть любовь, пребывающий в любви пребывает в Боге.",
-            textEn: "God is love; and he that dwelleth in love dwelleth in God.",
+            textRu: "Бог есть любовь, пребывайте в любви.",
+            textEn: "God is love; dwell in His love.",
             refHy: "Ա Հովհաննես 4:16",
             refRu: "1 Иоанна 4:16",
             refEn: "1 John 4:16"
@@ -890,8 +1161,8 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Սրանցից մեծագույնը սերն է։",
-            textRu: "Пребывают вера, надежда, любовь; но любовь из них больше.",
-            textEn: "Now abideth faith, hope, charity; greatest is charity.",
+            textRu: "Вера, надежда, любовь; но больше — любовь.",
+            textEn: "Faith, hope, love; greatest of these is love.",
             refHy: "Ա Կորնթացիս 13:13",
             refRu: "1 Коринфянам 13:13",
             refEn: "1 Corinthians 13:13"
@@ -899,7 +1170,7 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Հագե՛ք սերը, որ կատարելության կապն է։",
             textRu: "Облекитесь в любовь, союз совершенства.",
-            textEn: "Put on charity, which is the bond of perfectness.",
+            textEn: "Put on love, the bond of perfection.",
             refHy: "Կողոսացիս 3:14",
             refRu: "Колоссянам 3:14",
             refEn: "Colossians 3:14"
@@ -913,8 +1184,8 @@ extension BibleVerse {
             refEn: "John 13:34"
         ),
         BibleVerse(
-            textHy: "Մենք սիրում ենք Նրան, որովհետև Նա նախ սիրեց մեզ։",
-            textRu: "Будем любить Его, потому что Он прежде возлюбил нас.",
+            textHy: "Մենք սիրում ենք, քանի որ Նա նախ սիրեց մեզ։",
+            textRu: "Будем любить, ибо Он первый возлюбил нас.",
             textEn: "We love him, because he first loved us.",
             refHy: "Ա Հովհաննես 4:19",
             refRu: "1 Иоанна 4:19",
@@ -922,16 +1193,16 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Մնացե՛ք իմ սիրո մեջ։",
-            textRu: "Как возлюбил Меня Отец, так Я вас; пребудьте в любви Моей.",
-            textEn: "As the Father loved me, so I loved you: continue in my love.",
+            textRu: "Пребудьте в любви Моей, говорит Господь.",
+            textEn: "Continue ye in my love, saith the Lord.",
             refHy: "Հովհաննես 15:9",
             refRu: "Иоанна 15:9",
             refEn: "John 15:9"
         ),
         BibleVerse(
             textHy: "Սիրենք գործով և ճշմարտությամբ։",
-            textRu: "Будем любить не словом, но делом и истиною.",
-            textEn: "Let us love not in word, but in deed and in truth.",
+            textRu: "Будем любить делом и истиною.",
+            textEn: "Let us love in deed and in truth.",
             refHy: "Ա Հովհաննես 3:18",
             refRu: "1 Иоанна 3:18",
             refEn: "1 John 3:18"
@@ -982,15 +1253,15 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Ամեն ինչ կարող եմ ինձ զորացնող Քրիստոսով։",
-            textRu: "Все могу в укрепляющем меня Иисусе Христе.",
-            textEn: "I can do all things through Christ which strengtheneth me.",
+            textRu: "Все могу в укрепляющем меня Христе.",
+            textEn: "I can do all things through Christ.",
             refHy: "Փիլիպպեցիներին 4:13",
             refRu: "Филиппийцам 4:13",
             refEn: "Philippians 4:13"
         ),
         BibleVerse(
             textHy: "Հավատը հուսացված բաների հաստատումն է։",
-            textRu: "Вера есть осуществление ожидаемого и уверенность в невидимом.",
+            textRu: "Вера есть уверенность в невидимом.",
             textEn: "Faith is the substance of things hoped for.",
             refHy: "Եբրայեցիս 11:1",
             refRu: "Евреям 11:1",
@@ -998,7 +1269,7 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Մի՛ վախեցիր, քանզի ես քեզ հետ եմ։",
-            textRu: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой.",
+            textRu: "Не бойся, ибо Я с тобою; Я Бог твой.",
             textEn: "Fear thou not; for I am with thee.",
             refHy: "Եսայի 41:10",
             refRu: "Исаия 41:10",
@@ -1007,31 +1278,31 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Տիրոջն ապավինողները կնորոգվեն ուժով։",
             textRu: "Надеющиеся на Господа обновятся в силе.",
-            textEn: "They that wait upon the Lord shall renew their strength.",
+            textEn: "They that wait upon the Lord renew strength.",
             refHy: "Եսայի 40:31",
             refRu: "Исаия 40:31",
             refEn: "Isaiah 40:31"
         ),
         BibleVerse(
             textHy: "Զորացե՛ք Տիրոջով և Նրա զորության կարողությամբ։",
-            textRu: "Укрепляйтесь Господом и могуществом силы Его.",
-            textEn: "Be strong in the Lord, and in the power of his might.",
+            textRu: "Укрепляйтесь Господом и силою Его.",
+            textEn: "Be strong in the Lord and in His power.",
             refHy: "Եփեսացիս 6:10",
             refRu: "Ефесянам 6:10",
             refEn: "Ephesians 6:10"
         ),
         BibleVerse(
             textHy: "Զորացի՛ր և քա՛ջ եղիր, Տերը քեզ հետ է։",
-            textRu: "Будь тверд и мужествен, не страшись, ибо с тобою Господь.",
-            textEn: "Be strong and of good courage; for the Lord is with thee.",
+            textRu: "Будь тверд и мужествен, Господь с тобою.",
+            textEn: "Be strong and courageous; God is with thee.",
             refHy: "Հեսու 1:9",
             refRu: "Иисус Навин 1:9",
             refEn: "Joshua 1:9"
         ),
         BibleVerse(
             textHy: "Հավատարիմ է Խոստացողը։",
-            textRu: "Будем держаться исповедания неуклонно, ибо верен Обещавший.",
-            textEn: "Hold fast the profession of our faith; for he is faithful.",
+            textRu: "Будем держаться веры, ибо верен Обещавший.",
+            textEn: "Hold fast our faith, for He is faithful.",
             refHy: "Եբրայեցիս 10:23",
             refRu: "Евреям 10:23",
             refEn: "Hebrews 10:23"
@@ -1045,9 +1316,9 @@ extension BibleVerse {
             refEn: "Romans 8:31"
         ),
         BibleVerse(
-            textHy: "Աստված մեզ զորության, սիրո և զգաստության ոգի տվեց։",
-            textRu: "Дал нам Бог духа не боязни, но силы, любви и целомудрия.",
-            textEn: "God hath not given us the spirit of fear; but of power and love.",
+            textHy: "Աստված մեզ զորության և սիրո ոգի տվեց։",
+            textRu: "Дал нам Бог духа силы, любви и целомудрия.",
+            textEn: "God gave us the spirit of power and of love.",
             refHy: "Բ Տիմոթեոս 1:7",
             refRu: "2 Тимофею 1:7",
             refEn: "2 Timothy 1:7"
