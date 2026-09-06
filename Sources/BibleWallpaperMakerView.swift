@@ -207,6 +207,7 @@ struct BibleWallpaperMakerView: View {
     @State private var showSaveSuccessToast = false
     @State private var isExporting = false
     @State private var isShowingPaywall = false
+    @State private var isShowingAutomationSheet = false
     
     var body: some View {
         NavigationStack {
@@ -482,6 +483,20 @@ struct BibleWallpaperMakerView: View {
             .navigationTitle("wallpaper_maker_title".localized(for: manager.appLanguage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        triggerHaptic(.light)
+                        isShowingAutomationSheet = true
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "clock.arrow.circlepath")
+                            Text("auto_wallpaper_nav_button".localized(for: manager.appLanguage))
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundColor(Color(hex: "FDE047"))
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         triggerHaptic(.light)
@@ -498,6 +513,9 @@ struct BibleWallpaperMakerView: View {
             }
             .sheet(isPresented: $isShowingPaywall) {
                 PaywallView()
+            }
+            .sheet(isPresented: $isShowingAutomationSheet) {
+                WallpaperAutomationSheetView()
             }
         }
     }

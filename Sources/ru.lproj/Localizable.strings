@@ -246,6 +246,9 @@
 "lockscreen_preview" = "Экран блокировки";
 "save_wallpaper_button" = "Сохранить в Фотопленку";
 "wallpaper_saved_success" = "Обои успешно сохранены в Галерею!";
+"auto_wallpaper_nav_button" = "Авто-смена";
+"settings_auto_wallpaper_title" = "Ежедневная авто-смена обоев";
+"settings_auto_wallpaper_subtitle" = "Автоматическое обновление стиха дня на экране блокировки через Команды iOS";
 
 /* Widget Instruction Sheet */
 "widget_instruction_title" = "Как добавить виджет";

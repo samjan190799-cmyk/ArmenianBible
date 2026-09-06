@@ -246,6 +246,9 @@
 "lockscreen_preview" = "Կողպեքրան";
 "save_wallpaper_button" = "Պահպանել Լուսանկարներում";
 "wallpaper_saved_success" = "Պաստառը հաջողությամբ պահպանվեց!";
+"auto_wallpaper_nav_button" = "Ավտո-պաստառ";
+"settings_auto_wallpaper_title" = "Ամենօրյա ավտո-պաստառներ";
+"settings_auto_wallpaper_subtitle" = "Կողպման էկրանի ավտոմատ թարմացում օրվա տողով iOS Հրամանների միջոցով";
 
 /* Widget Instruction Sheet */
 "widget_instruction_title" = "Ինչպես ավելացնել վիդջեթը";

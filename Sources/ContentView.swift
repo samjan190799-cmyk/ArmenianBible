@@ -1674,6 +1674,7 @@ struct SettingsView: View {
     
     // Всплывающая инструкция по виджетам
     @State private var isShowingWidgetInstruction = false
+    @State private var isShowingWallpaperAutomation = false
     
     // 🔐 Панель разработчика (переключение Premium/Free по PIN-коду)
     @State private var secretTapCount = 0
@@ -1752,6 +1753,7 @@ struct SettingsView: View {
                         verseSourceScopeSection
                         contentTypeSection
                         widgetStyleSection
+                        autoWallpaperSection
                         lockScreenWidgetSection
                         aboutSection
                     }
@@ -1805,6 +1807,9 @@ struct SettingsView: View {
                     cardBorderColor: cardBorderColor,
                     primaryTextColor: primaryTextColor
                 )
+            }
+            .sheet(isPresented: $isShowingWallpaperAutomation) {
+                WallpaperAutomationSheetView()
             }
             .alert("Панель разработчика", isPresented: $isShowingDevPasscodeAlert) {
                 SecureField("Секретный PIN-код", text: $devPasscodeInput)
@@ -2851,6 +2856,85 @@ struct SettingsView: View {
         .cornerRadius(18)
         .overlay(
             RoundedRectangle(cornerRadius: 18)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var autoWallpaperSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "38BDF8").opacity(0.3), Color(hex: "0284C7").opacity(0.15)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(Color(hex: "38BDF8"))
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("settings_auto_wallpaper_title".localized(for: selectedLanguage))
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("NEW")
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: "0284C7"))
+                            .cornerRadius(5)
+                    }
+                    
+                    Text("settings_auto_wallpaper_subtitle".localized(for: selectedLanguage))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            
+            Button {
+                let generator = UIImpactFeedbackGenerator(style: .medium)
+                generator.impactOccurred()
+                isShowingWallpaperAutomation = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 14, weight: .bold))
+                    Text("auto_wallpaper_nav_button".localized(for: selectedLanguage))
+                        .font(.system(size: 14, weight: .bold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+                .foregroundColor(primaryTextColor)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Color.primary.opacity(0.05))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+        .padding(16)
+        .background(cardBackgroundColor)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(cardBorderColor, lineWidth: 1)
         )
         .padding(.horizontal, 4)

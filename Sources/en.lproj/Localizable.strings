@@ -246,6 +246,9 @@
 "lockscreen_preview" = "Lock Screen";
 "save_wallpaper_button" = "Save to Photos";
 "wallpaper_saved_success" = "Wallpaper saved to Photos!";
+"auto_wallpaper_nav_button" = "Auto-Change";
+"settings_auto_wallpaper_title" = "Daily Auto-Wallpaper";
+"settings_auto_wallpaper_subtitle" = "Automatically update Lock Screen with verse of the day via iOS Shortcuts";
 
 /* Widget Instruction Sheet */
 "widget_instruction_title" = "How to Add Widget";
