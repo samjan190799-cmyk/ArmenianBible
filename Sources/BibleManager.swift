@@ -38,6 +38,8 @@ class BibleManager: ObservableObject {
     @Published var deepLinkVerse: Int? = nil
     @Published var lastReadBookId: Int? = nil
     @Published var lastReadChapter: Int? = nil
+    @Published var readChaptersByBook: [Int: Set<Int>] = [:]
+    private let readChaptersKey = "bible_read_chapters_by_book"
     
     func openNarekatsi() {
         self.selectedReaderSection = 1
@@ -328,6 +330,17 @@ class BibleManager: ObservableObject {
                 self.lastReadChapter = savedChapter
             }
             
+            // Загрузка прочитанных глав Библии
+            if let savedDict = defaults.dictionary(forKey: readChaptersKey) as? [String: [Int]] {
+                var loaded: [Int: Set<Int>] = [:]
+                for (key, values) in savedDict {
+                    if let bookId = Int(key) {
+                        loaded[bookId] = Set(values)
+                    }
+                }
+                self.readChaptersByBook = loaded
+            }
+            
             // Гарантируем первоначальную инициализацию короткого стиха для экрана блокировки, если еще не настроен
             if defaults.string(forKey: "currentLockScreenVerseId") == nil {
                 syncLockScreenWidget()
@@ -335,7 +348,7 @@ class BibleManager: ObservableObject {
         }
     }
     
-    // MARK: - Сохранение последней позиции чтения
+    // MARK: - Сохранение последней позиции чтения и отметка главы как прочитанной
     func saveLastReadLocation(bookId: Int, chapter: Int) {
         if lastReadBookId != bookId || lastReadChapter != chapter {
             lastReadBookId = bookId
@@ -347,6 +360,49 @@ class BibleManager: ObservableObject {
                 defaults.set(chapter, forKey: "last_read_chapter_for_book_\(bookId)")
                 defaults.synchronize()
             }
+        }
+        markChapterAsRead(bookId: bookId, chapter: chapter)
+    }
+    
+    // MARK: - Учет прогресса чтения Библии
+    func markChapterAsRead(bookId: Int, chapter: Int) {
+        var currentSet = readChaptersByBook[bookId] ?? []
+        if !currentSet.contains(chapter) {
+            currentSet.insert(chapter)
+            readChaptersByBook[bookId] = currentSet
+            persistReadChapters()
+        }
+    }
+    
+    func isChapterRead(bookId: Int, chapter: Int) -> Bool {
+        return readChaptersByBook[bookId]?.contains(chapter) ?? false
+    }
+    
+    func toggleChapterRead(bookId: Int, chapter: Int) {
+        var currentSet = readChaptersByBook[bookId] ?? []
+        if currentSet.contains(chapter) {
+            currentSet.remove(chapter)
+        } else {
+            currentSet.insert(chapter)
+        }
+        readChaptersByBook[bookId] = currentSet
+        persistReadChapters()
+    }
+    
+    func getBookProgress(bookId: Int, totalChapters: Int) -> (readCount: Int, percent: Double) {
+        let count = readChaptersByBook[bookId]?.count ?? 0
+        let percent = totalChapters > 0 ? min(1.0, Double(count) / Double(totalChapters)) : 0.0
+        return (count, percent)
+    }
+    
+    private func persistReadChapters() {
+        if let defaults = sharedDefaults {
+            var saveDict: [String: [Int]] = [:]
+            for (bookId, set) in readChaptersByBook {
+                saveDict[String(bookId)] = Array(set).sorted()
+            }
+            defaults.set(saveDict, forKey: readChaptersKey)
+            defaults.synchronize()
         }
     }
     

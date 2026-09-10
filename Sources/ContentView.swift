@@ -1747,7 +1747,6 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         premiumMembershipSection
-                        aiProviderSection
                         appLanguageSection
                         appearanceModeSection
                         colorThemeSection
@@ -1962,34 +1961,6 @@ struct SettingsView: View {
     }
     
     // MARK: - Подсекции настроек
-    @ViewBuilder
-    private var aiProviderSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("ai_provider".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(primaryTextColor)
-            
-            Text("ai_provider_description".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
-                .lineSpacing(4)
-            
-            Picker("ai_provider", selection: $selectedProvider) {
-                ForEach(AIProvider.allCases) { provider in
-                    Text(provider.displayName).tag(provider)
-                }
-            }
-            .pickerStyle(.segmented)
-            .tint(colorScheme == .dark ? .white : .primary)
-            .padding(.vertical, 4)
-            .onChange(of: selectedProvider) { newProvider in
-                manager.setActiveProvider(newProvider)
-            }
-        }
-        .padding(.horizontal, 4)
-        .padding(.top, 10)
-    }
-    
     @ViewBuilder
     private var appLanguageSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -2211,130 +2182,326 @@ struct SettingsView: View {
         .padding(.horizontal, 4)
     }
     
+    // MARK: - Свайп-карусель ИИ-провайдеров
     @ViewBuilder
     private var apiKeysSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Заголовок секции с иконкой ключа
+            // Верхняя плашка заголовка секции
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(providerAccentColor(for: selectedProvider))
+                
+                Text("ai_provider".localized(for: selectedLanguage))
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+                
+                Spacer()
+                
+                // Бейдж текущей выбранной модели
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(providerAccentColor(for: selectedProvider))
+                        .frame(width: 6, height: 6)
+                    Text(selectedProvider.displayName)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(providerAccentColor(for: selectedProvider).opacity(0.12))
+                .cornerRadius(10)
+            }
+            .padding(.horizontal, 4)
+            
+            // Верхние переключатели-пилюли с плавной анимацией
+            HStack(spacing: 6) {
+                ForEach(AIProvider.allCases) { provider in
+                    let isSelected = selectedProvider == provider
+                    let pColor = providerAccentColor(for: provider)
+                    
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                            selectedProvider = provider
+                            manager.setActiveProvider(provider)
+                        }
+                        UISelectionFeedbackGenerator().selectionChanged()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: providerIconName(for: provider))
+                                .font(.system(size: 11, weight: .bold))
+                            Text(provider.displayName)
+                                .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                        }
+                        .foregroundColor(isSelected ? .white : primaryTextColor.opacity(0.7))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            ZStack {
+                                if isSelected {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [pColor, providerSecondaryColor(for: provider)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .shadow(color: pColor.opacity(0.35), radius: 6, y: 2)
+                                } else {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
+                                }
+                            }
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+            }
+            .padding(4)
+            .background(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.03) : Color.black.opacity(0.03))
+            )
+            .padding(.horizontal, 4)
+            
+            // Интерактивная свайп-карусель карточек с нативной пружинной физикой
+            TabView(selection: $selectedProvider) {
+                ForEach(AIProvider.allCases) { provider in
+                    aiProviderCard(for: provider)
+                        .tag(provider)
+                        .padding(.horizontal, 4)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: 245)
+            .onChange(of: selectedProvider) { newProvider in
+                manager.setActiveProvider(newProvider)
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
+            
+            // Нижние анимированные индикаторы страниц (dots) и подсказка свайпа
+            HStack {
+                Spacer()
+                HStack(spacing: 6) {
+                    ForEach(AIProvider.allCases) { provider in
+                        let isSelected = selectedProvider == provider
+                        let pColor = providerAccentColor(for: provider)
+                        
+                        Capsule()
+                            .fill(isSelected ? pColor : Color.secondary.opacity(0.3))
+                            .frame(width: isSelected ? 18 : 6, height: 6)
+                            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectedProvider)
+                    }
+                }
+                Spacer()
+            }
+            .padding(.top, 2)
+        }
+        .onChange(of: geminiKeyInput) { val in
+            manager.geminiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        .onChange(of: openaiKeyInput) { val in
+            manager.openaiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        .onChange(of: anthropicKeyInput) { val in
+            manager.anthropicApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+    
+    // MARK: - Карточка отдельного ИИ-провайдера
+    @ViewBuilder
+    private func aiProviderCard(for provider: AIProvider) -> some View {
+        let pColor = providerAccentColor(for: provider)
+        let isCurrentActive = manager.activeProvider == provider
+        
+        VStack(alignment: .leading, spacing: 12) {
+            // Верхняя плашка с иконкой, заголовком и статусом
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(Color(hex: selectedTheme.colorHex).opacity(0.15))
-                        .frame(width: 34, height: 34)
-                    Image(systemName: "key.fill")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        .fill(
+                            LinearGradient(
+                                colors: [pColor.opacity(0.25), providerSecondaryColor(for: provider).opacity(0.12)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 36, height: 36)
+                    Image(systemName: providerIconName(for: provider))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(pColor)
                 }
                 
-                switch selectedProvider {
-                case .gemini:
-                    Text("gemini_settings_title".localized(for: selectedLanguage))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(providerTitle(for: provider))
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(primaryTextColor)
-                case .chatgpt:
-                    Text("chatgpt_settings_title".localized(for: selectedLanguage))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(primaryTextColor)
-                case .claude:
-                    Text("claude_settings_title".localized(for: selectedLanguage))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(primaryTextColor)
+                    Text(providerModelSubtitle(for: provider))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(pColor.opacity(0.95))
+                }
+                
+                Spacer()
+                
+                if isCurrentActive {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 11))
+                        Text(activeBadgeText)
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(LinearGradient(colors: [pColor, providerSecondaryColor(for: provider)], startPoint: .leading, endPoint: .trailing))
+                    )
                 }
             }
-
-            // Описание
-            switch selectedProvider {
-            case .gemini:
-                Text("gemini_settings_description".localized(for: selectedLanguage))
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .lineSpacing(4)
-            case .chatgpt:
-                Text("chatgpt_settings_description".localized(for: selectedLanguage))
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .lineSpacing(4)
-            case .claude:
-                Text("claude_settings_description".localized(for: selectedLanguage))
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .lineSpacing(4)
-            }
-
-            // Поле ввода API ключа — явно видимое с высоким контрастом
+            
+            // Описание назначения модели
+            Text(providerDescription(for: provider))
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+                .lineSpacing(2)
+            
+            // Поле ввода API ключа
             VisibleApiKeyField(
-                placeholder: apiKeyPlaceholder,
-                text: apiKeyBinding,
-                accentColor: Color(hex: selectedTheme.colorHex)
+                placeholder: providerPlaceholder(for: provider),
+                text: providerKeyBinding(for: provider),
+                accentColor: pColor
             )
-
-            // Подтверждение сохранения
-            if apiKeyIsSaved {
-                HStack(spacing: 6) {
+            
+            // Статус сохранения ключа
+            HStack(spacing: 6) {
+                if isKeySaved(for: provider) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 13))
                         .foregroundColor(.green)
                     Text("api_key_saved".localized(for: selectedLanguage))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.green)
+                } else {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary.opacity(0.7))
+                    Text(apiKeyRequiredText)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary.opacity(0.7))
                 }
-                .padding(.horizontal, 4)
-                .padding(.top, 2)
+                
+                Spacer()
             }
+            .padding(.top, 2)
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(cardBackgroundColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color(hex: selectedTheme.colorHex).opacity(0.25), lineWidth: 1.2)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [pColor.opacity(0.6), pColor.opacity(0.15)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
         )
-        .padding(.horizontal, 4)
-        .onChange(of: apiKeyCurrentValue) { val in
-            saveApiKey(val)
+        .shadow(color: pColor.opacity(0.08), radius: 10, y: 4)
+    }
+    
+    // MARK: - Вспомогательные методы для ИИ-карусели
+    private func providerAccentColor(for provider: AIProvider) -> Color {
+        switch provider {
+        case .gemini: return Color(hex: "4E80EE")
+        case .chatgpt: return Color(hex: "10A37F")
+        case .claude: return Color(hex: "E07A5F")
         }
     }
-
-    // MARK: - Вспомогательные вычисляемые свойства для apiKeysSection
-    private var apiKeyPlaceholder: String {
-        switch selectedProvider {
+    
+    private func providerSecondaryColor(for provider: AIProvider) -> Color {
+        switch provider {
+        case .gemini: return Color(hex: "8E55EA")
+        case .chatgpt: return Color(hex: "059669")
+        case .claude: return Color(hex: "D97706")
+        }
+    }
+    
+    private func providerIconName(for provider: AIProvider) -> String {
+        switch provider {
+        case .gemini: return "sparkles"
+        case .chatgpt: return "bubble.left.and.text.bubble.right.fill"
+        case .claude: return "cpu.fill"
+        }
+    }
+    
+    private func providerModelSubtitle(for provider: AIProvider) -> String {
+        switch provider {
+        case .gemini: return "Google Gemini 2.5 / 3.5 Flash"
+        case .chatgpt: return "OpenAI GPT-4o / GPT-4o-mini"
+        case .claude: return "Anthropic Claude 3.5 Sonnet"
+        }
+    }
+    
+    private func providerTitle(for provider: AIProvider) -> String {
+        switch provider {
+        case .gemini: return "gemini_settings_title".localized(for: selectedLanguage)
+        case .chatgpt: return "chatgpt_settings_title".localized(for: selectedLanguage)
+        case .claude: return "claude_settings_title".localized(for: selectedLanguage)
+        }
+    }
+    
+    private func providerDescription(for provider: AIProvider) -> String {
+        switch provider {
+        case .gemini: return "gemini_settings_description".localized(for: selectedLanguage)
+        case .chatgpt: return "chatgpt_settings_description".localized(for: selectedLanguage)
+        case .claude: return "claude_settings_description".localized(for: selectedLanguage)
+        }
+    }
+    
+    private func providerPlaceholder(for provider: AIProvider) -> String {
+        switch provider {
         case .gemini: return "placeholder_gemini_key".localized(for: selectedLanguage)
         case .chatgpt: return "placeholder_openai_key".localized(for: selectedLanguage)
         case .claude: return "placeholder_anthropic_key".localized(for: selectedLanguage)
         }
     }
-
-    private var apiKeyBinding: Binding<String> {
-        switch selectedProvider {
+    
+    private func providerKeyBinding(for provider: AIProvider) -> Binding<String> {
+        switch provider {
         case .gemini: return $geminiKeyInput
         case .chatgpt: return $openaiKeyInput
         case .claude: return $anthropicKeyInput
         }
     }
-
-    private var apiKeyCurrentValue: String {
-        switch selectedProvider {
-        case .gemini: return geminiKeyInput
-        case .chatgpt: return openaiKeyInput
-        case .claude: return anthropicKeyInput
-        }
-    }
-
-    private var apiKeyIsSaved: Bool {
-        switch selectedProvider {
+    
+    private func isKeySaved(for provider: AIProvider) -> Bool {
+        switch provider {
         case .gemini: return !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty
         case .chatgpt: return !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty
         case .claude: return !manager.anthropicApiKey.isEmpty && !anthropicKeyInput.isEmpty
         }
     }
-
-    private func saveApiKey(_ val: String) {
-        let trimmed = val.trimmingCharacters(in: .whitespacesAndNewlines)
-        switch selectedProvider {
-        case .gemini: manager.geminiApiKey = trimmed
-        case .chatgpt: manager.openaiApiKey = trimmed
-        case .claude: manager.anthropicApiKey = trimmed
+    
+    private var activeBadgeText: String {
+        switch selectedLanguage {
+        case .armenian: return "Ակտիվ"
+        case .russian: return "Активная"
+        case .english: return "Active"
+        }
+    }
+    
+    private var apiKeyRequiredText: String {
+        switch selectedLanguage {
+        case .armenian: return "Մուտքագրեք անձնական API բանալին"
+        case .russian: return "Введите персональный API-ключ"
+        case .english: return "Enter personal API key"
         }
     }
     

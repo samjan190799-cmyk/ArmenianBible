@@ -4,7 +4,6 @@ import UIKit
 // MARK: - Варианты иконок приложения
 enum AppIconOption: String, CaseIterable, Identifiable {
     case classic = "classic"
-    case pitchBlack = "pitchBlack"
     case goldenGlow = "goldenGlow"
     case royalIndigo = "royalIndigo"
     
@@ -15,8 +14,6 @@ enum AppIconOption: String, CaseIterable, Identifiable {
         switch self {
         case .classic:
             return nil
-        case .pitchBlack:
-            return "AppIcon-PitchBlack"
         case .goldenGlow:
             return "AppIcon-GoldenGlow"
         case .royalIndigo:
@@ -29,8 +26,6 @@ enum AppIconOption: String, CaseIterable, Identifiable {
         switch self {
         case .classic:
             return "AppIcon-Classic"
-        case .pitchBlack:
-            return "AppIcon-PitchBlack"
         case .goldenGlow:
             return "AppIcon-GoldenGlow"
         case .royalIndigo:
@@ -43,7 +38,7 @@ enum AppIconOption: String, CaseIterable, Identifiable {
         switch self {
         case .classic:
             return false
-        case .pitchBlack, .goldenGlow, .royalIndigo:
+        case .goldenGlow, .royalIndigo:
             return true
         }
     }
@@ -55,12 +50,6 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .armenian: return "Դասական"
             case .russian: return "Классическая"
             case .english: return "Classic"
-            }
-        case .pitchBlack:
-            switch language {
-            case .armenian: return "OLED Pitch Black"
-            case .russian: return "OLED Pitch Black"
-            case .english: return "OLED Pitch Black"
             }
         case .goldenGlow:
             switch language {
@@ -84,12 +73,6 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .armenian: return "Ավանդական քարե խաչքար"
             case .russian: return "Традиционный каменный хачкар"
             case .english: return "Traditional stone cross"
-            }
-        case .pitchBlack:
-            switch language {
-            case .armenian: return "Խորը սև ֆոն և ոսկյա խաչքար"
-            case .russian: return "Глубокий черный фон и золотой хачкар"
-            case .english: return "Deep black OLED with golden cross"
             }
         case .goldenGlow:
             switch language {

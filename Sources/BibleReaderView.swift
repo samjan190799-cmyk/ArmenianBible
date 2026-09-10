@@ -4,7 +4,6 @@ struct BibleReaderView: View {
     @ObservedObject var manager = BibleManager.shared
     @State private var navigationPath: [BibleNavigationState] = []
     @State private var showingSearch = false
-    @State private var hasRestoredLocation = false
     
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
@@ -41,17 +40,15 @@ struct BibleReaderView: View {
                 }
             }
             .onAppear {
-                if manager.selectedReaderSection == 1 {
+                // При входе на экран Библии всегда открываем каталог книг
+                navigationPath = []
+                manager.selectedReaderSection = 0
+            }
+            .onChange(of: manager.activeTabSelection) { newTab in
+                if newTab == 3 {
+                    // Пользователь нажал на таб Библии — сразу сбрасываем в корень каталога книг
                     navigationPath = []
-                } else if !hasRestoredLocation {
-                    hasRestoredLocation = true
-                    if let bookId = manager.lastReadBookId,
-                       let chapter = manager.lastReadChapter,
-                       let book = BibleDatabase.shared.getBook(id: bookId) {
-                        navigationPath = [
-                            .reader(book: book, chapter: chapter, targetVerse: nil)
-                        ]
-                    }
+                    manager.selectedReaderSection = 0
                 }
             }
             .navigationTitle(manager.selectedReaderSection == 0 ? "tab_bible".localized(for: manager.appLanguage) : "narekatsi_title".localized(for: manager.appLanguage))
@@ -201,33 +198,84 @@ struct BibleBookListView: View {
                         }
                     } else {
                         ForEach(filteredBooks) { book in
+                            let progress = manager.getBookProgress(bookId: book.id, totalChapters: book.chaptersCount)
                             Button {
                                 let savedChapter = manager.getBookLastReadChapter(bookId: book.id)
                                 navigationPath.append(.reader(book: book, chapter: savedChapter, targetVerse: nil))
                             } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(book.name)
-                                            .font(.system(size: 16, weight: .bold, design: .serif))
-                                            .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
-                                        Text("\(book.chaptersCount) \("chapters_count_label".localized(for: manager.appLanguage))")
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundColor(.secondary)
+                                VStack(spacing: 8) {
+                                    HStack(alignment: .center) {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(book.name)
+                                                .font(.system(size: 16, weight: .bold, design: .serif))
+                                                .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                                            
+                                            HStack(spacing: 6) {
+                                                Text("\(book.chaptersCount) \("chapters_count_label".localized(for: manager.appLanguage))")
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                    .foregroundColor(.secondary)
+                                                
+                                                if progress.readCount > 0 {
+                                                    Text("•")
+                                                        .font(.system(size: 10, weight: .bold))
+                                                        .foregroundColor(.secondary.opacity(0.4))
+                                                    
+                                                    Text("\(progress.readCount)/\(book.chaptersCount)")
+                                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                                        .foregroundColor(progress.percent >= 1.0 ? Color(hex: "34D399") : accentColor)
+                                                    
+                                                    Text("(\(Int(progress.percent * 100))%)")
+                                                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                                        .foregroundColor(progress.percent >= 1.0 ? Color(hex: "34D399") : .secondary)
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        HStack(spacing: 6) {
+                                            if progress.percent >= 1.0 {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.system(size: 14, weight: .bold))
+                                                    .foregroundColor(Color(hex: "10B981"))
+                                            }
+                                            
+                                            Text(book.shortName)
+                                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                                .foregroundColor(accentColor.opacity(0.8))
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(accentColor.opacity(0.08))
+                                                .cornerRadius(6)
+                                            
+                                            Image(systemName: "chevron.right")
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundColor(.secondary.opacity(0.5))
+                                        }
                                     }
                                     
-                                    Spacer()
-                                    
-                                    Text(book.shortName)
-                                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                                        .foregroundColor(accentColor.opacity(0.8))
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(accentColor.opacity(0.08))
-                                        .cornerRadius(6)
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.secondary.opacity(0.5))
+                                    if progress.readCount > 0 {
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule()
+                                                    .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
+                                                    .frame(height: 3)
+                                                
+                                                Capsule()
+                                                    .fill(
+                                                        LinearGradient(
+                                                            colors: progress.percent >= 1.0
+                                                                ? [Color(hex: "10B981"), Color(hex: "34D399")]
+                                                                : [accentColor.opacity(0.7), accentColor],
+                                                            startPoint: .leading,
+                                                            endPoint: .trailing
+                                                        )
+                                                    )
+                                                    .frame(width: max(4, geo.size.width * CGFloat(min(progress.percent, 1.0))), height: 3)
+                                            }
+                                        }
+                                        .frame(height: 3)
+                                    }
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 14)
@@ -236,9 +284,9 @@ struct BibleBookListView: View {
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(cardBorderColor, lineWidth: 1.0)
-                                    )
-                                }
-                                .buttonStyle(ScaleButtonStyle())
+                                )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
                 }
@@ -619,21 +667,34 @@ struct BibleChapterReaderView: View {
                     
                     LazyVGrid(columns: gridItems, spacing: 12) {
                         ForEach(1...book.chaptersCount, id: \.self) { ch in
+                            let isCurrent = currentChapterIndex == ch - 1
+                            let isRead = manager.isChapterRead(bookId: book.id, chapter: ch)
                             Button {
                                 triggerHaptic(.light)
                                 currentChapterIndex = ch - 1
                                 showingChapterSheet = false
                             } label: {
-                                Text("\(ch)")
-                                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                                    .foregroundColor(currentChapterIndex == ch - 1 ? .white : (colorScheme == .dark ? .white : Color(hex: "1E293B")))
-                                    .frame(width: 55, height: 55)
-                                    .background(currentChapterIndex == ch - 1 ? accentColor : (colorScheme == .dark ? Color.white.opacity(0.04) : Color.white))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(currentChapterIndex == ch - 1 ? accentColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)), lineWidth: 1.0)
-                                    )
+                                ZStack(alignment: .topTrailing) {
+                                    Text("\(ch)")
+                                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                        .foregroundColor(isCurrent ? .white : (colorScheme == .dark ? .white : Color(hex: "1E293B")))
+                                        .frame(width: 55, height: 55)
+                                        .background(
+                                            isCurrent ? accentColor : (isRead ? accentColor.opacity(0.12) : (colorScheme == .dark ? Color.white.opacity(0.04) : Color.white))
+                                        )
+                                        .cornerRadius(12)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(isCurrent ? accentColor : (isRead ? accentColor.opacity(0.35) : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04))), lineWidth: 1.0)
+                                        )
+                                    
+                                    if isRead && !isCurrent {
+                                        Circle()
+                                            .fill(Color(hex: "10B981"))
+                                            .frame(width: 6, height: 6)
+                                            .padding(6)
+                                    }
+                                }
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }
