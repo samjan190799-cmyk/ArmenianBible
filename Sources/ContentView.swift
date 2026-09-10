@@ -2205,106 +2205,129 @@ struct SettingsView: View {
     
     @ViewBuilder
     private var apiKeysSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 14) {
+            // Заголовок секции с иконкой ключа
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: selectedTheme.colorHex).opacity(0.15))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: "key.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                }
+                
+                switch selectedProvider {
+                case .gemini:
+                    Text("gemini_settings_title".localized(for: selectedLanguage))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                case .chatgpt:
+                    Text("chatgpt_settings_title".localized(for: selectedLanguage))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                case .claude:
+                    Text("claude_settings_title".localized(for: selectedLanguage))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                }
+            }
+
+            // Описание
             switch selectedProvider {
             case .gemini:
-                Text("gemini_settings_title".localized(for: selectedLanguage))
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(primaryTextColor)
-                
                 Text("gemini_settings_description".localized(for: selectedLanguage))
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
                     .lineSpacing(4)
-                    .padding(.bottom, 6)
-                
-                SecureField("placeholder_gemini_key".localized(for: selectedLanguage), text: $geminiKeyInput)
-                    .font(.system(size: 15, design: .monospaced))
-                    .foregroundColor(primaryTextColor)
-                    .padding()
-                    .background(inputFieldBgColor)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(inputFieldBorderColor, lineWidth: 1)
-                    )
-                    .onChange(of: geminiKeyInput) { val in
-                        manager.geminiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
-                    }
-                
-                if !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty {
-                    Text("api_key_saved".localized(for: selectedLanguage))
-                        .font(.system(size: 12))
-                        .foregroundColor(.green)
-                        .padding(.horizontal, 4)
-                }
-                
             case .chatgpt:
-                Text("chatgpt_settings_title".localized(for: selectedLanguage))
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(primaryTextColor)
-                
                 Text("chatgpt_settings_description".localized(for: selectedLanguage))
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
                     .lineSpacing(4)
-                    .padding(.bottom, 6)
-                
-                SecureField("placeholder_openai_key".localized(for: selectedLanguage), text: $openaiKeyInput)
-                    .font(.system(size: 15, design: .monospaced))
-                    .foregroundColor(primaryTextColor)
-                    .padding()
-                    .background(inputFieldBgColor)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(inputFieldBorderColor, lineWidth: 1)
-                    )
-                    .onChange(of: openaiKeyInput) { val in
-                        manager.openaiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
-                    }
-                
-                if !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty {
-                    Text("api_key_saved".localized(for: selectedLanguage))
-                        .font(.system(size: 12))
-                        .foregroundColor(.green)
-                        .padding(.horizontal, 4)
-                }
-                
             case .claude:
-                Text("claude_settings_title".localized(for: selectedLanguage))
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(primaryTextColor)
-                
                 Text("claude_settings_description".localized(for: selectedLanguage))
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
                     .lineSpacing(4)
-                    .padding(.bottom, 6)
-                
-                SecureField("placeholder_anthropic_key".localized(for: selectedLanguage), text: $anthropicKeyInput)
-                    .font(.system(size: 15, design: .monospaced))
-                    .foregroundColor(primaryTextColor)
-                    .padding()
-                    .background(inputFieldBgColor)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(inputFieldBorderColor, lineWidth: 1)
-                    )
-                    .onChange(of: anthropicKeyInput) { val in
-                        manager.anthropicApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
-                    }
-                
-                if !manager.anthropicApiKey.isEmpty && !anthropicKeyInput.isEmpty {
-                    Text("api_key_saved".localized(for: selectedLanguage))
-                        .font(.system(size: 12))
+            }
+
+            // Поле ввода API ключа — явно видимое с высоким контрастом
+            VisibleApiKeyField(
+                placeholder: apiKeyPlaceholder,
+                text: apiKeyBinding,
+                accentColor: Color(hex: selectedTheme.colorHex)
+            )
+
+            // Подтверждение сохранения
+            if apiKeyIsSaved {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13))
                         .foregroundColor(.green)
-                        .padding(.horizontal, 4)
+                    Text("api_key_saved".localized(for: selectedLanguage))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.green)
                 }
+                .padding(.horizontal, 4)
+                .padding(.top, 2)
             }
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(cardBackgroundColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color(hex: selectedTheme.colorHex).opacity(0.25), lineWidth: 1.2)
+        )
         .padding(.horizontal, 4)
+        .onChange(of: apiKeyCurrentValue) { val in
+            saveApiKey(val)
+        }
+    }
+
+    // MARK: - Вспомогательные вычисляемые свойства для apiKeysSection
+    private var apiKeyPlaceholder: String {
+        switch selectedProvider {
+        case .gemini: return "placeholder_gemini_key".localized(for: selectedLanguage)
+        case .chatgpt: return "placeholder_openai_key".localized(for: selectedLanguage)
+        case .claude: return "placeholder_anthropic_key".localized(for: selectedLanguage)
+        }
+    }
+
+    private var apiKeyBinding: Binding<String> {
+        switch selectedProvider {
+        case .gemini: return $geminiKeyInput
+        case .chatgpt: return $openaiKeyInput
+        case .claude: return $anthropicKeyInput
+        }
+    }
+
+    private var apiKeyCurrentValue: String {
+        switch selectedProvider {
+        case .gemini: return geminiKeyInput
+        case .chatgpt: return openaiKeyInput
+        case .claude: return anthropicKeyInput
+        }
+    }
+
+    private var apiKeyIsSaved: Bool {
+        switch selectedProvider {
+        case .gemini: return !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty
+        case .chatgpt: return !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty
+        case .claude: return !manager.anthropicApiKey.isEmpty && !anthropicKeyInput.isEmpty
+        }
+    }
+
+    private func saveApiKey(_ val: String) {
+        let trimmed = val.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch selectedProvider {
+        case .gemini: manager.geminiApiKey = trimmed
+        case .chatgpt: manager.openaiApiKey = trimmed
+        case .claude: manager.anthropicApiKey = trimmed
+        }
     }
     
     @ViewBuilder
@@ -4009,3 +4032,62 @@ struct ReadingPlanBannerCardView: View {
     }
 }
 
+
+// MARK: - Visible API Key Field (high contrast, show/hide button)
+struct VisibleApiKeyField: View {
+    let placeholder: String
+    @Binding var text: String
+    let accentColor: Color
+
+    @State private var isRevealed: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var fieldBackground: Color {
+        colorScheme == .dark ? Color(white: 0.14) : Color(white: 0.96)
+    }
+
+    private var fieldBorderColor: Color {
+        text.isEmpty
+            ? (colorScheme == .dark ? Color(white: 0.32) : Color(white: 0.7))
+            : accentColor.opacity(0.7)
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            if isRevealed {
+                TextField(placeholder, text: $text)
+                    .font(.system(size: 14, design: .monospaced))
+                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    .autocapitalization(.none)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 13)
+            } else {
+                SecureField(placeholder, text: $text)
+                    .font(.system(size: 14, design: .monospaced))
+                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    .autocapitalization(.none)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 13)
+            }
+
+            Button {
+                isRevealed.toggle()
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } label: {
+                Image(systemName: isRevealed ? "eye.slash.fill" : "eye.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(accentColor.opacity(0.8))
+                    .frame(width: 44, height: 44)
+            }
+        }
+        .background(fieldBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(fieldBorderColor, lineWidth: 1.5)
+        )
+        .animation(.easeInOut(duration: 0.15), value: text.isEmpty)
+    }
+}

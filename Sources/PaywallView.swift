@@ -31,7 +31,7 @@ struct PaywallView: View {
     init() {}
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topTrailing) {
             // MARK: - Премиальный Темный Фон с Градиентом
             Color(hex: "08090E").ignoresSafeArea()
             
@@ -51,24 +51,8 @@ struct PaywallView: View {
             }
             .ignoresSafeArea()
             
-            ScrollView(showsIndicators: false) {
+            ScrollView(showsIndicators: true) {
                 VStack(spacing: 22) {
-                    
-                    // MARK: - Кнопка закрытия
-                    HStack {
-                        Spacer()
-                        Button {
-                            triggerHaptic(.light)
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
-                    
                     // MARK: - Заголовок и Золотой Венец
                     VStack(spacing: 12) {
                         ZStack {
@@ -247,7 +231,28 @@ struct PaywallView: View {
                     .padding(.bottom, 36)
                     .padding(.top, 6)
                 }
+                .padding(.top, 24)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
             }
+            
+            // MARK: - Всегда фиксированная кнопка закрытия (Apple HIG / 2.1.0 App Completeness)
+            Button {
+                triggerHaptic(.light)
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 32, weight: .semibold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.white.opacity(0.9), Color.white.opacity(0.25))
+                    .background(Circle().fill(Color(hex: "08090E").opacity(0.8)))
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
+            }
+            .frame(width: 44, height: 44)
+            .padding(.top, 14)
+            .padding(.trailing, 16)
+            .zIndex(999)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
@@ -328,7 +333,8 @@ struct PaywallView: View {
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
                         
-                        if let badge = plan.localizedBadge(for: language) {
+                        let product = subscriptionManager.products.first(where: { $0.id == plan.rawValue })
+                        if let badge = plan.localizedBadge(for: language, product: product) {
                             Text(badge)
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.black)
