@@ -343,8 +343,11 @@ struct FavoritesView: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                     }
+                    .scrollDismissesKeyboard(.interactively)
                 }
             }
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
             
             // MARK: - Toast уведомление
             if showCopiedToast {

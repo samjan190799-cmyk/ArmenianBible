@@ -65,6 +65,8 @@ struct ReadingPlansCatalogView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
+                    .frame(maxWidth: 680)
+                    .frame(maxWidth: .infinity)
                 }
             }
             .navigationTitle("reading_plans_title".localized(for: language))

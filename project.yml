@@ -34,7 +34,7 @@ targets:
         FacebookDisplayName: Armenian Bible
         UIBackgroundModes:
           - audio
-        UIRequiresFullScreen: true
+        UIRequiresFullScreen: false
         UILaunchScreen:
           UIColorName: LaunchBackground
           UIImageName: LaunchImage

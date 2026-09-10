@@ -132,8 +132,11 @@ struct BibleSearchView: View {
                             }
                         }
                         .listStyle(.plain)
+                        .scrollDismissesKeyboard(.interactively)
                     }
                 }
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
             }
             .navigationTitle("search_title".localized(for: manager.appLanguage))
             .navigationBarTitleDisplayMode(.inline)

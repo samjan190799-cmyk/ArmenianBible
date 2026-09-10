@@ -377,6 +377,8 @@ struct HomeView: View {
                     )
                 }
                 .padding(.bottom, 30)
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
             }
         }
         .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
@@ -1226,7 +1228,10 @@ struct AIGuideView: View {
                     }
                 }
                 .padding(.bottom, 40)
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .sheet(isPresented: $isShowingPaywall) {
             PaywallView()
@@ -1610,7 +1615,7 @@ struct ExplanationView: View {
         case .armenian:
             prompt = "Դու Աստվածաշնչի փորձագետ և աստվածաբան ես: Բացատրիր և մեկնաբանիր հետևյալ աստվածաշնչյան մեջբերումը՝ «\(manager.currentVerse.text)» (\(manager.currentVerse.reference)): Տուր խորը, բայց հասկանալի բացատրություն հայերեն լեզվով: \(depthPrompt) Գրիր գեղեցիկ, կառուցվածքային, բաժանված պարագրաֆների:"
         case .russian:
-            prompt = "Ты эксперт по Библии и богословию. Объясни и истолкуй следующий библейский стих: «\(manager.currentVerse.text)» (\(manager.currentVerse.reference)). Дай глубокое, богословское, но понятное толкование на русском языке. \(depthPrompt) Пиши структурированно, разделяя текст на логические абзацы."
+            prompt = "Ты эксперт по Библии и богословию. Объясни и истолкуй следующий библейский стих: «\(manager.currentVerse.text)» (\(manager.currentVerse.reference)). Дай глубокое, богословское, но понятное толкование на русском языке. \(depthPrompt) Пиши структурировано, разделяя текст на логические абзацы."
         case .english:
             prompt = "You are a Bible expert and theologian. Explain and interpret the following Bible verse: \"\(manager.currentVerse.text)\" (\(manager.currentVerse.reference)). Provide a deep theological but easy-to-understand explanation in English. \(depthPrompt) Write in clean, structured paragraphs."
         }
@@ -1758,7 +1763,10 @@ struct SettingsView: View {
                         aboutSection
                     }
                     .padding(20)
+                    .frame(maxWidth: 680)
+                    .frame(maxWidth: .infinity)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("settings_title".localized(for: selectedLanguage))
             .navigationBarTitleDisplayMode(.inline)

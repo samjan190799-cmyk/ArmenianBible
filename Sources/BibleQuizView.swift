@@ -385,6 +385,8 @@ struct BibleQuizView: View {
                     }
                 }
             }
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
             
             // MARK: - Оверлей ожидания генерации вопросов через ИИ
             if isGeneratingAI {

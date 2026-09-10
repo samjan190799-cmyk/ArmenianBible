@@ -197,6 +197,7 @@ struct NarekatsiView: View {
                         .padding(.bottom, 30)
                     }
                 }
+                .scrollDismissesKeyboard(.interactively)
             } else {
                 // ВКЛАДКА 2: ПОЛНОЦЕННЫЙ АУДИОПЛЕЕР С ПАМЯТЬЮ
                 ScrollView {
@@ -330,6 +331,8 @@ struct NarekatsiView: View {
                 }
             }
         }
+        .frame(maxWidth: 680)
+        .frame(maxWidth: .infinity)
         .background(backgroundColor.ignoresSafeArea())
         .overlay(
             VStack {

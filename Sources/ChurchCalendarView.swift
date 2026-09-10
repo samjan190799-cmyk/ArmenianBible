@@ -301,6 +301,8 @@ struct ChurchCalendarView: View {
                         .padding(.bottom, 24)
                     }
                 }
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
                 
                 // Toast
                 if showCopiedToast {

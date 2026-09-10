@@ -21,7 +21,7 @@
         <string>audio</string>
     </array>
     <key>UIRequiresFullScreen</key>
-    <true/>
+    <false/>
     <key>UILaunchScreen</key>
     <dict>
         <key>UIColorName</key>

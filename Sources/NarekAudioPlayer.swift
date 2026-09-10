@@ -30,6 +30,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         super.init()
         restorePlaybackState()
         setupRemoteCommandCenter()
+        setupAudioSessionNotifications()
     }
     
     // MARK: - Сохранение и Восстановление состояния
@@ -270,6 +271,65 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     @objc private func playerItemDidFinishPlaying(notification: Notification) {
         DispatchQueue.main.async {
             self.playNextPrayer()
+        }
+    }
+    
+    // MARK: - Системные уведомления AVAudioSession (Прерывания и отключение наушников)
+    
+    private func setupAudioSessionNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioInterruption(_:)),
+            name: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance()
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioRouteChange(_:)),
+            name: AVAudioSession.routeChangeNotification,
+            object: AVAudioSession.sharedInstance()
+        )
+    }
+    
+    @objc private func handleAudioInterruption(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+        
+        DispatchQueue.main.async {
+            switch type {
+            case .began:
+                // Системное прерывание (входящий звонок, Siri, будильник)
+                self.pause()
+            case .ended:
+                // Прерывание завершилось
+                guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else { return }
+                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                if options.contains(.shouldResume) {
+                    self.resume()
+                }
+            @unknown default:
+                break
+            }
+        }
+    }
+    
+    @objc private func handleAudioRouteChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
+            return
+        }
+        
+        // По стандартам Apple HIG: если наушники/AirPods отключены, звук ставится на паузу
+        if reason == .oldDeviceUnavailable {
+            DispatchQueue.main.async {
+                if self.isPlaying {
+                    self.pause()
+                }
+            }
         }
     }
     
