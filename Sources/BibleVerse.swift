@@ -197,6 +197,22 @@ enum AIProvider: String, CaseIterable, Identifiable, Codable {
         case .claude: return "Claude"
         }
     }
+    
+    var accentColorHex: String {
+        switch self {
+        case .gemini: return "4E80EE"
+        case .chatgpt: return "10A37F"
+        case .claude: return "E07A5F"
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .gemini: return "sparkles"
+        case .chatgpt: return "bubble.left.and.text.bubble.right.fill"
+        case .claude: return "cpu.fill"
+        }
+    }
 }
 
 // MARK: - Категория отображаемого текста

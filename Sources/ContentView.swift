@@ -919,19 +919,20 @@ struct AIGuideView: View {
     @ObservedObject var manager = BibleManager.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var questionText = ""
-    @State private var currentAnswer: BibleAnswer? = nil
     @State private var isAskingAI = false
     @State private var isShowingPaywall = false
     @State private var isShowingRewardedOffer = false
     
-    // Ошибки
+    // Ошибки и подтверждения
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
     @State private var showingNoKeyAlert = false
+    @State private var showingClearChatConfirmation = false
     
-    // Карточка экспорта
+    // Экспорт и Toast
     @State private var shareItem: ShareItem? = nil
-    @State private var animateAnswer = false
+    @State private var showCopiedToast = false
+    @State private var toastMessage = ""
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -945,7 +946,7 @@ struct AIGuideView: View {
         colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
     }
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
+        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.85)
     }
     private var cardBorderColor: LinearGradient {
         if colorScheme == .dark {
@@ -984,273 +985,111 @@ struct AIGuideView: View {
         ZStack {
             backgroundColor.ignoresSafeArea()
             
-            // Фоновое свечение
+            // Фоновое мягкое свечение
             RadialGradient(
-                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.06 : 0.04), Color.clear]),
+                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.07 : 0.04), Color.clear]),
                 center: .top,
                 startRadius: 50,
                 endRadius: 350
             )
             .ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Заголовок
-                    VStack(spacing: 8) {
-                        Text("ai_guide_title".localized(for: manager.appLanguage))
-                            .font(.system(size: 26, weight: .bold, design: .serif))
-                            .foregroundColor(primaryTextColor)
-                        Text("ai_guide_subtitle".localized(for: manager.appLanguage))
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 20)
-                        
-                        // Индикатор подписки / остатка бесплатных вопросов
-                        HStack(spacing: 6) {
-                            Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(hex: "F59E0B"))
-                            
-                            Text(subscriptionManager.isPremium ?
-                                 (manager.appLanguage == .armenian ? "PRO • Անսահմանափակ" : "PRO • Безлимитно") :
-                                 (manager.appLanguage == .armenian ? "Օրական մնացել է \(subscriptionManager.remainingFreeAiQuestions) անվճար հարց" : "Осталось \(subscriptionManager.remainingFreeAiQuestions) бесплатных вопроса на сегодня"))
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(subscriptionManager.isPremium ? Color(hex: "F59E0B") : .secondary)
-                            
-                            if !subscriptionManager.isPremium {
-                                Button {
-                                    triggerHaptic(.light)
-                                    isShowingPaywall = true
-                                } label: {
-                                    Text("PRO")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(accentColor)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(accentColor.opacity(0.12))
-                                        .cornerRadius(6)
-                                }
-                            }
-                        }
-                        .padding(.top, 2)
-                    }
-                    .padding(.top, 16)
-                    
-                    // Поле ввода вопроса
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .bottom, spacing: 10) {
-                            TextField("ai_placeholder_prompt".localized(for: manager.appLanguage), text: $questionText, axis: .vertical)
-                                .lineLimit(1...4)
-                                .font(.system(size: 15))
-                                .foregroundColor(primaryTextColor)
-                                .padding(14)
-                                .background(cardBackgroundColor)
-                                .cornerRadius(16)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(questionText.isEmpty ? Color.primary.opacity(0.06) : accentColor.opacity(0.5), lineWidth: 1.2)
-                                )
-                            
-                            Button {
-                                triggerHaptic(.medium)
-                                submitQuestion(questionText)
-                            } label: {
-                                Image(systemName: "paperplane.fill")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .padding(14)
-                                    .background(
-                                        questionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isAskingAI
-                                        ? Color.gray.opacity(0.3)
-                                        : accentColor
-                                    )
-                                    .clipShape(Circle())
-                            }
-                            .disabled(questionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isAskingAI)
-                            .buttonStyle(ScaleButtonStyle())
-                        }
-                        
-                        // Быстрые частые вопросы
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("suggested_questions_title".localized(for: manager.appLanguage))
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.secondary)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(suggestedQuestions) { sq in
-                                        Button {
-                                            triggerHaptic(.light)
-                                            let q = sq.key.localized(for: manager.appLanguage)
-                                            questionText = q
-                                            submitQuestion(q)
-                                        } label: {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: sq.icon)
-                                                    .font(.system(size: 12))
-                                                    .foregroundColor(secondaryAccentColor)
-                                                Text(sq.key.localized(for: manager.appLanguage))
-                                                    .font(.system(size: 13, weight: .medium))
-                                                    .foregroundColor(primaryTextColor)
-                                            }
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 8)
-                                            .background(cardBackgroundColor)
-                                            .cornerRadius(20)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 20)
-                                                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                                            )
+            VStack(spacing: 0) {
+                // 1. Верхняя панель чата (Header)
+                chatHeaderView
+                
+                Divider()
+                    .opacity(0.2)
+                
+                // 2. Область сообщений со скроллом к низу
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            if manager.aiChatMessages.isEmpty {
+                                chatWelcomeView
+                            } else {
+                                ForEach(manager.aiChatMessages) { msg in
+                                    AIChatBubbleRow(
+                                        message: msg,
+                                        manager: manager,
+                                        accentColor: accentColor,
+                                        secondaryAccentColor: secondaryAccentColor,
+                                        cardBackgroundColor: cardBackgroundColor,
+                                        cardBorderColor: cardBorderColor,
+                                        primaryTextColor: primaryTextColor,
+                                        onShareVerse: { verse in
+                                            shareVerse(verse)
+                                        },
+                                        onCopy: { text in
+                                            copyText(text)
                                         }
-                                        .buttonStyle(ScaleButtonStyle())
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.top, 6)
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    // MARK: - Баннерная Реклама Meta (на видном месте под блоком ввода)
-                    BannerAdView()
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 4)
-                    
-                    // Блок вывода результата с плавной анимацией
-                    if isAskingAI {
-                        VStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(accentColor.opacity(0.12))
-                                    .frame(width: 52, height: 52)
-                                ProgressView()
-                                    .tint(accentColor)
-                                    .scaleEffect(1.15)
-                            }
-                            Text("ai_searching_answer".localized(for: manager.appLanguage))
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 36)
-                        .transition(.scale(scale: 0.92).combined(with: .opacity))
-                    } else if let answer = currentAnswer {
-                        VStack(spacing: 20) {
-                            // 1. Духовный ответ ИИ
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "sparkles")
-                                        .foregroundColor(accentColor)
-                                    Text("ai_guide_title".localized(for: manager.appLanguage))
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(accentColor)
+                                    )
+                                    .id(msg.id)
                                 }
                                 
-                                Text(answer.answerText)
-                                    .font(.system(size: 15, weight: .regular))
-                                    .foregroundColor(primaryTextColor)
-                                    .lineSpacing(7)
-                                    .multilineTextAlignment(.leading)
-                            }
-                            .padding(22)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .fill(.ultraThinMaterial)
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .fill(cardBackgroundColor)
+                                if isAskingAI {
+                                    AIChatThinkingRow(
+                                        language: manager.appLanguage,
+                                        accentColor: accentColor,
+                                        cardBackgroundColor: cardBackgroundColor,
+                                        cardBorderColor: cardBorderColor,
+                                        primaryTextColor: primaryTextColor
+                                    )
+                                    .id("thinkingAnchor")
                                 }
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .stroke(cardBorderColor, lineWidth: 1.2)
-                            )
+                            }
                             
-                            // 2. Ключевой Библейский стих (если есть)
-                            if let verse = answer.verse {
-                                VStack(spacing: 16) {
-                                    Image(systemName: "laurel.leading")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(secondaryAccentColor.opacity(0.7))
-                                    
-                                    Text(verse.text)
-                                        .font(.system(size: 17, weight: .medium, design: .serif))
-                                        .foregroundColor(primaryTextColor)
-                                        .multilineTextAlignment(.center)
-                                        .lineSpacing(6)
-                                    
-                                    Text(verse.reference)
-                                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                                        .foregroundColor(secondaryAccentColor)
-                                    
-                                    HStack(spacing: 20) {
-                                        // Лайк (Избранное)
-                                        Button {
-                                            triggerHaptic(.light)
-                                            if manager.isFavorite(verse) {
-                                                manager.removeFromFavorites(verse)
-                                            } else {
-                                                manager.addToFavorites(verse)
-                                            }
-                                        } label: {
-                                            Image(systemName: manager.isFavorite(verse) ? "heart.fill" : "heart")
-                                                .font(.system(size: 18, weight: .semibold))
-                                                .foregroundColor(manager.isFavorite(verse) ? .red : primaryTextColor.opacity(0.4))
-                                                .padding(10)
-                                                .background(primaryTextColor.opacity(0.04))
-                                                .clipShape(Circle())
-                                        }
-                                        .buttonStyle(ScaleButtonStyle())
-                                        
-                                        // Поделиться открыткой
-                                        Button {
-                                            triggerHaptic(.medium)
-                                            shareVerse(verse)
-                                        } label: {
-                                            Image(systemName: "square.and.arrow.up")
-                                                .font(.system(size: 18, weight: .semibold))
-                                                .foregroundColor(primaryTextColor.opacity(0.4))
-                                                .padding(10)
-                                                .background(primaryTextColor.opacity(0.04))
-                                                .clipShape(Circle())
-                                        }
-                                        .buttonStyle(ScaleButtonStyle())
-                                    }
-                                }
-                                .padding(22)
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                            .fill(.ultraThinMaterial)
-                                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                            .fill(cardBackgroundColor)
-                                    }
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .stroke(cardBorderColor, lineWidth: 1.2)
-                                )
-                            }
+                            // Якорь прокрутки
+                            Color.clear
+                                .frame(height: 1)
+                                .id("bottomChatAnchor")
                         }
-                        .padding(.horizontal, 20)
-                        .opacity(animateAnswer ? 1 : 0)
-                        .offset(y: animateAnswer ? 0 : 15)
-                        .onAppear {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                animateAnswer = true
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 12)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    .onChange(of: manager.aiChatMessages.count) { _ in
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                            proxy.scrollTo("bottomChatAnchor", anchor: .bottom)
+                        }
+                    }
+                    .onChange(of: isAskingAI) { asking in
+                        if asking {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                                proxy.scrollTo("bottomChatAnchor", anchor: .bottom)
                             }
                         }
                     }
                 }
-                .padding(.bottom, 40)
-                .frame(maxWidth: 680)
-                .frame(maxWidth: .infinity)
+                
+                // 3. Нижняя панель ввода (Bottom Input Bar)
+                chatBottomInputBar
             }
-            .scrollDismissesKeyboard(.interactively)
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
+            
+            // Всплывающий Toast о копировании
+            if showCopiedToast {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(toastMessage)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.black.opacity(0.85))
+                    .cornerRadius(25)
+                    .shadow(radius: 10)
+                    .padding(.bottom, 80)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showCopiedToast)
+            }
         }
         .sheet(isPresented: $isShowingPaywall) {
             PaywallView()
@@ -1288,6 +1127,376 @@ struct AIGuideView: View {
         } message: {
             Text(errorMessage)
         }
+        .confirmationDialog(
+            manager.appLanguage == .armenian ? "Ջնջե՞լ զրույցի պատմությունը" : (manager.appLanguage == .russian ? "Очистить историю чата?" : "Clear chat history?"),
+            isPresented: $showingClearChatConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(
+                manager.appLanguage == .armenian ? "Մաքրել զրույցը" : (manager.appLanguage == .russian ? "Очистить чат" : "Clear Chat"),
+                role: .destructive
+            ) {
+                triggerHaptic(.medium)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    manager.clearAIChat()
+                }
+            }
+            Button("alert_cancel_button".localized(for: manager.appLanguage), role: .cancel) {}
+        }
+    }
+    
+    // MARK: - Верхняя панель (Header)
+    private var chatHeaderView: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
+                    Text("ai_guide_title".localized(for: manager.appLanguage))
+                        .font(.system(size: 20, weight: .bold, design: .serif))
+                        .foregroundColor(primaryTextColor)
+                    
+                    // Меню переключения активной модели ИИ
+                    Menu {
+                        ForEach(AIProvider.allCases) { provider in
+                            Button {
+                                triggerHaptic(.medium)
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    manager.activeProvider = provider
+                                }
+                            } label: {
+                                HStack {
+                                    Text(provider.displayName)
+                                    if manager.activeProvider == provider {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(Color(hex: manager.activeProvider.accentColorHex))
+                                .frame(width: 6, height: 6)
+                            Text(manager.activeProvider.displayName)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(primaryTextColor)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color(hex: manager.activeProvider.accentColorHex).opacity(0.12))
+                        .cornerRadius(8)
+                    }
+                }
+                
+                // Статус подписки
+                HStack(spacing: 5) {
+                    Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                    
+                    Text(subscriptionManager.isPremium ?
+                         (manager.appLanguage == .armenian ? "PRO • Անսահմանափակ" : (manager.appLanguage == .russian ? "PRO • Безлимитно" : "PRO • Unlimited")) :
+                         (manager.appLanguage == .armenian ? "Մնացել է \(subscriptionManager.remainingFreeAiQuestions) հարց" : (manager.appLanguage == .russian ? "Осталось \(subscriptionManager.remainingFreeAiQuestions) вопр." : "\(subscriptionManager.remainingFreeAiQuestions) questions left")))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(subscriptionManager.isPremium ? Color(hex: "F59E0B") : .secondary)
+                    
+                    if !subscriptionManager.isPremium {
+                        Button {
+                            triggerHaptic(.light)
+                            isShowingPaywall = true
+                        } label: {
+                            Text("PRO")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(accentColor)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(accentColor.opacity(0.12))
+                                .cornerRadius(4)
+                        }
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // Кнопка очистки истории диалога
+            if !manager.aiChatMessages.isEmpty {
+                Button {
+                    triggerHaptic(.light)
+                    showingClearChatConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .padding(9)
+                        .background(cardBackgroundColor)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+    }
+    
+    // MARK: - Приветственный экран, если чат еще пуст
+    private var chatWelcomeView: some View {
+        VStack(spacing: 20) {
+            Spacer().frame(height: 10)
+            
+            ZStack {
+                Circle()
+                    .fill(accentColor.opacity(0.12))
+                    .frame(width: 68, height: 68)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 30))
+                    .foregroundColor(accentColor)
+            }
+            
+            VStack(spacing: 6) {
+                Text("ai_guide_title".localized(for: manager.appLanguage))
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundColor(primaryTextColor)
+                
+                Text("ai_guide_subtitle".localized(for: manager.appLanguage))
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+                    .lineSpacing(4)
+            }
+            
+            // MARK: - Переключатель моделей ИИ
+            HStack(spacing: 8) {
+                ForEach(AIProvider.allCases) { provider in
+                    Button {
+                        triggerHaptic(.light)
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            manager.activeProvider = provider
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: provider.iconName)
+                                .font(.system(size: 11, weight: .bold))
+                            Text(provider.displayName)
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(manager.activeProvider == provider ? .white : primaryTextColor.opacity(0.7))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            manager.activeProvider == provider ?
+                            Color(hex: provider.accentColorHex) :
+                            cardBackgroundColor
+                        )
+                        .cornerRadius(20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(manager.activeProvider == provider ? Color.clear : Color.primary.opacity(0.08), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+            }
+            .padding(.vertical, 2)
+            
+            // MARK: - Баннерная Реклама Meta
+            BannerAdView()
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+            
+            // Подсказки быстрых вопросов
+            VStack(alignment: .leading, spacing: 10) {
+                Text("suggested_questions_title".localized(for: manager.appLanguage))
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 4)
+                
+                ForEach(suggestedQuestions) { sq in
+                    Button {
+                        triggerHaptic(.medium)
+                        let q = sq.key.localized(for: manager.appLanguage)
+                        submitQuestion(q)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: sq.icon)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(secondaryAccentColor)
+                                .frame(width: 22)
+                            
+                            Text(sq.key.localized(for: manager.appLanguage))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(primaryTextColor)
+                                .multilineTextAlignment(.leading)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.secondary.opacity(0.5))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(cardBackgroundColor)
+                        .cornerRadius(14)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+            }
+            .padding(.horizontal, 4)
+        }
+    }
+    
+    // MARK: - Нижняя панель ввода (Bottom Input Bar)
+    private var chatBottomInputBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .opacity(0.3)
+            
+            HStack(alignment: .bottom, spacing: 10) {
+                TextField("ai_placeholder_prompt".localized(for: manager.appLanguage), text: $questionText, axis: .vertical)
+                    .lineLimit(1...5)
+                    .font(.system(size: 15))
+                    .foregroundColor(primaryTextColor)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(cardBackgroundColor)
+                    .cornerRadius(20)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(questionText.isEmpty ? Color.primary.opacity(0.08) : accentColor.opacity(0.5), lineWidth: 1.2)
+                    )
+                
+                Button {
+                    triggerHaptic(.medium)
+                    let textToSend = questionText
+                    questionText = ""
+                    submitQuestion(textToSend)
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(canSubmit ? accentColor : Color.gray.opacity(0.3))
+                            .frame(width: 42, height: 42)
+                        
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .offset(x: -1, y: 1)
+                    }
+                }
+                .disabled(!canSubmit)
+                .buttonStyle(ScaleButtonStyle())
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial)
+        }
+    }
+    
+    private var canSubmit: Bool {
+        !questionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isAskingAI
+    }
+    
+    // MARK: - Логика отправки вопроса
+    private func submitQuestion(_ rawQuestion: String) {
+        let trimmed = rawQuestion.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        
+        if !subscriptionManager.canAskAI() {
+            triggerHaptic(.heavy)
+            isShowingRewardedOffer = true
+            return
+        }
+        
+        let key: String
+        switch manager.activeProvider {
+        case .gemini: key = manager.geminiApiKey
+        case .chatgpt: key = manager.openaiApiKey
+        case .claude: key = manager.anthropicApiKey
+        }
+        
+        if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            triggerHaptic(.heavy)
+            showingNoKeyAlert = true
+            return
+        }
+        
+        // Добавляем вопрос пользователя в историю чата
+        let userMessage = AIChatMessage(isUser: true, text: trimmed)
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            manager.addAIChatMessage(userMessage)
+            isAskingAI = true
+        }
+        
+        manager.askBibleAI(question: trimmed) { result in
+            DispatchQueue.main.async {
+                self.isAskingAI = false
+                switch result {
+                case .success(let answer):
+                    self.subscriptionManager.recordAiQuestionUsed()
+                    let aiMessage = AIChatMessage(
+                        isUser: false,
+                        text: answer.answerText,
+                        verse: answer.verse
+                    )
+                    withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
+                        self.manager.addAIChatMessage(aiMessage)
+                    }
+                case .failure(let error):
+                    let prefix = "error_generation_prefix".localized(for: manager.appLanguage)
+                    self.errorMessage = "\(prefix)\(error.localizedDescription)"
+                    self.showingErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    private func copyText(_ text: String) {
+        triggerHaptic(.light)
+        UIPasteboard.general.string = text
+        toastMessage = "copied_to_clipboard".localized(for: manager.appLanguage)
+        withAnimation {
+            showCopiedToast = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            withAnimation {
+                showCopiedToast = false
+            }
+        }
+    }
+    
+    @MainActor
+    private func shareVerse(_ verse: BibleVerse) {
+        let exportView = VerseCardExportView(
+            verse: verse,
+            theme: manager.accentTheme,
+            colorScheme: colorScheme
+        )
+        let hostingController = UIHostingController(rootView: exportView)
+        hostingController.view.frame = CGRect(x: 0, y: 0, width: 1080, height: 1080)
+        hostingController.view.backgroundColor = UIColor.clear
+        hostingController.view.setNeedsLayout()
+        hostingController.view.layoutIfNeeded()
+        
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1080, height: 1080))
+        let image = renderer.image { context in
+            hostingController.view.drawHierarchy(in: hostingController.view.bounds, afterScreenUpdates: true)
+        }
+        self.shareItem = ShareItem(image: image)
+    }
+    
+    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
     }
     
     // MARK: - Локализация предложений Rewarded рекламы
@@ -1322,76 +1531,229 @@ struct AIGuideView: View {
         case .english: return "Upgrade to Premium"
         }
     }
+}
+
+// MARK: - Строка сообщения чата (Bubble Row)
+
+struct AIChatBubbleRow: View {
+    let message: AIChatMessage
+    @ObservedObject var manager: BibleManager
+    let accentColor: Color
+    let secondaryAccentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    let onShareVerse: (BibleVerse) -> Void
+    let onCopy: (String) -> Void
     
-    private func submitQuestion(_ question: String) {
-        if !subscriptionManager.canAskAI() {
-            triggerHaptic(.heavy)
-            isShowingRewardedOffer = true
-            return
-        }
-        
-        let key: String
-        switch manager.activeProvider {
-        case .gemini:
-            key = manager.geminiApiKey
-        case .chatgpt:
-            key = manager.openaiApiKey
-        case .claude:
-            key = manager.anthropicApiKey
-        }
-        
-        if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            triggerHaptic(.heavy)
-            showingNoKeyAlert = true
-            return
-        }
-        
-        isAskingAI = true
-        animateAnswer = false
-        
-        manager.askBibleAI(question: question) { result in
-            DispatchQueue.main.async {
-                self.isAskingAI = false
-                switch result {
-                case .success(let answer):
-                    self.subscriptionManager.recordAiQuestionUsed()
-                    self.currentAnswer = answer
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        self.animateAnswer = true
+    @State private var isHeartBouncing = false
+    
+    var body: some View {
+        if message.isUser {
+            // Сообщение пользователя (справа)
+            HStack {
+                Spacer(minLength: 44)
+                
+                Text(message.text)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        LinearGradient(
+                            colors: [accentColor, accentColor.opacity(0.85)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .shadow(color: accentColor.opacity(0.25), radius: 6, y: 3)
+            }
+        } else {
+            // Ответ Духовного Помощника (слева)
+            HStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Заголовок карточки ответа
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(accentColor)
+                        Text("ai_guide_title".localized(for: manager.appLanguage))
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(accentColor)
+                        
+                        Spacer()
+                        
+                        // Кнопка копирования ответа
+                        Button {
+                            onCopy(message.text)
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
                     }
-                case .failure(let error):
-                    let prefix = "error_generation_prefix".localized(for: manager.appLanguage)
-                    self.errorMessage = "\(prefix)\(error.localizedDescription)"
-                    self.showingErrorAlert = true
+                    
+                    Text(message.text)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(primaryTextColor)
+                        .lineSpacing(6)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    // Если есть цитируемый стих
+                    if let verse = message.verse {
+                        VStack(spacing: 12) {
+                            HStack {
+                                Image(systemName: "laurel.leading")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(secondaryAccentColor.opacity(0.7))
+                                Spacer()
+                                Image(systemName: "laurel.trailing")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(secondaryAccentColor.opacity(0.7))
+                            }
+                            
+                            Text(verse.text)
+                                .font(.system(size: 15, weight: .medium, design: .serif))
+                                .foregroundColor(primaryTextColor)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(5)
+                            
+                            Text(verse.reference)
+                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .foregroundColor(secondaryAccentColor)
+                            
+                            // Кнопки управления стихом
+                            HStack(spacing: 18) {
+                                // Добавить в Избранное
+                                Button {
+                                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) {
+                                        if manager.isFavorite(verse) {
+                                            manager.removeFromFavorites(verse)
+                                        } else {
+                                            manager.addToFavorites(verse)
+                                            isHeartBouncing = true
+                                        }
+                                    }
+                                    if isHeartBouncing {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                                            withAnimation(.easeOut(duration: 0.15)) {
+                                                isHeartBouncing = false
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: manager.isFavorite(verse) ? "heart.fill" : "heart")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(manager.isFavorite(verse) ? .red : primaryTextColor.opacity(0.5))
+                                        .scaleEffect(isHeartBouncing ? 1.3 : 1.0)
+                                        .padding(8)
+                                        .background(primaryTextColor.opacity(0.04))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                                
+                                // Поделиться открыткой
+                                Button {
+                                    onShareVerse(verse)
+                                } label: {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(primaryTextColor.opacity(0.5))
+                                        .padding(8)
+                                        .background(primaryTextColor.opacity(0.04))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                                
+                                // Скопировать стих
+                                Button {
+                                    onCopy("\(verse.text)\n— \(verse.reference)")
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(primaryTextColor.opacity(0.5))
+                                        .padding(8)
+                                        .background(primaryTextColor.opacity(0.04))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity)
+                        .background(cardBackgroundColor.opacity(0.6))
+                        .cornerRadius(14)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                        )
+                    }
                 }
+                .padding(16)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(cardBackgroundColor)
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(cardBorderColor, lineWidth: 1.2)
+                )
+                
+                Spacer(minLength: 32)
             }
         }
     }
+}
+
+// MARK: - Индикатор размышления ИИ (Thinking Bubble)
+
+struct AIChatThinkingRow: View {
+    let language: AppLanguage
+    let accentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
     
-    @MainActor
-    private func shareVerse(_ verse: BibleVerse) {
-        let exportView = VerseCardExportView(
-            verse: verse,
-            theme: manager.accentTheme,
-            colorScheme: colorScheme
-        )
-        let hostingController = UIHostingController(rootView: exportView)
-        hostingController.view.frame = CGRect(x: 0, y: 0, width: 1080, height: 1080)
-        hostingController.view.backgroundColor = UIColor.clear
-        hostingController.view.setNeedsLayout()
-        hostingController.view.layoutIfNeeded()
-        
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1080, height: 1080))
-        let image = renderer.image { context in
-            hostingController.view.drawHierarchy(in: hostingController.view.bounds, afterScreenUpdates: true)
+    var body: some View {
+        HStack {
+            HStack(spacing: 10) {
+                ProgressView()
+                    .tint(accentColor)
+                    .scaleEffect(0.9)
+                
+                Text("ai_searching_answer".localized(for: language))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(cardBackgroundColor)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(cardBorderColor, lineWidth: 1)
+            )
+            .transition(.scale(scale: 0.92).combined(with: .opacity))
+            
+            Spacer(minLength: 40)
         }
-        self.shareItem = ShareItem(image: image)
-    }
-    
-    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
     }
 }
 

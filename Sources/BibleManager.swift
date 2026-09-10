@@ -41,6 +41,33 @@ class BibleManager: ObservableObject {
     @Published var readChaptersByBook: [Int: Set<Int>] = [:]
     private let readChaptersKey = "bible_read_chapters_by_book"
     
+    // MARK: - История сообщений чата Духовного Помощника
+    @Published var aiChatMessages: [AIChatMessage] = []
+    private let aiChatMessagesKey = "ai_spiritual_chat_messages"
+    
+    func addAIChatMessage(_ message: AIChatMessage) {
+        aiChatMessages.append(message)
+        saveAIChat()
+    }
+    
+    func clearAIChat() {
+        aiChatMessages.removeAll()
+        UserDefaults.standard.removeObject(forKey: aiChatMessagesKey)
+    }
+    
+    private func saveAIChat() {
+        if let data = try? JSONEncoder().encode(aiChatMessages) {
+            UserDefaults.standard.set(data, forKey: aiChatMessagesKey)
+        }
+    }
+    
+    private func loadAIChat() {
+        if let data = UserDefaults.standard.data(forKey: aiChatMessagesKey),
+           let messages = try? JSONDecoder().decode([AIChatMessage].self, from: data) {
+            self.aiChatMessages = messages
+        }
+    }
+    
     func openNarekatsi() {
         self.selectedReaderSection = 1
         self.activeTabSelection = 3
@@ -346,6 +373,9 @@ class BibleManager: ObservableObject {
                 syncLockScreenWidget()
             }
         }
+        
+        // Загрузка сохраненной истории чата духовного помощника
+        loadAIChat()
     }
     
     // MARK: - Сохранение последней позиции чтения и отметка главы как прочитанной
@@ -1340,4 +1370,19 @@ struct BibleAnswer {
     let verse: BibleVerse?
 }
 
-
+// MARK: - Сообщение в чате Духовного Помощника
+struct AIChatMessage: Identifiable, Codable, Equatable {
+    let id: UUID
+    let isUser: Bool
+    let text: String
+    let verse: BibleVerse?
+    let timestamp: Date
+    
+    init(id: UUID = UUID(), isUser: Bool, text: String, verse: BibleVerse? = nil, timestamp: Date = Date()) {
+        self.id = id
+        self.isUser = isUser
+        self.text = text
+        self.verse = verse
+        self.timestamp = timestamp
+    }
+}
