@@ -161,6 +161,7 @@ struct PaywallView: View {
                             planCard(plan: plan)
                         }
                     }
+                    .animation(.spring(response: 0.3, dampingFraction: 0.72), value: selectedPlan)
                     .padding(.horizontal, 20)
                     
                     // MARK: - Главная Кнопка Покупки (CTA)
@@ -310,7 +311,7 @@ struct PaywallView: View {
         
         return Button {
             triggerHaptic(.selection)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.72)) {
                 selectedPlan = plan
             }
         } label: {
@@ -324,6 +325,7 @@ struct PaywallView: View {
                         Circle()
                             .fill(Color(hex: "F59E0B"))
                             .frame(width: 12, height: 12)
+                            .transition(.scale.combined(with: .opacity))
                     }
                 }
                 
@@ -354,6 +356,7 @@ struct PaywallView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
+            .scaleEffect(isSelected ? 1.02 : 1.0)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(isSelected ? Color(hex: "F59E0B").opacity(0.12) : Color.white.opacity(0.04))
@@ -363,7 +366,7 @@ struct PaywallView: View {
                     .stroke(isSelected ? Color(hex: "F59E0B") : Color.white.opacity(0.08), lineWidth: isSelected ? 1.8 : 1)
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(ScaleButtonStyle())
     }
     
     private func displayPrice(for plan: SubscriptionPlan) -> String {

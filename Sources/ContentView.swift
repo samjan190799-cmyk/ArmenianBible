@@ -42,6 +42,7 @@ struct HomeView: View {
     @ObservedObject var manager = BibleManager.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var animateVerse = false
+    @State private var isHeartBouncing = false
     @State private var isShowingSettings = false
     @State private var isShowingReadingPlans = false
     @State private var isShowingQuiz = false
@@ -216,18 +217,29 @@ struct HomeView: View {
                         
                         // Кнопки управления стихом: Избранное, Обои, Аудио-озвучка, Поделиться
                         HStack(spacing: 24) {
-                            // 1. Кнопка Лайка (Избранное)
+                            // 1. Кнопка Лайка (Избранное) с упругой пружинной анимацией
                             Button {
-                                triggerHaptic(.light)
-                                if manager.isFavorite(manager.currentVerse) {
-                                    manager.removeFromFavorites(manager.currentVerse)
-                                } else {
-                                    manager.addToFavorites(manager.currentVerse)
+                                triggerHaptic(.medium)
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) {
+                                    if manager.isFavorite(manager.currentVerse) {
+                                        manager.removeFromFavorites(manager.currentVerse)
+                                    } else {
+                                        manager.addToFavorites(manager.currentVerse)
+                                        isHeartBouncing = true
+                                    }
+                                }
+                                if isHeartBouncing {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                                        withAnimation(.easeOut(duration: 0.15)) {
+                                            isHeartBouncing = false
+                                        }
+                                    }
                                 }
                             } label: {
                                 Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(manager.isFavorite(manager.currentVerse) ? .red : primaryTextColor.opacity(0.6))
+                                    .scaleEffect(isHeartBouncing ? 1.32 : 1.0)
                                     .padding(11)
                                     .background(primaryTextColor.opacity(0.05))
                                     .clipShape(Circle())
@@ -1105,16 +1117,23 @@ struct AIGuideView: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 4)
                     
-                    // Блок вывода результата
+                    // Блок вывода результата с плавной анимацией
                     if isAskingAI {
-                        VStack(spacing: 12) {
-                            ProgressView()
-                                .tint(accentColor)
+                        VStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(accentColor.opacity(0.12))
+                                    .frame(width: 52, height: 52)
+                                ProgressView()
+                                    .tint(accentColor)
+                                    .scaleEffect(1.15)
+                            }
                             Text("ai_searching_answer".localized(for: manager.appLanguage))
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
-                        .padding(.vertical, 40)
+                        .padding(.vertical, 36)
+                        .transition(.scale(scale: 0.92).combined(with: .opacity))
                     } else if let answer = currentAnswer {
                         VStack(spacing: 20) {
                             // 1. Духовный ответ ИИ
@@ -2024,16 +2043,19 @@ struct SettingsView: View {
             
             HStack(spacing: 16) {
                 ForEach(AccentColorTheme.allCases) { theme in
+                    let isSelected = selectedTheme == theme
                     ZStack {
                         Circle()
                             .fill(Color(hex: theme.colorHex))
                             .frame(width: 40, height: 40)
-                            .shadow(color: Color(hex: theme.colorHex).opacity(0.3), radius: 4, y: 2)
+                            .scaleEffect(isSelected ? 1.08 : 1.0)
+                            .shadow(color: Color(hex: theme.colorHex).opacity(isSelected ? 0.45 : 0.2), radius: isSelected ? 6 : 4, y: 2)
                         
-                        if selectedTheme == theme {
+                        if isSelected {
                             Circle()
                                 .stroke(primaryTextColor, lineWidth: 2)
-                                .frame(width: 48, height: 48)
+                                .frame(width: 50, height: 50)
+                                .transition(.scale.combined(with: .opacity))
                         }
                     }
                     .contentShape(Circle())
@@ -2041,11 +2063,14 @@ struct SettingsView: View {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.prepare()
                         generator.impactOccurred()
-                        selectedTheme = theme
-                        manager.setAccentTheme(theme)
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selectedTheme = theme
+                            manager.setAccentTheme(theme)
+                        }
                     }
                 }
             }
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTheme)
             .padding(.vertical, 6)
         }
         .padding(.horizontal, 4)
@@ -2099,8 +2124,10 @@ struct SettingsView: View {
                             let generator = UIImpactFeedbackGenerator(style: .medium)
                             generator.impactOccurred()
                             
-                            appIconManager.selectIcon(option) {
-                                isShowingPaywall = true
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
+                                appIconManager.selectIcon(option) {
+                                    isShowingPaywall = true
+                                }
                             }
                         } label: {
                             VStack(spacing: 8) {
@@ -2109,6 +2136,7 @@ struct SettingsView: View {
                                         .resizable()
                                         .aspectRatio(contentMode: .fit)
                                         .frame(width: 68, height: 68)
+                                        .scaleEffect(isSelected ? 1.04 : 1.0)
                                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -2126,6 +2154,7 @@ struct SettingsView: View {
                                                 .foregroundColor(.white)
                                         }
                                         .offset(x: 6, y: -6)
+                                        .transition(.scale.combined(with: .opacity))
                                     } else if isLocked {
                                         ZStack {
                                             Circle()

@@ -62,6 +62,7 @@ struct ReadingPlansCatalogView: View {
                                 planRowCard(plan)
                             }
                         }
+                        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selectedCategory)
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
@@ -218,6 +219,7 @@ struct ReadingPlansCatalogView: View {
                     Capsule()
                         .fill(plan.gradient)
                         .frame(width: max(8, geo.size.width * CGFloat(progress)), height: 8)
+                        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: progress)
                 }
             }
             .frame(height: 8)
@@ -282,6 +284,7 @@ struct ReadingPlansCatalogView: View {
                     }
                 }
             }
+            .animation(.spring(response: 0.32, dampingFraction: 0.75), value: selectedCategory)
         }
     }
     
@@ -289,7 +292,9 @@ struct ReadingPlansCatalogView: View {
         Button(action: {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
-            action()
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.75)) {
+                action()
+            }
         }) {
             Text(title)
                 .font(.system(size: 13, weight: isSelected ? .bold : .medium))
@@ -297,8 +302,10 @@ struct ReadingPlansCatalogView: View {
                 .padding(.vertical, 7)
                 .background(isSelected ? primaryTextColor : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05)))
                 .foregroundColor(isSelected ? (colorScheme == .dark ? .black : .white) : primaryTextColor)
+                .scaleEffect(isSelected ? 1.04 : 1.0)
                 .cornerRadius(20)
         }
+        .buttonStyle(ScaleButtonStyle())
     }
     
     // MARK: - Карточка Плана в Списке
@@ -500,6 +507,7 @@ struct ReadingPlanDetailView: View {
                         Capsule()
                             .fill(plan.gradient)
                             .frame(width: max(8, geo.size.width * CGFloat(planManager.progress(for: plan.id))), height: 8)
+                            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: planManager.progress(for: plan.id))
                     }
                 }
                 .frame(height: 8)
@@ -521,10 +529,12 @@ struct ReadingPlanDetailView: View {
             let generator = UIImpactFeedbackGenerator(style: .medium)
             generator.impactOccurred()
             
-            if isCurrentPlan {
-                planManager.stopActivePlan()
-            } else {
-                planManager.startPlan(id: plan.id)
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.75)) {
+                if isCurrentPlan {
+                    planManager.stopActivePlan()
+                } else {
+                    planManager.startPlan(id: plan.id)
+                }
             }
         } label: {
             HStack(spacing: 8) {
@@ -561,23 +571,30 @@ struct ReadingPlanDetailView: View {
                 let isDone = planManager.isDayCompleted(planId: plan.id, dayNumber: day.dayNumber)
                 
                 HStack(spacing: 12) {
-                    // Чекбокс отметки дня
+                    // Чекбокс отметки дня с пружинящей микро-анимацией
                     Button {
-                        planManager.toggleDayCompletion(planId: plan.id, dayNumber: day.dayNumber)
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            planManager.toggleDayCompletion(planId: plan.id, dayNumber: day.dayNumber)
+                        }
                     } label: {
                         ZStack {
                             Circle()
                                 .fill(isDone ? Color(hex: "10B981") : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)))
                                 .frame(width: 32, height: 32)
+                                .scaleEffect(isDone ? 1.05 : 1.0)
                             
                             if isDone {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.white)
+                                    .transition(.scale.combined(with: .opacity))
                             } else {
                                 Text("\(day.dayNumber)")
                                     .font(.system(size: 12, weight: .bold, design: .rounded))
                                     .foregroundColor(.secondary)
+                                    .transition(.scale.combined(with: .opacity))
                             }
                         }
                     }
@@ -624,6 +641,7 @@ struct ReadingPlanDetailView: View {
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(isDone ? Color(hex: "10B981").opacity(0.3) : cardBorderColor, lineWidth: 1)
                 )
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDone)
             }
         }
     }

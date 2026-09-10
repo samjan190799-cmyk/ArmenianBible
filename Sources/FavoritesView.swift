@@ -172,7 +172,9 @@ struct FavoritesView: View {
                             // Кнопка "Все теги"
                             Button {
                                 triggerHaptic(.light)
-                                selectedTagFilter = nil
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                    selectedTagFilter = nil
+                                }
                             } label: {
                                 Text("all_tags_filter".localized(for: manager.appLanguage))
                                     .font(.system(size: 12, weight: selectedTagFilter == nil ? .bold : .medium))
@@ -192,10 +194,12 @@ struct FavoritesView: View {
                                 let isSelected = selectedTagFilter == tag
                                 Button {
                                     triggerHaptic(.light)
-                                    if isSelected {
-                                        selectedTagFilter = nil
-                                    } else {
-                                        selectedTagFilter = tag
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                        if isSelected {
+                                            selectedTagFilter = nil
+                                        } else {
+                                            selectedTagFilter = tag
+                                        }
                                     }
                                 } label: {
                                     HStack(spacing: 4) {
@@ -219,6 +223,7 @@ struct FavoritesView: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 2)
                     }
+                    .animation(.spring(response: 0.32, dampingFraction: 0.8), value: selectedTagFilter)
                     
                     // Поисковая строка
                     HStack {
@@ -295,6 +300,10 @@ struct FavoritesView: View {
                                         shareAnnotation(ann)
                                     }
                                 )
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.96).combined(with: .opacity),
+                                    removal: .scale(scale: 0.92).combined(with: .opacity)
+                                ))
                             }
                             
                             // Затем отображаем стихи из Избранного
@@ -337,9 +346,15 @@ struct FavoritesView: View {
                                             openInBible(item)
                                         }
                                     )
+                                    .transition(.asymmetric(
+                                        insertion: .scale(scale: 0.96).combined(with: .opacity),
+                                        removal: .scale(scale: 0.92).combined(with: .opacity)
+                                    ))
                                 }
                             }
                         }
+                        .animation(.spring(response: 0.38, dampingFraction: 0.85), value: selectedSectionTab)
+                        .animation(.spring(response: 0.38, dampingFraction: 0.85), value: selectedTagFilter)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                     }

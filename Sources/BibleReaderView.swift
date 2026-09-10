@@ -29,10 +29,13 @@ struct BibleReaderView: View {
                     
                     if manager.selectedReaderSection == 0 {
                         BibleBookListView(navigationPath: $navigationPath)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     } else {
                         NarekatsiView()
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     }
                 }
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: manager.selectedReaderSection)
             }
             .onChange(of: manager.selectedReaderSection) { newSection in
                 if newSection == 1 {
@@ -238,6 +241,7 @@ struct BibleBookListView: View {
                                                 Image(systemName: "checkmark.circle.fill")
                                                     .font(.system(size: 14, weight: .bold))
                                                     .foregroundColor(Color(hex: "10B981"))
+                                                    .transition(.scale.combined(with: .opacity))
                                             }
                                             
                                             Text(book.shortName)
@@ -272,6 +276,7 @@ struct BibleBookListView: View {
                                                         )
                                                     )
                                                     .frame(width: max(4, geo.size.width * CGFloat(min(progress.percent, 1.0))), height: 3)
+                                                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: progress.percent)
                                             }
                                         }
                                         .frame(height: 3)
@@ -284,12 +289,13 @@ struct BibleBookListView: View {
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(cardBorderColor, lineWidth: 1.0)
-                                )
+                                 )
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }
                     }
                 }
+                .animation(.spring(response: 0.38, dampingFraction: 0.85), value: selectedTestament)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
             }

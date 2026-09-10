@@ -189,6 +189,7 @@ struct BibleQuizView: View {
                                 
                                 ProgressView(value: Double(currentQuestionIndex + 1), total: Double(activeQuestions.count))
                                     .tint(accentColor)
+                                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: currentQuestionIndex)
                                     .padding(.horizontal, 20)
                                 
                                 // Вопрос
@@ -286,9 +287,11 @@ struct BibleQuizView: View {
                                                     if isCorrect {
                                                         Image(systemName: "checkmark.circle.fill")
                                                             .foregroundColor(.green)
+                                                            .transition(.scale.combined(with: .opacity))
                                                     } else if isSelected {
                                                         Image(systemName: "xmark.circle.fill")
                                                             .foregroundColor(.red)
+                                                            .transition(.scale.combined(with: .opacity))
                                                     }
                                                 }
                                             }
@@ -685,9 +688,11 @@ struct BibleQuizView: View {
     
     private func nextQuestion(proxy: ScrollViewProxy) {
         if currentQuestionIndex + 1 < activeQuestions.count {
-            selectedAnswerIndex = nil
-            showAnswerDetails = false
-            currentQuestionIndex += 1
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                selectedAnswerIndex = nil
+                showAnswerDetails = false
+                currentQuestionIndex += 1
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     proxy.scrollTo("questionTop", anchor: .top)
@@ -700,7 +705,7 @@ struct BibleQuizView: View {
             if !unlocked.isEmpty {
                 triggerHapticNotification(.success)
             }
-            withAnimation {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                 quizFinished = true
             }
         }
