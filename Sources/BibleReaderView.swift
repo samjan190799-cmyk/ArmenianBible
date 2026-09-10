@@ -675,34 +675,17 @@ struct BibleChapterReaderView: View {
                         ForEach(1...book.chaptersCount, id: \.self) { ch in
                             let isCurrent = currentChapterIndex == ch - 1
                             let isRead = manager.isChapterRead(bookId: book.id, chapter: ch)
-                            Button {
+                            ChapterSelectionCell(
+                                chapter: ch,
+                                isCurrent: isCurrent,
+                                isRead: isRead,
+                                accentColor: accentColor,
+                                colorScheme: colorScheme
+                            ) {
                                 triggerHaptic(.light)
                                 currentChapterIndex = ch - 1
                                 showingChapterSheet = false
-                            } label: {
-                                ZStack(alignment: .topTrailing) {
-                                    Text("\(ch)")
-                                        .font(.system(size: 16, weight: .bold, design: .monospaced))
-                                        .foregroundColor(isCurrent ? .white : (colorScheme == .dark ? .white : Color(hex: "1E293B")))
-                                        .frame(width: 55, height: 55)
-                                        .background(
-                                            isCurrent ? accentColor : (isRead ? accentColor.opacity(0.12) : (colorScheme == .dark ? Color.white.opacity(0.04) : Color.white))
-                                        )
-                                        .cornerRadius(12)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(isCurrent ? accentColor : (isRead ? accentColor.opacity(0.35) : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04))), lineWidth: 1.0)
-                                        )
-                                    
-                                    if isRead && !isCurrent {
-                                        Circle()
-                                            .fill(Color(hex: "10B981"))
-                                            .frame(width: 6, height: 6)
-                                            .padding(6)
-                                    }
-                                }
                             }
-                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
                     .padding(.horizontal, 24)
@@ -719,6 +702,59 @@ struct BibleChapterReaderView: View {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
+    }
+}
+
+// MARK: - Ячейка выбора главы в шторке (быстрая компиляция)
+
+struct ChapterSelectionCell: View {
+    let chapter: Int
+    let isCurrent: Bool
+    let isRead: Bool
+    let accentColor: Color
+    let colorScheme: ColorScheme
+    let onSelect: () -> Void
+    
+    private var textColor: Color {
+        if isCurrent { return .white }
+        return colorScheme == .dark ? .white : Color(hex: "1E293B")
+    }
+    
+    private var backgroundColor: Color {
+        if isCurrent { return accentColor }
+        if isRead { return accentColor.opacity(0.12) }
+        return colorScheme == .dark ? Color.white.opacity(0.04) : Color.white
+    }
+    
+    private var borderColor: Color {
+        if isCurrent { return accentColor }
+        if isRead { return accentColor.opacity(0.35) }
+        return colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)
+    }
+    
+    var body: some View {
+        Button(action: onSelect) {
+            ZStack(alignment: .topTrailing) {
+                Text("\(chapter)")
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .foregroundColor(textColor)
+                    .frame(width: 55, height: 55)
+                    .background(backgroundColor)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(borderColor, lineWidth: 1.0)
+                    )
+                
+                if isRead && !isCurrent {
+                    Circle()
+                        .fill(Color(hex: "10B981"))
+                        .frame(width: 6, height: 6)
+                        .padding(6)
+                }
+            }
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 
