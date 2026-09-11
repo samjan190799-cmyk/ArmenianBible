@@ -293,10 +293,16 @@ class BibleManager: ObservableObject {
         }
         
         // Загрузка визуального стиля виджетов и StandBy
-        if let defaults = sharedDefaults,
-           let savedStyleRaw = defaults.string(forKey: widgetVisualStyleKey),
-           let savedStyle = WidgetVisualStyle(rawValue: savedStyleRaw) {
-            self.widgetVisualStyle = savedStyle
+        if let defaults = sharedDefaults {
+            if let savedStyleRaw = defaults.string(forKey: widgetVisualStyleKey) ?? defaults.string(forKey: "widgetVisualStyle"),
+               let savedStyle = WidgetVisualStyle(rawValue: savedStyleRaw) {
+                self.widgetVisualStyle = savedStyle
+            } else {
+                self.widgetVisualStyle = .oledStandby
+                defaults.set(WidgetVisualStyle.oledStandby.rawValue, forKey: widgetVisualStyleKey)
+                defaults.set(WidgetVisualStyle.oledStandby.rawValue, forKey: "widgetVisualStyle")
+                defaults.synchronize()
+            }
         } else {
             self.widgetVisualStyle = .oledStandby
         }
@@ -748,23 +754,29 @@ class BibleManager: ObservableObject {
     // MARK: - Сохранение цветовой темы
     func setAccentTheme(_ theme: AccentColorTheme) {
         self.accentTheme = theme
+        objectWillChange.send()
         if let defaults = sharedDefaults {
             defaults.set(theme.rawValue, forKey: accentThemeKey)
             defaults.synchronize()
-            WidgetCenter.shared.reloadAllTimelines()
         }
         UserDefaults.standard.set(theme.rawValue, forKey: accentThemeKey)
+        UserDefaults.standard.synchronize()
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Сохранение стиля виджетов и режима StandBy
     func setWidgetVisualStyle(_ style: WidgetVisualStyle) {
         self.widgetVisualStyle = style
+        objectWillChange.send()
         if let defaults = sharedDefaults {
             defaults.set(style.rawValue, forKey: widgetVisualStyleKey)
+            defaults.set(style.rawValue, forKey: "widgetVisualStyle")
             defaults.set(Date().timeIntervalSince1970, forKey: "widget_style_timestamp")
             defaults.synchronize()
         }
         UserDefaults.standard.set(style.rawValue, forKey: widgetVisualStyleKey)
+        UserDefaults.standard.set(style.rawValue, forKey: "widgetVisualStyle")
+        UserDefaults.standard.synchronize()
         syncLockScreenWidget()
         WidgetCenter.shared.reloadAllTimelines()
     }

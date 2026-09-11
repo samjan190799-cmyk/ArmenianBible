@@ -522,11 +522,43 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         }
     }
     
+    private func parseAccentColor(_ hex: String) -> Color? {
+        let clean = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        guard clean.count == 6 || clean.count == 8 || clean.count == 3 else { return nil }
+        var int: UInt64 = 0
+        guard Scanner(string: clean).scanHexInt64(&int) else { return nil }
+        let a, r, g, b: UInt64
+        switch clean.count {
+        case 3:
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6:
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8:
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            return nil
+        }
+        return Color(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+    
     func secondaryTextColor(for colorScheme: ColorScheme, accentHex: String = "6366F1") -> Color {
+        let dynamicAccent = parseAccentColor(accentHex)
         switch self {
         case .oledStandby:
+            if accentHex.uppercased() != "6366F1", let customAccent = dynamicAccent {
+                return customAccent
+            }
             return Color(red: 0.98, green: 0.75, blue: 0.14)
         case .modernMinimal:
+            if let customAccent = dynamicAccent {
+                return customAccent
+            }
             return colorScheme == .dark ? Color(red: 0.51, green: 0.55, blue: 0.97) : Color(red: 0.31, green: 0.27, blue: 0.90)
         case .sacredParchment:
             return colorScheme == .dark ? Color(red: 0.96, green: 0.62, blue: 0.04) : Color(red: 0.57, green: 0.25, blue: 0.05)
@@ -538,10 +570,17 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
     }
     
     func quoteIconColor(for colorScheme: ColorScheme, accentHex: String = "6366F1") -> Color {
+        let dynamicAccent = parseAccentColor(accentHex)
         switch self {
         case .oledStandby:
+            if accentHex.uppercased() != "6366F1", let customAccent = dynamicAccent {
+                return customAccent.opacity(0.85)
+            }
             return Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.85)
         case .modernMinimal:
+            if let customAccent = dynamicAccent {
+                return customAccent.opacity(colorScheme == .dark ? 0.60 : 0.35)
+            }
             return colorScheme == .dark ? Color(red: 0.39, green: 0.40, blue: 0.95).opacity(0.40) : Color(red: 0.31, green: 0.27, blue: 0.90).opacity(0.20)
         case .sacredParchment:
             return colorScheme == .dark ? Color(red: 0.85, green: 0.47, blue: 0.04).opacity(0.60) : Color(red: 0.57, green: 0.25, blue: 0.05).opacity(0.25)

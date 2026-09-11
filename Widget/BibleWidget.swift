@@ -337,12 +337,21 @@ struct Provider: AppIntentTimelineProvider {
     private let updateIntervalKey = "widgetUpdateInterval"
     
     private func getSharedVisualStyle() -> WidgetVisualStyle {
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-           let savedRaw = defaults.string(forKey: "widget_visual_style"),
+        if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
+            if let savedRaw = defaults.string(forKey: "widget_visual_style"),
+               let style = WidgetVisualStyle(rawValue: savedRaw) {
+                return style
+            }
+            if let savedRaw = defaults.string(forKey: "widgetVisualStyle"),
+               let style = WidgetVisualStyle(rawValue: savedRaw) {
+                return style
+            }
+        }
+        if let savedRaw = UserDefaults.standard.string(forKey: "widget_visual_style"),
            let style = WidgetVisualStyle(rawValue: savedRaw) {
             return style
         }
-        if let savedRaw = UserDefaults.standard.string(forKey: "widget_visual_style"),
+        if let savedRaw = UserDefaults.standard.string(forKey: "widgetVisualStyle"),
            let style = WidgetVisualStyle(rawValue: savedRaw) {
             return style
         }
@@ -362,12 +371,15 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(
+        let style = getSharedVisualStyle()
+        let lang = getSharedLanguage()
+        let verse = getSharedVerse(for: ConfigurationAppIntent(), family: context.family)
+        return SimpleEntry(
             date: Date(),
-            verse: BibleVerse.shortPearls[0],
+            verse: verse,
             configuration: ConfigurationAppIntent(),
-            language: .armenian,
-            visualStyle: .oledStandby
+            language: lang,
+            visualStyle: style
         )
     }
     
