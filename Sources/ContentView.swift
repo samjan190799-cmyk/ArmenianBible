@@ -2051,7 +2051,7 @@ struct SettingsView: View {
     @State private var selectedMediumCategory: HomeWidgetCategory = .all
     @State private var selectedLargeCategory: HomeWidgetCategory = .all
     @State private var selectedArmenianEdition: ArmenianBibleEdition = .ararat
-    @State private var previewWidgetSize: PreviewWidgetSize = .small
+    @State private var previewWidgetSize: PreviewWidgetSize = .lockScreen
     @State private var previewVerse: BibleVerse = BibleVerse.lockScreenPearls[0]
     
     // Переменные для уведомлений
@@ -2137,9 +2137,8 @@ struct SettingsView: View {
                         updateIntervalSection
                         verseSourceScopeSection
                         contentTypeSection
-                        widgetStyleSection
+                        widgetsUnifiedSection
                         autoWallpaperSection
-                        lockScreenWidgetSection
                         aboutSection
                     }
                     .padding(20)
@@ -2180,8 +2179,7 @@ struct SettingsView: View {
                 selectedMediumCategory = manager.mediumWidgetCategory
                 selectedLargeCategory = manager.largeWidgetCategory
                 selectedArmenianEdition = manager.armenianEdition
-                let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
-                previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+                pickVerseForCurrentSize(previewWidgetSize)
                 appIconManager.syncWithSystem()
             }
             .sheet(isPresented: $isShowingPaywall) {
@@ -3127,33 +3125,52 @@ struct SettingsView: View {
         .padding(.horizontal, 4)
     }
     
+    // MARK: - Объединенная секция: Виджеты, Экран блокировки и StandBy
     @ViewBuilder
-    private var widgetStyleSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
+    private var widgetsUnifiedSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 1. Шапка карточки: Заголовок + Бейдж + Кнопка справки
+            HStack(spacing: 8) {
                 Label {
-                    Text("widget_style_section_title".localized(for: selectedLanguage))
+                    Text("lockscreen_widget_section_title".localized(for: selectedLanguage))
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(primaryTextColor)
                 } icon: {
-                    Image(systemName: "moon.stars.fill")
+                    Image(systemName: "apps.iphone")
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(Color(hex: selectedTheme.colorHex))
                 }
                 
-                Spacer()
-                
-                // StandBy бейдж
-                HStack(spacing: 4) {
+                // Бейдж STANDBY
+                HStack(spacing: 3) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 10))
+                        .font(.system(size: 9))
                     Text("STANDBY")
-                        .font(.system(size: 10, weight: .black))
+                        .font(.system(size: 9, weight: .black))
                 }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2.5)
                 .background(Color(hex: "F59E0B").opacity(0.18))
                 .foregroundColor(Color(hex: "F59E0B"))
                 .cornerRadius(6)
+                
+                Spacer()
+                
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.prepare()
+                    generator.impactOccurred()
+                    isShowingWidgetInstruction = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.system(size: 14))
+                        Text("widget_instruction_title".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                }
+                .buttonStyle(ScaleButtonStyle())
             }
             
             Text("widget_style_section_desc".localized(for: selectedLanguage))
@@ -3161,85 +3178,123 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
                 .lineSpacing(3)
             
-            // Горизонтальный список 5 вариантов оформления
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(WidgetVisualStyle.allCases) { style in
-                        let isSelected = selectedWidgetStyle == style
-                        Button {
-                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                            generator.prepare()
-                            generator.impactOccurred()
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                                selectedWidgetStyle = style
-                            }
-                            manager.setWidgetVisualStyle(style)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Image(systemName: style.iconName)
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
-                                    
-                                    Spacer()
-                                    
-                                    if isSelected {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: selectedTheme.colorHex))
-                                    }
-                                }
-                                
-                                Spacer(minLength: 4)
-                                
-                                Text(style.localizedName(for: selectedLanguage))
-                                    .font(.system(size: 13, weight: .bold, design: style.fontDesign))
-                                    .foregroundColor(style.primaryTextColor(for: colorScheme))
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                
-                                Text(style.localizedSubtitle(for: selectedLanguage))
-                                    .font(.system(size: 10))
-                                    .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex).opacity(0.85))
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                            }
-                            .padding(12)
-                            .frame(width: 135, height: 130)
-                            .background(style.backgroundGradient(for: colorScheme))
-                            .cornerRadius(16)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(
-                                        isSelected ?
-                                            LinearGradient(
-                                                colors: [style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: selectedTheme.colorHex), Color.white.opacity(0.3)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                            : style.borderStroke(for: colorScheme),
-                                        lineWidth: isSelected ? 2.2 : 1.0
-                                    )
-                            )
-                            .shadow(color: isSelected ? (style == .oledStandby ? Color(hex: "F59E0B").opacity(0.3) : Color(hex: selectedTheme.colorHex).opacity(0.25)) : Color.black.opacity(0.15), radius: isSelected ? 8 : 4, y: 3)
-                        }
-                        .buttonStyle(ScaleButtonStyle())
+            // 2. Язык виджетов
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "globe")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    Text("widget_language_title".localized(for: selectedLanguage))
+                        .font(.system(size: 13.5, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                }
+                
+                Picker("widget_language_title", selection: $selectedWidgetLanguage) {
+                    ForEach(WidgetLanguage.allCases) { lang in
+                        Text(lang.localizedName(for: selectedLanguage)).tag(lang)
                     }
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 2)
+                .pickerStyle(.segmented)
+                .tint(colorScheme == .dark ? .white : .primary)
+                .onChange(of: selectedWidgetLanguage) { newLang in
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.prepare()
+                    generator.impactOccurred()
+                    manager.setWidgetLanguage(newLang)
+                }
             }
             
-            // Live Preview карточка виджета / StandBy
-            VStack(alignment: .leading, spacing: 10) {
+            // 3. Стиль оформления StandBy / Home виджетов (5 вариантов)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "paintpalette.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    Text("widget_style_section_title".localized(for: selectedLanguage))
+                        .font(.system(size: 13.5, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                }
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(WidgetVisualStyle.allCases) { style in
+                            let isSelected = selectedWidgetStyle == style
+                            Button {
+                                let generator = UIImpactFeedbackGenerator(style: .medium)
+                                generator.prepare()
+                                generator.impactOccurred()
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                    selectedWidgetStyle = style
+                                }
+                                manager.setWidgetVisualStyle(style)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Image(systemName: style.iconName)
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
+                                        
+                                        Spacer()
+                                        
+                                        if isSelected {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 13))
+                                                .foregroundColor(style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: selectedTheme.colorHex))
+                                        }
+                                    }
+                                    
+                                    Spacer(minLength: 2)
+                                    
+                                    Text(style.localizedName(for: selectedLanguage))
+                                        .font(.system(size: 12.5, weight: .bold, design: style.fontDesign))
+                                        .foregroundColor(style.primaryTextColor(for: colorScheme))
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                    
+                                    Text(style.localizedSubtitle(for: selectedLanguage))
+                                        .font(.system(size: 9.5))
+                                        .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex).opacity(0.85))
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                }
+                                .padding(11)
+                                .frame(width: 130, height: 120)
+                                .background(style.backgroundGradient(for: colorScheme))
+                                .cornerRadius(15)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(
+                                            isSelected ?
+                                                LinearGradient(
+                                                    colors: [style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: selectedTheme.colorHex), Color.white.opacity(0.3)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                                : style.borderStroke(for: colorScheme),
+                                            lineWidth: isSelected ? 2.2 : 1.0
+                                        )
+                                )
+                                .shadow(color: isSelected ? (style == .oledStandby ? Color(hex: "F59E0B").opacity(0.3) : Color(hex: selectedTheme.colorHex).opacity(0.25)) : Color.black.opacity(0.12), radius: isSelected ? 6 : 3, y: 2)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            
+            Divider().opacity(0.3)
+            
+            // 4. Интерактивный Live Preview с переключателем 4-х размеров
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     HStack(spacing: 5) {
-                        Image(systemName: "sparkle")
-                            .font(.system(size: 11))
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12))
                         Text("standby_preview_title".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 13, weight: .bold))
                     }
-                    .foregroundColor(.secondary)
+                    .foregroundColor(primaryTextColor)
                     
                     Spacer()
                     
@@ -3253,16 +3308,21 @@ struct SettingsView: View {
                             Image(systemName: "shuffle")
                                 .font(.system(size: 11))
                             Text("button_random_verse".localized(for: selectedLanguage))
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: 11.5, weight: .semibold))
                         }
                         .foregroundColor(Color(hex: selectedTheme.colorHex))
                     }
+                    .buttonStyle(ScaleButtonStyle())
                 }
                 
-                // Переключатель размера превью (Малый 2x2, Средний 4x2, Большой 4x4)
+                // Переключатель размера (Lock Screen, 2x2, 4x2, 4x4)
                 Picker("preview_widget_size", selection: $previewWidgetSize) {
                     ForEach(PreviewWidgetSize.allCases) { size in
-                        Text(size.localizedTitle(for: selectedLanguage)).tag(size)
+                        HStack(spacing: 4) {
+                            Image(systemName: size.iconName)
+                            Text(size.localizedTitle(for: selectedLanguage))
+                        }
+                        .tag(size)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -3273,11 +3333,139 @@ struct SettingsView: View {
                     generator.impactOccurred()
                     pickVerseForCurrentSize(newSize)
                 }
-                .padding(.bottom, 2)
                 
-                // Карточка в натуральную величину выбранного размера
+                // 5. Контекстный выбор категории цитат (именно под выбранный размер!)
+                VStack(alignment: .leading, spacing: 6) {
+                    switch previewWidgetSize {
+                    case .lockScreen, .small:
+                        Text("lockscreen_category_title".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(LockScreenCategory.allCases) { cat in
+                                    let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
+                                    LockCategoryChipView(
+                                        cat: cat,
+                                        isSelected: selectedLockCategory == cat,
+                                        isLocked: isLocked,
+                                        selectedLanguage: selectedLanguage,
+                                        themeColorHex: selectedTheme.colorHex,
+                                        inputFieldBgColor: inputFieldBgColor,
+                                        inputFieldBorderColor: inputFieldBorderColor,
+                                        primaryTextColor: primaryTextColor
+                                    ) {
+                                        if isLocked {
+                                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                                            generator.prepare()
+                                            generator.impactOccurred()
+                                            isShowingPaywall = true
+                                        } else {
+                                            let generator = UIImpactFeedbackGenerator(style: .light)
+                                            generator.prepare()
+                                            generator.impactOccurred()
+                                            selectedLockCategory = cat
+                                            manager.setLockScreenCategory(cat)
+                                            pickVerseForCurrentSize(previewWidgetSize)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        
+                    case .medium:
+                        Text("widget_medium_category_title".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(HomeWidgetCategory.allCases) { cat in
+                                    let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
+                                    HomeCategoryChipView(
+                                        cat: cat,
+                                        isSelected: selectedMediumCategory == cat,
+                                        isLocked: isLocked,
+                                        selectedLanguage: selectedLanguage,
+                                        themeColorHex: selectedTheme.colorHex,
+                                        inputFieldBgColor: inputFieldBgColor,
+                                        inputFieldBorderColor: inputFieldBorderColor,
+                                        primaryTextColor: primaryTextColor
+                                    ) {
+                                        if isLocked {
+                                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                                            generator.prepare()
+                                            generator.impactOccurred()
+                                            isShowingPaywall = true
+                                        } else {
+                                            let generator = UIImpactFeedbackGenerator(style: .light)
+                                            generator.prepare()
+                                            generator.impactOccurred()
+                                            selectedMediumCategory = cat
+                                            manager.setMediumWidgetCategory(cat)
+                                            pickVerseForCurrentSize(.medium)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        
+                    case .large:
+                        Text("widget_large_category_title".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(HomeWidgetCategory.allCases) { cat in
+                                    let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
+                                    HomeCategoryChipView(
+                                        cat: cat,
+                                        isSelected: selectedLargeCategory == cat,
+                                        isLocked: isLocked,
+                                        selectedLanguage: selectedLanguage,
+                                        themeColorHex: selectedTheme.colorHex,
+                                        inputFieldBgColor: inputFieldBgColor,
+                                        inputFieldBorderColor: inputFieldBorderColor,
+                                        primaryTextColor: primaryTextColor
+                                    ) {
+                                        if isLocked {
+                                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                                            generator.prepare()
+                                            generator.impactOccurred()
+                                            isShowingPaywall = true
+                                        } else {
+                                            let generator = UIImpactFeedbackGenerator(style: .light)
+                                            generator.prepare()
+                                            generator.impactOccurred()
+                                            selectedLargeCategory = cat
+                                            manager.setLargeWidgetCategory(cat)
+                                            pickVerseForCurrentSize(.large)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                }
+                
+                // 6. Карточка превью выбранного размера
                 Group {
                     switch previewWidgetSize {
+                    case .lockScreen:
+                        LockScreenPreviewCardView(
+                            verse: previewVerse,
+                            language: selectedWidgetLanguage.appLanguage ?? selectedLanguage,
+                            primaryTextColor: primaryTextColor,
+                            isDarkMode: colorScheme == .dark,
+                            fontDesign: selectedWidgetStyle.fontDesign,
+                            accentHex: selectedWidgetStyle == .oledStandby ? "F59E0B" : selectedTheme.colorHex
+                        )
+                        
                     case .small:
                         // Малый 2x2 (StandBy / Small Widget)
                         VStack(alignment: .leading, spacing: 6) {
@@ -3483,8 +3671,32 @@ struct SettingsView: View {
                 }
                 .shadow(color: Color.black.opacity(0.2), radius: 8, y: 4)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: previewWidgetSize)
+                
+                // 7. Кнопка «Применить и обновить виджеты»
+                Button {
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.prepare()
+                    generator.notificationOccurred(.success)
+                    manager.syncLockScreenWidget()
+                    WidgetCenter.shared.reloadAllTimelines()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("update_widgets_now_button".localized(for: selectedLanguage))
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(hex: selectedTheme.colorHex))
+                    )
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .padding(.top, 2)
             }
-            .padding(.top, 4)
         }
         .padding(16)
         .background(cardBackgroundColor)
@@ -3570,291 +3782,6 @@ struct SettingsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(cardBorderColor, lineWidth: 1)
-        )
-        .padding(.horizontal, 4)
-    }
-    
-    @ViewBuilder
-    private var lockScreenWidgetSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Label {
-                    Text("lockscreen_widget_section_title".localized(for: selectedLanguage))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(primaryTextColor)
-                } icon: {
-                    Image(systemName: "lock.iphone")
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
-                }
-                
-                Spacer()
-                
-                Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.prepare()
-                    generator.impactOccurred()
-                    isShowingWidgetInstruction = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "questionmark.circle.fill")
-                            .font(.system(size: 15))
-                        Text("widget_instruction_title".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
-                }
-                .buttonStyle(ScaleButtonStyle())
-            }
-            
-            Text("lockscreen_widget_section_desc".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
-                .lineSpacing(4)
-            
-            // 1. Язык виджетов
-            VStack(alignment: .leading, spacing: 6) {
-                Text("widget_language_title".localized(for: selectedLanguage))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(primaryTextColor)
-                
-                Picker("widget_language_title", selection: $selectedWidgetLanguage) {
-                    ForEach(WidgetLanguage.allCases) { lang in
-                        Text(lang.localizedName(for: selectedLanguage)).tag(lang)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .tint(colorScheme == .dark ? .white : .primary)
-                .onChange(of: selectedWidgetLanguage) { newLang in
-                    manager.setWidgetLanguage(newLang)
-                }
-            }
-            .padding(.vertical, 4)
-            
-            // 2. Армянский перевод Библии
-            VStack(alignment: .leading, spacing: 6) {
-                Text("armenian_translation_title".localized(for: selectedLanguage))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(primaryTextColor)
-                
-                Picker("armenian_translation_title", selection: $selectedArmenianEdition) {
-                    ForEach(ArmenianBibleEdition.allCases) { edition in
-                        Text(edition.localizedTitle(for: selectedLanguage)).tag(edition)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .tint(colorScheme == .dark ? .white : .primary)
-                .onChange(of: selectedArmenianEdition) { newEd in
-                    manager.setArmenianEdition(newEd)
-                }
-            }
-            .padding(.vertical, 4)
-            
-            // 3. Категория цитат для Экрана Блокировки
-            VStack(alignment: .leading, spacing: 8) {
-                Text("lockscreen_category_title".localized(for: selectedLanguage))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(primaryTextColor)
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(LockScreenCategory.allCases) { cat in
-                            let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
-                            LockCategoryChipView(
-                                cat: cat,
-                                isSelected: selectedLockCategory == cat,
-                                isLocked: isLocked,
-                                selectedLanguage: selectedLanguage,
-                                themeColorHex: selectedTheme.colorHex,
-                                inputFieldBgColor: inputFieldBgColor,
-                                inputFieldBorderColor: inputFieldBorderColor,
-                                primaryTextColor: primaryTextColor
-                            ) {
-                                if isLocked {
-                                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                                    generator.prepare()
-                                    generator.impactOccurred()
-                                    isShowingPaywall = true
-                                } else {
-                                    let generator = UIImpactFeedbackGenerator(style: .light)
-                                    generator.prepare()
-                                    generator.impactOccurred()
-                                    selectedLockCategory = cat
-                                    manager.setLockScreenCategory(cat)
-                                    
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                        let pool = BibleVerse.lockScreenVerses(for: cat)
-                                        previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-            .padding(.vertical, 4)
-            
-            // 4. Категория цитат для Среднего виджета (4x2)
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: "rectangle")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
-                    Text("widget_medium_category_title".localized(for: selectedLanguage))
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(primaryTextColor)
-                }
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(HomeWidgetCategory.allCases) { cat in
-                            let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
-                            HomeCategoryChipView(
-                                cat: cat,
-                                isSelected: selectedMediumCategory == cat,
-                                isLocked: isLocked,
-                                selectedLanguage: selectedLanguage,
-                                themeColorHex: selectedTheme.colorHex,
-                                inputFieldBgColor: inputFieldBgColor,
-                                inputFieldBorderColor: inputFieldBorderColor,
-                                primaryTextColor: primaryTextColor
-                            ) {
-                                if isLocked {
-                                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                                    generator.prepare()
-                                    generator.impactOccurred()
-                                    isShowingPaywall = true
-                                } else {
-                                    let generator = UIImpactFeedbackGenerator(style: .light)
-                                    generator.prepare()
-                                    generator.impactOccurred()
-                                    selectedMediumCategory = cat
-                                    manager.setMediumWidgetCategory(cat)
-                                    if previewWidgetSize == .medium {
-                                        pickVerseForCurrentSize(.medium)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-            .padding(.vertical, 4)
-            
-            // 5. Категория цитат для Большого виджета (4x4)
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: "square.split.2x2")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
-                    Text("widget_large_category_title".localized(for: selectedLanguage))
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(primaryTextColor)
-                }
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(HomeWidgetCategory.allCases) { cat in
-                            let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
-                            HomeCategoryChipView(
-                                cat: cat,
-                                isSelected: selectedLargeCategory == cat,
-                                isLocked: isLocked,
-                                selectedLanguage: selectedLanguage,
-                                themeColorHex: selectedTheme.colorHex,
-                                inputFieldBgColor: inputFieldBgColor,
-                                inputFieldBorderColor: inputFieldBorderColor,
-                                primaryTextColor: primaryTextColor
-                            ) {
-                                if isLocked {
-                                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                                    generator.prepare()
-                                    generator.impactOccurred()
-                                    isShowingPaywall = true
-                                } else {
-                                    let generator = UIImpactFeedbackGenerator(style: .light)
-                                    generator.prepare()
-                                    generator.impactOccurred()
-                                    selectedLargeCategory = cat
-                                    manager.setLargeWidgetCategory(cat)
-                                    if previewWidgetSize == .large {
-                                        pickVerseForCurrentSize(.large)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-            .padding(.vertical, 4)
-            
-            // 6. Интерактивный Live-превью экрана блокировки
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("lockscreen_preview_title".localized(for: selectedLanguage))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Button {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.prepare()
-                        generator.impactOccurred()
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
-                            previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "shuffle")
-                                .font(.system(size: 12))
-                            Text("button_random_verse".localized(for: selectedLanguage))
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
-                    }
-                }
-                
-                LockScreenPreviewCardView(
-                    verse: previewVerse,
-                    language: selectedWidgetLanguage.appLanguage ?? selectedLanguage,
-                    primaryTextColor: primaryTextColor,
-                    isDarkMode: colorScheme == .dark
-                )
-                .padding(.top, 2)
-            }
-            
-            // 5. Кнопка «Применить и обновить виджеты»
-            Button {
-                let generator = UINotificationFeedbackGenerator()
-                generator.prepare()
-                generator.notificationOccurred(.success)
-                manager.syncLockScreenWidget()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text("update_widgets_now_button".localized(for: selectedLanguage))
-                        .font(.system(size: 14, weight: .bold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(hex: selectedTheme.colorHex))
-                )
-            }
-            .buttonStyle(ScaleButtonStyle())
-            .padding(.top, 4)
-        }
-        .padding(16)
-        .background(cardBackgroundColor)
-        .cornerRadius(18)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
                 .stroke(cardBorderColor, lineWidth: 1)
         )
         .padding(.horizontal, 4)
@@ -4091,6 +4018,9 @@ struct SettingsView: View {
     private func pickVerseForCurrentSize(_ size: PreviewWidgetSize) {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             switch size {
+            case .lockScreen:
+                let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
+                previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
             case .small:
                 let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
                 previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
@@ -4474,6 +4404,8 @@ struct LockScreenPreviewCardView: View {
     let language: AppLanguage
     let primaryTextColor: Color
     let isDarkMode: Bool
+    var fontDesign: Font.Design = .serif
+    var accentHex: String = "6366F1"
     
     private var fontSize: CGFloat {
         let count = verse.text(for: language).count
@@ -4492,11 +4424,18 @@ struct LockScreenPreviewCardView: View {
                 .fill(isDarkMode ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
             
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: accentHex).opacity(0.35), Color.white.opacity(0.08)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(verse.text(for: language))
-                    .font(.system(size: fontSize, weight: .bold, design: .rounded))
+                    .font(.system(size: fontSize, weight: .bold, design: fontDesign))
                     .lineLimit(3)
                     .lineSpacing(-0.5)
                     .foregroundColor(primaryTextColor)
@@ -4506,7 +4445,7 @@ struct LockScreenPreviewCardView: View {
                     Text("✝️")
                         .font(.system(size: 9.5))
                     Text(verse.reference(for: language))
-                        .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                        .font(.system(size: 11.5, weight: .bold, design: fontDesign))
                         .foregroundColor(.secondary)
                 }
             }

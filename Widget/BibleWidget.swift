@@ -349,6 +349,18 @@ struct Provider: AppIntentTimelineProvider {
         return .oledStandby
     }
     
+    private func resolveVisualStyle(for configuration: ConfigurationAppIntent) -> WidgetVisualStyle {
+        let shared = getSharedVisualStyle()
+        if configuration.visualStyle == .followApp {
+            return shared
+        }
+        // Если в виджете остался старый дефолтный .oledStandby, а в приложении выбран другой стиль — приоритет стилю приложения!
+        if configuration.visualStyle == .oledStandby && shared != .oledStandby {
+            return shared
+        }
+        return configuration.visualStyle.widgetStyle ?? shared
+    }
+    
     func placeholder(in context: Context) -> SimpleEntry {
         SimpleEntry(
             date: Date(),
@@ -362,7 +374,7 @@ struct Provider: AppIntentTimelineProvider {
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let verse = getSharedVerse(for: configuration, family: context.family)
-        let style = configuration.visualStyle.widgetStyle ?? getSharedVisualStyle()
+        let style = resolveVisualStyle(for: configuration)
         return SimpleEntry(date: Date(), verse: verse, configuration: configuration, language: lang, visualStyle: style)
     }
     
@@ -371,7 +383,7 @@ struct Provider: AppIntentTimelineProvider {
         let currentDate = Date()
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let interval = getSharedUpdateInterval()
-        let style = configuration.visualStyle.widgetStyle ?? getSharedVisualStyle()
+        let style = resolveVisualStyle(for: configuration)
         let family = context.family
         
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)

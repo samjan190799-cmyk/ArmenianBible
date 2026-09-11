@@ -736,10 +736,12 @@ class BibleManager: ObservableObject {
         self.widgetVisualStyle = style
         if let defaults = sharedDefaults {
             defaults.set(style.rawValue, forKey: widgetVisualStyleKey)
+            defaults.set(Date().timeIntervalSince1970, forKey: "widget_style_timestamp")
             defaults.synchronize()
-            WidgetCenter.shared.reloadAllTimelines()
         }
         UserDefaults.standard.set(style.rawValue, forKey: widgetVisualStyleKey)
+        syncLockScreenWidget()
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Сохранение и планирование уведомлений

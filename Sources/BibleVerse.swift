@@ -778,6 +778,7 @@ enum HomeWidgetCategory: String, CaseIterable, Identifiable, Codable {
 
 // MARK: - Переключатель размеров превью виджетов в Настройках
 enum PreviewWidgetSize: String, CaseIterable, Identifiable {
+    case lockScreen = "lockScreen"  // Экран блокировки
     case small = "small"            // 2x2 (StandBy / Small)
     case medium = "medium"          // 4x2 (Medium)
     case large = "large"            // 4x4 (Large)
@@ -786,6 +787,12 @@ enum PreviewWidgetSize: String, CaseIterable, Identifiable {
     
     func localizedTitle(for language: AppLanguage) -> String {
         switch self {
+        case .lockScreen:
+            switch language {
+            case .armenian: return "Կողպեք"
+            case .russian: return "Блокировка"
+            case .english: return "Lock Screen"
+            }
         case .small:
             switch language {
             case .armenian: return "Փոքր 2x2"
@@ -809,12 +816,14 @@ enum PreviewWidgetSize: String, CaseIterable, Identifiable {
     
     var iconName: String {
         switch self {
+        case .lockScreen: return "lock.iphone"
         case .small: return "square"
         case .medium: return "rectangle"
         case .large: return "square.split.2x2"
         }
     }
 }
+
 
 
 extension BibleVerse {
