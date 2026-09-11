@@ -3218,8 +3218,13 @@ struct SettingsView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(WidgetVisualStyle.allCases) { style in
-                            let isSelected = selectedWidgetStyle == style
-                            Button {
+                            WidgetStyleCardButton(
+                                style: style,
+                                isSelected: selectedWidgetStyle == style,
+                                selectedLanguage: selectedLanguage,
+                                themeColorHex: selectedTheme.colorHex,
+                                colorScheme: colorScheme
+                            ) {
                                 let generator = UIImpactFeedbackGenerator(style: .medium)
                                 generator.prepare()
                                 generator.impactOccurred()
@@ -3227,56 +3232,7 @@ struct SettingsView: View {
                                     selectedWidgetStyle = style
                                 }
                                 manager.setWidgetVisualStyle(style)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Image(systemName: style.iconName)
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
-                                        
-                                        Spacer()
-                                        
-                                        if isSelected {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .font(.system(size: 13))
-                                                .foregroundColor(style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: selectedTheme.colorHex))
-                                        }
-                                    }
-                                    
-                                    Spacer(minLength: 2)
-                                    
-                                    Text(style.localizedName(for: selectedLanguage))
-                                        .font(.system(size: 12.5, weight: .bold, design: style.fontDesign))
-                                        .foregroundColor(style.primaryTextColor(for: colorScheme))
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    Text(style.localizedSubtitle(for: selectedLanguage))
-                                        .font(.system(size: 9.5))
-                                        .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex).opacity(0.85))
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                }
-                                .padding(11)
-                                .frame(width: 130, height: 120)
-                                .background(style.backgroundGradient(for: colorScheme))
-                                .cornerRadius(15)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .stroke(
-                                            isSelected ?
-                                                LinearGradient(
-                                                    colors: [style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: selectedTheme.colorHex), Color.white.opacity(0.3)],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
-                                                : style.borderStroke(for: colorScheme),
-                                            lineWidth: isSelected ? 2.2 : 1.0
-                                        )
-                                )
-                                .shadow(color: isSelected ? (style == .oledStandby ? Color(hex: "F59E0B").opacity(0.3) : Color(hex: selectedTheme.colorHex).opacity(0.25)) : Color.black.opacity(0.12), radius: isSelected ? 6 : 3, y: 2)
                             }
-                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
                     .padding(.vertical, 2)
@@ -3678,7 +3634,6 @@ struct SettingsView: View {
                     generator.prepare()
                     generator.notificationOccurred(.success)
                     manager.syncLockScreenWidget()
-                    WidgetCenter.shared.reloadAllTimelines()
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.triangle.2.circlepath")
@@ -4393,6 +4348,80 @@ struct HomeCategoryChipView: View {
                     .stroke(isSelected ? Color(hex: themeColorHex) : inputFieldBorderColor, lineWidth: 1)
             )
             .foregroundColor(isSelected ? Color(hex: themeColorHex) : primaryTextColor)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Вспомогательное представление: Карточка выбора стиля виджетов
+struct WidgetStyleCardButton: View {
+    let style: WidgetVisualStyle
+    let isSelected: Bool
+    let selectedLanguage: AppLanguage
+    let themeColorHex: String
+    let colorScheme: ColorScheme
+    let onSelect: () -> Void
+    
+    private var accentColor: Color {
+        style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: themeColorHex)
+    }
+    
+    private var shadowColor: Color {
+        if isSelected {
+            return accentColor.opacity(0.28)
+        }
+        return Color.black.opacity(0.12)
+    }
+    
+    var body: some View {
+        Button(action: onSelect) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Image(systemName: style.iconName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: themeColorHex))
+                    
+                    Spacer()
+                    
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(accentColor)
+                    }
+                }
+                
+                Spacer(minLength: 2)
+                
+                Text(style.localizedName(for: selectedLanguage))
+                    .font(.system(size: 12.5, weight: .bold, design: style.fontDesign))
+                    .foregroundColor(style.primaryTextColor(for: colorScheme))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                
+                Text(style.localizedSubtitle(for: selectedLanguage))
+                    .font(.system(size: 9.5))
+                    .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: themeColorHex).opacity(0.85))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(11)
+            .frame(width: 130, height: 120)
+            .background(style.backgroundGradient(for: colorScheme))
+            .cornerRadius(15)
+            .overlay(
+                RoundedRectangle(cornerRadius: 15)
+                    .stroke(
+                        isSelected ?
+                            LinearGradient(
+                                colors: [accentColor, Color.white.opacity(0.3)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            : style.borderStroke(for: colorScheme),
+                        lineWidth: isSelected ? 2.2 : 1.0
+                    )
+            )
+            .shadow(color: shadowColor, radius: isSelected ? 6 : 3, y: 2)
         }
         .buttonStyle(ScaleButtonStyle())
     }
