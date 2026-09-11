@@ -511,19 +511,13 @@ class BibleDatabase {
                 let textEn = columnText(statement, 8)
                 let textHyArarat = columnText(statement, 9)
                 
-                let finalTextHy: String
-                if BibleManager.shared.armenianEdition == .ararat && !textHyArarat.isEmpty {
-                    finalTextHy = textHyArarat
-                } else {
-                    finalTextHy = textHy
-                }
-                
                 let refHy = "\(bNameHy) \(chapter):\(verseNum)"
                 let refRu = "\(bNameRu) \(chapter):\(verseNum)"
                 let refEn = "\(bNameEn) \(chapter):\(verseNum)"
                 
                 verse = BibleVerse(
-                    textHy: finalTextHy,
+                    textHy: textHy,
+                    textHyArarat: textHyArarat,
                     textRu: textRu,
                     textEn: textEn,
                     refHy: refHy,

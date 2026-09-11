@@ -2363,8 +2363,54 @@ struct SettingsView: View {
             .tint(colorScheme == .dark ? .white : .primary)
             .padding(.vertical, 4)
             .onChange(of: selectedLanguage) { newLang in
-                manager.setAppLanguage(newLang)
-                manager.forceRefreshUI()
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    manager.setAppLanguage(newLang)
+                    manager.forceRefreshUI()
+                }
+            }
+            
+            if selectedLanguage == .armenian {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "book.pages")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        Text("cards_translation_title".localized(for: selectedLanguage))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                    }
+                    .padding(.top, 2)
+                    
+                    Text("cards_translation_desc".localized(for: selectedLanguage))
+                        .font(.system(size: 11.5))
+                        .foregroundColor(.secondary)
+                        .lineSpacing(3)
+                    
+                    Picker("cards_translation_title", selection: $selectedArmenianEdition) {
+                        Text("edition_ararat_badge".localized(for: selectedLanguage))
+                            .tag(ArmenianBibleEdition.ararat)
+                        Text("edition_echmiadzin_badge".localized(for: selectedLanguage))
+                            .tag(ArmenianBibleEdition.echmiadzin)
+                    }
+                    .pickerStyle(.segmented)
+                    .tint(Color(hex: selectedTheme.colorHex))
+                    .onChange(of: selectedArmenianEdition) { newEd in
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        manager.setArmenianEdition(newEd)
+                        manager.forceRefreshUI()
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(.horizontal, 4)

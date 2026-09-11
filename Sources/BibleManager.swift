@@ -516,9 +516,14 @@ class BibleManager: ObservableObject {
         self.armenianEdition = edition
         if let defaults = sharedDefaults {
             defaults.set(edition.rawValue, forKey: "armenian_bible_edition")
+            // Обновляем текст текущего стиха для виджетов под выбранный перевод
+            defaults.set(currentVerse.text(for: .armenian), forKey: "currentVerseTextHy")
+            defaults.set(currentVerse.text, forKey: textKey)
             defaults.synchronize()
             WidgetCenter.shared.reloadAllTimelines()
         }
+        syncLockScreenWidget()
+        objectWillChange.send()
     }
     
     // MARK: - Мгновенная синхронизация и случайные стихи для всех размеров виджетов
@@ -827,7 +832,9 @@ class BibleManager: ObservableObject {
             defaults.set(verse.id.uuidString, forKey: "currentLargeVerseId")
             
             // Сохраняем мультиязычные тексты стиха для виджета домашнего экрана
-            defaults.set(verse.textHy, forKey: "currentVerseTextHy")
+            defaults.set(verse.text(for: .armenian), forKey: "currentVerseTextHy")
+            defaults.set(verse.textHy, forKey: "currentVerseTextHyEchmiadzin")
+            defaults.set(verse.textHyArarat, forKey: "currentVerseTextHyArarat")
             defaults.set(verse.textRu, forKey: "currentVerseTextRu")
             defaults.set(verse.textEn, forKey: "currentVerseTextEn")
             defaults.set(verse.refHy, forKey: "currentVerseRefHy")
@@ -894,7 +901,8 @@ class BibleManager: ObservableObject {
         let prompt: String
         switch appLanguage {
         case .armenian:
-            prompt = "Դու Աստվածաշնչի փորձագետ ես: Գեներացրու մեկ պատահական, ոգեշնչող, իմաստալից և գեղեցիկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (Արարատ թարգմանությունից): Գրիր ԱՄԲՈՂՋԱԿԱՆ տեքստը, առանց կրճատումների կամ բազմակետերի (...): Տուր միայն մեջբերման տեքստը և հղումը հետևյալ ֆորմատով՝ [Մեջբերում] | [Հղում] (օրինակ՝ Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ | Սաղմոսներ 23:1): Ոչ մի ուրիշ բան մի գրիր:"
+            let editionNote = armenianEdition == .echmiadzin ? "Էջմիածնի դասական թարգմանությունից" : "Արարատ ժամանակակից թարգմանությունից"
+            prompt = "Դու Աստվածաշնչի փորձագետ ես: Գեներացրու մեկ պատահական, ոգեշնչող, իմաստալից և գեղեցիկ աստվածաշնչյան մեջբերում (տող) հայերեն լեզվով (\(editionNote)): Գրիր ԱՄԲՈՂՋԱԿԱՆ տեքստը, առանց կրճատումների կամ բազմակետերի (...): Տուր միայն մեջբերման տեքստը և հղումը հետևյալ ֆորմատով՝ [Մեջբերում] | [Հղում] (օրինակ՝ Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ | Սաղմոսներ 23:1): Ոչ մի ուրիշ բան մի գրիր:"
         case .russian:
             prompt = "Ты эксперт по Библии. Сгенерируй одну случайную, вдохновляющую, глубокую и красивую библейскую цитату на русском языке (из Синодального перевода). Пиши ПОЛНЫЙ текст цитаты без сокращений и многоточий (...). Выдай только текст цитаты и ссылку на нее в следующем формате: [Цитата] | [Ссылка] (например: Господь — Пастырь мой; я ни в чем не буду нуждаться. | Псалом 22:1). Больше ничего не пиши."
         case .english:

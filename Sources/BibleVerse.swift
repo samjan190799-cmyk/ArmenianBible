@@ -1,10 +1,17 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Определение выбранного перевода (Арарат или Эчмиадзин)
+func isAraratEditionSelected() -> Bool {
+    let savedEdition = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "armenian_bible_edition")
+    return savedEdition != "echmiadzin"
+}
+
 // MARK: - Модель библейского текста (стиха или молитвы)
 struct BibleVerse: Identifiable, Codable, Hashable {
     let id: UUID
     let textHy: String
+    let textHyArarat: String
     let textRu: String
     let textEn: String
     let refHy: String
@@ -20,6 +27,9 @@ struct BibleVerse: Identifiable, Codable, Hashable {
         } else if lang.hasPrefix("en") || lang == "english" {
             return textEn
         } else {
+            if isAraratEditionSelected() && !textHyArarat.isEmpty {
+                return textHyArarat
+            }
             return textHy
         }
     }
@@ -38,7 +48,11 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     
     func text(for language: AppLanguage) -> String {
         switch language {
-        case .armenian: return textHy
+        case .armenian:
+            if isAraratEditionSelected() && !textHyArarat.isEmpty {
+                return textHyArarat
+            }
+            return textHy
         case .russian: return textRu
         case .english: return textEn
         }
@@ -52,9 +66,20 @@ struct BibleVerse: Identifiable, Codable, Hashable {
         }
     }
     
-    init(id: UUID = UUID(), textHy: String, textRu: String, textEn: String, refHy: String, refRu: String, refEn: String, isPrayer: Bool = false) {
+    init(
+        id: UUID = UUID(),
+        textHy: String,
+        textHyArarat: String = "",
+        textRu: String,
+        textEn: String,
+        refHy: String,
+        refRu: String,
+        refEn: String,
+        isPrayer: Bool = false
+    ) {
         self.id = id
         self.textHy = textHy
+        self.textHyArarat = textHyArarat
         self.textRu = textRu
         self.textEn = textEn
         self.refHy = refHy
@@ -67,6 +92,7 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     init(id: UUID = UUID(), text: String, reference: String, isPrayer: Bool = false) {
         self.id = id
         self.textHy = text
+        self.textHyArarat = text
         self.textRu = text
         self.textEn = text
         self.refHy = reference
@@ -76,7 +102,7 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, textHy, textRu, textEn, refHy, refRu, refEn, isPrayer, text, reference
+        case id, textHy, textHyArarat, textRu, textEn, refHy, refRu, refEn, isPrayer, text, reference
     }
     
     init(from decoder: Decoder) throws {
@@ -91,6 +117,7 @@ struct BibleVerse: Identifiable, Codable, Hashable {
            let ruRef = try container.decodeIfPresent(String.self, forKey: .refRu),
            let enRef = try container.decodeIfPresent(String.self, forKey: .refEn) {
             self.textHy = hyText
+            self.textHyArarat = try container.decodeIfPresent(String.self, forKey: .textHyArarat) ?? ""
             self.textRu = ruText
             self.textEn = enText
             self.refHy = hyRef
@@ -100,6 +127,7 @@ struct BibleVerse: Identifiable, Codable, Hashable {
             let text = try container.decodeIfPresent(String.self, forKey: .text) ?? ""
             let reference = try container.decodeIfPresent(String.self, forKey: .reference) ?? ""
             self.textHy = text
+            self.textHyArarat = ""
             self.textRu = text
             self.textEn = text
             self.refHy = reference
@@ -112,6 +140,7 @@ struct BibleVerse: Identifiable, Codable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(textHy, forKey: .textHy)
+        try container.encode(textHyArarat, forKey: .textHyArarat)
         try container.encode(textRu, forKey: .textRu)
         try container.encode(textEn, forKey: .textEn)
         try container.encode(refHy, forKey: .refHy)
@@ -2747,6 +2776,7 @@ extension BibleVerse {
                     BibleVerse(
                         id: item.id,
                         textHy: item.textHy,
+                        textHyArarat: item.textHyArarat,
                         textRu: item.textRu,
                         textEn: item.textEn,
                         refHy: item.refHy,
@@ -2768,11 +2798,6 @@ extension String {
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .joined()
     }
-}
-
-private func isAraratEditionSelected() -> Bool {
-    let savedEdition = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "armenian_bible_edition")
-    return savedEdition != "echmiadzin"
 }
 
 // MARK: - Элемент Избранного (Объединенная модель для стихов дня и стихов из Библии)

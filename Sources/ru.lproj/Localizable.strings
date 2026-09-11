@@ -268,6 +268,10 @@
 /* Armenian Bible Editions */
 "edition_ararat_title" = "Արարատյան (Араратский)";
 "edition_echmiadzin_title" = "Էջմիածնական (Эчмиадзинский)";
+"cards_translation_title" = "Перевод стихов на карточках";
+"cards_translation_desc" = "Выберите версию перевода для карточек Главного экрана и виджетов";
+"edition_ararat_badge" = "Арарат (Современный)";
+"edition_echmiadzin_badge" = "Эчмиадзин (Классический 1895)";
 "menu_translation_title" = "Перевод";
 
 /* Narekatsi & Audio Player */
