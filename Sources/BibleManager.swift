@@ -143,6 +143,11 @@ class BibleManager: ObservableObject {
     }
     
     private init() {
+        // Подключаем провайдер поиска текстов стихов из базы данных SQLite
+        BibleVerse.textLookupProvider = { ref in
+            BibleDatabase.shared.lookupVerseTexts(referenceHy: ref)
+        }
+        
         // Попытка загрузить сохраненный стих из общей памяти App Group
         if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
             if let savedIdString = defaults.string(forKey: "currentVerseId"),
