@@ -5,8 +5,11 @@ import UIKit
 enum AppIconOption: String, CaseIterable, Identifiable {
     case classic = "classic"
     case pitchBlack = "pitchBlack"
+    case snowWhite = "snowWhite"
     case goldenGlow = "goldenGlow"
     case royalIndigo = "royalIndigo"
+    case royalPomegranate = "royalPomegranate"
+    case sacredEmerald = "sacredEmerald"
     
     var id: String { rawValue }
     
@@ -17,10 +20,16 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             return nil
         case .pitchBlack:
             return "AppIcon-PitchBlack"
+        case .snowWhite:
+            return "AppIcon-SnowWhite"
         case .goldenGlow:
             return "AppIcon-GoldenGlow"
         case .royalIndigo:
             return "AppIcon-RoyalIndigo"
+        case .royalPomegranate:
+            return "AppIcon-RoyalPomegranate"
+        case .sacredEmerald:
+            return "AppIcon-SacredEmerald"
         }
     }
     
@@ -31,19 +40,25 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             return "AppIcon-Classic"
         case .pitchBlack:
             return "AppIcon-PitchBlack"
+        case .snowWhite:
+            return "AppIcon-SnowWhite"
         case .goldenGlow:
             return "AppIcon-GoldenGlow"
         case .royalIndigo:
             return "AppIcon-RoyalIndigo"
+        case .royalPomegranate:
+            return "AppIcon-RoyalPomegranate"
+        case .sacredEmerald:
+            return "AppIcon-SacredEmerald"
         }
     }
     
     /// Является ли эксклюзивной Premium функцией
     var isPremium: Bool {
         switch self {
-        case .classic, .pitchBlack:
+        case .classic, .pitchBlack, .snowWhite:
             return false
-        case .goldenGlow, .royalIndigo:
+        case .goldenGlow, .royalIndigo, .royalPomegranate, .sacredEmerald:
             return true
         }
     }
@@ -62,6 +77,12 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .russian: return "Черно-белая"
             case .english: return "Pitch Black"
             }
+        case .snowWhite:
+            switch language {
+            case .armenian: return "Ձյունաճերմակ"
+            case .russian: return "Белоснежная"
+            case .english: return "Snow White"
+            }
         case .goldenGlow:
             switch language {
             case .armenian: return "Ոսկեգույն Փայլ"
@@ -73,6 +94,18 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .armenian: return "Արքայական Ինդիգո"
             case .russian: return "Королевский Индиго"
             case .english: return "Royal Indigo"
+            }
+        case .royalPomegranate:
+            switch language {
+            case .armenian: return "Արքայական Նուռ"
+            case .russian: return "Королевский Гранат"
+            case .english: return "Royal Pomegranate"
+            }
+        case .sacredEmerald:
+            switch language {
+            case .armenian: return "Սրբազան Զմրուխտ"
+            case .russian: return "Священный Изумруд"
+            case .english: return "Sacred Emerald"
             }
         }
     }
@@ -91,6 +124,12 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .russian: return "Глубокий черный фон и белый хачкар"
             case .english: return "Pitch black & pure white cross"
             }
+        case .snowWhite:
+            switch language {
+            case .armenian: return "Մաքուր սպիտակ ֆոն և մուգ խաչքար"
+            case .russian: return "Чистый белый фон и темный хачкар"
+            case .english: return "Pure white canvas & bold dark cross"
+            }
         case .goldenGlow:
             switch language {
             case .armenian: return "Պայծառ ճառագայթող ոսկեգույն լույս"
@@ -102,6 +141,18 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .armenian: return "Գիշերային շափյուղա և աստվածային շունչ"
             case .russian: return "Ночной сапфир и золотое благословение"
             case .english: return "Celestial sapphire night & gold"
+            }
+        case .royalPomegranate:
+            switch language {
+            case .armenian: return "Հայկական նռան երանգ և ոսկեզօծ խաչ"
+            case .russian: return "Благородный гранатовый тон и золотой хачкар"
+            case .english: return "Noble pomegranate crimson & radiant gold"
+            }
+        case .sacredEmerald:
+            switch language {
+            case .armenian: return "Խորը զմրուխտյա հանգստություն և ոսկի"
+            case .russian: return "Глубокий изумрудный цвет и золотой свет"
+            case .english: return "Deep mystical emerald & celestial gold"
             }
         }
     }
