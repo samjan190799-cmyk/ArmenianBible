@@ -1,6 +1,19 @@
 import SwiftUI
 import UIKit
 
+// MARK: - Тип модального предупреждения викторины
+private enum QuizAlertType: Identifiable {
+    case noKey
+    case aiFailure(String)
+    
+    var id: String {
+        switch self {
+        case .noKey: return "noKey"
+        case .aiFailure(let msg): return "aiFailure_\(msg)"
+        }
+    }
+}
+
 // MARK: - Главный Экран Викторины
 struct BibleQuizView: View {
     @ObservedObject var manager = BibleManager.shared
@@ -12,9 +25,7 @@ struct BibleQuizView: View {
     @State private var selectedQuestionCount = 10
     @AppStorage("quiz_ai_generation_enabled") private var isAIGenerationEnabled = true
     @State private var isGeneratingAI = false
-    @State private var showNoKeyAlert = false
-    @State private var showAIFailureAlert = false
-    @State private var aiErrorMessage = ""
+    @State private var activeAlert: QuizAlertType? = nil
     @State private var aiGenerationStep = 0
     @State private var aiStepTimer: Timer? = nil
     @State private var quizStarted = false
@@ -476,26 +487,28 @@ struct BibleQuizView: View {
         .sheet(isPresented: $isShowingAchievements) {
             BibleAchievementsView()
         }
-        .alert(isPresented: $showNoKeyAlert) {
-            Alert(
-                title: Text("quiz_ai_no_key_title".localized(for: manager.appLanguage)),
-                message: Text("quiz_ai_no_key_message".localized(for: manager.appLanguage)),
-                primaryButton: .default(Text("quiz_play_classic_button".localized(for: manager.appLanguage)), action: {
-                    isAIGenerationEnabled = false
-                    startOfflineQuiz()
-                }),
-                secondaryButton: .cancel()
-            )
-        }
-        .alert(isPresented: $showAIFailureAlert) {
-            Alert(
-                title: Text("quiz_ai_failed_title".localized(for: manager.appLanguage)),
-                message: Text(aiErrorMessage.isEmpty ? "quiz_ai_failed_message".localized(for: manager.appLanguage) : "\("quiz_ai_failed_message".localized(for: manager.appLanguage))\n\n(\(aiErrorMessage))"),
-                primaryButton: .default(Text("quiz_play_classic_button".localized(for: manager.appLanguage)), action: {
-                    startOfflineQuiz()
-                }),
-                secondaryButton: .cancel(Text("close_button".localized(for: manager.appLanguage)))
-            )
+        .alert(item: $activeAlert) { alertType in
+            switch alertType {
+            case .noKey:
+                return Alert(
+                    title: Text("quiz_ai_no_key_title".localized(for: manager.appLanguage)),
+                    message: Text("quiz_ai_no_key_message".localized(for: manager.appLanguage)),
+                    primaryButton: .default(Text("quiz_play_classic_button".localized(for: manager.appLanguage)), action: {
+                        isAIGenerationEnabled = false
+                        startOfflineQuiz()
+                    }),
+                    secondaryButton: .cancel()
+                )
+            case .aiFailure(let msg):
+                return Alert(
+                    title: Text("quiz_ai_failed_title".localized(for: manager.appLanguage)),
+                    message: Text(msg.isEmpty ? "quiz_ai_failed_message".localized(for: manager.appLanguage) : "\("quiz_ai_failed_message".localized(for: manager.appLanguage))\n\n(\(msg))"),
+                    primaryButton: .default(Text("quiz_play_classic_button".localized(for: manager.appLanguage)), action: {
+                        startOfflineQuiz()
+                    }),
+                    secondaryButton: .cancel(Text("close_button".localized(for: manager.appLanguage)))
+                )
+            }
         }
         .onAppear {
             QuizAdaptiveDiary.shared.recordSession()
@@ -605,7 +618,7 @@ struct BibleQuizView: View {
         
         if isAIGenerationEnabled {
             guard QuizAIEngine.shared.isAIAvailable else {
-                showNoKeyAlert = true
+                activeAlert = .noKey
                 return
             }
             
@@ -635,8 +648,7 @@ struct BibleQuizView: View {
                 } catch {
                     stopAITimer()
                     isGeneratingAI = false
-                    aiErrorMessage = error.localizedDescription
-                    showAIFailureAlert = true
+                    activeAlert = .aiFailure(error.localizedDescription)
                 }
             }
         } else {

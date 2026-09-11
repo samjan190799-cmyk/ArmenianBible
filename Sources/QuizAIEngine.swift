@@ -27,13 +27,59 @@ enum QuizAIError: LocalizedError {
     }
 }
 
-// MARK: - Промежуточная структура для декодинга JSON ответа ИИ
-private struct RawAIQuestion: Codable {
+// MARK: - Промежуточная структура для декодинга JSON ответа ИИ (максимальная толерантность к типам)
+private struct RawAIQuestion: Decodable {
     let question: String
     let options: [String]
     let correctAnswerIndex: Int
     let explanation: String?
     let verseRef: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case question, options, explanation, verseRef
+        case correctAnswerIndex
+        case correct_answer_index, answerIndex, answer_index, correct
+        case ref, verse_ref
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.question = try container.decode(String.self, forKey: .question)
+        
+        // Варианты ответов: массив строк или словарь {"A": "...", "B": "..."}
+        if let optsArray = try? container.decode([String].self, forKey: .options) {
+            self.options = optsArray
+        } else if let optsDict = try? container.decode([String: String].self, forKey: .options) {
+            let sortedKeys = optsDict.keys.sorted()
+            self.options = sortedKeys.compactMap { optsDict[$0] }
+        } else {
+            self.options = []
+        }
+        
+        // Индекс правильного ответа: число или строка ("0", "1")
+        var parsedIndex: Int? = nil
+        if let intVal = try? container.decode(Int.self, forKey: .correctAnswerIndex) {
+            parsedIndex = intVal
+        } else if let intVal = try? container.decode(Int.self, forKey: .correct_answer_index) {
+            parsedIndex = intVal
+        } else if let intVal = try? container.decode(Int.self, forKey: .answerIndex) {
+            parsedIndex = intVal
+        } else if let intVal = try? container.decode(Int.self, forKey: .answer_index) {
+            parsedIndex = intVal
+        } else if let intVal = try? container.decode(Int.self, forKey: .correct) {
+            parsedIndex = intVal
+        } else if let strVal = try? container.decode(String.self, forKey: .correctAnswerIndex) {
+            parsedIndex = Int(strVal.trimmingCharacters(in: .whitespacesAndNewlines))
+        } else if let strVal = try? container.decode(String.self, forKey: .correct_answer_index) {
+            parsedIndex = Int(strVal.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        self.correctAnswerIndex = parsedIndex ?? 0
+        
+        self.explanation = try? container.decodeIfPresent(String.self, forKey: .explanation)
+        self.verseRef = (try? container.decodeIfPresent(String.self, forKey: .verseRef)) ??
+                        (try? container.decodeIfPresent(String.self, forKey: .verse_ref)) ??
+                        (try? container.decodeIfPresent(String.self, forKey: .ref))
+    }
 }
 
 // MARK: - Интеллектуальный Движок Генерации Викторины
@@ -43,13 +89,9 @@ final class QuizAIEngine {
     
     private init() {}
     
-    /// Проверка: доступна ли генерация через ИИ (есть ли ключ или подписка)
+    /// Проверка: доступна ли генерация через ИИ (требуется введенный API-ключ активного провайдера)
     var isAIAvailable: Bool {
         let manager = BibleManager.shared
-        let sub = SubscriptionManager.shared
-        if sub.isPremium {
-            return true
-        }
         switch manager.activeProvider {
         case .gemini:
             return !manager.geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -85,7 +127,7 @@ final class QuizAIEngine {
             apiKey = manager.anthropicApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         
-        guard !apiKey.isEmpty || SubscriptionManager.shared.isPremium else {
+        guard !apiKey.isEmpty else {
             throw QuizAIError.missingApiKey
         }
         
@@ -95,7 +137,7 @@ final class QuizAIEngine {
         
         // Выполняем генерацию через реестр моделей с авто-фолбеком на проверенные модели
         let registry = AIModelRegistry.shared
-        let systemPrompt = provider == .chatgpt ? "You are a helpful Bible quiz generator. You always return valid JSON array only." : nil
+        let systemPrompt = "You are an expert Bible quiz generator. Always respond strictly with a valid JSON object containing a 'questions' array."
         let (rawContent, _) = try await registry.executeRequest(
             provider: provider,
             apiKey: apiKey,
@@ -152,16 +194,18 @@ final class QuizAIEngine {
             - explanation: 1-2 նախադասությամբ հոգևոր բացատրություն, թե ինչու է այդ պատասխանը ճիշտ
             - verseRef: աստվածաշնչյան հղում (օրինակ՝ «Մատթեոս 5:3» կամ «Սաղմոսներ 23:1»)
             
-            ՊԱՏԱՍԽԱՆԸ ՏՈՒՐ ԽՍՏԻՎ ՄԻԱՅՆ JSON ՖՈՐՄԱՏՈՎ (առանց markdown ```json նշանների, առանց ավելորդ նախաբանի կամ վերջաբանի)՝
-            [
-              {
-                "question": "...",
-                "options": ["...", "...", "...", "..."],
-                "correctAnswerIndex": 0,
-                "explanation": "...",
-                "verseRef": "..."
-              }
-            ]
+            ՊԱՏԱՍԽԱՆԸ ՏՈՒՐ ԽՍՏԻՎ ՄԻԱՅՆ JSON ՕԲՅԵԿՏԻ ՏԵՍՔՈՎ (առանց markdown ```json նշանների)՝
+            {
+              "questions": [
+                {
+                  "question": "...",
+                  "options": ["...", "...", "...", "..."],
+                  "correctAnswerIndex": 0,
+                  "explanation": "...",
+                  "verseRef": "..."
+                }
+              ]
+            }
             """
             
         case .russian:
@@ -190,16 +234,18 @@ final class QuizAIEngine {
             - explanation: емкое библейское объяснение на 1-2 предложения
             - verseRef: точная ссылка на книгу, главу и стих (например: «Матфея 5:3» или «Псалом 22:1»)
             
-            ОТВЕТ ДОЛЖЕН БЫТЬ СТРОГО В ФОРМАТЕ JSON (без обертки ```json, без лишних приветствий):
-            [
-              {
-                "question": "...",
-                "options": ["...", "...", "...", "..."],
-                "correctAnswerIndex": 0,
-                "explanation": "...",
-                "verseRef": "..."
-              }
-            ]
+            ОТВЕТ ДОЛЖЕН БЫТЬ СТРОГО В ВИДЕ JSON ОБЪЕКТА (без обертки ```json, без лишних приветствий):
+            {
+              "questions": [
+                {
+                  "question": "...",
+                  "options": ["...", "...", "...", "..."],
+                  "correctAnswerIndex": 0,
+                  "explanation": "...",
+                  "verseRef": "..."
+                }
+              ]
+            }
             """
             
         case .english:
@@ -228,35 +274,20 @@ final class QuizAIEngine {
             - explanation: 1-2 sentence biblical explanation
             - verseRef: scripture reference (e.g. "Matthew 5:3" or "Psalm 23:1")
             
-            OUTPUT STRICTLY RAW JSON ONLY (no markdown ```json fences, no preamble):
-            [
-              {
-                "question": "...",
-                "options": ["...", "...", "...", "..."],
-                "correctAnswerIndex": 0,
-                "explanation": "...",
-                "verseRef": "..."
-              }
-            ]
+            OUTPUT STRICTLY A VALID JSON OBJECT ONLY (no markdown ```json fences, no preamble):
+            {
+              "questions": [
+                {
+                  "question": "...",
+                  "options": ["...", "...", "...", "..."],
+                  "correctAnswerIndex": 0,
+                  "explanation": "...",
+                  "verseRef": "..."
+                }
+              ]
+            }
             """
         }
-    }
-    
-    // MARK: - Сетевые вызовы к API (делегируются в AIModelRegistry с каскадной защитой)
-    
-    private func requestGemini(apiKey: String, prompt: String) async throws -> String {
-        let (text, _) = try await AIModelRegistry.shared.executeRequest(provider: .gemini, apiKey: apiKey, prompt: prompt, jsonMode: true, maxTokens: 4096)
-        return text
-    }
-    
-    private func requestChatGPT(apiKey: String, prompt: String) async throws -> String {
-        let (text, _) = try await AIModelRegistry.shared.executeRequest(provider: .chatgpt, apiKey: apiKey, prompt: prompt, systemPrompt: "You are a helpful Bible quiz generator. You always return valid JSON array only.", jsonMode: true, maxTokens: 4096)
-        return text
-    }
-    
-    private func requestClaude(apiKey: String, prompt: String) async throws -> String {
-        let (text, _) = try await AIModelRegistry.shared.executeRequest(provider: .claude, apiKey: apiKey, prompt: prompt, jsonMode: false, maxTokens: 4096)
-        return text
     }
     
     // MARK: - Парсинг и санитизация JSON
@@ -275,31 +306,40 @@ final class QuizAIEngine {
         }
         cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Если обернуто в объект {"questions": [...]}
-        if cleaned.hasPrefix("{") {
-            if let objData = cleaned.data(using: .utf8),
-               let dict = try? JSONSerialization.jsonObject(with: objData) as? [String: Any] {
-                for key in ["questions", "items", "data", "quiz"] {
-                    if let innerArray = dict[key] as? [[String: Any]],
-                       let innerData = try? JSONSerialization.data(withJSONObject: innerArray) {
-                        return try decodeRawQuestions(from: innerData, category: category, language: language, providerName: providerName)
+        // 1. Попытка распарсить как JSON-объект: {"questions": [...]}
+        if let objData = cleaned.data(using: .utf8),
+           let dict = try? JSONSerialization.jsonObject(with: objData) as? [String: Any] {
+            for key in ["questions", "items", "data", "quiz", "result", "results", "list"] {
+                if let innerArray = dict[key] as? [[String: Any]],
+                   let innerData = try? JSONSerialization.data(withJSONObject: innerArray) {
+                    if let questions = try? decodeRawQuestions(from: innerData, category: category, language: language, providerName: providerName), !questions.isEmpty {
+                        return questions
+                    }
+                }
+            }
+            // Проверяем любое значение словаря, являющееся массивом объектов
+            for (_, value) in dict {
+                if let innerArray = value as? [[String: Any]],
+                   let innerData = try? JSONSerialization.data(withJSONObject: innerArray) {
+                    if let questions = try? decodeRawQuestions(from: innerData, category: category, language: language, providerName: providerName), !questions.isEmpty {
+                        return questions
                     }
                 }
             }
         }
         
-        // Находим границы JSON массива [...]
-        guard let startIndex = cleaned.firstIndex(of: "["),
-              let endIndex = cleaned.lastIndex(of: "]") else {
-            throw QuizAIError.parsingFailed
+        // 2. Попытка найти границы JSON массива [...] в ответе
+        if let startIndex = cleaned.firstIndex(of: "["),
+           let endIndex = cleaned.lastIndex(of: "]"),
+           startIndex < endIndex {
+            let jsonArrayString = String(cleaned[startIndex...endIndex])
+            if let arrayData = jsonArrayString.data(using: .utf8),
+               let questions = try? decodeRawQuestions(from: arrayData, category: category, language: language, providerName: providerName), !questions.isEmpty {
+                return questions
+            }
         }
         
-        let jsonArrayString = String(cleaned[startIndex...endIndex])
-        guard let arrayData = jsonArrayString.data(using: .utf8) else {
-            throw QuizAIError.parsingFailed
-        }
-        
-        return try decodeRawQuestions(from: arrayData, category: category, language: language, providerName: providerName)
+        throw QuizAIError.parsingFailed
     }
     
     private func decodeRawQuestions(from data: Data, category: QuizCategory, language: AppLanguage, providerName: String) throws -> [QuizQuestion] {

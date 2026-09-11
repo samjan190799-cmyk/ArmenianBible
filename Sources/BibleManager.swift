@@ -253,7 +253,8 @@ class BibleManager: ObservableObject {
                let decoded = try? JSONDecoder().decode([String: VerseAnnotation].self, from: savedAnnotationsData) {
                 self.annotations = decoded
             }
-            if let savedEdRaw = defaults.string(forKey: "armenian_bible_edition"),
+            let savedEdRaw = defaults.string(forKey: "armenian_bible_edition") ?? UserDefaults.standard.string(forKey: "armenian_bible_edition")
+            if let savedEdRaw,
                let ed = ArmenianBibleEdition(rawValue: savedEdRaw) {
                 self.armenianEdition = ed
             }
@@ -376,6 +377,9 @@ class BibleManager: ObservableObject {
         
         // Загрузка сохраненной истории чата духовного помощника
         loadAIChat()
+        
+        // Гарантируем, что текущий стих дня полностью обогащен обоими армянскими переводами из базы SQLite
+        self.currentVerse = BibleDatabase.shared.enrichVerse(self.currentVerse)
     }
     
     // MARK: - Сохранение последней позиции чтения и отметка главы как прочитанной
@@ -514,15 +518,28 @@ class BibleManager: ObservableObject {
     // MARK: - Сохранение армянского перевода Библии
     func setArmenianEdition(_ edition: ArmenianBibleEdition) {
         self.armenianEdition = edition
+        
+        // Синхронизируем ключ в обоих хранилищах
+        UserDefaults.standard.set(edition.rawValue, forKey: "armenian_bible_edition")
         if let defaults = sharedDefaults {
             defaults.set(edition.rawValue, forKey: "armenian_bible_edition")
+        }
+        
+        // Обогащаем текущий стих актуальными текстами из базы данных SQLite
+        self.currentVerse = BibleDatabase.shared.enrichVerse(self.currentVerse)
+        
+        if let defaults = sharedDefaults {
             // Обновляем текст текущего стиха для виджетов под выбранный перевод
             defaults.set(currentVerse.text(for: .armenian), forKey: "currentVerseTextHy")
+            defaults.set(currentVerse.textHy, forKey: "currentVerseTextHyEchmiadzin")
+            defaults.set(currentVerse.textHyArarat, forKey: "currentVerseTextHyArarat")
             defaults.set(currentVerse.text, forKey: textKey)
             defaults.synchronize()
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        UserDefaults.standard.synchronize()
+        
         syncLockScreenWidget()
+        WidgetCenter.shared.reloadAllTimelines()
         objectWillChange.send()
     }
     
@@ -536,13 +553,16 @@ class BibleManager: ObservableObject {
             let list = !rawList.isEmpty ? rawList : BibleVerse.shortPearls
             
             if let randomPearl = list.randomElement() ?? BibleVerse.shortPearls.first {
-                defaults.set(randomPearl.id.uuidString, forKey: "currentLockScreenVerseId")
-                defaults.set(randomPearl.textHy, forKey: "currentLockScreenTextHy")
-                defaults.set(randomPearl.textRu, forKey: "currentLockScreenTextRu")
-                defaults.set(randomPearl.textEn, forKey: "currentLockScreenTextEn")
-                defaults.set(randomPearl.refHy, forKey: "currentLockScreenRefHy")
-                defaults.set(randomPearl.refRu, forKey: "currentLockScreenRefRu")
-                defaults.set(randomPearl.refEn, forKey: "currentLockScreenRefEn")
+                let enrichedPearl = BibleDatabase.shared.enrichVerse(randomPearl)
+                defaults.set(enrichedPearl.id.uuidString, forKey: "currentLockScreenVerseId")
+                defaults.set(enrichedPearl.textHy, forKey: "currentLockScreenTextHy")
+                defaults.set(enrichedPearl.textHy, forKey: "currentLockScreenTextHyEchmiadzin")
+                defaults.set(enrichedPearl.textHyArarat, forKey: "currentLockScreenTextHyArarat")
+                defaults.set(enrichedPearl.textRu, forKey: "currentLockScreenTextRu")
+                defaults.set(enrichedPearl.textEn, forKey: "currentLockScreenTextEn")
+                defaults.set(enrichedPearl.refHy, forKey: "currentLockScreenRefHy")
+                defaults.set(enrichedPearl.refRu, forKey: "currentLockScreenRefRu")
+                defaults.set(enrichedPearl.refEn, forKey: "currentLockScreenRefEn")
             }
             
             // 2. Малый виджет (System Small 2x2) - строго короткие стихи активной категории
@@ -821,30 +841,31 @@ class BibleManager: ObservableObject {
     
     // MARK: - Сохранение стиха в AppGroup и обновление виджета
     func updateCurrentVerse(_ verse: BibleVerse) {
-        self.currentVerse = verse
+        let enriched = BibleDatabase.shared.enrichVerse(verse)
+        self.currentVerse = enriched
         // Принудительно уведомляем SwiftUI, т.к. BibleVerse struct с computed свойствами
         // может не считаться "изменённым" при смене языка (stored properties те же)
         objectWillChange.send()
         if let defaults = sharedDefaults {
-            defaults.set(verse.id.uuidString, forKey: "currentVerseId")
+            defaults.set(enriched.id.uuidString, forKey: "currentVerseId")
             // Экран блокировки (Lock Screen) строго изолирован: питается ТОЛЬКО короткими стихами из syncLockScreenWidget()
             // Ни в коем случае не перезаписываем currentLockScreenVerseId стихами общего чтения из приложения!
-            defaults.set(verse.id.uuidString, forKey: "currentSmallVerseId")
-            defaults.set(verse.id.uuidString, forKey: "currentMediumVerseId")
-            defaults.set(verse.id.uuidString, forKey: "currentLargeVerseId")
+            defaults.set(enriched.id.uuidString, forKey: "currentSmallVerseId")
+            defaults.set(enriched.id.uuidString, forKey: "currentMediumVerseId")
+            defaults.set(enriched.id.uuidString, forKey: "currentLargeVerseId")
             
             // Сохраняем мультиязычные тексты стиха для виджета домашнего экрана
-            defaults.set(verse.text(for: .armenian), forKey: "currentVerseTextHy")
-            defaults.set(verse.textHy, forKey: "currentVerseTextHyEchmiadzin")
-            defaults.set(verse.textHyArarat, forKey: "currentVerseTextHyArarat")
-            defaults.set(verse.textRu, forKey: "currentVerseTextRu")
-            defaults.set(verse.textEn, forKey: "currentVerseTextEn")
-            defaults.set(verse.refHy, forKey: "currentVerseRefHy")
-            defaults.set(verse.refRu, forKey: "currentVerseRefRu")
-            defaults.set(verse.refEn, forKey: "currentVerseRefEn")
+            defaults.set(enriched.text(for: .armenian), forKey: "currentVerseTextHy")
+            defaults.set(enriched.textHy, forKey: "currentVerseTextHyEchmiadzin")
+            defaults.set(enriched.textHyArarat, forKey: "currentVerseTextHyArarat")
+            defaults.set(enriched.textRu, forKey: "currentVerseTextRu")
+            defaults.set(enriched.textEn, forKey: "currentVerseTextEn")
+            defaults.set(enriched.refHy, forKey: "currentVerseRefHy")
+            defaults.set(enriched.refRu, forKey: "currentVerseRefRu")
+            defaults.set(enriched.refEn, forKey: "currentVerseRefEn")
             
-            defaults.set(verse.text, forKey: textKey)
-            defaults.set(verse.reference, forKey: referenceKey)
+            defaults.set(enriched.text, forKey: textKey)
+            defaults.set(enriched.reference, forKey: referenceKey)
             defaults.synchronize()
             
             // Заставляем виджеты домашнего экрана немедленно обновиться
@@ -1324,29 +1345,32 @@ class BibleManager: ObservableObject {
     func pinVerseToWidget(textHy: String, textRu: String, textEn: String, refHy: String, refRu: String, refEn: String) {
         guard let defaults = sharedDefaults else { return }
         
-        defaults.set(textHy, forKey: "currentVerseTextHy")
-        defaults.set(textRu, forKey: "currentVerseTextRu")
-        defaults.set(textEn, forKey: "currentVerseTextEn")
+        let baseVerse = BibleVerse(textHy: textHy, textRu: textRu, textEn: textEn, refHy: refHy, refRu: refRu, refEn: refEn)
+        let enriched = BibleDatabase.shared.enrichVerse(baseVerse)
         
-        defaults.set(refHy, forKey: "currentVerseReferenceHy")
-        defaults.set(refRu, forKey: "currentVerseReferenceRu")
-        defaults.set(refEn, forKey: "currentVerseReferenceEn")
+        defaults.set(enriched.text(for: .armenian), forKey: "currentVerseTextHy")
+        defaults.set(enriched.textHy, forKey: "currentVerseTextHyEchmiadzin")
+        defaults.set(enriched.textHyArarat, forKey: "currentVerseTextHyArarat")
+        defaults.set(enriched.textRu, forKey: "currentVerseTextRu")
+        defaults.set(enriched.textEn, forKey: "currentVerseTextEn")
+        
+        defaults.set(enriched.refHy, forKey: "currentVerseReferenceHy")
+        defaults.set(enriched.refRu, forKey: "currentVerseReferenceRu")
+        defaults.set(enriched.refEn, forKey: "currentVerseReferenceEn")
         
         // Устанавливаем текущий текст в зависимости от языка приложения
         switch appLanguage {
         case .armenian:
-            defaults.set(textHy, forKey: textKey)
-            defaults.set(refHy, forKey: referenceKey)
-            currentVerse = BibleVerse(textHy: textHy, textRu: textRu, textEn: textEn, refHy: refHy, refRu: refRu, refEn: refEn)
+            defaults.set(enriched.text(for: .armenian), forKey: textKey)
+            defaults.set(enriched.refHy, forKey: referenceKey)
         case .russian:
-            defaults.set(textRu, forKey: textKey)
-            defaults.set(refRu, forKey: referenceKey)
-            currentVerse = BibleVerse(textHy: textHy, textRu: textRu, textEn: textEn, refHy: refHy, refRu: refRu, refEn: refEn)
+            defaults.set(enriched.textRu, forKey: textKey)
+            defaults.set(enriched.refRu, forKey: referenceKey)
         case .english:
-            defaults.set(textEn, forKey: textKey)
-            defaults.set(refEn, forKey: referenceKey)
-            currentVerse = BibleVerse(textHy: textHy, textRu: textRu, textEn: textEn, refHy: refHy, refRu: refRu, refEn: refEn)
+            defaults.set(enriched.textEn, forKey: textKey)
+            defaults.set(enriched.refEn, forKey: referenceKey)
         }
+        self.currentVerse = enriched
         
         defaults.synchronize()
         WidgetCenter.shared.reloadAllTimelines()

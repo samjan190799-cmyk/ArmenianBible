@@ -13,15 +13,12 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Иерархии моделей в порядке убывания новизны (Актуальность: 2026 год)
     
     static let geminiHierarchy: [String] = [
-        "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
         "gemini-1.5-pro"
     ]
     
     static let openAIHierarchy: [String] = [
-        "gpt-5-mini",
-        "gpt-4.5-preview",
         "gpt-4o-mini",
         "gpt-4o",
         "gpt-3.5-turbo"
@@ -49,7 +46,7 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Активные модели (сохраняются в UserDefaults)
     
     var activeGeminiModel: String {
-        get { UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.5-flash" }
+        get { UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.0-flash" }
         set { UserDefaults.standard.set(newValue, forKey: "active_gemini_model") }
     }
     
@@ -101,14 +98,11 @@ final class AIModelRegistry: @unchecked Sendable {
         let current = activeModel(for: provider)
         switch provider {
         case .gemini:
-            if current.contains("2.5") { return "Gemini 2.5 Flash" }
             if current.contains("2.0") { return "Gemini 2.0 Flash" }
             if current.contains("pro") { return "Gemini 1.5 Pro" }
             return "Gemini 1.5 Flash"
             
         case .chatgpt:
-            if current.contains("5-mini") { return "GPT-5 mini" }
-            if current.contains("4.5") { return "GPT-4.5" }
             if current.contains("mini") { return "GPT-4o mini" }
             if current.contains("4o") { return "GPT-4o" }
             return "ChatGPT"
@@ -140,7 +134,7 @@ final class AIModelRegistry: @unchecked Sendable {
                 let text: String
                 switch provider {
                 case .gemini:
-                    text = try await requestGemini(model: modelName, apiKey: apiKey, prompt: prompt, jsonMode: jsonMode)
+                    text = try await requestGemini(model: modelName, apiKey: apiKey, prompt: prompt, jsonMode: jsonMode, maxTokens: maxTokens)
                 case .chatgpt:
                     text = try await requestChatGPT(model: modelName, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
                 case .claude:
@@ -166,13 +160,14 @@ final class AIModelRegistry: @unchecked Sendable {
     
     // MARK: - Сетевые методы по провайдерам
     
-    private func requestGemini(model: String, apiKey: String, prompt: String, jsonMode: Bool) async throws -> String {
+    private func requestGemini(model: String, apiKey: String, prompt: String, jsonMode: Bool, maxTokens: Int = 2048) async throws -> String {
         guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)") else {
             throw NSError(domain: "AIModelRegistry", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid Gemini URL"])
         }
         
         var genConfig: [String: Any] = [
-            "temperature": 0.85
+            "temperature": 0.85,
+            "maxOutputTokens": maxTokens
         ]
         if jsonMode {
             genConfig["responseMimeType"] = "application/json"

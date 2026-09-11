@@ -595,10 +595,13 @@ struct Provider: AppIntentTimelineProvider {
                     let refHy = def.string(forKey: "currentLockScreenRefHy") ?? ""
                     let refRu = def.string(forKey: "currentLockScreenRefRu") ?? ""
                     let refEn = def.string(forKey: "currentLockScreenRefEn") ?? ""
+                    let lockTextHyArarat = def.string(forKey: "currentLockScreenTextHyArarat") ?? ""
+                    let lockTextHyEchmiadzin = def.string(forKey: "currentLockScreenTextHyEchmiadzin") ?? lockTextHy
                     let id = idStr.flatMap { UUID(uuidString: $0) } ?? UUID()
                     let customVerse = BibleVerse(
                         id: id,
-                        textHy: lockTextHy,
+                        textHy: lockTextHyEchmiadzin,
+                        textHyArarat: lockTextHyArarat,
                         textRu: textRu,
                         textEn: textEn,
                         refHy: refHy,
@@ -628,10 +631,13 @@ struct Provider: AppIntentTimelineProvider {
                 let refHy = def.string(forKey: "currentVerseRefHy") ?? ""
                 let refRu = def.string(forKey: "currentVerseRefRu") ?? ""
                 let refEn = def.string(forKey: "currentVerseRefEn") ?? ""
+                let textHyArarat = def.string(forKey: "currentVerseTextHyArarat") ?? ""
+                let textHyEchmiadzin = def.string(forKey: "currentVerseTextHyEchmiadzin") ?? textHy
                 let id = idStr.flatMap { UUID(uuidString: $0) } ?? UUID()
                 return BibleVerse(
                     id: id,
-                    textHy: textHy,
+                    textHy: textHyEchmiadzin,
+                    textHyArarat: textHyArarat,
                     textRu: textRu,
                     textEn: textEn,
                     refHy: refHy,

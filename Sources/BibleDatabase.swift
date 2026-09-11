@@ -533,6 +533,96 @@ class BibleDatabase {
         sqlite3_finalize(statement)
         return verse ?? BibleVerse.database.randomElement()
     }
+    
+    // MARK: - Поиск стиха по библейской ссылке (для обогащения переводами)
+    
+    func lookupVerseTexts(referenceHy: String) -> (textHy: String, textHyArarat: String)? {
+        let parts = referenceHy.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let lastSpace = parts.lastIndex(of: " ") else { return nil }
+        let bookName = String(parts[..<lastSpace]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let chapterVerse = String(parts[parts.index(after: lastSpace)...])
+        
+        let colon = chapterVerse.firstIndex(of: ":") ?? chapterVerse.firstIndex(of: "։")
+        guard let colonIdx = colon else { return nil }
+        let chapterStr = String(chapterVerse[..<colonIdx])
+        var verseStr = String(chapterVerse[chapterVerse.index(after: colonIdx)...])
+        if let dash = verseStr.firstIndex(of: "-") {
+            verseStr = String(verseStr[..<dash])
+        }
+        
+        guard let chapter = Int(chapterStr.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let verse = Int(verseStr.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return nil
+        }
+        
+        // Нормализация частых армянских названий книг
+        var normalizedBook = bookName
+        if bookName.hasPrefix("Առակ") { normalizedBook = "Առակ" }
+        else if bookName.hasPrefix("Սաղմոս") { normalizedBook = "Սաղմոս" }
+        else if bookName.hasPrefix("Հովհան") { normalizedBook = "Հովհան" }
+        else if bookName.hasPrefix("Մատթ") { normalizedBook = "Մատթ" }
+        else if bookName.hasPrefix("Ղուկ") { normalizedBook = "Ղուկ" }
+        else if bookName.hasPrefix("Մարկ") { normalizedBook = "Մարկ" }
+        
+        lock.lock()
+        defer { lock.unlock() }
+        
+        ensureDatabaseOpen()
+        guard db != nil else { return nil }
+        
+        let sql = """
+        SELECT v.text_hy, COALESCE(v.text_hy_ararat, '')
+        FROM verses v
+        JOIN books b ON b.id = v.book_id
+        WHERE (b.name_hy LIKE ? OR ? LIKE b.name_hy || '%')
+          AND v.chapter = ? AND v.verse = ?
+        LIMIT 1;
+        """
+        
+        var statement: OpaquePointer?
+        var result: (textHy: String, textHyArarat: String)? = nil
+        
+        if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+            let searchPattern = "%\(normalizedBook)%"
+            sqlite3_bind_text(statement, 1, (searchPattern as NSString).utf8String, -1, nil)
+            sqlite3_bind_text(statement, 2, (bookName as NSString).utf8String, -1, nil)
+            sqlite3_bind_int(statement, 3, Int32(chapter))
+            sqlite3_bind_int(statement, 4, Int32(verse))
+            
+            if sqlite3_step(statement) == SQLITE_ROW {
+                let textHy = columnText(statement, 0)
+                let textHyArarat = columnText(statement, 1)
+                result = (textHy: textHy, textHyArarat: textHyArarat)
+            }
+        }
+        sqlite3_finalize(statement)
+        return result
+    }
+    
+    // MARK: - Обогащение стиха переводами из SQLite базы
+    
+    func enrichVerse(_ verse: BibleVerse) -> BibleVerse {
+        if verse.isPrayer || (!verse.textHy.isEmpty && !verse.textHyArarat.isEmpty) {
+            return verse
+        }
+        
+        if let found = lookupVerseTexts(referenceHy: verse.refHy) {
+            let araratText = !found.textHyArarat.isEmpty ? found.textHyArarat : verse.textHyArarat
+            let echmiadzinText = !found.textHy.isEmpty ? found.textHy : verse.textHy
+            return BibleVerse(
+                id: verse.id,
+                textHy: echmiadzinText,
+                textHyArarat: araratText,
+                textRu: verse.textRu,
+                textEn: verse.textEn,
+                refHy: verse.refHy,
+                refRu: verse.refRu,
+                refEn: verse.refEn,
+                isPrayer: verse.isPrayer
+            )
+        }
+        return verse
+    }
 }
 
 // MARK: - Источник выборки стихов

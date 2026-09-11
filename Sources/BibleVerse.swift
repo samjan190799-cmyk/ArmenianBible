@@ -3,8 +3,11 @@ import SwiftUI
 
 // MARK: - Определение выбранного перевода (Арарат или Эчмиадзин)
 func isAraratEditionSelected() -> Bool {
-    let savedEdition = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "armenian_bible_edition")
-    return savedEdition != "echmiadzin"
+    if let savedEdition = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "armenian_bible_edition") {
+        return savedEdition != "echmiadzin"
+    }
+    let standardEd = UserDefaults.standard.string(forKey: "armenian_bible_edition")
+    return standardEd != "echmiadzin"
 }
 
 // MARK: - Модель библейского текста (стиха или молитвы)
@@ -20,22 +23,36 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     let isPrayer: Bool
     
     var text: String {
-        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language") ??
+                        UserDefaults.standard.string(forKey: "app_language")
         let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
         if lang.hasPrefix("ru") || lang == "russian" {
             return textRu
         } else if lang.hasPrefix("en") || lang == "english" {
             return textEn
         } else {
-            if isAraratEditionSelected() && !textHyArarat.isEmpty {
-                return textHyArarat
+            if isAraratEditionSelected() {
+                if !textHyArarat.isEmpty {
+                    return textHyArarat
+                }
+                if let found = BibleDatabase.shared.lookupVerseTexts(referenceHy: refHy), !found.textHyArarat.isEmpty {
+                    return found.textHyArarat
+                }
+            } else {
+                if !textHy.isEmpty {
+                    return textHy
+                }
+                if let found = BibleDatabase.shared.lookupVerseTexts(referenceHy: refHy), !found.textHy.isEmpty {
+                    return found.textHy
+                }
             }
             return textHy
         }
     }
     
     var reference: String {
-        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language") ??
+                        UserDefaults.standard.string(forKey: "app_language")
         let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
         if lang.hasPrefix("ru") || lang == "russian" {
             return refRu
@@ -49,8 +66,20 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     func text(for language: AppLanguage) -> String {
         switch language {
         case .armenian:
-            if isAraratEditionSelected() && !textHyArarat.isEmpty {
-                return textHyArarat
+            if isAraratEditionSelected() {
+                if !textHyArarat.isEmpty {
+                    return textHyArarat
+                }
+                if let found = BibleDatabase.shared.lookupVerseTexts(referenceHy: refHy), !found.textHyArarat.isEmpty {
+                    return found.textHyArarat
+                }
+            } else {
+                if !textHy.isEmpty {
+                    return textHy
+                }
+                if let found = BibleDatabase.shared.lookupVerseTexts(referenceHy: refHy), !found.textHy.isEmpty {
+                    return found.textHy
+                }
             }
             return textHy
         case .russian: return textRu
