@@ -525,7 +525,7 @@ struct Provider: AppIntentTimelineProvider {
             if let config = configuration, config.category != .both && config.category != .pearls {
                 pool = base
             } else {
-                let savedCatRaw = defaults?.string(forKey: "medium_widget_category") ?? "all"
+                let savedCatRaw = defaults.string(forKey: "medium_widget_category") ?? "all"
                 let cat = HomeWidgetCategory(rawValue: savedCatRaw) ?? .all
                 pool = BibleVerse.verses(for: cat, isPremium: isPremium)
             }
@@ -537,7 +537,7 @@ struct Provider: AppIntentTimelineProvider {
             if let config = configuration, config.category != .both && config.category != .pearls {
                 pool = base
             } else {
-                let savedCatRaw = defaults?.string(forKey: "large_widget_category") ?? "all"
+                let savedCatRaw = defaults.string(forKey: "large_widget_category") ?? "all"
                 let cat = HomeWidgetCategory(rawValue: savedCatRaw) ?? .all
                 pool = BibleVerse.verses(for: cat, isPremium: isPremium)
             }
@@ -577,8 +577,8 @@ struct Provider: AppIntentTimelineProvider {
             key = "currentVerseId"
         }
         
-        if let def = defaults {
-            if isLockScreen {
+        let def = defaults
+        if isLockScreen {
                 // Строгая изоляция экрана блокировки: используем только проверенные короткие стихи (<= 46 символов)
                 let idStr = def.string(forKey: "currentLockScreenVerseId")
                 if let idStr, let uuid = UUID(uuidString: idStr),
@@ -646,7 +646,6 @@ struct Provider: AppIntentTimelineProvider {
                     refEn: refEn
                 )
             }
-        }
         
         if isLockScreen {
             let safeLockList = database.filter { $0.text(for: lang).count <= 46 }
