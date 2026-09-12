@@ -954,15 +954,16 @@ struct BibleWidgetEntryView: View {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки: строгие 2 строки для текста стиха + гарантированно видимая ссылка внизу
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(entry.verse.text(for: getLanguage()))
                         .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .semibold, design: fontDesign))
                         .lineLimit(2)
                         .lineSpacing(-0.5)
-                        .minimumScaleFactor(0.80)
+                        .minimumScaleFactor(0.75)
                         .multilineTextAlignment(.leading)
                         .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .layoutPriority(0)
                     
                     Spacer(minLength: 0)
                     
@@ -977,6 +978,7 @@ struct BibleWidgetEntryView: View {
                             .foregroundColor(.secondary)
                     }
                     .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 

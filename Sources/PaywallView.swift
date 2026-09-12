@@ -259,6 +259,9 @@ struct PaywallView: View {
             withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
                 animateGlow = true
             }
+            Task {
+                await subscriptionManager.requestProducts()
+            }
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(
@@ -386,9 +389,16 @@ struct PaywallView: View {
             if success {
                 triggerHaptic(.success)
                 showSuccessAlert = true
-            } else if let err = subscriptionManager.purchaseErrorMessage {
+            } else if !subscriptionManager.wasCancelled {
                 triggerHaptic(.error)
-                errorMessage = err
+                let fallbackError: String = {
+                    switch language {
+                    case .armenian: return "Բաժանորդագրության տվյալները հասանելի չեն App Store-ում: Խնդրում ենք ստուգել կապը և փորձել կրկին:"
+                    case .russian: return "Не удалось связаться с App Store. Пожалуйста, проверьте подключение и повторите попытку."
+                    case .english: return "Unable to connect to the App Store. Please check your connection and try again."
+                    }
+                }()
+                errorMessage = subscriptionManager.purchaseErrorMessage ?? fallbackError
                 showErrorAlert = true
             }
         }

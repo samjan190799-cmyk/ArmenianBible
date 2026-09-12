@@ -31,6 +31,9 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         restorePlaybackState()
         setupRemoteCommandCenter()
         setupAudioSessionNotifications()
+        DispatchQueue.main.async {
+            UIApplication.shared.beginReceivingRemoteControlEvents()
+        }
     }
     
     // MARK: - Сохранение и Восстановление состояния
@@ -105,10 +108,13 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         isPlaying = true
         currentTime = startAtSeconds
         
-        // Настройка AVAudioSession для фонового и чистого звука
+        // Настройка AVAudioSession для полноценного системного плеера на Lock Screen
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
+            DispatchQueue.main.async {
+                UIApplication.shared.beginReceivingRemoteControlEvents()
+            }
         } catch {
             print("Failed to set AVAudioSession category: \(error)")
         }
@@ -197,6 +203,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             p.pause()
         }
         isPlaying = false
+        updateNowPlayingInfo()
         savePlaybackState()
     }
     
@@ -204,6 +211,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         if let p = player {
             p.play()
             isPlaying = true
+            updateNowPlayingInfo()
         } else if let currentId = currentlyPlayingId,
                   let prayer = NarekatsiDatabase.shared.prayers.first(where: { $0.id == currentId }) {
             play(prayer: prayer, language: voiceLanguage, startAtSeconds: currentTime)
@@ -216,6 +224,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             let targetTime = CMTime(seconds: seconds, preferredTimescale: 600)
             p.seek(to: targetTime)
         }
+        updateNowPlayingInfo()
         savePlaybackState()
     }
     
@@ -338,57 +347,97 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
         
+        commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] _ in
-            self?.resume()
-            return .success
-        }
-        
-        commandCenter.pauseCommand.addTarget { [weak self] _ in
-            self?.pause()
-            return .success
-        }
-        
-        commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
-            guard let self = self else { return .commandFailed }
-            if self.isPlaying {
-                self.pause()
-            } else {
-                self.resume()
+            DispatchQueue.main.async {
+                self?.resume()
             }
             return .success
         }
         
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.pauseCommand.addTarget { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.pause()
+            }
+            return .success
+        }
+        
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                if self.isPlaying {
+                    self.pause()
+                } else {
+                    self.resume()
+                }
+            }
+            return .success
+        }
+        
+        commandCenter.nextTrackCommand.isEnabled = true
         commandCenter.nextTrackCommand.addTarget { [weak self] _ in
-            self?.playNextPrayer()
+            DispatchQueue.main.async {
+                self?.playNextPrayer()
+            }
             return .success
         }
         
+        commandCenter.previousTrackCommand.isEnabled = true
         commandCenter.previousTrackCommand.addTarget { [weak self] _ in
-            self?.playPreviousPrayer()
+            DispatchQueue.main.async {
+                self?.playPreviousPrayer()
+            }
             return .success
         }
         
+        commandCenter.skipForwardCommand.isEnabled = true
         commandCenter.skipForwardCommand.preferredIntervals = [15]
         commandCenter.skipForwardCommand.addTarget { [weak self] _ in
-            self?.skipForward(seconds: 15)
+            DispatchQueue.main.async {
+                self?.skipForward(seconds: 15)
+            }
             return .success
         }
         
+        commandCenter.skipBackwardCommand.isEnabled = true
         commandCenter.skipBackwardCommand.preferredIntervals = [15]
         commandCenter.skipBackwardCommand.addTarget { [weak self] _ in
-            self?.skipBackward(seconds: 15)
+            DispatchQueue.main.async {
+                self?.skipBackward(seconds: 15)
+            }
+            return .success
+        }
+        
+        commandCenter.changePlaybackPositionCommand.isEnabled = true
+        commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let self = self, let posEvent = event as? MPChangePlaybackPositionCommandEvent else {
+                return .commandFailed
+            }
+            DispatchQueue.main.async {
+                self.seek(to: posEvent.positionTime)
+            }
             return .success
         }
     }
     
-    private func updateNowPlayingInfo(prayer: NarekPrayer) {
+    func updateNowPlayingInfo(prayer: NarekPrayer? = nil) {
+        let p = prayer ?? (currentlyPlayingId != nil ? NarekatsiDatabase.shared.prayers.first(where: { $0.id == currentlyPlayingId }) : nil)
+        guard let currentPrayer = p else { return }
+        
         var info = [String: Any]()
-        info[MPMediaItemPropertyTitle] = prayer.title(for: voiceLanguage)
+        info[MPMediaItemPropertyTitle] = currentPrayer.title(for: voiceLanguage)
         info[MPMediaItemPropertyArtist] = (voiceLanguage == .armenian) ? "Սոս Սարգսյան (Գրիգոր Նարեկացի)" : "Олег Моленко (Григор Нарекаци)"
         info[MPMediaItemPropertyAlbumTitle] = "Մատյան Ողբերգության"
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
         info[MPMediaItemPropertyPlaybackDuration] = duration > 0 ? duration : 300.0
         info[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
+        info[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue
+        
+        if let artImage = UIImage(named: "AppIcon") ?? UIImage(systemName: "book.pages.fill") {
+            info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: CGSize(width: 300, height: 300)) { _ in artImage }
+        }
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }

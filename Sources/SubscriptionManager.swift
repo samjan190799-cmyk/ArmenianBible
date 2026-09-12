@@ -162,22 +162,44 @@ final class SubscriptionManager: ObservableObject {
         isLoadingProducts = false
     }
     
+    @Published private(set) var wasCancelled: Bool = false
+    
     // MARK: - Покупка продукта
     
     func purchase(plan: SubscriptionPlan) async -> Bool {
         isPurchasing = true
         purchaseErrorMessage = nil
+        wasCancelled = false
         
         // Ищем загруженный продукт
-        guard let product = products.first(where: { $0.id == plan.rawValue }) else {
-            // Если в симуляторе или без интернета нет продукта, проверим StoreKit
+        var targetProduct = products.first(where: { $0.id == plan.rawValue })
+        
+        if targetProduct == nil {
+            // Если в памяти нет продукта, запросим напрямую из StoreKit
             do {
                 let fetched = try await Product.products(for: [plan.rawValue])
                 if let first = fetched.first {
-                    return await executePurchase(product: first)
+                    targetProduct = first
+                    if !self.products.contains(where: { $0.id == first.id }) {
+                        self.products.append(first)
+                    }
                 }
             } catch {
                 purchaseErrorMessage = error.localizedDescription
+                isPurchasing = false
+                return false
+            }
+        }
+        
+        guard let product = targetProduct else {
+            let lang = BibleManager.shared.appLanguage
+            switch lang {
+            case .armenian:
+                purchaseErrorMessage = "Բաժանորդագրության տվյալները հասանելի չեն App Store-ում: Խնդրում ենք փորձել մի փոքր ուշ:"
+            case .russian:
+                purchaseErrorMessage = "Данные подписки временно недоступны в App Store. Пожалуйста, повторите попытку позже."
+            case .english:
+                purchaseErrorMessage = "Subscription product is currently unavailable in the App Store. Please try again later."
             }
             isPurchasing = false
             return false
@@ -199,6 +221,7 @@ final class SubscriptionManager: ObservableObject {
                 return true
                 
             case .userCancelled:
+                wasCancelled = true
                 isPurchasing = false
                 return false
                 
