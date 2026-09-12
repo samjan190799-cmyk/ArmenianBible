@@ -82,30 +82,39 @@ jobs:
           
           mkdir -p ./Screenshots_iPad_Native
           
-          # 1. Запуск приложения (Главный экран)
-          xcrun simctl launch "$UDID" com.samvel.armenianbible
+          # 1. Главный экран со стихом дня (Home)
+          xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home
           sleep 6
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/01_Native_iPad_Home.png
+          xcrun simctl terminate "$UDID" com.samvel.armenianbible
+          sleep 1
           
-          # 2. Переход на вкладку Избранное (Tab 1)
-          xcrun simctl openurl "$UDID" "armenianbible://tab?id=1" || true
-          sleep 3
+          # 2. Вкладка Избранное (Favorites)
+          xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab favorites
+          sleep 4
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/02_Native_iPad_Favorites.png
+          xcrun simctl terminate "$UDID" com.samvel.armenianbible
+          sleep 1
           
-          # 3. Переход на вкладку Библия / Чтение (Tab 3)
-          xcrun simctl openurl "$UDID" "armenianbible://tab?id=3" || true
-          sleep 3
+          # 3. Вкладка Библия / Чтение (Bible Reader)
+          xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bible
+          sleep 4
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/03_Native_iPad_BibleReader.png
+          xcrun simctl terminate "$UDID" com.samvel.armenianbible
+          sleep 1
           
-          # 4. Переход в Календарь праздников
-          xcrun simctl openurl "$UDID" "armenianbible://calendar" || true
-          sleep 3
+          # 4. Экран Церковного календаря (Calendar)
+          xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab calendar
+          sleep 4
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/04_Native_iPad_Calendar.png
+          xcrun simctl terminate "$UDID" com.samvel.armenianbible
+          sleep 1
 
-          # 5. Переход в Библейскую Викторину (Quiz)
-          xcrun simctl openurl "$UDID" "armenianbible://quiz" || true
-          sleep 3
+          # 5. Экран Библейской викторины (Quiz)
+          xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab quiz
+          sleep 4
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/05_Native_iPad_Quiz.png
+          xcrun simctl terminate "$UDID" com.samvel.armenianbible
 
       - name: Upload Native iPad Screenshots Artifact
         uses: actions/upload-artifact@v4

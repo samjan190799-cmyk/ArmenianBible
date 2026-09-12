@@ -35,6 +35,13 @@ struct ContentView: View {
         }
         .tint(accentColor)
         .preferredColorScheme(manager.appearanceMode.colorScheme)
+        .onAppear {
+            if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
+                if tabArg == "favorites" { manager.activeTabSelection = 1 }
+                else if tabArg == "ai" { manager.activeTabSelection = 2 }
+                else if tabArg == "bible" { manager.activeTabSelection = 3 }
+            }
+        }
     }
 }
 
@@ -395,6 +402,21 @@ struct HomeView: View {
         }
         .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
         .onAppear {
+            if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
+                if tabArg == "calendar" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        isShowingCalendar = true
+                    }
+                } else if tabArg == "quiz" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        isShowingQuiz = true
+                    }
+                } else if tabArg == "settings" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        isShowingSettings = true
+                    }
+                }
+            }
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 animateVerse = true
             }
