@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 struct ContentView: View {
     @ObservedObject var manager = BibleManager.shared
@@ -2578,7 +2579,7 @@ struct SettingsView: View {
                             let generator = UIImpactFeedbackGenerator(style: .medium)
                             generator.impactOccurred()
                             
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
+                            _ = withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
                                 appIconManager.selectIcon(option) {
                                     isShowingPaywall = true
                                 }
