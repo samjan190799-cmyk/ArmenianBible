@@ -51,10 +51,12 @@ public final class AdManager: NSObject, ObservableObject {
         }
         #endif
         
+        #if !targetEnvironment(simulator)
         // Запрос разрешения App Tracking Transparency (ATT) с небольшой задержкой для готовности UI
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             self?.requestTrackingPermission()
         }
+        #endif
         
         // Фоновая предзагрузка объявлений для мгновенного показа
         preloadAds()
@@ -62,6 +64,7 @@ public final class AdManager: NSObject, ObservableObject {
     
     // MARK: - Запрос разрешения ATT (iOS 14.5+)
     public func requestTrackingPermission() {
+        #if !targetEnvironment(simulator)
         if #available(iOS 14.5, *) {
             ATTrackingManager.requestTrackingAuthorization { [weak self] status in
                 Task { @MainActor in
@@ -77,6 +80,7 @@ public final class AdManager: NSObject, ObservableObject {
                 }
             }
         }
+        #endif
     }
     
     // MARK: - Предзагрузка объявлений

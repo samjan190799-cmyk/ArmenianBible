@@ -80,39 +80,55 @@ jobs:
           xcrun simctl spawn "$UDID" defaults write com.apple.Preferences ConnectHardwareKeyboard -bool true || true
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
           
+          # Запрещаем показ любых диалогов разрешений (ATT, Photos и т.д.)
+          xcrun simctl privacy "$UDID" deny user-tracking com.samvel.armenianbible || true
+          xcrun simctl privacy "$UDID" grant photos com.samvel.armenianbible || true
+          
+          # Прогрев первого запуска приложения (чтобы экран загрузки успел пройти)
+          echo "Прогрев первого запуска..."
+          xcrun simctl launch "$UDID" com.samvel.armenianbible
+          sleep 10
+          xcrun simctl terminate "$UDID" com.samvel.armenianbible
+          sleep 2
+          
           mkdir -p ./Screenshots_iPad_Native
           
           # 1. Главный экран со стихом дня (Home)
+          echo "Снятие 01 Home..."
           xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home
           sleep 6
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/01_Native_iPad_Home.png
           xcrun simctl terminate "$UDID" com.samvel.armenianbible
-          sleep 1
+          sleep 2
           
           # 2. Вкладка Избранное (Favorites)
+          echo "Снятие 02 Favorites..."
           xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab favorites
-          sleep 4
+          sleep 5
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/02_Native_iPad_Favorites.png
           xcrun simctl terminate "$UDID" com.samvel.armenianbible
-          sleep 1
+          sleep 2
           
           # 3. Вкладка Библия / Чтение (Bible Reader)
+          echo "Снятие 03 Bible Reader..."
           xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bible
-          sleep 4
+          sleep 5
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/03_Native_iPad_BibleReader.png
           xcrun simctl terminate "$UDID" com.samvel.armenianbible
-          sleep 1
+          sleep 2
           
           # 4. Экран Церковного календаря (Calendar)
+          echo "Снятие 04 Calendar..."
           xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab calendar
-          sleep 4
+          sleep 5
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/04_Native_iPad_Calendar.png
           xcrun simctl terminate "$UDID" com.samvel.armenianbible
-          sleep 1
+          sleep 2
 
           # 5. Экран Библейской викторины (Quiz)
+          echo "Снятие 05 Quiz..."
           xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab quiz
-          sleep 4
+          sleep 5
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/05_Native_iPad_Quiz.png
           xcrun simctl terminate "$UDID" com.samvel.armenianbible
 
