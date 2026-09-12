@@ -283,6 +283,7 @@ final class SubscriptionManager: ObservableObject {
         // ВАЖНО: проверяем только для Production окружения App Store, не для Sandbox/TestFlight!
         // В TestFlight originalAppVersion возвращает "1.0" для ВСЕХ тестировщиков → ложные срабатывания.
         if !hasActivePremium {
+            #if !targetEnvironment(simulator)
             do {
                 let appTxResult = try await AppTransaction.shared
                 let appTransaction = try Self.checkVerified(appTxResult)
@@ -297,6 +298,7 @@ final class SubscriptionManager: ObservableObject {
             } catch {
                 // Чек App Store не синхронизирован или ошибка верификации — пропускаем
             }
+            #endif
         }
         
         // Если разработчик принудительно включил Free-режим для тестирования рекламы
