@@ -147,10 +147,7 @@ struct NextVerseIntent: AppIntent {
     }
     
     func perform() async throws -> some IntentResult {
-        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-        guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
-            return .result()
-        }
+        let defaults = AppGroupConstants.sharedDefaults
         let isPremium = defaults.bool(forKey: "is_premium_active")
         let savedLockCatRaw = defaults.string(forKey: "lock_screen_category") ?? "pearls"
         let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
@@ -160,53 +157,54 @@ struct NextVerseIntent: AppIntent {
         
         let target = targetSize
         
-        // 1. Для малого виджета (System Small) - строго короткие стихи активной категории
-        if target == "small" || target == "all" {
-            if let v = lockPool.randomElement() {
-                defaults.set(v.id.uuidString, forKey: "currentSmallVerseId")
+        AppGroupConstants.syncToAll { defs in
+            // 1. Для малого виджета (System Small) - строго короткие стихи активной категории
+            if target == "small" || target == "all" {
+                if let v = lockPool.randomElement() {
+                    defs.set(v.id.uuidString, forKey: "currentSmallVerseId")
+                }
+            }
+            
+            // 2. Для среднего виджета (System Medium) - стихи 35-100 символов с учетом medium_widget_category
+            if target == "medium" || target == "all" {
+                let savedMedRaw = defaults.string(forKey: "medium_widget_category") ?? "all"
+                let medCat = HomeWidgetCategory(rawValue: savedMedRaw) ?? .all
+                let activeMedCat = (isPremium || !medCat.isPremiumRequired) ? medCat : .all
+                let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
+                let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
+                let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
+                if let v = medPool.randomElement() {
+                    defs.set(v.id.uuidString, forKey: "currentMediumVerseId")
+                }
+            }
+            
+            // 3. Для большого виджета (System Large) - глубокие отрывки от 75 символов с учетом large_widget_category
+            if target == "large" || target == "all" {
+                let savedLargeRaw = defaults.string(forKey: "large_widget_category") ?? "all"
+                let largeCat = HomeWidgetCategory(rawValue: savedLargeRaw) ?? .all
+                let activeLargeCat = (isPremium || !largeCat.isPremiumRequired) ? largeCat : .all
+                let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
+                let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
+                let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
+                if let v = largePool.randomElement() {
+                    defs.set(v.id.uuidString, forKey: "currentLargeVerseId")
+                }
+            }
+            
+            // 4. Для экрана блокировки (Lock Screen)
+            if target == "lockScreen" || target == "all" {
+                if let v = lockPool.randomElement() {
+                    defs.set(v.id.uuidString, forKey: "currentLockScreenVerseId")
+                    defs.set(v.textHy, forKey: "currentLockScreenTextHy")
+                    defs.set(v.textRu, forKey: "currentLockScreenTextRu")
+                    defs.set(v.textEn, forKey: "currentLockScreenTextEn")
+                    defs.set(v.refHy, forKey: "currentLockScreenRefHy")
+                    defs.set(v.refRu, forKey: "currentLockScreenRefRu")
+                    defs.set(v.refEn, forKey: "currentLockScreenRefEn")
+                }
             }
         }
         
-        // 2. Для среднего виджета (System Medium) - стихи 35-100 символов с учетом medium_widget_category
-        if target == "medium" || target == "all" {
-            let savedMedRaw = defaults.string(forKey: "medium_widget_category") ?? "all"
-            let medCat = HomeWidgetCategory(rawValue: savedMedRaw) ?? .all
-            let activeMedCat = (isPremium || !medCat.isPremiumRequired) ? medCat : .all
-            let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
-            let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
-            let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
-            if let v = medPool.randomElement() {
-                defaults.set(v.id.uuidString, forKey: "currentMediumVerseId")
-            }
-        }
-        
-        // 3. Для большого виджета (System Large) - глубокие отрывки от 75 символов с учетом large_widget_category
-        if target == "large" || target == "all" {
-            let savedLargeRaw = defaults.string(forKey: "large_widget_category") ?? "all"
-            let largeCat = HomeWidgetCategory(rawValue: savedLargeRaw) ?? .all
-            let activeLargeCat = (isPremium || !largeCat.isPremiumRequired) ? largeCat : .all
-            let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
-            let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
-            let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
-            if let v = largePool.randomElement() {
-                defaults.set(v.id.uuidString, forKey: "currentLargeVerseId")
-            }
-        }
-        
-        // 4. Для экрана блокировки (Lock Screen)
-        if target == "lockScreen" || target == "all" {
-            if let v = lockPool.randomElement() {
-                defaults.set(v.id.uuidString, forKey: "currentLockScreenVerseId")
-                defaults.set(v.textHy, forKey: "currentLockScreenTextHy")
-                defaults.set(v.textRu, forKey: "currentLockScreenTextRu")
-                defaults.set(v.textEn, forKey: "currentLockScreenTextEn")
-                defaults.set(v.refHy, forKey: "currentLockScreenRefHy")
-                defaults.set(v.refRu, forKey: "currentLockScreenRefRu")
-                defaults.set(v.refEn, forKey: "currentLockScreenRefEn")
-            }
-        }
-        
-        defaults.synchronize()
         return .result()
     }
 }
@@ -220,18 +218,16 @@ struct TogglePrayerCompletedWidgetIntent: AppIntent {
     init() {}
     
     func perform() async throws -> some IntentResult {
-        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-        guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
-            return .result()
-        }
+        let defaults = AppGroupConstants.sharedDefaults
         
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let todayStr = formatter.string(from: Date())
         
         let currentStatus = defaults.bool(forKey: "prayer_completed_\(todayStr)")
-        defaults.set(!currentStatus, forKey: "prayer_completed_\(todayStr)")
-        defaults.synchronize()
+        AppGroupConstants.syncToAll { defs in
+            defs.set(!currentStatus, forKey: "prayer_completed_\(todayStr)")
+        }
         
         return .result()
     }
@@ -246,10 +242,7 @@ struct ToggleFavoriteWidgetIntent: AppIntent {
     init() {}
     
     func perform() async throws -> some IntentResult {
-        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-        guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
-            return .result()
-        }
+        let defaults = AppGroupConstants.sharedDefaults
         
         // 1. Получаем текущий ID стиха из виджета
         var currentVerseIdStr = defaults.string(forKey: "currentLockScreenVerseId")
@@ -303,10 +296,11 @@ struct ToggleFavoriteWidgetIntent: AppIntent {
             favorites.insert(newItem, at: 0)
         }
         
-        // 5. Сохраняем обратно в App Group
+        // 5. Сохраняем обратно во все App Group контейнеры
         if let encoded = try? JSONEncoder().encode(favorites) {
-            defaults.set(encoded, forKey: "favorite_verses")
-            defaults.synchronize()
+            AppGroupConstants.syncToAll { defs in
+                defs.set(encoded, forKey: "favorite_verses")
+            }
         }
         
         return .result()
@@ -332,26 +326,24 @@ struct Provider: AppIntentTimelineProvider {
     typealias Entry = SimpleEntry
     typealias Intent = ConfigurationAppIntent
     
-    private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+    private let appGroupSuiteName = AppGroupConstants.activeSuiteName
     private let textCategoryKey = "selected_category"
     private let updateIntervalKey = "widgetUpdateInterval"
     
     private func getSharedVisualStyle() -> WidgetVisualStyle {
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
-            if let savedRaw = defaults.string(forKey: "widget_visual_style"),
-               let style = WidgetVisualStyle(rawValue: savedRaw) {
-                return style
-            }
-            if let savedRaw = defaults.string(forKey: "widgetVisualStyle"),
-               let style = WidgetVisualStyle(rawValue: savedRaw) {
-                return style
-            }
-        }
-        if let savedRaw = UserDefaults.standard.string(forKey: "widget_visual_style"),
+        let defaults = AppGroupConstants.sharedDefaults
+        if let savedRaw = defaults.string(forKey: "widget_visual_style") ?? defaults.string(forKey: "widgetVisualStyle"),
            let style = WidgetVisualStyle(rawValue: savedRaw) {
             return style
         }
-        if let savedRaw = UserDefaults.standard.string(forKey: "widgetVisualStyle"),
+        for suite in AppGroupConstants.allSuites {
+            if let d = UserDefaults(suiteName: suite),
+               let savedRaw = d.string(forKey: "widget_visual_style") ?? d.string(forKey: "widgetVisualStyle"),
+               let style = WidgetVisualStyle(rawValue: savedRaw) {
+                return style
+            }
+        }
+        if let savedRaw = UserDefaults.standard.string(forKey: "widget_visual_style") ?? UserDefaults.standard.string(forKey: "widgetVisualStyle"),
            let style = WidgetVisualStyle(rawValue: savedRaw) {
             return style
         }
@@ -439,9 +431,9 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     private func getFilteredDatabase(for category: TextCategory, configuration: ConfigurationAppIntent? = nil, family: WidgetFamily? = nil, lang: AppLanguage) -> [BibleVerse] {
-        let defaults = UserDefaults(suiteName: appGroupSuiteName)
-        let isPremium = defaults?.bool(forKey: "is_premium_active") ?? false
-        let savedLockCatRaw = defaults?.string(forKey: "lock_screen_category") ?? "pearls"
+        let defaults = AppGroupConstants.sharedDefaults
+        let isPremium = defaults.bool(forKey: "is_premium_active")
+        let savedLockCatRaw = defaults.string(forKey: "lock_screen_category") ?? "pearls"
         let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
         let activeLockVerses = BibleVerse.lockScreenVerses(for: (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls)
         
@@ -493,8 +485,7 @@ struct Provider: AppIntentTimelineProvider {
             case .prayers:
                 base = BibleVerse.database.filter { $0.isPrayer }
             case .favorites:
-                if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-                   let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
+                if let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
                    let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
                    !decoded.isEmpty {
                     base = decoded.map { item in
@@ -562,7 +553,7 @@ struct Provider: AppIntentTimelineProvider {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
         let fallback = database.isEmpty ? BibleVerse.shortPearls[0] : database[0]
-        let defaults = UserDefaults(suiteName: appGroupSuiteName)
+        let defaults = AppGroupConstants.sharedDefaults
         let isLockScreen: Bool = {
             guard let family = family else { return false }
             return family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular
@@ -666,8 +657,8 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     private func getSharedUpdateInterval() -> UpdateInterval {
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-           let savedRaw = defaults.string(forKey: updateIntervalKey),
+        let defaults = AppGroupConstants.sharedDefaults
+        if let savedRaw = defaults.string(forKey: updateIntervalKey),
            let interval = UpdateInterval(rawValue: savedRaw) {
             return interval
         }
@@ -677,10 +668,7 @@ struct Provider: AppIntentTimelineProvider {
 
 // MARK: - Вспомогательные функции локализации и тем оформления для виджета
 private func getSharedLanguage() -> AppLanguage {
-    let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-    guard let defaults = UserDefaults(suiteName: appGroupSuiteName) else {
-        return .armenian
-    }
+    let defaults = AppGroupConstants.sharedDefaults
     
     if let widgetLangRaw = defaults.string(forKey: "widget_language"),
        let widgetLang = WidgetLanguage(rawValue: widgetLangRaw) {
@@ -706,9 +694,8 @@ private func getSharedLanguage() -> AppLanguage {
 }
 
 private func getSharedTheme() -> AccentColorTheme {
-    let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-    if let defaults = UserDefaults(suiteName: appGroupSuiteName),
-       let savedRaw = defaults.string(forKey: "accent_theme"),
+    let defaults = AppGroupConstants.sharedDefaults
+    if let savedRaw = defaults.string(forKey: "accent_theme"),
        let theme = AccentColorTheme(rawValue: savedRaw) {
         return theme
     }
@@ -894,18 +881,14 @@ struct BibleWidgetEntryView: View {
     }
 
     private var isPrayerDone: Bool {
-        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-        guard let defaults = UserDefaults(suiteName: appGroupSuiteName),
-              let lastDate = defaults.object(forKey: "daily_prayer_completed_date") as? Date else {
+        guard let lastDate = AppGroupConstants.sharedDefaults.object(forKey: "daily_prayer_completed_date") as? Date else {
             return false
         }
         return Calendar.current.isDateInToday(lastDate)
     }
     
     private var isFavorite: Bool {
-        let appGroupSuiteName = "group.com.samvel.ArmenianBible"
-        guard let defaults = UserDefaults(suiteName: appGroupSuiteName),
-              let data = defaults.data(forKey: "favorite_verses"),
+        guard let data = AppGroupConstants.sharedDefaults.data(forKey: "favorite_verses"),
               let list = try? JSONDecoder().decode([FavoriteItem].self, from: data) else {
             return false
         }

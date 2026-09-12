@@ -14,7 +14,7 @@ struct BibleBook: Identifiable, Codable, Hashable {
     let chaptersCount: Int
     
     var name: String {
-        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let savedLang = AppGroupConstants.sharedDefaults.string(forKey: "app_language")
         let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
         if lang.hasPrefix("ru") || lang == "russian" {
             return nameRu
@@ -26,7 +26,7 @@ struct BibleBook: Identifiable, Codable, Hashable {
     }
     
     var shortName: String {
-        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let savedLang = AppGroupConstants.sharedDefaults.string(forKey: "app_language")
         let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
         if lang.hasPrefix("ru") || lang == "russian" {
             return shortNameRu

@@ -1,9 +1,40 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Централизованное управление App Group хранилищем
+public enum AppGroupConstants {
+    public static let activeSuiteName = "group.com.rileytestut.AltStore.V7J345DY58"
+    public static let legacySuiteName = "group.com.samvel.ArmenianBible"
+    
+    public static var allSuites: [String] {
+        [activeSuiteName, legacySuiteName]
+    }
+    
+    public static var sharedDefaults: UserDefaults {
+        if let d = UserDefaults(suiteName: activeSuiteName) {
+            return d
+        }
+        if let d = UserDefaults(suiteName: legacySuiteName) {
+            return d
+        }
+        return UserDefaults.standard
+    }
+    
+    public static func syncToAll(_ update: (UserDefaults) -> Void) {
+        for suite in allSuites {
+            if let defs = UserDefaults(suiteName: suite) {
+                update(defs)
+                defs.synchronize()
+            }
+        }
+        update(UserDefaults.standard)
+        UserDefaults.standard.synchronize()
+    }
+}
+
 // MARK: - Определение выбранного перевода (Арарат или Эчмиадзин)
 func isAraratEditionSelected() -> Bool {
-    if let savedEdition = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "armenian_bible_edition") {
+    if let savedEdition = AppGroupConstants.sharedDefaults.string(forKey: "armenian_bible_edition") {
         return savedEdition != "echmiadzin"
     }
     let standardEd = UserDefaults.standard.string(forKey: "armenian_bible_edition")
@@ -26,7 +57,7 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     public static var textLookupProvider: ((_ referenceHy: String) -> (textHy: String, textHyArarat: String)?)? = nil
     
     var text: String {
-        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language") ??
+        let savedLang = AppGroupConstants.sharedDefaults.string(forKey: "app_language") ??
                         UserDefaults.standard.string(forKey: "app_language")
         let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
         if lang.hasPrefix("ru") || lang == "russian" {
@@ -54,7 +85,7 @@ struct BibleVerse: Identifiable, Codable, Hashable {
     }
     
     var reference: String {
-        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language") ??
+        let savedLang = AppGroupConstants.sharedDefaults.string(forKey: "app_language") ??
                         UserDefaults.standard.string(forKey: "app_language")
         let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
         if lang.hasPrefix("ru") || lang == "russian" {
@@ -2844,8 +2875,7 @@ extension BibleVerse {
             return !prayers.isEmpty ? prayers : BibleVerse.database
             
         case .favorites:
-            if let defaults = UserDefaults(suiteName: "group.com.samvel.ArmenianBible"),
-               let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
+            if let savedFavoritesData = AppGroupConstants.sharedDefaults.data(forKey: "favorite_verses"),
                let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
                !decoded.isEmpty {
                 return decoded.map { item in
@@ -2943,7 +2973,7 @@ struct FavoriteItem: Identifiable, Codable, Hashable {
     }
     
     var text: String {
-        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let savedLang = AppGroupConstants.sharedDefaults.string(forKey: "app_language")
         let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
         if lang.hasPrefix("ru") || lang == "russian" {
             return textRu
@@ -2958,7 +2988,7 @@ struct FavoriteItem: Identifiable, Codable, Hashable {
     }
     
     var reference: String {
-        let savedLang = UserDefaults(suiteName: "group.com.samvel.ArmenianBible")?.string(forKey: "app_language")
+        let savedLang = AppGroupConstants.sharedDefaults.string(forKey: "app_language")
         let lang = savedLang ?? Bundle.main.preferredLocalizations.first ?? "hy"
         if lang.hasPrefix("ru") || lang == "russian" {
             return refRu

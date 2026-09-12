@@ -46,9 +46,8 @@ struct AchievementBadge: Identifiable, Codable, Hashable {
 final class AchievementsManager: ObservableObject {
     static let shared = AchievementsManager()
     
-    private let suiteName = "group.com.samvel.ArmenianBible"
     private var defaults: UserDefaults {
-        UserDefaults(suiteName: suiteName) ?? .standard
+        AppGroupConstants.sharedDefaults
     }
     
     @Published var badges: [AchievementBadge] = []

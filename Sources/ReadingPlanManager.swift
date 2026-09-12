@@ -7,9 +7,8 @@ import Combine
 final class ReadingPlanManager: ObservableObject {
     static let shared = ReadingPlanManager()
     
-    private let suiteName = "group.com.samvel.ArmenianBible"
     private var defaults: UserDefaults {
-        UserDefaults(suiteName: suiteName) ?? .standard
+        AppGroupConstants.sharedDefaults
     }
     
     private let activePlanKey = "reading_plan_active_id"

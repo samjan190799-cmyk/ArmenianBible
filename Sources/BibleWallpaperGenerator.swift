@@ -62,7 +62,7 @@ final class BibleWallpaperGenerator {
     
     /// Сохранение в постоянный файл в App Group для фонового доступа
     func exportToAppGroup(verse: BibleVerse? = nil) -> URL? {
-        let appGroupSuite = "group.com.samvel.ArmenianBible"
+        let appGroupSuite = AppGroupConstants.activeSuiteName
         guard let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupSuite) else {
             return nil
         }

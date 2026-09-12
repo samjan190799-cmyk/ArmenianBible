@@ -79,7 +79,7 @@ class BibleManager: ObservableObject {
     }
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
-    private let appGroupSuiteName = "group.com.samvel.ArmenianBible"
+    private let appGroupSuiteName = AppGroupConstants.activeSuiteName
     
     private let textKey = "currentVerseText"
     private let referenceKey = "currentVerseReference"
@@ -106,7 +106,7 @@ class BibleManager: ObservableObject {
     @Published var largeWidgetCategory: HomeWidgetCategory = .all
     
     private var sharedDefaults: UserDefaults? {
-        UserDefaults(suiteName: appGroupSuiteName)
+        AppGroupConstants.sharedDefaults
     }
     
     // Свойство для получения и сохранения API-ключа Gemini
@@ -175,7 +175,7 @@ class BibleManager: ObservableObject {
         }
         
         // Загрузка интервала обновления
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+        if let defaults = sharedDefaults,
            let savedIntervalRaw = defaults.string(forKey: updateIntervalKey),
            let savedInterval = UpdateInterval(rawValue: savedIntervalRaw) {
             self.updateInterval = savedInterval
@@ -184,7 +184,7 @@ class BibleManager: ObservableObject {
         }
         
         // Загрузка категории отображаемого текста
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+        if let defaults = sharedDefaults,
            let savedCategoryRaw = defaults.string(forKey: categoryKey),
            let savedCategory = TextCategory(rawValue: savedCategoryRaw) {
             self.selectedCategory = savedCategory
@@ -193,7 +193,7 @@ class BibleManager: ObservableObject {
         }
         
         // Загрузка активного провайдера ИИ
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName),
+        if let defaults = sharedDefaults,
            let savedProviderRaw = defaults.string(forKey: activeProviderKey),
            let savedProvider = AIProvider(rawValue: savedProviderRaw) {
             self.activeProvider = savedProvider
@@ -202,14 +202,15 @@ class BibleManager: ObservableObject {
         }
         
         // Загрузка языка приложения
-        if let defaults = UserDefaults(suiteName: appGroupSuiteName) {
+        if let defaults = sharedDefaults {
             if let savedLanguageRaw = defaults.string(forKey: appLanguageKey),
                let savedLanguage = AppLanguage(rawValue: savedLanguageRaw) {
                 self.appLanguage = savedLanguage
             } else {
                 self.appLanguage = .armenian
-                defaults.set(AppLanguage.armenian.rawValue, forKey: appLanguageKey)
-                defaults.synchronize()
+                AppGroupConstants.syncToAll { defs in
+                    defs.set(AppLanguage.armenian.rawValue, forKey: appLanguageKey)
+                }
             }
         } else {
             self.appLanguage = .armenian
@@ -299,9 +300,10 @@ class BibleManager: ObservableObject {
                 self.widgetVisualStyle = savedStyle
             } else {
                 self.widgetVisualStyle = .oledStandby
-                defaults.set(WidgetVisualStyle.oledStandby.rawValue, forKey: widgetVisualStyleKey)
-                defaults.set(WidgetVisualStyle.oledStandby.rawValue, forKey: "widgetVisualStyle")
-                defaults.synchronize()
+                AppGroupConstants.syncToAll { defs in
+                    defs.set(WidgetVisualStyle.oledStandby.rawValue, forKey: widgetVisualStyleKey)
+                    defs.set(WidgetVisualStyle.oledStandby.rawValue, forKey: "widgetVisualStyle")
+                }
             }
         } else {
             self.widgetVisualStyle = .oledStandby
@@ -441,69 +443,61 @@ class BibleManager: ObservableObject {
     }
     
     private func persistReadChapters() {
-        if let defaults = sharedDefaults {
-            var saveDict: [String: [Int]] = [:]
-            for (bookId, set) in readChaptersByBook {
-                saveDict[String(bookId)] = Array(set).sorted()
-            }
+        var saveDict: [String: [Int]] = [:]
+        for (bookId, set) in readChaptersByBook {
+            saveDict[String(bookId)] = Array(set).sorted()
+        }
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(saveDict, forKey: readChaptersKey)
-            defaults.synchronize()
         }
     }
     
     // MARK: - Сохранение и получение позиции чтения для конкретной книги
     func saveBookLastReadChapter(bookId: Int, chapter: Int) {
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(chapter, forKey: "last_read_chapter_for_book_\(bookId)")
-            defaults.synchronize()
         }
     }
     
     func getBookLastReadChapter(bookId: Int) -> Int {
-        if let defaults = sharedDefaults {
-            let chapter = defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)")
-            return chapter > 0 ? chapter : 1
-        }
-        return 1
+        let chapter = AppGroupConstants.sharedDefaults.integer(forKey: "last_read_chapter_for_book_\(bookId)")
+        return chapter > 0 ? chapter : 1
     }
     
     // MARK: - Сохранение активного провайдера ИИ
     func setActiveProvider(_ provider: AIProvider) {
         self.activeProvider = provider
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(provider.rawValue, forKey: activeProviderKey)
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Сохранение языка приложения
     func setAppLanguage(_ language: AppLanguage) {
         self.appLanguage = language
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(language.rawValue, forKey: appLanguageKey)
-            defaults.synchronize()
-            WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Сохранение языка виджета
     func setWidgetLanguage(_ language: WidgetLanguage) {
         self.widgetLanguage = language
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(language.rawValue, forKey: "widget_language")
-            defaults.synchronize()
-            WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Сохранение категории для экрана блокировки
     func setLockScreenCategory(_ category: LockScreenCategory) {
         self.lockScreenCategory = category
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(category.rawValue, forKey: lockScreenCategoryKey)
-            defaults.synchronize()
         }
         syncLockScreenWidget()
     }
@@ -511,9 +505,8 @@ class BibleManager: ObservableObject {
     // MARK: - Сохранение категории для среднего виджета (4x2)
     func setMediumWidgetCategory(_ category: HomeWidgetCategory) {
         self.mediumWidgetCategory = category
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(category.rawValue, forKey: mediumWidgetCategoryKey)
-            defaults.synchronize()
         }
         syncLockScreenWidget()
     }
@@ -521,9 +514,8 @@ class BibleManager: ObservableObject {
     // MARK: - Сохранение категории для большого виджета (4x4)
     func setLargeWidgetCategory(_ category: HomeWidgetCategory) {
         self.largeWidgetCategory = category
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(category.rawValue, forKey: largeWidgetCategoryKey)
-            defaults.synchronize()
         }
         syncLockScreenWidget()
     }
@@ -532,24 +524,21 @@ class BibleManager: ObservableObject {
     func setArmenianEdition(_ edition: ArmenianBibleEdition) {
         self.armenianEdition = edition
         
-        // Синхронизируем ключ в обоих хранилищах
-        UserDefaults.standard.set(edition.rawValue, forKey: "armenian_bible_edition")
-        if let defaults = sharedDefaults {
+        // Синхронизируем ключ во всех хранилищах
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(edition.rawValue, forKey: "armenian_bible_edition")
         }
         
         // Обогащаем текущий стих актуальными текстами из базы данных SQLite
         self.currentVerse = BibleDatabase.shared.enrichVerse(self.currentVerse)
         
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             // Обновляем текст текущего стиха для виджетов под выбранный перевод
             defaults.set(currentVerse.text(for: .armenian), forKey: "currentVerseTextHy")
             defaults.set(currentVerse.textHy, forKey: "currentVerseTextHyEchmiadzin")
             defaults.set(currentVerse.textHyArarat, forKey: "currentVerseTextHyArarat")
             defaults.set(currentVerse.text, forKey: textKey)
-            defaults.synchronize()
         }
-        UserDefaults.standard.synchronize()
         
         syncLockScreenWidget()
         WidgetCenter.shared.reloadAllTimelines()
@@ -558,15 +547,32 @@ class BibleManager: ObservableObject {
     
     // MARK: - Мгновенная синхронизация и случайные стихи для всех размеров виджетов
     func syncLockScreenWidget() {
-        if let defaults = sharedDefaults {
+        let isPremium = AppGroupConstants.sharedDefaults.bool(forKey: "is_premium_active")
+        let activeCategory = (isPremium || !lockScreenCategory.isPremiumRequired) ? lockScreenCategory : .pearls
+        let rawList = BibleVerse.lockScreenVerses(for: activeCategory).filter { $0.textHy.count <= 46 }
+        let list = !rawList.isEmpty ? rawList : BibleVerse.shortPearls
+        
+        let randomPearl = list.randomElement() ?? BibleVerse.shortPearls.first
+        let enrichedPearl = randomPearl.map { BibleDatabase.shared.enrichVerse($0) }
+        
+        let smallPool = list
+        let randomSmall = smallPool.randomElement() ?? BibleVerse.shortPearls.first
+        
+        let activeMedCat = (isPremium || !mediumWidgetCategory.isPremiumRequired) ? mediumWidgetCategory : .all
+        let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
+        let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
+        let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
+        let randomMed = medPool.randomElement()
+        
+        let activeLargeCat = (isPremium || !largeWidgetCategory.isPremiumRequired) ? largeWidgetCategory : .all
+        let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
+        let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
+        let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
+        let randomLarge = largePool.randomElement()
+        
+        AppGroupConstants.syncToAll { defaults in
             // 1. Экран блокировки (Lock Screen) - строго короткие фразы <= 46 символов
-            let isPremium = defaults.bool(forKey: "is_premium_active")
-            let activeCategory = (isPremium || !lockScreenCategory.isPremiumRequired) ? lockScreenCategory : .pearls
-            let rawList = BibleVerse.lockScreenVerses(for: activeCategory).filter { $0.textHy.count <= 46 }
-            let list = !rawList.isEmpty ? rawList : BibleVerse.shortPearls
-            
-            if let randomPearl = list.randomElement() ?? BibleVerse.shortPearls.first {
-                let enrichedPearl = BibleDatabase.shared.enrichVerse(randomPearl)
+            if let enrichedPearl {
                 defaults.set(enrichedPearl.id.uuidString, forKey: "currentLockScreenVerseId")
                 defaults.set(enrichedPearl.textHy, forKey: "currentLockScreenTextHy")
                 defaults.set(enrichedPearl.textHy, forKey: "currentLockScreenTextHyEchmiadzin")
@@ -579,32 +585,22 @@ class BibleManager: ObservableObject {
             }
             
             // 2. Малый виджет (System Small 2x2) - строго короткие стихи активной категории
-            let smallPool = list
-            if let randomSmall = smallPool.randomElement() ?? BibleVerse.shortPearls.first {
+            if let randomSmall {
                 defaults.set(randomSmall.id.uuidString, forKey: "currentSmallVerseId")
             }
             
             // 3. Средний виджет (System Medium 4x2) - стихи 35-100 символов с учетом mediumWidgetCategory
-            let activeMedCat = (isPremium || !mediumWidgetCategory.isPremiumRequired) ? mediumWidgetCategory : .all
-            let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
-            let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
-            let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
-            if let randomMed = medPool.randomElement() {
+            if let randomMed {
                 defaults.set(randomMed.id.uuidString, forKey: "currentMediumVerseId")
             }
             
             // 4. Большой виджет (System Large 4x4) - стихи от 75 символов с учетом largeWidgetCategory
-            let activeLargeCat = (isPremium || !largeWidgetCategory.isPremiumRequired) ? largeWidgetCategory : .all
-            let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
-            let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
-            let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
-            if let randomLarge = largePool.randomElement() {
+            if let randomLarge {
                 defaults.set(randomLarge.id.uuidString, forKey: "currentLargeVerseId")
             }
-            
-            defaults.synchronize()
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Принудительное обновление UI после смены языка/темы
@@ -615,19 +611,19 @@ class BibleManager: ObservableObject {
     // MARK: - Сохранение интервала обновления и перезапуск виджета
     func setUpdateInterval(_ interval: UpdateInterval) {
         self.updateInterval = interval
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(interval.rawValue, forKey: updateIntervalKey)
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Сохранение категории контента и перезапуск виджета
     func setSelectedCategory(_ category: TextCategory) {
         self.selectedCategory = category
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(category.rawValue, forKey: categoryKey)
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Получение отфильтрованной базы данных стихов/молитв (для виджета и PUSH)
@@ -730,9 +726,10 @@ class BibleManager: ObservableObject {
     }
     
     private func saveFavorites() {
-        if let defaults = sharedDefaults,
-           let encoded = try? JSONEncoder().encode(favoriteVerses) {
-            defaults.set(encoded, forKey: favoritesKey)
+        if let encoded = try? JSONEncoder().encode(favoriteVerses) {
+            AppGroupConstants.syncToAll { defaults in
+                defaults.set(encoded, forKey: favoritesKey)
+            }
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
@@ -740,7 +737,7 @@ class BibleManager: ObservableObject {
     // MARK: - Управление шрифтом Библии
     func setBibleFontSize(_ size: Double) {
         self.bibleFontSize = size
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(size, forKey: "bible_font_size")
         }
     }
@@ -748,7 +745,7 @@ class BibleManager: ObservableObject {
     // MARK: - Сохранение темы оформления (Системная / Светлая / Темная)
     func setAppearanceMode(_ mode: AppAppearanceMode) {
         self.appearanceMode = mode
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(mode.rawValue, forKey: appearanceModeKey)
         }
     }
@@ -757,12 +754,9 @@ class BibleManager: ObservableObject {
     func setAccentTheme(_ theme: AccentColorTheme) {
         self.accentTheme = theme
         objectWillChange.send()
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(theme.rawValue, forKey: accentThemeKey)
-            defaults.synchronize()
         }
-        UserDefaults.standard.set(theme.rawValue, forKey: accentThemeKey)
-        UserDefaults.standard.synchronize()
         WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -771,15 +765,11 @@ class BibleManager: ObservableObject {
     func setWidgetVisualStyle(_ style: WidgetVisualStyle) {
         self.widgetVisualStyle = style
         objectWillChange.send()
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(style.rawValue, forKey: widgetVisualStyleKey)
             defaults.set(style.rawValue, forKey: "widgetVisualStyle")
             defaults.set(Date().timeIntervalSince1970, forKey: "widget_style_timestamp")
-            defaults.synchronize()
         }
-        UserDefaults.standard.set(style.rawValue, forKey: widgetVisualStyleKey)
-        UserDefaults.standard.set(style.rawValue, forKey: "widgetVisualStyle")
-        UserDefaults.standard.synchronize()
         syncLockScreenWidget()
         WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
         WidgetCenter.shared.reloadAllTimelines()
@@ -867,7 +857,7 @@ class BibleManager: ObservableObject {
         // Принудительно уведомляем SwiftUI, т.к. BibleVerse struct с computed свойствами
         // может не считаться "изменённым" при смене языка (stored properties те же)
         objectWillChange.send()
-        if let defaults = sharedDefaults {
+        AppGroupConstants.syncToAll { defaults in
             defaults.set(enriched.id.uuidString, forKey: "currentVerseId")
             // Экран блокировки (Lock Screen) строго изолирован: питается ТОЛЬКО короткими стихами из syncLockScreenWidget()
             // Ни в коем случае не перезаписываем currentLockScreenVerseId стихами общего чтения из приложения!
@@ -887,12 +877,11 @@ class BibleManager: ObservableObject {
             
             defaults.set(enriched.text, forKey: textKey)
             defaults.set(enriched.reference, forKey: referenceKey)
-            defaults.synchronize()
-            
-            // Заставляем виджеты домашнего экрана немедленно обновиться
-            WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
-            WidgetCenter.shared.reloadAllTimelines()
         }
+        
+        // Заставляем виджеты домашнего экрана немедленно обновиться
+        WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Выбор случайного стиха из оффлайн-базы данных
@@ -1340,7 +1329,7 @@ class BibleManager: ObservableObject {
     
     // MARK: - Молитва дня и статус выполнения (Widget & Lockscreen)
     func checkPrayerCompletionStatus() {
-        guard let defaults = sharedDefaults else { return }
+        let defaults = AppGroupConstants.sharedDefaults
         if let lastDate = defaults.object(forKey: "daily_prayer_completed_date") as? Date {
             let isToday = Calendar.current.isDateInToday(lastDate)
             self.isPrayerCompletedToday = isToday
@@ -1350,51 +1339,50 @@ class BibleManager: ObservableObject {
     }
     
     func togglePrayerCompletedToday() {
-        guard let defaults = sharedDefaults else { return }
         let newValue = !isPrayerCompletedToday
         isPrayerCompletedToday = newValue
-        if newValue {
-            defaults.set(Date(), forKey: "daily_prayer_completed_date")
-        } else {
-            defaults.removeObject(forKey: "daily_prayer_completed_date")
+        AppGroupConstants.syncToAll { defaults in
+            if newValue {
+                defaults.set(Date(), forKey: "daily_prayer_completed_date")
+            } else {
+                defaults.removeObject(forKey: "daily_prayer_completed_date")
+            }
         }
-        defaults.synchronize()
         WidgetCenter.shared.reloadAllTimelines()
         objectWillChange.send()
     }
     
     // MARK: - Закрепление стиха на Виджете
     func pinVerseToWidget(textHy: String, textRu: String, textEn: String, refHy: String, refRu: String, refEn: String) {
-        guard let defaults = sharedDefaults else { return }
-        
         let baseVerse = BibleVerse(textHy: textHy, textRu: textRu, textEn: textEn, refHy: refHy, refRu: refRu, refEn: refEn)
         let enriched = BibleDatabase.shared.enrichVerse(baseVerse)
         
-        defaults.set(enriched.text(for: .armenian), forKey: "currentVerseTextHy")
-        defaults.set(enriched.textHy, forKey: "currentVerseTextHyEchmiadzin")
-        defaults.set(enriched.textHyArarat, forKey: "currentVerseTextHyArarat")
-        defaults.set(enriched.textRu, forKey: "currentVerseTextRu")
-        defaults.set(enriched.textEn, forKey: "currentVerseTextEn")
-        
-        defaults.set(enriched.refHy, forKey: "currentVerseReferenceHy")
-        defaults.set(enriched.refRu, forKey: "currentVerseReferenceRu")
-        defaults.set(enriched.refEn, forKey: "currentVerseReferenceEn")
-        
-        // Устанавливаем текущий текст в зависимости от языка приложения
-        switch appLanguage {
-        case .armenian:
-            defaults.set(enriched.text(for: .armenian), forKey: textKey)
-            defaults.set(enriched.refHy, forKey: referenceKey)
-        case .russian:
-            defaults.set(enriched.textRu, forKey: textKey)
-            defaults.set(enriched.refRu, forKey: referenceKey)
-        case .english:
-            defaults.set(enriched.textEn, forKey: textKey)
-            defaults.set(enriched.refEn, forKey: referenceKey)
+        AppGroupConstants.syncToAll { defaults in
+            defaults.set(enriched.text(for: .armenian), forKey: "currentVerseTextHy")
+            defaults.set(enriched.textHy, forKey: "currentVerseTextHyEchmiadzin")
+            defaults.set(enriched.textHyArarat, forKey: "currentVerseTextHyArarat")
+            defaults.set(enriched.textRu, forKey: "currentVerseTextRu")
+            defaults.set(enriched.textEn, forKey: "currentVerseTextEn")
+            
+            defaults.set(enriched.refHy, forKey: "currentVerseReferenceHy")
+            defaults.set(enriched.refRu, forKey: "currentVerseReferenceRu")
+            defaults.set(enriched.refEn, forKey: "currentVerseReferenceEn")
+            
+            // Устанавливаем текущий текст в зависимости от языка приложения
+            switch appLanguage {
+            case .armenian:
+                defaults.set(enriched.text(for: .armenian), forKey: textKey)
+                defaults.set(enriched.refHy, forKey: referenceKey)
+            case .russian:
+                defaults.set(enriched.textRu, forKey: textKey)
+                defaults.set(enriched.refRu, forKey: referenceKey)
+            case .english:
+                defaults.set(enriched.textEn, forKey: textKey)
+                defaults.set(enriched.refEn, forKey: referenceKey)
+            }
         }
         self.currentVerse = enriched
         
-        defaults.synchronize()
         WidgetCenter.shared.reloadAllTimelines()
         objectWillChange.send()
     }

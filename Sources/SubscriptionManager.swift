@@ -96,7 +96,7 @@ final class SubscriptionManager: ObservableObject {
     private let kLegacyPremiumKey   = "arm_bible_premium_unlocked"   // ключ из v1.x
     private let kDebugUnlockedKey   = "k_debug_premium_unlocked"
     private let kForceFreeModeKey   = "k_dev_force_free_mode"
-    private let appGroupSuite       = "group.com.samvel.ArmenianBible"
+    private let appGroupSuite       = AppGroupConstants.activeSuiteName
     private var updateListenerTask: Task<Void, Never>? = nil
     
     private init() {
@@ -110,9 +110,8 @@ final class SubscriptionManager: ObservableObject {
             let debugCached = UserDefaults.standard.bool(forKey: kDebugUnlockedKey)
             self.isPremium = cached || legacyCached || debugCached
         }
-        if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
-            sharedDefaults.set(self.isPremium, forKey: "is_premium_active")
-            sharedDefaults.synchronize()
+        AppGroupConstants.syncToAll { defs in
+            defs.set(self.isPremium, forKey: "is_premium_active")
         }
         
         #if !targetEnvironment(simulator)
@@ -307,9 +306,8 @@ final class SubscriptionManager: ObservableObject {
         if UserDefaults.standard.bool(forKey: kForceFreeModeKey) {
             self.isPremium = false
             UserDefaults.standard.set(false, forKey: kPremiumOverrideKey)
-            if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
-                sharedDefaults.set(false, forKey: "is_premium_active")
-                sharedDefaults.synchronize()
+            AppGroupConstants.syncToAll { defs in
+                defs.set(false, forKey: "is_premium_active")
             }
             return
         }
@@ -321,9 +319,8 @@ final class SubscriptionManager: ObservableObject {
         
         self.isPremium = hasActivePremium
         UserDefaults.standard.set(hasActivePremium, forKey: kPremiumOverrideKey)
-        if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
-            sharedDefaults.set(hasActivePremium, forKey: "is_premium_active")
-            sharedDefaults.synchronize()
+        AppGroupConstants.syncToAll { defs in
+            defs.set(hasActivePremium, forKey: "is_premium_active")
         }
         WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
         WidgetCenter.shared.reloadAllTimelines()
@@ -428,9 +425,8 @@ final class SubscriptionManager: ObservableObject {
         self.isPremium = enabled
         UserDefaults.standard.set(enabled, forKey: kDebugUnlockedKey)
         UserDefaults.standard.set(enabled, forKey: kPremiumOverrideKey)
-        if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
-            sharedDefaults.set(enabled, forKey: "is_premium_active")
-            sharedDefaults.synchronize()
+        AppGroupConstants.syncToAll { defs in
+            defs.set(enabled, forKey: "is_premium_active")
         }
     }
     
@@ -445,9 +441,8 @@ final class SubscriptionManager: ObservableObject {
             UserDefaults.standard.set(false, forKey: kLegacyPremiumKey)
             UserDefaults.standard.set(false, forKey: kPremiumOverrideKey)
             self.isPremium = false
-            if let sharedDefaults = UserDefaults(suiteName: appGroupSuite) {
-                sharedDefaults.set(false, forKey: "is_premium_active")
-                sharedDefaults.synchronize()
+            AppGroupConstants.syncToAll { defs in
+                defs.set(false, forKey: "is_premium_active")
             }
         }
     }
