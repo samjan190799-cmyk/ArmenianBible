@@ -214,6 +214,51 @@ if cer_b64:
                 widget_b_id = create_bid_res["data"]["id"]
                 print(f"✅ Bundle ID виджета зарегистрирован: {widget_b_id}")
 
+        # ─── Гарантия наличия App Group и привязки к Bundle ID ────────
+        target_group_id = None
+        app_groups_res = api_request("GET", "/appGroups?limit=100")
+        for g in app_groups_res.get("data", []):
+            if g.get("attributes", {}).get("groupId") == "group.com.samvel.ArmenianBible":
+                target_group_id = g.get("id")
+                break
+        
+        if not target_group_id:
+            print("📦 Создание App Group group.com.samvel.ArmenianBible в Apple Developer Portal...")
+            create_grp_res = api_request("POST", "/appGroups", {
+                "data": {
+                    "type": "appGroups",
+                    "attributes": {
+                        "groupId": "group.com.samvel.ArmenianBible",
+                        "name": "Armenian Bible Lock Screen Group"
+                    }
+                }
+            })
+            if "data" in create_grp_res:
+                target_group_id = create_grp_res["data"]["id"]
+                print(f"✅ App Group создана: {target_group_id}")
+
+        for bid_name, bid_val in [("Main App", main_b_id), ("Widget", widget_b_id)]:
+            if not bid_val:
+                continue
+            caps_res = api_request("GET", f"/bundleIds/{bid_val}/bundleIdCapabilities?limit=50")
+            has_app_groups = any(c.get("attributes", {}).get("capabilityType") == "APP_GROUPS" for c in caps_res.get("data", []))
+            if not has_app_groups:
+                print(f"⚙️ Включение возможности APP_GROUPS для {bid_name}...")
+                add_cap_res = api_request("POST", "/bundleIdCapabilities", {
+                    "data": {
+                        "type": "bundleIdCapabilities",
+                        "attributes": {"capabilityType": "APP_GROUPS"},
+                        "relationships": {"bundleId": {"data": {"type": "bundleIds", "id": bid_val}}}
+                    }
+                })
+                print(f"  Результат добавления APP_GROUPS для {bid_name}: {add_cap_res}")
+            
+            if target_group_id:
+                link_res = api_request("POST", f"/bundleIds/{bid_val}/relationships/appGroups", {
+                    "data": [{"type": "appGroups", "id": target_group_id}]
+                })
+                print(f"  Результат привязки App Group к {bid_name}: {link_res}")
+
         p_list = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE&limit=100")
         for p_item in p_list.get("data", []):
             p_id = p_item["id"]

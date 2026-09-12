@@ -435,29 +435,22 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
     func backgroundGradient(for colorScheme: ColorScheme) -> LinearGradient {
         switch self {
         case .oledStandby:
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [Color.black, Color(red: 0.04, green: 0.04, blue: 0.05)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [Color(red: 0.05, green: 0.05, blue: 0.06), Color(red: 0.09, green: 0.09, blue: 0.11)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
+            // Чистейший OLED черный в обоих режимах для энергосбережения и StandBy
+            return LinearGradient(
+                colors: [Color.black, Color(red: 0.04, green: 0.04, blue: 0.06)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         case .modernMinimal:
             if colorScheme == .dark {
                 return LinearGradient(
-                    colors: [Color(red: 0.06, green: 0.08, blue: 0.14), Color(red: 0.11, green: 0.14, blue: 0.22)],
+                    colors: [Color(red: 0.08, green: 0.11, blue: 0.19), Color(red: 0.13, green: 0.17, blue: 0.28)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             } else {
                 return LinearGradient(
-                    colors: [Color(red: 0.97, green: 0.98, blue: 0.99), Color(red: 0.89, green: 0.91, blue: 0.94)],
+                    colors: [Color(red: 0.94, green: 0.96, blue: 1.0), Color(red: 0.86, green: 0.90, blue: 0.98)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -465,27 +458,28 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .sacredParchment:
             if colorScheme == .dark {
                 return LinearGradient(
-                    colors: [Color(red: 0.10, green: 0.07, blue: 0.05), Color(red: 0.15, green: 0.11, blue: 0.08)],
+                    colors: [Color(red: 0.16, green: 0.11, blue: 0.08), Color(red: 0.24, green: 0.17, blue: 0.12)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             } else {
                 return LinearGradient(
-                    colors: [Color(red: 0.98, green: 0.96, blue: 0.92), Color(red: 0.94, green: 0.89, blue: 0.82)],
+                    colors: [Color(red: 0.98, green: 0.94, blue: 0.86), Color(red: 0.91, green: 0.85, blue: 0.73)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             }
         case .royalMonastery:
+            // Настоящий величественный королевский сапфирово-синий (Royal Blue) в обоих режимах!
             if colorScheme == .dark {
                 return LinearGradient(
-                    colors: [Color(red: 0.03, green: 0.06, blue: 0.14), Color(red: 0.07, green: 0.12, blue: 0.25)],
+                    colors: [Color(red: 0.06, green: 0.12, blue: 0.32), Color(red: 0.10, green: 0.20, blue: 0.50)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             } else {
                 return LinearGradient(
-                    colors: [Color(red: 0.94, green: 0.96, blue: 1.0), Color(red: 0.85, green: 0.91, blue: 0.98)],
+                    colors: [Color(red: 0.10, green: 0.22, blue: 0.58), Color(red: 0.16, green: 0.34, blue: 0.78)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -493,13 +487,13 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .monochrome:
             if colorScheme == .dark {
                 return LinearGradient(
-                    colors: [Color.black, Color(red: 0.03, green: 0.03, blue: 0.03)],
+                    colors: [Color(red: 0.08, green: 0.08, blue: 0.09), Color(red: 0.14, green: 0.14, blue: 0.15)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             } else {
                 return LinearGradient(
-                    colors: [Color.white, Color(red: 0.95, green: 0.95, blue: 0.96)],
+                    colors: [Color.white, Color(red: 0.93, green: 0.93, blue: 0.95)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -512,11 +506,12 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .oledStandby:
             return Color(red: 1.0, green: 0.98, blue: 0.92)
         case .modernMinimal:
-            return colorScheme == .dark ? Color.white.opacity(0.96) : Color(red: 0.08, green: 0.11, blue: 0.18)
+            return colorScheme == .dark ? Color.white : Color(red: 0.08, green: 0.11, blue: 0.18)
         case .sacredParchment:
-            return colorScheme == .dark ? Color(red: 0.99, green: 0.94, blue: 0.82) : Color(red: 0.16, green: 0.10, blue: 0.05)
+            return colorScheme == .dark ? Color(red: 0.99, green: 0.95, blue: 0.85) : Color(red: 0.20, green: 0.12, blue: 0.06)
         case .royalMonastery:
-            return colorScheme == .dark ? Color(red: 0.96, green: 0.98, blue: 1.0) : Color(red: 0.05, green: 0.10, blue: 0.20)
+            // Белый текст на насыщенном королевском синем фоне
+            return Color(red: 0.98, green: 0.99, blue: 1.0)
         case .monochrome:
             return colorScheme == .dark ? Color.white : Color.black
         }
@@ -559,13 +554,14 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             if let customAccent = dynamicAccent {
                 return customAccent
             }
-            return colorScheme == .dark ? Color(red: 0.51, green: 0.55, blue: 0.97) : Color(red: 0.31, green: 0.27, blue: 0.90)
+            return colorScheme == .dark ? Color(red: 0.60, green: 0.68, blue: 0.98) : Color(red: 0.28, green: 0.35, blue: 0.85)
         case .sacredParchment:
-            return colorScheme == .dark ? Color(red: 0.96, green: 0.62, blue: 0.04) : Color(red: 0.57, green: 0.25, blue: 0.05)
+            return colorScheme == .dark ? Color(red: 0.96, green: 0.72, blue: 0.25) : Color(red: 0.58, green: 0.32, blue: 0.08)
         case .royalMonastery:
-            return colorScheme == .dark ? Color(red: 0.22, green: 0.74, blue: 0.97) : Color(red: 0.11, green: 0.31, blue: 0.85)
+            // Светло-небесный / золотистый для ссылок на королевском синем
+            return Color(red: 0.72, green: 0.86, blue: 1.0)
         case .monochrome:
-            return colorScheme == .dark ? Color(red: 0.65, green: 0.68, blue: 0.72) : Color(red: 0.35, green: 0.38, blue: 0.42)
+            return colorScheme == .dark ? Color(red: 0.75, green: 0.75, blue: 0.78) : Color(red: 0.35, green: 0.35, blue: 0.38)
         }
     }
     
@@ -574,20 +570,20 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .oledStandby:
             if accentHex.uppercased() != "6366F1", let customAccent = dynamicAccent {
-                return customAccent.opacity(0.85)
+                return customAccent.opacity(0.90)
             }
-            return Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.85)
+            return Color(red: 0.96, green: 0.68, blue: 0.12).opacity(0.90)
         case .modernMinimal:
             if let customAccent = dynamicAccent {
-                return customAccent.opacity(colorScheme == .dark ? 0.60 : 0.35)
+                return customAccent.opacity(colorScheme == .dark ? 0.75 : 0.60)
             }
-            return colorScheme == .dark ? Color(red: 0.39, green: 0.40, blue: 0.95).opacity(0.40) : Color(red: 0.31, green: 0.27, blue: 0.90).opacity(0.20)
+            return colorScheme == .dark ? Color(red: 0.50, green: 0.58, blue: 0.98).opacity(0.70) : Color(red: 0.31, green: 0.38, blue: 0.90).opacity(0.50)
         case .sacredParchment:
-            return colorScheme == .dark ? Color(red: 0.85, green: 0.47, blue: 0.04).opacity(0.60) : Color(red: 0.57, green: 0.25, blue: 0.05).opacity(0.25)
+            return colorScheme == .dark ? Color(red: 0.96, green: 0.68, blue: 0.18).opacity(0.85) : Color(red: 0.68, green: 0.35, blue: 0.08).opacity(0.65)
         case .royalMonastery:
-            return colorScheme == .dark ? Color(red: 0.22, green: 0.74, blue: 0.97).opacity(0.55) : Color(red: 0.11, green: 0.31, blue: 0.85).opacity(0.22)
+            return Color(red: 0.60, green: 0.84, blue: 1.0).opacity(0.85)
         case .monochrome:
-            return colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.18)
+            return colorScheme == .dark ? Color.white.opacity(0.40) : Color.black.opacity(0.35)
         }
     }
     
@@ -596,15 +592,15 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .oledStandby:
             return LinearGradient(
                 colors: [
-                    Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.45),
-                    Color(red: 0.85, green: 0.47, blue: 0.04).opacity(0.12)
+                    Color(red: 0.96, green: 0.68, blue: 0.12).opacity(0.55),
+                    Color(red: 0.85, green: 0.47, blue: 0.04).opacity(0.20)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         case .modernMinimal:
-            let topAlpha: Double = colorScheme == .dark ? 0.20 : 0.10
-            let btmAlpha: Double = colorScheme == .dark ? 0.05 : 0.02
+            let topAlpha: Double = colorScheme == .dark ? 0.35 : 0.25
+            let btmAlpha: Double = colorScheme == .dark ? 0.10 : 0.08
             return LinearGradient(
                 colors: [Color.white.opacity(topAlpha), Color.white.opacity(btmAlpha)],
                 startPoint: .topLeading,
@@ -613,8 +609,8 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .sacredParchment:
             return LinearGradient(
                 colors: [
-                    Color(red: 0.71, green: 0.33, blue: 0.04).opacity(0.40),
-                    Color(red: 0.45, green: 0.20, blue: 0.02).opacity(0.15)
+                    Color(red: 0.78, green: 0.50, blue: 0.15).opacity(0.55),
+                    Color(red: 0.45, green: 0.25, blue: 0.05).opacity(0.25)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -622,14 +618,14 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .royalMonastery:
             return LinearGradient(
                 colors: [
-                    Color(red: 0.22, green: 0.74, blue: 0.97).opacity(0.40),
-                    Color(red: 0.07, green: 0.12, blue: 0.25).opacity(0.15)
+                    Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55),
+                    Color(red: 0.15, green: 0.30, blue: 0.75).opacity(0.20)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         case .monochrome:
-            let alpha: Double = colorScheme == .dark ? 0.22 : 0.12
+            let alpha: Double = colorScheme == .dark ? 0.30 : 0.20
             return LinearGradient(
                 colors: [Color.primary.opacity(alpha), Color.primary.opacity(alpha * 0.4)],
                 startPoint: .topLeading,
@@ -641,15 +637,15 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
     func buttonBackground(for colorScheme: ColorScheme) -> Color {
         switch self {
         case .oledStandby:
-            return Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.16)
+            return Color(red: 0.96, green: 0.68, blue: 0.12).opacity(0.20)
         case .modernMinimal:
-            return Color.primary.opacity(0.08)
+            return colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06)
         case .sacredParchment:
-            return colorScheme == .dark ? Color(red: 0.96, green: 0.62, blue: 0.04).opacity(0.14) : Color(red: 0.45, green: 0.20, blue: 0.02).opacity(0.08)
+            return colorScheme == .dark ? Color(red: 0.96, green: 0.72, blue: 0.25).opacity(0.18) : Color(red: 0.58, green: 0.32, blue: 0.08).opacity(0.10)
         case .royalMonastery:
-            return colorScheme == .dark ? Color(red: 0.22, green: 0.74, blue: 0.97).opacity(0.15) : Color(red: 0.11, green: 0.31, blue: 0.85).opacity(0.08)
+            return Color.white.opacity(0.18)
         case .monochrome:
-            return Color.primary.opacity(0.08)
+            return colorScheme == .dark ? Color.white.opacity(0.15) : Color.black.opacity(0.08)
         }
     }
 }

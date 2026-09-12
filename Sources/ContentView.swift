@@ -2218,12 +2218,7 @@ struct SettingsView: View {
                 notificationsEnabled = manager.dailyNotificationsEnabled
                 notificationTime = manager.dailyNotificationTime
                 selectedWidgetLanguage = manager.widgetLanguage
-                if !subscriptionManager.isPremium && manager.widgetVisualStyle != .oledStandby {
-                    manager.setWidgetVisualStyle(.oledStandby)
-                    selectedWidgetStyle = .oledStandby
-                } else {
-                    selectedWidgetStyle = manager.widgetVisualStyle
-                }
+                selectedWidgetStyle = manager.widgetVisualStyle
                 selectedLockCategory = manager.lockScreenCategory
                 selectedMediumCategory = manager.mediumWidgetCategory
                 selectedLargeCategory = manager.largeWidgetCategory
@@ -3267,21 +3262,14 @@ struct SettingsView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(WidgetVisualStyle.allCases) { style in
-                            let isLocked = (style != .oledStandby) && !subscriptionManager.isPremium
                             WidgetStyleCardButton(
                                 style: style,
                                 isSelected: selectedWidgetStyle == style,
-                                isLocked: isLocked,
+                                isLocked: false,
                                 selectedLanguage: selectedLanguage,
                                 themeColorHex: selectedTheme.colorHex,
                                 colorScheme: colorScheme
                             ) {
-                                if isLocked {
-                                    let generator = UINotificationFeedbackGenerator()
-                                    generator.notificationOccurred(.warning)
-                                    isShowingPaywall = true
-                                    return
-                                }
                                 let generator = UIImpactFeedbackGenerator(style: .medium)
                                 generator.prepare()
                                 generator.impactOccurred()
@@ -3329,6 +3317,7 @@ struct SettingsView: View {
                                         .font(.system(size: 12.5, weight: isSelected ? .bold : .medium))
                                     Text(size.localizedTitle(for: selectedLanguage))
                                         .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                                        .fixedSize(horizontal: true, vertical: false)
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8.5)

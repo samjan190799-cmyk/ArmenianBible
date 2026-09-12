@@ -1,0 +1,79 @@
+name: Diagnose & Fix Widget App Groups
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose-and-fix:
+    name: Диагностика виджетов и App Groups
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew / XcodeGen
+        id: cache-homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/xcodegen
+            /opt/homebrew/bin/xcodegen
+          key: ${{ runner.os }}-homebrew-xcodegen-v4
+
+      - name: Install XcodeGen
+        if: steps.cache-homebrew.outputs.cache-hit != 'true'
+        run: brew update && brew install xcodegen
+
+      - name: Select Latest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          [ -z "$XCODE" ] && XCODE="/Applications/Xcode.app"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      # ─── Разворачиваем App Store Connect API Ключ ────────────────
+      - name: Setup App Store Connect API Key
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_KEY_ID || secrets.APP_STORE_CONNECT_KEY_ID || secrets.APP_STORE_KEY_ID || secrets.KEY_ID || secrets.APPSTORE_KEYID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID || secrets.APP_STORE_CONNECT_ISSUER_ID || secrets.APP_STORE_ISSUER_ID || secrets.ISSUER_ID || secrets.APPSTORE_ISSUERID }}
+          API_KEY_B64: ${{ secrets.APPSTORE_API_KEY_BASE64 || secrets.APP_STORE_CONNECT_API_KEY_BASE64 || secrets.APPSTORE_KEY_BASE64 || secrets.APP_STORE_KEY_BASE64 || secrets.P8_BASE64 || secrets.P8_KEY || secrets.APPSTORE_API_KEY || secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          KEY_ID=$(echo "$KEY_ID" | tr -d '\r\n ')
+          ISSUER_ID=$(echo "$ISSUER_ID" | tr -d '\r\n ')
+
+          if [ -z "$KEY_ID" ] || [ -z "$ISSUER_ID" ] || [ -z "$API_KEY_B64" ]; then
+            echo "::error::Не все секреты заданы! KEY_ID='$KEY_ID', ISSUER_ID='$ISSUER_ID'"
+            exit 1
+          fi
+
+          KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$KEY_DIR"
+          chmod 700 "$KEY_DIR"
+          KEY_PATH="$KEY_DIR/AuthKey_${KEY_ID}.p8"
+          echo "$API_KEY_B64" | tr -d '\r\n ' | base64 --decode | tr -d '\r' > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+
+          echo "APPSTORE_KEY_ID=$KEY_ID" >> $GITHUB_ENV
+          echo "APPSTORE_ISSUER_ID=$ISSUER_ID" >> $GITHUB_ENV
+          echo "AUTH_KEY_PATH=$KEY_PATH" >> $GITHUB_ENV
+          echo "✅ API Ключ развёрнут"
+
+      # ─── Диагностика и исправление прав в Apple Developer Portal ─
+      - name: Run Diagnostics on Apple API
+        run: python3 .github/scripts/diagnose_and_fix_app_groups.py
+
+      # ─── Проверка сборки виджета и приложения в Xcode ────────────
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build Widget and Main App
+        run: |
+          xcodebuild build \
+            -project ArmenianBible.xcodeproj \
+            -scheme ArmenianBible \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+          echo "✅ Успешная сборка приложения и виджета!"
