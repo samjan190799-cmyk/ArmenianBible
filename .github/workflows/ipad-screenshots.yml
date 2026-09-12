@@ -1,0 +1,109 @@
+name: Capture Native iPad Screenshots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  capture-ipad-screenshots:
+    name: Снятие нативных скриншотов с iPad Pro Simulator
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew / XcodeGen
+        id: cache-homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/xcodegen
+            /opt/homebrew/bin/xcodegen
+          key: ${{ runner.os }}-homebrew-xcodegen-v4
+
+      - name: Install XcodeGen
+        if: steps.cache-homebrew.outputs.cache-hit != 'true'
+        run: brew update && brew install xcodegen
+
+      - name: Select Latest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          [ -z "$XCODE" ] && XCODE="/Applications/Xcode.app"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Find and Boot 13-inch iPad Simulator
+        id: sim-setup
+        run: |
+          echo "Ищем подходящий симулятор iPad Pro 13 / 12.9 дюймов..."
+          DEVICE_LINE=$(xcrun simctl list devices available | grep -iE "iPad Pro 13|iPad Pro \(12.9-inch\)" | head -1)
+          if [ -z "$DEVICE_LINE" ]; then
+            DEVICE_LINE=$(xcrun simctl list devices available | grep -iE "iPad" | head -1)
+          fi
+          
+          DEVICE_UDID=$(echo "$DEVICE_LINE" | grep -oE "\([A-F0-9-]{36}\)" | tr -d '()')
+          echo "Выбран симулятор: $DEVICE_LINE (UDID: $DEVICE_UDID)"
+          echo "udid=$DEVICE_UDID" >> $GITHUB_OUTPUT
+          
+          # Загружаем симулятор
+          xcrun simctl boot "$DEVICE_UDID" || true
+          xcrun simctl bootstatus "$DEVICE_UDID" -b
+
+      - name: Build App for Simulator
+        env:
+          UDID: ${{ steps.sim-setup.outputs.udid }}
+        run: |
+          xcodebuild build \
+            -project ArmenianBible.xcodeproj \
+            -scheme ArmenianBible \
+            -destination "id=$UDID" \
+            -configuration Debug \
+            -derivedDataPath ./DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Install & Launch App on Simulator
+        env:
+          UDID: ${{ steps.sim-setup.outputs.udid }}
+        run: |
+          APP_PATH=$(find ./DerivedData -name "ArmenianBible.app" | head -1)
+          echo "Путь к приложению: $APP_PATH"
+          xcrun simctl install "$UDID" "$APP_PATH"
+          
+          mkdir -p ./Screenshots_iPad_Native
+          
+          # 1. Запуск приложения (Главный экран)
+          xcrun simctl launch "$UDID" com.samvel.armenianbible
+          sleep 5
+          xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/01_Native_iPad_Home.png
+          
+          # 2. Переход на вкладку Избранное (Tab 1)
+          xcrun simctl openurl "$UDID" "armenianbible://tab?id=1" || true
+          sleep 3
+          xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/02_Native_iPad_Favorites.png
+          
+          # 3. Переход на вкладку Библия / Чтение (Tab 3)
+          xcrun simctl openurl "$UDID" "armenianbible://tab?id=3" || true
+          sleep 3
+          xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/03_Native_iPad_BibleReader.png
+          
+          # 4. Переход в Календарь праздников
+          xcrun simctl openurl "$UDID" "armenianbible://calendar" || true
+          sleep 3
+          xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/04_Native_iPad_Calendar.png
+
+          # 5. Переход в Библейскую Викторину (Quiz)
+          xcrun simctl openurl "$UDID" "armenianbible://quiz" || true
+          sleep 3
+          xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/05_Native_iPad_Quiz.png
+
+      - name: Upload Native iPad Screenshots Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Native-iPad-Pro-Screenshots
+          path: ./Screenshots_iPad_Native/*.png
+          if-no-files-found: warn

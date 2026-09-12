@@ -359,19 +359,29 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     private func resolveVisualStyle(for configuration: ConfigurationAppIntent) -> WidgetVisualStyle {
+        let defaults = UserDefaults(suiteName: appGroupSuiteName)
+        let isPremium = defaults?.bool(forKey: "is_premium_active") ?? false
         let shared = getSharedVisualStyle()
-        if configuration.visualStyle == .followApp {
-            return shared
+        
+        let candidateStyle: WidgetVisualStyle
+        if configuration.visualStyle == .followApp || configuration.visualStyle == .oledStandby {
+            candidateStyle = shared
+        } else if let custom = configuration.visualStyle.widgetStyle {
+            candidateStyle = custom
+        } else {
+            candidateStyle = shared
         }
-        // Если в виджете остался старый дефолтный .oledStandby, а в приложении выбран другой стиль — приоритет стилю приложения!
-        if configuration.visualStyle == .oledStandby && shared != .oledStandby {
-            return shared
+        
+        // Премиум-защита: если подписка не активна, дизайнерские стили откатываются на бесплатный OLED StandBy
+        if !isPremium && candidateStyle != .oledStandby {
+            return .oledStandby
         }
-        return configuration.visualStyle.widgetStyle ?? shared
+        
+        return candidateStyle
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
-        let style = getSharedVisualStyle()
+        let style = resolveVisualStyle(for: ConfigurationAppIntent())
         let lang = getSharedLanguage()
         let verse = getSharedVerse(for: ConfigurationAppIntent(), family: context.family)
         return SimpleEntry(

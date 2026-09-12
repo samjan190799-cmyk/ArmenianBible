@@ -24,4 +24,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.bak
-
+# AppStore screenshots
+AppStore_iPad_Screenshots/
+Screenshots_iPad_Native/

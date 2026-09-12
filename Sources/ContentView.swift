@@ -470,6 +470,18 @@ struct HomeView: View {
                         
                         manager.openBibleReader()
                     }
+                } else if url.host == "tab" {
+                    if let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+                       let tabStr = components.queryItems?.first(where: { $0.name == "id" })?.value,
+                       let tabInt = Int(tabStr) {
+                        manager.activeTabSelection = tabInt
+                    }
+                } else if url.host == "calendar" {
+                    isShowingCalendar = true
+                } else if url.host == "quiz" {
+                    isShowingQuiz = true
+                } else if url.host == "settings" {
+                    isShowingSettings = true
                 }
             }
         }
@@ -2174,7 +2186,12 @@ struct SettingsView: View {
                 notificationsEnabled = manager.dailyNotificationsEnabled
                 notificationTime = manager.dailyNotificationTime
                 selectedWidgetLanguage = manager.widgetLanguage
-                selectedWidgetStyle = manager.widgetVisualStyle
+                if !subscriptionManager.isPremium && manager.widgetVisualStyle != .oledStandby {
+                    manager.setWidgetVisualStyle(.oledStandby)
+                    selectedWidgetStyle = .oledStandby
+                } else {
+                    selectedWidgetStyle = manager.widgetVisualStyle
+                }
                 selectedLockCategory = manager.lockScreenCategory
                 selectedMediumCategory = manager.mediumWidgetCategory
                 selectedLargeCategory = manager.largeWidgetCategory
@@ -3218,13 +3235,21 @@ struct SettingsView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(WidgetVisualStyle.allCases) { style in
+                            let isLocked = (style != .oledStandby) && !subscriptionManager.isPremium
                             WidgetStyleCardButton(
                                 style: style,
                                 isSelected: selectedWidgetStyle == style,
+                                isLocked: isLocked,
                                 selectedLanguage: selectedLanguage,
                                 themeColorHex: selectedTheme.colorHex,
                                 colorScheme: colorScheme
                             ) {
+                                if isLocked {
+                                    let generator = UINotificationFeedbackGenerator()
+                                    generator.notificationOccurred(.warning)
+                                    isShowingPaywall = true
+                                    return
+                                }
                                 let generator = UIImpactFeedbackGenerator(style: .medium)
                                 generator.prepare()
                                 generator.impactOccurred()
@@ -4357,6 +4382,7 @@ struct HomeCategoryChipView: View {
 struct WidgetStyleCardButton: View {
     let style: WidgetVisualStyle
     let isSelected: Bool
+    let isLocked: Bool
     let selectedLanguage: AppLanguage
     let themeColorHex: String
     let colorScheme: ColorScheme
@@ -4383,7 +4409,19 @@ struct WidgetStyleCardButton: View {
                     
                     Spacer()
                     
-                    if isSelected {
+                    if isLocked {
+                        HStack(spacing: 3) {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 8.5, weight: .bold))
+                            Text("PRO")
+                                .font(.system(size: 8, weight: .heavy))
+                        }
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color(hex: "F59E0B").opacity(0.22))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                        .cornerRadius(5)
+                    } else if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 13))
                             .foregroundColor(accentColor)

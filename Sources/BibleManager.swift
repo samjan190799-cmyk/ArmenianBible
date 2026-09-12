@@ -482,6 +482,7 @@ class BibleManager: ObservableObject {
         if let defaults = sharedDefaults {
             defaults.set(language.rawValue, forKey: appLanguageKey)
             defaults.synchronize()
+            WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
@@ -492,6 +493,7 @@ class BibleManager: ObservableObject {
         if let defaults = sharedDefaults {
             defaults.set(language.rawValue, forKey: "widget_language")
             defaults.synchronize()
+            WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
@@ -761,6 +763,7 @@ class BibleManager: ObservableObject {
         }
         UserDefaults.standard.set(theme.rawValue, forKey: accentThemeKey)
         UserDefaults.standard.synchronize()
+        WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
         WidgetCenter.shared.reloadAllTimelines()
     }
     
@@ -778,6 +781,7 @@ class BibleManager: ObservableObject {
         UserDefaults.standard.set(style.rawValue, forKey: "widgetVisualStyle")
         UserDefaults.standard.synchronize()
         syncLockScreenWidget()
+        WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
         WidgetCenter.shared.reloadAllTimelines()
     }
     
@@ -886,6 +890,7 @@ class BibleManager: ObservableObject {
             defaults.synchronize()
             
             // Заставляем виджеты домашнего экрана немедленно обновиться
+            WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
             WidgetCenter.shared.reloadAllTimelines()
         }
     }

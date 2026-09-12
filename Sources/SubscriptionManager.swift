@@ -2,6 +2,7 @@ import Foundation
 import StoreKit
 import SwiftUI
 import Combine
+import WidgetKit
 
 // MARK: - Модели подписок и тарифов
 enum SubscriptionPlan: String, CaseIterable, Identifiable {
@@ -320,6 +321,8 @@ final class SubscriptionManager: ObservableObject {
             sharedDefaults.set(hasActivePremium, forKey: "is_premium_active")
             sharedDefaults.synchronize()
         }
+        WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     /// Определение ранних покупателей, купивших платное приложение до перехода на подписки (< 2.0)
