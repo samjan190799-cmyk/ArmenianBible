@@ -72,6 +72,8 @@ jobs:
         run: |
           APP_PATH=$(find ./DerivedData -name "ArmenianBible.app" | head -1)
           echo "Путь к приложению: $APP_PATH"
+          # Удаляем appex расширение перед установкой в симулятор во избежание ошибки IXErrorDomain
+          rm -rf "$APP_PATH/PlugIns"
           xcrun simctl install "$UDID" "$APP_PATH"
           
           mkdir -p ./Screenshots_iPad_Native
