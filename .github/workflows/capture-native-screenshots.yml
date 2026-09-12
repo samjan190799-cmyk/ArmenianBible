@@ -1,0 +1,178 @@
+name: Capture Native App Store Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: 'Целевое устройство (ipad_13, iphone_6_9, iphone_6_5, all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ipad_13
+          - iphone_6_9
+          - iphone_6_5
+
+jobs:
+  capture-screenshots:
+    name: Снятие реальных скриншотов с Apple Simulator
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew / XcodeGen
+        id: cache-homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/xcodegen
+            /opt/homebrew/bin/xcodegen
+          key: ${{ runner.os }}-homebrew-xcodegen-v4
+
+      - name: Install XcodeGen
+        if: steps.cache-homebrew.outputs.cache-hit != 'true'
+        run: brew update && brew install xcodegen
+
+      - name: Select Latest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          [ -z "$XCODE" ] && XCODE="/Applications/Xcode.app"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Capture Native Screenshots
+        env:
+          TARGET_DEVICE: ${{ github.event.inputs.device || 'all' }}
+        run: |
+          set -e
+          mkdir -p ./Real_Screenshots_Output
+
+          capture_device() {
+            local DEV_PATTERN="$1"
+            local DEV_FOLDER="$2"
+            local DEV_LABEL="$3"
+
+            echo "=========================================================="
+            echo "📱 Поиск и запуск симулятора: $DEV_LABEL ($DEV_PATTERN)"
+            echo "=========================================================="
+
+            local LINE=$(xcrun simctl list devices available | grep -iE "$DEV_PATTERN" | head -1)
+            if [ -z "$LINE" ]; then
+              echo "⚠️ Симулятор $DEV_PATTERN не найден, пропускаем."
+              return 0
+            fi
+
+            local UDID=$(echo "$LINE" | grep -oE "\([A-F0-9-]{36}\)" | tr -d '()')
+            echo "Запуск UDID: $UDID"
+
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b
+
+            echo "Сборка приложения под симулятор..."
+            xcodebuild build \
+              -project ArmenianBible.xcodeproj \
+              -scheme ArmenianBible \
+              -destination "id=$UDID" \
+              -configuration Debug \
+              -derivedDataPath ./DerivedData \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO
+
+            local APP_PATH=$(find ./DerivedData -name "ArmenianBible.app" | head -1)
+            rm -rf "$APP_PATH/PlugIns"
+            xcrun simctl install "$UDID" "$APP_PATH"
+
+            # Настройка: скрываем экранную клавиатуру, ставим эталонный статус-бар Apple (9:41 AM, 100% батарея)
+            xcrun simctl spawn "$UDID" defaults write com.apple.Preferences ConnectHardwareKeyboard -bool true || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+            xcrun simctl privacy "$UDID" deny user-tracking com.samvel.armenianbible || true
+            xcrun simctl privacy "$UDID" grant photos com.samvel.armenianbible || true
+
+            local OUT_DIR="./Real_Screenshots_Output/$DEV_FOLDER"
+            mkdir -p "$OUT_DIR"
+
+            # Прогрев первого запуска
+            echo "Прогрев запуска..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible
+            sleep 8
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # 0. Экран блокировки / виджеты
+            echo "📸 Снятие 00 Lock Screen / Widgets..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab lockscreen
+            sleep 6
+            xcrun simctl io "$UDID" screenshot "$OUT_DIR/00_Native_LockScreen.png"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # 1. Главный экран (Home)
+            echo "📸 Снятие 01 Home..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home
+            sleep 6
+            xcrun simctl io "$UDID" screenshot "$OUT_DIR/01_Native_Home.png"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # 2. Избранное (Favorites)
+            echo "📸 Снятие 02 Favorites..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab favorites
+            sleep 5
+            xcrun simctl io "$UDID" screenshot "$OUT_DIR/02_Native_Favorites.png"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # 3. Чтение Библии (Bible Reader)
+            echo "📸 Снятие 03 Bible Reader..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bible
+            sleep 5
+            xcrun simctl io "$UDID" screenshot "$OUT_DIR/03_Native_BibleReader.png"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # 4. Церковный Календарь (Calendar)
+            echo "📸 Снятие 04 Calendar..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab calendar
+            sleep 5
+            xcrun simctl io "$UDID" screenshot "$OUT_DIR/04_Native_Calendar.png"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # 5. Викторина (Quiz)
+            echo "📸 Снятие 05 Quiz..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab quiz
+            sleep 5
+            xcrun simctl io "$UDID" screenshot "$OUT_DIR/05_Native_Quiz.png"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # Выключение симулятора
+            xcrun simctl shutdown "$UDID" || true
+            echo "✅ Скриншоты для $DEV_LABEL успешно сняты!"
+          }
+
+          if [ "$TARGET_DEVICE" = "ipad_13" ] || [ "$TARGET_DEVICE" = "all" ]; then
+            capture_device "iPad Pro 13|iPad Pro \(12.9-inch\)" "ipad_13" "iPad Pro 13\" (M4)"
+          fi
+
+          if [ "$TARGET_DEVICE" = "iphone_6_9" ] || [ "$TARGET_DEVICE" = "all" ]; then
+            capture_device "iPhone 16 Pro Max|iPhone 15 Pro Max" "iphone_6_9" "iPhone 16 Pro Max (6.9\")"
+          fi
+
+          if [ "$TARGET_DEVICE" = "iphone_6_5" ] || [ "$TARGET_DEVICE" = "all" ]; then
+            capture_device "iPhone 15 Plus|iPhone 14 Plus|iPhone 11 Pro Max" "iphone_6_5" "iPhone 6.5\""
+          fi
+
+      - name: Upload Native Screenshots Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Real-AppStore-Native-Screenshots
+          path: ./Real_Screenshots_Output/**/*.png
+          if-no-files-found: error
