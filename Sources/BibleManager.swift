@@ -756,8 +756,14 @@ class BibleManager: ObservableObject {
         AppGroupConstants.syncToAll { defaults in
             defaults.set(style.rawValue, forKey: widgetVisualStyleKey)
             defaults.set(style.rawValue, forKey: "widgetVisualStyle")
+            defaults.set(style.rawValue, forKey: "widget_visual_style")
             defaults.set(now, forKey: "widget_style_timestamp")
         }
+        UserDefaults.standard.set(style.rawValue, forKey: "widget_visual_style")
+        UserDefaults.standard.set(style.rawValue, forKey: "widgetVisualStyle")
+        UserDefaults.standard.set(now, forKey: "widget_style_timestamp")
+        UserDefaults.standard.synchronize()
+        
         syncLockScreenWidget()
         WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
         WidgetCenter.shared.reloadAllTimelines()

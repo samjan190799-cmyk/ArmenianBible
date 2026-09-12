@@ -346,14 +346,10 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     private func resolveVisualStyle(for configuration: ConfigurationAppIntent) -> WidgetVisualStyle {
-        let appStyle = getSharedVisualStyle()
-        if configuration.visualStyle == .followApp {
-            return appStyle
-        } else if let custom = configuration.visualStyle.widgetStyle {
-            return custom
-        } else {
-            return appStyle
-        }
+        // Безусловный приоритет визуального стиля, выбранного пользователем в настройках приложения.
+        // Игнорируем устаревший закэшированный параметр SpringBoard (oledStandby), гарантируя
+        // моментальное переключение стиля на рабочем столе сразу после выбора в приложении.
+        return getSharedVisualStyle()
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
@@ -1219,6 +1215,7 @@ struct BibleWidgetEntryView: View {
                 ? AnyShapeStyle(Color.clear)
                 : AnyShapeStyle(widgetBackgroundGradient)
         )
+        .id("bible_widget_\(entry.visualStyle.rawValue)_\(entry.styleTimestamp)")
     }
 }
 
