@@ -8,38 +8,42 @@ struct ContentView: View {
     }
     
     var body: some View {
-        TabView(selection: $manager.activeTabSelection) {
-            HomeView()
-                .tabItem {
-                    Label("tab_home".localized(for: manager.appLanguage), systemImage: "house.fill")
+        if UserDefaults.standard.string(forKey: "openTab") == "lockscreen" {
+            iPadLockScreenShowcaseView()
+        } else {
+            TabView(selection: $manager.activeTabSelection) {
+                HomeView()
+                    .tabItem {
+                        Label("tab_home".localized(for: manager.appLanguage), systemImage: "house.fill")
+                    }
+                    .tag(0)
+                
+                FavoritesView()
+                    .tabItem {
+                        Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart.fill")
+                    }
+                    .tag(1)
+                
+                AIGuideView()
+                    .tabItem {
+                        Label("tab_ai_guide".localized(for: manager.appLanguage), systemImage: "sparkles")
+                    }
+                    .tag(2)
+                
+                BibleReaderView()
+                    .tabItem {
+                        Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages.fill")
+                    }
+                    .tag(3)
+            }
+            .tint(accentColor)
+            .preferredColorScheme(manager.appearanceMode.colorScheme)
+            .onAppear {
+                if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
+                    if tabArg == "favorites" { manager.activeTabSelection = 1 }
+                    else if tabArg == "ai" { manager.activeTabSelection = 2 }
+                    else if tabArg == "bible" { manager.activeTabSelection = 3 }
                 }
-                .tag(0)
-            
-            FavoritesView()
-                .tabItem {
-                    Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart.fill")
-                }
-                .tag(1)
-            
-            AIGuideView()
-                .tabItem {
-                    Label("tab_ai_guide".localized(for: manager.appLanguage), systemImage: "sparkles")
-                }
-                .tag(2)
-            
-            BibleReaderView()
-                .tabItem {
-                    Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages.fill")
-                }
-                .tag(3)
-        }
-        .tint(accentColor)
-        .preferredColorScheme(manager.appearanceMode.colorScheme)
-        .onAppear {
-            if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
-                if tabArg == "favorites" { manager.activeTabSelection = 1 }
-                else if tabArg == "ai" { manager.activeTabSelection = 2 }
-                else if tabArg == "bible" { manager.activeTabSelection = 3 }
             }
         }
     }
@@ -414,6 +418,10 @@ struct HomeView: View {
                 } else if tabArg == "settings" {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         isShowingSettings = true
+                    }
+                } else if tabArg == "wallpaper" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        isShowingWallpaperMaker = true
                     }
                 }
             }

@@ -93,6 +93,14 @@ jobs:
           
           mkdir -p ./Screenshots_iPad_Native
           
+          # 0. Экран блокировки со стихами и виджетами (Lock Screen)
+          echo "Снятие 00 Lock Screen..."
+          xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab lockscreen
+          sleep 6
+          xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/00_Native_iPad_LockScreen.png
+          xcrun simctl terminate "$UDID" com.samvel.armenianbible
+          sleep 2
+          
           # 1. Главный экран со стихом дня (Home)
           echo "Снятие 01 Home..."
           xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home
