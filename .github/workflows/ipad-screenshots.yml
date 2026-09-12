@@ -76,11 +76,15 @@ jobs:
           rm -rf "$APP_PATH/PlugIns"
           xcrun simctl install "$UDID" "$APP_PATH"
           
+          # Настройка симулятора: скрываем экранную клавиатуру и ставим идеальный статус-бар Apple
+          xcrun simctl spawn "$UDID" defaults write com.apple.Preferences ConnectHardwareKeyboard -bool true || true
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+          
           mkdir -p ./Screenshots_iPad_Native
           
           # 1. Запуск приложения (Главный экран)
           xcrun simctl launch "$UDID" com.samvel.armenianbible
-          sleep 5
+          sleep 6
           xcrun simctl io "$UDID" screenshot ./Screenshots_iPad_Native/01_Native_iPad_Home.png
           
           # 2. Переход на вкладку Избранное (Tab 1)

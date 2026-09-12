@@ -115,6 +115,7 @@ final class SubscriptionManager: ObservableObject {
             sharedDefaults.synchronize()
         }
         
+        #if !targetEnvironment(simulator)
         // Запуск слушателя транзакций StoreKit 2
         updateListenerTask = listenForTransactions()
         
@@ -123,6 +124,7 @@ final class SubscriptionManager: ObservableObject {
             await requestProducts()
             await updatePurchasedStatus()
         }
+        #endif
     }
     
     deinit {
