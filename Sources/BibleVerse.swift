@@ -2,15 +2,15 @@ import Foundation
 import SwiftUI
 
 // MARK: - Централизованное управление App Group хранилищем
-public enum AppGroupConstants {
-    public static let activeSuiteName = "group.com.rileytestut.AltStore.V7J345DY58"
-    public static let legacySuiteName = "group.com.samvel.ArmenianBible"
+enum AppGroupConstants {
+    static let activeSuiteName = "group.com.rileytestut.AltStore.V7J345DY58"
+    static let legacySuiteName = "group.com.samvel.ArmenianBible"
     
-    public static var allSuites: [String] {
+    static var allSuites: [String] {
         [activeSuiteName, legacySuiteName]
     }
     
-    public static var sharedDefaults: UserDefaults {
+    static var sharedDefaults: UserDefaults {
         if let d = UserDefaults(suiteName: activeSuiteName) {
             return d
         }
@@ -21,7 +21,7 @@ public enum AppGroupConstants {
     }
     
     /// Отказоустойчивое чтение строки из всех доступных хранилищ песочницы
-    public static func sharedString(forKey key: String) -> String? {
+    static func sharedString(forKey key: String) -> String? {
         for suite in allSuites {
             if let d = UserDefaults(suiteName: suite), let val = d.string(forKey: key), !val.isEmpty {
                 return val
@@ -34,7 +34,7 @@ public enum AppGroupConstants {
     }
     
     /// Отказоустойчивое чтение выбранного стиля виджета
-    public static func sharedVisualStyle() -> WidgetVisualStyle {
+    static func sharedVisualStyle() -> WidgetVisualStyle {
         let keys = ["widget_visual_style", "widgetVisualStyle"]
         for key in keys {
             if let raw = sharedString(forKey: key), let style = WidgetVisualStyle(rawValue: raw) {
@@ -44,7 +44,7 @@ public enum AppGroupConstants {
         return .oledStandby
     }
     
-    public static func syncToAll(_ update: (UserDefaults) -> Void) {
+    static func syncToAll(_ update: (UserDefaults) -> Void) {
         for suite in allSuites {
             if let defs = UserDefaults(suiteName: suite) {
                 update(defs)
