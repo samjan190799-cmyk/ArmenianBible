@@ -315,6 +315,7 @@ struct SimpleEntry: TimelineEntry {
     let configuration: ConfigurationAppIntent
     let language: AppLanguage
     let visualStyle: WidgetVisualStyle
+    var styleTimestamp: Double = 0.0
 }
 
 @available(iOS 17.0, *)
@@ -331,32 +332,27 @@ struct Provider: AppIntentTimelineProvider {
     private let updateIntervalKey = "widgetUpdateInterval"
     
     private func getSharedVisualStyle() -> WidgetVisualStyle {
-        let defaults = AppGroupConstants.sharedDefaults
-        if let savedRaw = defaults.string(forKey: "widget_visual_style") ?? defaults.string(forKey: "widgetVisualStyle"),
-           let style = WidgetVisualStyle(rawValue: savedRaw) {
-            return style
-        }
+        AppGroupConstants.sharedVisualStyle()
+    }
+    
+    private func getSharedStyleTimestamp() -> Double {
         for suite in AppGroupConstants.allSuites {
-            if let d = UserDefaults(suiteName: suite),
-               let savedRaw = d.string(forKey: "widget_visual_style") ?? d.string(forKey: "widgetVisualStyle"),
-               let style = WidgetVisualStyle(rawValue: savedRaw) {
-                return style
+            if let d = UserDefaults(suiteName: suite) {
+                let ts = d.double(forKey: "widget_style_timestamp")
+                if ts > 0 { return ts }
             }
         }
-        if let savedRaw = UserDefaults.standard.string(forKey: "widget_visual_style") ?? UserDefaults.standard.string(forKey: "widgetVisualStyle"),
-           let style = WidgetVisualStyle(rawValue: savedRaw) {
-            return style
-        }
-        return .oledStandby
+        return UserDefaults.standard.double(forKey: "widget_style_timestamp")
     }
     
     private func resolveVisualStyle(for configuration: ConfigurationAppIntent) -> WidgetVisualStyle {
+        let appStyle = getSharedVisualStyle()
         if configuration.visualStyle == .followApp {
-            return getSharedVisualStyle()
+            return appStyle
         } else if let custom = configuration.visualStyle.widgetStyle {
             return custom
         } else {
-            return getSharedVisualStyle()
+            return appStyle
         }
     }
     
@@ -369,7 +365,8 @@ struct Provider: AppIntentTimelineProvider {
             verse: verse,
             configuration: ConfigurationAppIntent(),
             language: lang,
-            visualStyle: style
+            visualStyle: style,
+            styleTimestamp: getSharedStyleTimestamp()
         )
     }
     
@@ -377,7 +374,14 @@ struct Provider: AppIntentTimelineProvider {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let verse = getSharedVerse(for: configuration, family: context.family)
         let style = resolveVisualStyle(for: configuration)
-        return SimpleEntry(date: Date(), verse: verse, configuration: configuration, language: lang, visualStyle: style)
+        return SimpleEntry(
+            date: Date(),
+            verse: verse,
+            configuration: configuration,
+            language: lang,
+            visualStyle: style,
+            styleTimestamp: getSharedStyleTimestamp()
+        )
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
@@ -421,7 +425,8 @@ struct Provider: AppIntentTimelineProvider {
                 verse: entryVerse,
                 configuration: configuration,
                 language: lang,
-                visualStyle: style
+                visualStyle: style,
+                styleTimestamp: getSharedStyleTimestamp()
             )
             entries.append(entry)
         }

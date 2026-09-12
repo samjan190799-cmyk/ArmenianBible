@@ -143,7 +143,7 @@ for name, bid_id in [("Main App", main_bid_id), ("Widget Extension", widget_bid_
     if not bid_id:
         continue
     print(f"\n⚙️ Возможности (Capabilities) для {name} (ID: {bid_id}):")
-    caps_res = api_request("GET", f"/bundleIds/{bid_id}/bundleIdCapabilities?limit=50")
+    caps_res = api_request("GET", f"/bundleIds/{bid_id}/bundleIdCapabilities")
     has_app_groups = False
     if "data" in caps_res:
         for cap in caps_res["data"]:

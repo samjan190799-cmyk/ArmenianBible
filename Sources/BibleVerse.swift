@@ -20,6 +20,30 @@ public enum AppGroupConstants {
         return UserDefaults.standard
     }
     
+    /// Отказоустойчивое чтение строки из всех доступных хранилищ песочницы
+    public static func sharedString(forKey key: String) -> String? {
+        for suite in allSuites {
+            if let d = UserDefaults(suiteName: suite), let val = d.string(forKey: key), !val.isEmpty {
+                return val
+            }
+        }
+        if let stdVal = UserDefaults.standard.string(forKey: key), !stdVal.isEmpty {
+            return stdVal
+        }
+        return nil
+    }
+    
+    /// Отказоустойчивое чтение выбранного стиля виджета
+    public static func sharedVisualStyle() -> WidgetVisualStyle {
+        let keys = ["widget_visual_style", "widgetVisualStyle"]
+        for key in keys {
+            if let raw = sharedString(forKey: key), let style = WidgetVisualStyle(rawValue: raw) {
+                return style
+            }
+        }
+        return .oledStandby
+    }
+    
     public static func syncToAll(_ update: (UserDefaults) -> Void) {
         for suite in allSuites {
             if let defs = UserDefaults(suiteName: suite) {

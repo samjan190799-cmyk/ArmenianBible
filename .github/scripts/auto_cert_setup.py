@@ -240,7 +240,7 @@ if cer_b64:
         for bid_name, bid_val in [("Main App", main_b_id), ("Widget", widget_b_id)]:
             if not bid_val:
                 continue
-            caps_res = api_request("GET", f"/bundleIds/{bid_val}/bundleIdCapabilities?limit=50")
+            caps_res = api_request("GET", f"/bundleIds/{bid_val}/bundleIdCapabilities")
             has_app_groups = any(c.get("attributes", {}).get("capabilityType") == "APP_GROUPS" for c in caps_res.get("data", []))
             if not has_app_groups:
                 print(f"⚙️ Включение возможности APP_GROUPS для {bid_name}...")

@@ -293,21 +293,8 @@ class BibleManager: ObservableObject {
             self.accentTheme = .indigo
         }
         
-        // Загрузка визуального стиля виджетов и StandBy
-        if let defaults = sharedDefaults {
-            if let savedStyleRaw = defaults.string(forKey: widgetVisualStyleKey) ?? defaults.string(forKey: "widgetVisualStyle"),
-               let savedStyle = WidgetVisualStyle(rawValue: savedStyleRaw) {
-                self.widgetVisualStyle = savedStyle
-            } else {
-                self.widgetVisualStyle = .oledStandby
-                AppGroupConstants.syncToAll { defs in
-                    defs.set(WidgetVisualStyle.oledStandby.rawValue, forKey: widgetVisualStyleKey)
-                    defs.set(WidgetVisualStyle.oledStandby.rawValue, forKey: "widgetVisualStyle")
-                }
-            }
-        } else {
-            self.widgetVisualStyle = .oledStandby
-        }
+        // Загрузка визуального стиля виджетов и StandBy (отказоустойчивый опрос всех хранилищ)
+        self.widgetVisualStyle = AppGroupConstants.sharedVisualStyle()
         
         // Загрузка Уведомлений
         if let defaults = sharedDefaults {
@@ -765,10 +752,11 @@ class BibleManager: ObservableObject {
     func setWidgetVisualStyle(_ style: WidgetVisualStyle) {
         self.widgetVisualStyle = style
         objectWillChange.send()
+        let now = Date().timeIntervalSince1970
         AppGroupConstants.syncToAll { defaults in
             defaults.set(style.rawValue, forKey: widgetVisualStyleKey)
             defaults.set(style.rawValue, forKey: "widgetVisualStyle")
-            defaults.set(Date().timeIntervalSince1970, forKey: "widget_style_timestamp")
+            defaults.set(now, forKey: "widget_style_timestamp")
         }
         syncLockScreenWidget()
         WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
