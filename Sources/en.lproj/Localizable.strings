@@ -76,8 +76,8 @@
 "favorite_removed" = "Removed from Favorites";
 
 /* Widget & StandBy Styles */
-"widget_style_section_title" = "Widget & StandBy Style";
-"widget_style_section_desc" = "Choose visual styling for night StandBy mode and Home Screen widgets:";
+"widget_style_section_title" = "Home Screen & StandBy Styles";
+"widget_style_section_desc" = "Choose visual styling for Home Screen (2×2, 4×2, 4×4) and StandBy mode:";
 "widget_style_oled" = "Gold OLED (StandBy)";
 "widget_style_oled_desc" = "Pitch black OLED and sacred warm gold";
 "widget_style_glass" = "Glass Modern";
@@ -88,7 +88,7 @@
 "widget_style_royal_desc" = "Monastic midnight sapphire and starlight azure";
 "widget_style_monochrome" = "Studio Monochrome";
 "widget_style_monochrome_desc" = "High-contrast black & white studio";
-"standby_preview_title" = "Interactive StandBy Preview";
+"standby_preview_title" = "Interactive Widget Preview";
 
 /* Tabs */
 "tab_home" = "Home";
@@ -344,8 +344,8 @@
 
 
 /* Lock Screen & Widget Settings */
-"lockscreen_widget_section_title" = "Widgets & Lock Screen";
-"lockscreen_widget_section_desc" = "Customize language, Bible translation, and verse style for widgets and Lock Screen:";
+"lockscreen_widget_section_title" = "Home Screen & Lock Screen Widgets";
+"lockscreen_widget_section_desc" = "Customize language, Bible translation, and verse style for Home Screen and Lock Screen:";
 "armenian_translation_title" = "Armenian Bible Translation";
 "edition_ararat_title" = "Ararat (Eastern Arm.)";
 "edition_echmiadzin_title" = "Etchmiadzin";

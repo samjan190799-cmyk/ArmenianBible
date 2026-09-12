@@ -876,48 +876,48 @@ enum HomeWidgetCategory: String, CaseIterable, Identifiable, Codable {
 
 // MARK: - Переключатель размеров превью виджетов в Настройках
 enum PreviewWidgetSize: String, CaseIterable, Identifiable {
+    case small = "small"            // 2x2 (Рабочий стол / StandBy)
+    case medium = "medium"          // 4x2 (Рабочий стол)
+    case large = "large"            // 4x4 (Рабочий стол)
     case lockScreen = "lockScreen"  // Экран блокировки
-    case small = "small"            // 2x2 (StandBy / Small)
-    case medium = "medium"          // 4x2 (Medium)
-    case large = "large"            // 4x4 (Large)
     
     var id: String { rawValue }
     
     func localizedTitle(for language: AppLanguage) -> String {
         switch self {
-        case .lockScreen:
-            switch language {
-            case .armenian: return "Կողպեք"
-            case .russian: return "Блокировка"
-            case .english: return "Lock Screen"
-            }
         case .small:
             switch language {
-            case .armenian: return "Փոքր 2x2"
-            case .russian: return "Малый 2x2"
-            case .english: return "Small 2x2"
+            case .armenian: return "Գլխավոր 2×2"
+            case .russian: return "Рабочий стол 2×2"
+            case .english: return "Home Screen 2×2"
             }
         case .medium:
             switch language {
-            case .armenian: return "Միջին 4x2"
-            case .russian: return "Средний 4x2"
-            case .english: return "Medium 4x2"
+            case .armenian: return "Գլխավոր 4×2"
+            case .russian: return "Рабочий стол 4×2"
+            case .english: return "Home Screen 4×2"
             }
         case .large:
             switch language {
-            case .armenian: return "Մեծ 4x4"
-            case .russian: return "Большой 4x4"
-            case .english: return "Large 4x4"
+            case .armenian: return "Գլխավոր 4×4"
+            case .russian: return "Рабочий стол 4×4"
+            case .english: return "Home Screen 4×4"
+            }
+        case .lockScreen:
+            switch language {
+            case .armenian: return "Կողպեքի էկրան"
+            case .russian: return "Экран блокировки"
+            case .english: return "Lock Screen"
             }
         }
     }
     
     var iconName: String {
         switch self {
-        case .lockScreen: return "lock.iphone"
-        case .small: return "square"
-        case .medium: return "rectangle"
-        case .large: return "square.split.2x2"
+        case .small: return "apps.iphone"
+        case .medium: return "rectangle.fill"
+        case .large: return "square.grid.2x2.fill"
+        case .lockScreen: return "lock.fill"
         }
     }
 }

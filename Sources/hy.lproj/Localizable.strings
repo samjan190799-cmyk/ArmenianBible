@@ -76,8 +76,8 @@
 "favorite_removed" = "Հեռացվեց ընտրյալներից";
 
 /* Widget & StandBy Styles */
-"widget_style_section_title" = "Վիջեթների և StandBy ոճ";
-"widget_style_section_desc" = "Ընտրեք ձևավորումը StandBy գիշերային ռեժիմի և գլխավոր էկրանի համար.";
+"widget_style_section_title" = "Գլխավոր էկրանի և StandBy ոճեր";
+"widget_style_section_desc" = "Ընտրեք ձևավորումը գլխավոր էկրանի (Home Screen) և StandBy ռեժիմի համար:";
 "widget_style_oled" = "Ոսկե OLED (StandBy)";
 "widget_style_oled_desc" = "Խորը սև OLED և ազնիվ ոսկի";
 "widget_style_glass" = "Ապակե Մինիմալիզմ";
@@ -88,7 +88,7 @@
 "widget_style_royal_desc" = "Գիշերային շափյուղա և երկնային աստղեր";
 "widget_style_monochrome" = "Մաքուր Մոնոքրոմ";
 "widget_style_monochrome_desc" = "Բարձր կոնտրաստով սև ու սպիտակ";
-"standby_preview_title" = "Ինտերակտիվ StandBy նախադիտում";
+"standby_preview_title" = "Վիջեթների ինտերակտիվ նախադիտում";
 
 /* Tabs */
 "tab_home" = "Գլխավոր";
@@ -344,8 +344,8 @@
 
 
 /* Lock Screen & Widget Settings */
-"lockscreen_widget_section_title" = "Վիջեթներ և Կողպեքի Էկրան";
-"lockscreen_widget_section_desc" = "Կարգավորեք լեզուն, թարգմանությունը և համարների ոճը կողպեքի էկրանի համար.";
+"lockscreen_widget_section_title" = "Գլխավոր էկրանի և Կողպեքի վիջեթներ";
+"lockscreen_widget_section_desc" = "Կարգավորեք լեզուն, թարգմանությունը և համարների ոճը գլխավոր էկրանի և կողպեքի համար:";
 "armenian_translation_title" = "Աստվածաշնչի հայերեն թարգմանությունը";
 "edition_ararat_title" = "Արարատ (Արևելահայերեն)";
 "edition_echmiadzin_title" = "Էջմիածին";

@@ -2094,7 +2094,7 @@ struct SettingsView: View {
     @State private var selectedMediumCategory: HomeWidgetCategory = .all
     @State private var selectedLargeCategory: HomeWidgetCategory = .all
     @State private var selectedArmenianEdition: ArmenianBibleEdition = .ararat
-    @State private var previewWidgetSize: PreviewWidgetSize = .lockScreen
+    @State private var previewWidgetSize: PreviewWidgetSize = .small
     @State private var previewVerse: BibleVerse = BibleVerse.lockScreenPearls[0]
     
     // Переменные для уведомлений
@@ -3358,9 +3358,10 @@ struct SettingsView: View {
                         Circle()
                             .fill(Color(hex: selectedTheme.colorHex))
                             .frame(width: 6, height: 6)
-                        Text(previewWidgetSize == .lockScreen ? "Lock Screen (Accessory)" :
-                             previewWidgetSize == .small ? "StandBy & Home (2×2)" :
-                             previewWidgetSize == .medium ? "StandBy & Home (4×2)" : "Home Screen (4×4)")
+                        Text(previewWidgetSize == .small ? (selectedLanguage == .armenian ? "Գլխավոր էկրան (Փոքր 2×2)" : selectedLanguage == .russian ? "Рабочий стол (Малый 2×2)" : "Home Screen (Small 2×2)") :
+                             previewWidgetSize == .medium ? (selectedLanguage == .armenian ? "Գլխավոր էկրան (Միջին 4×2)" : selectedLanguage == .russian ? "Рабочий стол (Средний 4×2)" : "Home Screen (Medium 4×2)") :
+                             previewWidgetSize == .large ? (selectedLanguage == .armenian ? "Գլխավոր էկրան (Մեծ 4×4)" : selectedLanguage == .russian ? "Рабочий стол (Большой 4×4)" : "Home Screen (Large 4×4)") :
+                             (selectedLanguage == .armenian ? "Կողպեքի էկրան (Մոնոխրոմ)" : selectedLanguage == .russian ? "Экран блокировки (Монохром)" : "Lock Screen (Monochrome)"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.secondary)
                     }
@@ -3609,7 +3610,45 @@ struct SettingsView: View {
                 // Выбор категории цитат под выбранный размер виджета
                 VStack(alignment: .leading, spacing: 6) {
                     switch previewWidgetSize {
-                    case .lockScreen, .small:
+                    case .small:
+                        Text(selectedLanguage == .armenian ? "Գլխավոր էկրանի համարների ոճը" : selectedLanguage == .russian ? "Стиль стихов для Рабочего стола" : "Home Screen Verse Category")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(LockScreenCategory.allCases) { cat in
+                                    let isLocked = cat.isPremiumRequired && !subscriptionManager.isPremium
+                                    LockCategoryChipView(
+                                        cat: cat,
+                                        isSelected: selectedLockCategory == cat,
+                                        isLocked: isLocked,
+                                        selectedLanguage: selectedLanguage,
+                                        themeColorHex: selectedTheme.colorHex,
+                                        inputFieldBgColor: inputFieldBgColor,
+                                        inputFieldBorderColor: inputFieldBorderColor,
+                                        primaryTextColor: primaryTextColor
+                                    ) {
+                                        if isLocked {
+                                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                                            generator.prepare()
+                                            generator.impactOccurred()
+                                            isShowingPaywall = true
+                                        } else {
+                                            let generator = UIImpactFeedbackGenerator(style: .light)
+                                            generator.prepare()
+                                            generator.impactOccurred()
+                                            selectedLockCategory = cat
+                                            manager.setLockScreenCategory(cat)
+                                            pickVerseForCurrentSize(previewWidgetSize)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        
+                    case .lockScreen:
                         Text("lockscreen_category_title".localized(for: selectedLanguage))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.secondary)

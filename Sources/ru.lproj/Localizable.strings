@@ -76,8 +76,8 @@
 "favorite_removed" = "Удалено из Избранного";
 
 /* Widget & StandBy Styles */
-"widget_style_section_title" = "Стиль виджетов и StandBy";
-"widget_style_section_desc" = "Выберите визуальное оформление для ночного режима StandBy и домашнего экрана:";
+"widget_style_section_title" = "Стили Рабочего стола и StandBy";
+"widget_style_section_desc" = "Выберите визуальное оформление для виджетов Рабочего стола (2×2, 4×2, 4×4) и StandBy:";
 "widget_style_oled" = "Золотой OLED (StandBy)";
 "widget_style_oled_desc" = "Глубокий черный OLED и благородное золото";
 "widget_style_glass" = "Стеклянный Минимализм";
@@ -88,7 +88,7 @@
 "widget_style_royal_desc" = "Ночной сапфир и небесные звезды";
 "widget_style_monochrome" = "Чистый Монохром";
 "widget_style_monochrome_desc" = "Контрастная ч/б типографика";
-"standby_preview_title" = "Интерактивный StandBy превью";
+"standby_preview_title" = "Интерактивный предпросмотр виджетов";
 
 /* Tabs */
 "tab_home" = "Главная";
@@ -344,8 +344,8 @@
 
 
 /* Lock Screen & Widget Settings */
-"lockscreen_widget_section_title" = "Виджеты и Экран блокировки";
-"lockscreen_widget_section_desc" = "Настройте язык, перевод и стиль стихов для экрана блокировки и виджетов:";
+"lockscreen_widget_section_title" = "Виджеты Рабочего стола и Блокировки";
+"lockscreen_widget_section_desc" = "Настройте язык, перевод и стиль стихов для Рабочего стола и экрана блокировки:";
 "armenian_translation_title" = "Армянский перевод Библии";
 "edition_ararat_title" = "Арарат (Восточноарм.)";
 "edition_echmiadzin_title" = "Эчмиадзин";
