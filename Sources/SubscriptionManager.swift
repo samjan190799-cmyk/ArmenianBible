@@ -445,5 +445,7 @@ final class SubscriptionManager: ObservableObject {
                 defs.set(false, forKey: "is_premium_active")
             }
         }
+        WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }

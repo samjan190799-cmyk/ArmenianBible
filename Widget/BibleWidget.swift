@@ -148,7 +148,7 @@ struct NextVerseIntent: AppIntent {
     
     func perform() async throws -> some IntentResult {
         let defaults = AppGroupConstants.sharedDefaults
-        let isPremium = defaults.bool(forKey: "is_premium_active")
+        let isPremium = AppGroupConstants.sharedBool(forKey: "is_premium_active")
         let savedLockCatRaw = defaults.string(forKey: "lock_screen_category") ?? "pearls"
         let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
         let cat = (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls
@@ -346,10 +346,14 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     private func resolveVisualStyle(for configuration: ConfigurationAppIntent) -> WidgetVisualStyle {
-        // Безусловный приоритет визуального стиля, выбранного пользователем в настройках приложения.
-        // Игнорируем устаревший закэшированный параметр SpringBoard (oledStandby), гарантируя
-        // моментальное переключение стиля на рабочем столе сразу после выбора в приложении.
-        return getSharedVisualStyle()
+        let appStyle = getSharedVisualStyle()
+        if configuration.visualStyle == .followApp {
+            return appStyle
+        } else if let custom = configuration.visualStyle.widgetStyle {
+            return custom
+        } else {
+            return appStyle
+        }
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
@@ -433,7 +437,7 @@ struct Provider: AppIntentTimelineProvider {
     
     private func getFilteredDatabase(for category: TextCategory, configuration: ConfigurationAppIntent? = nil, family: WidgetFamily? = nil, lang: AppLanguage) -> [BibleVerse] {
         let defaults = AppGroupConstants.sharedDefaults
-        let isPremium = defaults.bool(forKey: "is_premium_active")
+        let isPremium = AppGroupConstants.sharedBool(forKey: "is_premium_active")
         let savedLockCatRaw = defaults.string(forKey: "lock_screen_category") ?? "pearls"
         let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
         let activeLockVerses = BibleVerse.lockScreenVerses(for: (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls)

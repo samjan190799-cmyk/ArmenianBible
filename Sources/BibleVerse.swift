@@ -33,6 +33,16 @@ enum AppGroupConstants {
         return nil
     }
     
+    /// Отказоустойчивое чтение булевого флага из всех доступных хранилищ песочницы
+    static func sharedBool(forKey key: String) -> Bool {
+        for suite in allSuites {
+            if let d = UserDefaults(suiteName: suite), d.bool(forKey: key) {
+                return true
+            }
+        }
+        return UserDefaults.standard.bool(forKey: key)
+    }
+    
     /// Отказоустойчивое чтение выбранного стиля виджета
     static func sharedVisualStyle() -> WidgetVisualStyle {
         let keys = ["widget_visual_style", "widgetVisualStyle"]

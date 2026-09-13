@@ -534,7 +534,7 @@ class BibleManager: ObservableObject {
     
     // MARK: - Мгновенная синхронизация и случайные стихи для всех размеров виджетов
     func syncLockScreenWidget() {
-        let isPremium = AppGroupConstants.sharedDefaults.bool(forKey: "is_premium_active")
+        let isPremium = AppGroupConstants.sharedBool(forKey: "is_premium_active")
         let activeCategory = (isPremium || !lockScreenCategory.isPremiumRequired) ? lockScreenCategory : .pearls
         let rawList = BibleVerse.lockScreenVerses(for: activeCategory).filter { $0.textHy.count <= 46 }
         let list = !rawList.isEmpty ? rawList : BibleVerse.shortPearls
