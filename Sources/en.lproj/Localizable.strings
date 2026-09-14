@@ -88,6 +88,17 @@
 "widget_style_royal_desc" = "Monastic midnight sapphire and starlight azure";
 "widget_style_monochrome" = "Studio Monochrome";
 "widget_style_monochrome_desc" = "High-contrast black & white studio";
+"widget_style_emerald" = "Celestial Emerald";
+"widget_style_emerald_desc" = "Liturgical malachite and mint gold";
+"widget_style_crimson" = "Sacred Pomegranate";
+"widget_style_crimson_desc" = "Royal crimson ruby and champagne gold";
+"widget_style_sunset" = "Ararat Sunset";
+"widget_style_sunset_desc" = "Apricot amber, warm rose and dusk indigo";
+"widget_style_stone" = "Ancient Basalt";
+"widget_style_stone_desc" = "Khachkar stone and embossed silver";
+"check_models" = "Check Updates";
+"checking_models" = "Checking...";
+"auto_upgrade_active" = "Auto-Upgrade Active";
 "standby_preview_title" = "Interactive Widget Preview";
 
 /* Tabs */

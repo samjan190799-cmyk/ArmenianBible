@@ -88,6 +88,17 @@
 "widget_style_royal_desc" = "Գիշերային շափյուղա և երկնային աստղեր";
 "widget_style_monochrome" = "Մաքուր Մոնոքրոմ";
 "widget_style_monochrome_desc" = "Բարձր կոնտրաստով սև ու սպիտակ";
+"widget_style_emerald" = "Երկնային Զմրուխտ";
+"widget_style_emerald_desc" = "Լիտուրգիական մալաքիտ և անանուխի ոսկի";
+"widget_style_crimson" = "Արքայական Նռնագույն";
+"widget_style_crimson_desc" = "Կիլիկյան ծիրանագույն և շամպայն ոսկի";
+"widget_style_sunset" = "Արարատյան Մայրամուտ";
+"widget_style_sunset_desc" = "Ծիրանագույն ոսկի, տաք վարդ և ինդիգո";
+"widget_style_stone" = "Վանական Բազալտ";
+"widget_style_stone_desc" = "Խաչքարի հին քար և դրվագված արծաթ";
+"check_models" = "Ստուգել թարմացումները";
+"checking_models" = "Ստուգում...";
+"auto_upgrade_active" = "Ավտոթարմացումն ակտիվ է";
 "standby_preview_title" = "Վիջեթների ինտերակտիվ նախադիտում";
 
 /* Tabs */

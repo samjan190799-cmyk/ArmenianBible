@@ -88,6 +88,17 @@
 "widget_style_royal_desc" = "Ночной сапфир и небесные звезды";
 "widget_style_monochrome" = "Чистый Монохром";
 "widget_style_monochrome_desc" = "Контрастная ч/б типографика";
+"widget_style_emerald" = "Небесный Изумруд";
+"widget_style_emerald_desc" = "Литургический малахит и мятное золото";
+"widget_style_crimson" = "Гранатовый Пурпур";
+"widget_style_crimson_desc" = "Царский багрянец и шампанское золото";
+"widget_style_sunset" = "Закат над Араратом";
+"widget_style_sunset_desc" = "Абрикосовое золото, теплая роза и индиго";
+"widget_style_stone" = "Древний Базальт";
+"widget_style_stone_desc" = "Камень хачкаров и чеканное серебро";
+"check_models" = "Проверить обновления";
+"checking_models" = "Проверка...";
+"auto_upgrade_active" = "Автообновление активно";
 "standby_preview_title" = "Интерактивный предпросмотр виджетов";
 
 /* Tabs */

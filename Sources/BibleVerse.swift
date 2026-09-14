@@ -450,6 +450,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
     case sacredParchment = "sacredParchment"
     case royalMonastery = "royalMonastery"
     case monochrome = "monochrome"
+    case celestialEmerald = "celestialEmerald"
+    case crimsonGospel = "crimsonGospel"
+    case auroraSunset = "auroraSunset"
+    case monasticStone = "monasticStone"
     
     var id: String { self.rawValue }
     
@@ -460,6 +464,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .sacredParchment: return "widget_style_parchment".localized(for: language)
         case .royalMonastery: return "widget_style_royal".localized(for: language)
         case .monochrome: return "widget_style_monochrome".localized(for: language)
+        case .celestialEmerald: return "widget_style_emerald".localized(for: language)
+        case .crimsonGospel: return "widget_style_crimson".localized(for: language)
+        case .auroraSunset: return "widget_style_sunset".localized(for: language)
+        case .monasticStone: return "widget_style_stone".localized(for: language)
         }
     }
     
@@ -470,6 +478,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .sacredParchment: return "widget_style_parchment_desc".localized(for: language)
         case .royalMonastery: return "widget_style_royal_desc".localized(for: language)
         case .monochrome: return "widget_style_monochrome_desc".localized(for: language)
+        case .celestialEmerald: return "widget_style_emerald_desc".localized(for: language)
+        case .crimsonGospel: return "widget_style_crimson_desc".localized(for: language)
+        case .auroraSunset: return "widget_style_sunset_desc".localized(for: language)
+        case .monasticStone: return "widget_style_stone_desc".localized(for: language)
         }
     }
     
@@ -480,6 +492,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .sacredParchment: return "scroll.fill"
         case .royalMonastery: return "crown.fill"
         case .monochrome: return "circle.lefthalf.filled"
+        case .celestialEmerald: return "leaf.fill"
+        case .crimsonGospel: return "drop.fill"
+        case .auroraSunset: return "sun.horizon.fill"
+        case .monasticStone: return "mountain.2.fill"
         }
     }
     
@@ -490,6 +506,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .sacredParchment: return .serif
         case .royalMonastery: return .serif
         case .monochrome: return .default
+        case .celestialEmerald: return .serif
+        case .crimsonGospel: return .serif
+        case .auroraSunset: return .rounded
+        case .monasticStone: return .serif
         }
     }
     
@@ -563,6 +583,70 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
                     endPoint: .bottomTrailing
                 )
             }
+        case .celestialEmerald:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [Color(red: 0.04, green: 0.16, blue: 0.11), Color(red: 0.07, green: 0.25, blue: 0.18)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [Color(red: 0.92, green: 0.97, blue: 0.93), Color(red: 0.81, green: 0.92, blue: 0.84)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        case .crimsonGospel:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [Color(red: 0.18, green: 0.05, blue: 0.09), Color(red: 0.28, green: 0.08, blue: 0.14)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [Color(red: 0.99, green: 0.92, blue: 0.94), Color(red: 0.96, green: 0.82, blue: 0.86)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        case .auroraSunset:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [
+                        Color(red: 0.14, green: 0.08, blue: 0.22),
+                        Color(red: 0.26, green: 0.12, blue: 0.22),
+                        Color(red: 0.38, green: 0.15, blue: 0.20)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.93, blue: 0.88),
+                        Color(red: 1.0, green: 0.84, blue: 0.82),
+                        Color(red: 0.95, green: 0.76, blue: 0.82)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        case .monasticStone:
+            if colorScheme == .dark {
+                return LinearGradient(
+                    colors: [Color(red: 0.09, green: 0.10, blue: 0.12), Color(red: 0.14, green: 0.15, blue: 0.18)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                return LinearGradient(
+                    colors: [Color(red: 0.93, green: 0.94, blue: 0.95), Color(red: 0.85, green: 0.86, blue: 0.88)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         }
     }
     
@@ -579,6 +663,14 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return Color(red: 0.98, green: 0.99, blue: 1.0)
         case .monochrome:
             return colorScheme == .dark ? Color.white : Color.black
+        case .celestialEmerald:
+            return colorScheme == .dark ? Color(red: 0.96, green: 0.99, blue: 0.97) : Color(red: 0.06, green: 0.22, blue: 0.15)
+        case .crimsonGospel:
+            return colorScheme == .dark ? Color(red: 0.99, green: 0.95, blue: 0.96) : Color(red: 0.30, green: 0.06, blue: 0.12)
+        case .auroraSunset:
+            return colorScheme == .dark ? Color(red: 1.0, green: 0.97, blue: 0.94) : Color(red: 0.22, green: 0.08, blue: 0.20)
+        case .monasticStone:
+            return colorScheme == .dark ? Color(red: 0.95, green: 0.96, blue: 0.98) : Color(red: 0.12, green: 0.13, blue: 0.15)
         }
     }
     
@@ -627,6 +719,14 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return Color(red: 0.72, green: 0.86, blue: 1.0)
         case .monochrome:
             return colorScheme == .dark ? Color(red: 0.75, green: 0.75, blue: 0.78) : Color(red: 0.35, green: 0.35, blue: 0.38)
+        case .celestialEmerald:
+            return colorScheme == .dark ? Color(red: 0.40, green: 0.88, blue: 0.65) : Color(red: 0.10, green: 0.45, blue: 0.30)
+        case .crimsonGospel:
+            return colorScheme == .dark ? Color(red: 0.98, green: 0.75, blue: 0.55) : Color(red: 0.65, green: 0.15, blue: 0.25)
+        case .auroraSunset:
+            return colorScheme == .dark ? Color(red: 1.0, green: 0.70, blue: 0.40) : Color(red: 0.78, green: 0.28, blue: 0.22)
+        case .monasticStone:
+            return colorScheme == .dark ? Color(red: 0.85, green: 0.70, blue: 0.45) : Color(red: 0.45, green: 0.35, blue: 0.20)
         }
     }
     
@@ -649,6 +749,14 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return Color(red: 0.60, green: 0.84, blue: 1.0).opacity(0.85)
         case .monochrome:
             return colorScheme == .dark ? Color.white.opacity(0.40) : Color.black.opacity(0.35)
+        case .celestialEmerald:
+            return colorScheme == .dark ? Color(red: 0.45, green: 0.90, blue: 0.70).opacity(0.85) : Color(red: 0.12, green: 0.50, blue: 0.35).opacity(0.70)
+        case .crimsonGospel:
+            return colorScheme == .dark ? Color(red: 0.98, green: 0.70, blue: 0.50).opacity(0.85) : Color(red: 0.70, green: 0.18, blue: 0.28).opacity(0.70)
+        case .auroraSunset:
+            return colorScheme == .dark ? Color(red: 1.0, green: 0.55, blue: 0.45).opacity(0.85) : Color(red: 0.82, green: 0.30, blue: 0.25).opacity(0.70)
+        case .monasticStone:
+            return colorScheme == .dark ? Color(red: 0.80, green: 0.65, blue: 0.40).opacity(0.85) : Color(red: 0.48, green: 0.38, blue: 0.22).opacity(0.70)
         }
     }
     
@@ -696,6 +804,42 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+        case .celestialEmerald:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.30, green: 0.85, blue: 0.55).opacity(0.45),
+                    Color(red: 0.10, green: 0.40, blue: 0.25).opacity(0.15)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .crimsonGospel:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.90, green: 0.40, blue: 0.50).opacity(0.45),
+                    Color(red: 0.45, green: 0.10, blue: 0.20).opacity(0.15)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .auroraSunset:
+            return LinearGradient(
+                colors: [
+                    Color(red: 1.0, green: 0.60, blue: 0.40).opacity(0.50),
+                    Color(red: 0.80, green: 0.25, blue: 0.45).opacity(0.20)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .monasticStone:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.70, green: 0.72, blue: 0.78).opacity(0.40),
+                    Color(red: 0.40, green: 0.42, blue: 0.48).opacity(0.15)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
     
@@ -711,6 +855,14 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return Color.white.opacity(0.18)
         case .monochrome:
             return colorScheme == .dark ? Color.white.opacity(0.15) : Color.black.opacity(0.08)
+        case .celestialEmerald:
+            return Color(red: 0.30, green: 0.85, blue: 0.55).opacity(colorScheme == .dark ? 0.20 : 0.12)
+        case .crimsonGospel:
+            return Color(red: 0.90, green: 0.40, blue: 0.50).opacity(colorScheme == .dark ? 0.20 : 0.12)
+        case .auroraSunset:
+            return Color(red: 1.0, green: 0.60, blue: 0.40).opacity(colorScheme == .dark ? 0.22 : 0.12)
+        case .monasticStone:
+            return Color(red: 0.80, green: 0.65, blue: 0.40).opacity(colorScheme == .dark ? 0.18 : 0.10)
         }
     }
 }

@@ -85,6 +85,10 @@ enum WidgetStyleAppEnum: String, AppEnum {
     case sacredParchment = "sacredParchment"
     case royalMonastery = "royalMonastery"
     case monochrome = "monochrome"
+    case celestialEmerald = "celestialEmerald"
+    case crimsonGospel = "crimsonGospel"
+    case auroraSunset = "auroraSunset"
+    case monasticStone = "monasticStone"
     
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         "Widget & StandBy Style"
@@ -97,7 +101,11 @@ enum WidgetStyleAppEnum: String, AppEnum {
             .modernMinimal: DisplayRepresentation(title: "💎 Glass Modern", subtitle: "Frosted glass and contemporary rounded typography"),
             .sacredParchment: DisplayRepresentation(title: "📜 Sacred Parchment", subtitle: "Ancient manuscript sepia and illuminated bronze"),
             .royalMonastery: DisplayRepresentation(title: "🌌 Royal Midnight", subtitle: "Monastic midnight sapphire and starlight azure"),
-            .monochrome: DisplayRepresentation(title: "⚪ Studio Monochrome", subtitle: "High-contrast black and white minimalism")
+            .monochrome: DisplayRepresentation(title: "⚪ Studio Monochrome", subtitle: "High-contrast black and white minimalism"),
+            .celestialEmerald: DisplayRepresentation(title: "🌿 Celestial Emerald", subtitle: "Liturgical malachite and glowing mint gold"),
+            .crimsonGospel: DisplayRepresentation(title: "🍷 Sacred Pomegranate", subtitle: "Cilician royal crimson ruby and champagne gold"),
+            .auroraSunset: DisplayRepresentation(title: "🌅 Ararat Sunset", subtitle: "Warm apricot amber, rose and mountain twilight"),
+            .monasticStone: DisplayRepresentation(title: "⛰️ Monastic Stone", subtitle: "Khachkar volcanic basalt and chiseled silver")
         ]
     }
     
@@ -109,6 +117,10 @@ enum WidgetStyleAppEnum: String, AppEnum {
         case .sacredParchment: return .sacredParchment
         case .royalMonastery: return .royalMonastery
         case .monochrome: return .monochrome
+        case .celestialEmerald: return .celestialEmerald
+        case .crimsonGospel: return .crimsonGospel
+        case .auroraSunset: return .auroraSunset
+        case .monasticStone: return .monasticStone
         }
     }
 }

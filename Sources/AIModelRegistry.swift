@@ -13,9 +13,11 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Иерархии моделей в порядке убывания новизны (Актуальность: 2026 год)
     
     static let geminiHierarchy: [String] = [
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
-        "gemini-1.5-pro"
+        "gemini-2.0-flash-lite"
     ]
     
     static let openAIHierarchy: [String] = [
@@ -46,7 +48,14 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Активные модели (сохраняются в UserDefaults)
     
     var activeGeminiModel: String {
-        get { UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.0-flash" }
+        get {
+            let stored = UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.5-flash"
+            // Защита от устаревших удаленных pro моделей, но разрешаем любые валидные модели Gemini
+            if stored.contains("pro") || !stored.hasPrefix("gemini-") {
+                return "gemini-2.5-flash"
+            }
+            return stored
+        }
         set { UserDefaults.standard.set(newValue, forKey: "active_gemini_model") }
     }
     
@@ -98,13 +107,20 @@ final class AIModelRegistry: @unchecked Sendable {
         let current = activeModel(for: provider)
         switch provider {
         case .gemini:
-            if current.contains("2.0") { return "Gemini 2.0 Flash" }
-            if current.contains("pro") { return "Gemini 1.5 Pro" }
-            return "Gemini 1.5 Flash"
+            let parts = current.split(separator: "-")
+            if parts.count >= 2 {
+                let ver = parts[1]
+                let suffix = current.contains("flash") ? " Flash" : (current.contains("pro") ? " Pro" : "")
+                return "Gemini \(ver)\(suffix)"
+            }
+            return "Gemini Flash"
             
         case .chatgpt:
-            if current.contains("mini") { return "GPT-4o mini" }
-            if current.contains("4o") { return "GPT-4o" }
+            if current.hasPrefix("gpt-") {
+                return current.replacingOccurrences(of: "gpt-", with: "GPT-")
+            } else if current.hasPrefix("o") {
+                return current.uppercased()
+            }
             return "ChatGPT"
             
         case .claude:
@@ -128,13 +144,14 @@ final class AIModelRegistry: @unchecked Sendable {
     ) async throws -> (text: String, usedModel: String) {
         let modelsToTry = candidateModels(for: provider)
         var lastError: Error?
+        var attemptErrors: [String] = []
         
         for modelName in modelsToTry {
             do {
                 let text: String
                 switch provider {
                 case .gemini:
-                    text = try await requestGemini(model: modelName, apiKey: apiKey, prompt: prompt, jsonMode: jsonMode, maxTokens: maxTokens)
+                    text = try await requestGemini(model: modelName, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
                 case .chatgpt:
                     text = try await requestChatGPT(model: modelName, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
                 case .claude:
@@ -150,17 +167,19 @@ final class AIModelRegistry: @unchecked Sendable {
                 return (text, modelName)
             } catch {
                 lastError = error
+                attemptErrors.append("\(modelName): \(error.localizedDescription)")
                 print("[AI Fallback] ⚠️ Модель \(modelName) вернула ошибку: \(error.localizedDescription). Пробуем резервную...")
                 continue
             }
         }
         
-        throw lastError ?? NSError(domain: "AIModelRegistry", code: 500, userInfo: [NSLocalizedDescriptionKey: "Все резервные модели недоступны."])
+        let detailedMsg = attemptErrors.isEmpty ? "Все резервные модели недоступны." : attemptErrors.joined(separator: "\n")
+        throw lastError ?? NSError(domain: "AIModelRegistry", code: 500, userInfo: [NSLocalizedDescriptionKey: detailedMsg])
     }
     
     // MARK: - Сетевые методы по провайдерам
     
-    private func requestGemini(model: String, apiKey: String, prompt: String, jsonMode: Bool, maxTokens: Int = 2048) async throws -> String {
+    private func requestGemini(model: String, apiKey: String, prompt: String, systemPrompt: String? = nil, jsonMode: Bool, maxTokens: Int = 2048) async throws -> String {
         guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)") else {
             throw NSError(domain: "AIModelRegistry", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid Gemini URL"])
         }
@@ -173,17 +192,24 @@ final class AIModelRegistry: @unchecked Sendable {
             genConfig["responseMimeType"] = "application/json"
         }
         
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "contents": [
                 ["parts": [["text": prompt]]]
             ],
             "generationConfig": genConfig
         ]
         
+        if let sys = systemPrompt, !sys.isEmpty {
+            body["system_instruction"] = [
+                "parts": [["text": sys]]
+            ]
+        }
+        
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         req.httpBody = jsonData
         req.timeoutInterval = 25.0
         
@@ -314,15 +340,20 @@ final class AIModelRegistry: @unchecked Sendable {
     @discardableResult
     func performModelDiscovery() async -> [String: String] {
         let defaults = UserDefaults.standard
-        let geminiKey = (defaults.string(forKey: "gemini_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let openAIKey = (defaults.string(forKey: "openai_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let claudeKey = (defaults.string(forKey: "anthropic_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let geminiKey = (defaults.string(forKey: "gemini_api_key_secure") ?? defaults.string(forKey: "gemini_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let openAIKey = (defaults.string(forKey: "openai_api_key_secure") ?? defaults.string(forKey: "openai_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let claudeKey = (defaults.string(forKey: "anthropic_api_key_secure") ?? defaults.string(forKey: "anthropic_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         
         var upgraded: [String: String] = [:]
         
-        // 1. Проверяем Gemini модели сверху вниз
+        // 1. Проверяем Gemini модели (сначала опрос удаленного API ListModels, затем иерархия)
         if !geminiKey.isEmpty {
-            for modelName in Self.geminiHierarchy {
+            let remoteModels = await fetchRemoteGeminiModels(apiKey: geminiKey)
+            var candidates = remoteModels
+            for h in Self.geminiHierarchy where !candidates.contains(h) {
+                candidates.append(h)
+            }
+            for modelName in candidates {
                 if await testGeminiModel(name: modelName, apiKey: geminiKey) {
                     if self.activeGeminiModel != modelName {
                         self.activeGeminiModel = modelName
@@ -334,9 +365,14 @@ final class AIModelRegistry: @unchecked Sendable {
             }
         }
         
-        // 2. Проверяем OpenAI модели сверху вниз
+        // 2. Проверяем OpenAI модели (сначала удаленный API ListModels, затем иерархия)
         if !openAIKey.isEmpty {
-            for modelName in Self.openAIHierarchy {
+            let remoteModels = await fetchRemoteOpenAIModels(apiKey: openAIKey)
+            var candidates = remoteModels
+            for h in Self.openAIHierarchy where !candidates.contains(h) {
+                candidates.append(h)
+            }
+            for modelName in candidates {
                 if await testOpenAIModel(name: modelName, apiKey: openAIKey) {
                     if self.activeOpenAIModel != modelName {
                         self.activeOpenAIModel = modelName
@@ -365,6 +401,102 @@ final class AIModelRegistry: @unchecked Sendable {
         return upgraded
     }
     
+    // MARK: - Удаленное динамическое обнаружение (ListModels)
+    
+    private func fetchRemoteGeminiModels(apiKey: String) async -> [String] {
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models?key=\(apiKey)") else { return [] }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
+        req.timeoutInterval = 8.0
+        
+        guard let (data, response) = try? await Self.fastSession.data(for: req),
+              let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let list = json["models"] as? [[String: Any]] else {
+            return []
+        }
+        
+        var found: [String] = []
+        for item in list {
+            guard let rawName = item["name"] as? String else { continue }
+            let name = rawName.replacingOccurrences(of: "models/", with: "")
+            let methods = item["supportedGenerationMethods"] as? [String] ?? []
+            if methods.contains("generateContent") && name.contains("gemini") {
+                let excluded = ["embedding", "aqa", "imagen", "bison", "gecko"]
+                if !excluded.contains(where: { name.contains($0) }) {
+                    found.append(name)
+                }
+            }
+        }
+        
+        return sortGeminiModels(found)
+    }
+    
+    private func fetchRemoteOpenAIModels(apiKey: String) async -> [String] {
+        guard let url = URL(string: "https://api.openai.com/v1/models") else { return [] }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        req.timeoutInterval = 8.0
+        
+        guard let (data, response) = try? await Self.fastSession.data(for: req),
+              let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let list = json["data"] as? [[String: Any]] else {
+            return []
+        }
+        
+        var found: [String] = []
+        for item in list {
+            guard let mid = item["id"] as? String else { continue }
+            if mid.hasPrefix("gpt-") || mid.hasPrefix("o1") || mid.hasPrefix("o3") || mid.hasPrefix("o4") {
+                let excluded = ["audio", "realtime", "transcribe", "tts", "search", "vision-preview"]
+                if !excluded.contains(where: { mid.contains($0) }) {
+                    found.append(mid)
+                }
+            }
+        }
+        return sortOpenAIModels(found)
+    }
+    
+    private func sortGeminiModels(_ models: [String]) -> [String] {
+        return models.sorted { m1, m2 in
+            let v1 = parseVersion(m1)
+            let v2 = parseVersion(m2)
+            if v1.0 != v2.0 { return v1.0 > v2.0 }
+            if v1.1 != v2.1 { return v1.1 > v2.1 }
+            let s1 = m1.contains("flash") && !m1.contains("lite") ? 3 : (m1.contains("pro") ? 2 : 1)
+            let s2 = m2.contains("flash") && !m2.contains("lite") ? 3 : (m2.contains("pro") ? 2 : 1)
+            return s1 > s2
+        }
+    }
+    
+    private func sortOpenAIModels(_ models: [String]) -> [String] {
+        return models.sorted { m1, m2 in
+            let v1 = parseVersion(m1)
+            let v2 = parseVersion(m2)
+            if v1.0 != v2.0 { return v1.0 > v2.0 }
+            if v1.1 != v2.1 { return v1.1 > v2.1 }
+            let s1 = m1.contains("mini") ? 1 : 2
+            let s2 = m2.contains("mini") ? 1 : 2
+            return s1 > s2
+        }
+    }
+    
+    private func parseVersion(_ name: String) -> (Int, Int) {
+        let parts = name.split(separator: "-")
+        for part in parts {
+            let sub = part.split(separator: ".")
+            if let first = sub.first, let major = Int(first) {
+                let minor = sub.count > 1 ? (Int(sub[1]) ?? 0) : 0
+                return (major, minor)
+            }
+        }
+        return (0, 0)
+    }
+    
     // MARK: - Пинг-тесты моделей
     
     func testGeminiModel(name: String, apiKey: String) async -> Bool {
@@ -372,6 +504,7 @@ final class AIModelRegistry: @unchecked Sendable {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         req.timeoutInterval = 8.0
         let body: [String: Any] = [
             "contents": [["parts": [["text": "ping"]]]]
@@ -435,7 +568,7 @@ final class AIModelRegistry: @unchecked Sendable {
     }
     
     func resetToDefaults() {
-        activeGeminiModel = "gemini-2.0-flash"
+        activeGeminiModel = "gemini-2.5-flash"
         activeOpenAIModel = "gpt-4o-mini"
         activeClaudeModel = "claude-3-5-haiku-20241022"
     }

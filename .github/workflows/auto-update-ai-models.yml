@@ -1,0 +1,67 @@
+name: Auto-Discover & Update AI Models
+
+on:
+  schedule:
+    # Запуск каждый понедельник в 03:00 UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      gemini_key_override:
+        description: 'Gemini API Key (опционально)'
+        required: false
+        type: string
+      openai_key_override:
+        description: 'OpenAI API Key (опционально)'
+        required: false
+        type: string
+      claude_key_override:
+        description: 'Claude API Key (опционально)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  auto-update-models:
+    name: Сканирование и обновление моделей ИИ
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+        continue-on-error: true
+
+      - name: Run Auto-Discovery Scanner
+        env:
+          GEMINI_API_KEY: ${{ inputs.gemini_key_override || secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ inputs.openai_key_override || secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ inputs.claude_key_override || secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python scripts/auto_discover_ai_models.py --apply
+
+      - name: Run Deep Audit
+        run: |
+          python scripts/deep_audit.py
+
+      - name: Check for Changes & Commit
+        run: |
+          if ! git diff --quiet; then
+            echo "🚀 Обнаружены новые модели или изменения в конфигурации!"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add Sources/AIModelRegistry.swift update_ai_models.py scripts/update_ai_models.py
+            git commit -m "🤖 [Auto-AI] Обновление моделей ИИ до актуальных версий (2026)"
+            git push origin main
+          else
+            echo "✅ Все модели ИИ актуальны. Изменений не требуется."
+          fi

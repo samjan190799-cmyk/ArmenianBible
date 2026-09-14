@@ -2082,6 +2082,7 @@ struct SettingsView: View {
     @State private var geminiKeyInput = ""
     @State private var openaiKeyInput = ""
     @State private var anthropicKeyInput = ""
+    @State private var isCheckingModels = false
     
     @State private var selectedInterval: UpdateInterval = .everyHour
     @State private var selectedCategory: TextCategory = .both
@@ -2753,7 +2754,7 @@ struct SettingsView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 245)
+            .frame(height: 255)
             .onChange(of: selectedProvider) { newProvider in
                 manager.setActiveProvider(newProvider)
                 UISelectionFeedbackGenerator().selectionChanged()
@@ -2854,7 +2855,7 @@ struct SettingsView: View {
                 accentColor: pColor
             )
             
-            // Статус сохранения ключа
+            // Статус сохранения ключа и кнопка автопроверки моделей
             HStack(spacing: 6) {
                 if isKeySaved(for: provider) {
                     Image(systemName: "checkmark.circle.fill")
@@ -2873,6 +2874,39 @@ struct SettingsView: View {
                 }
                 
                 Spacer()
+                
+                if isKeySaved(for: provider) {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        isCheckingModels = true
+                        Task {
+                            _ = await AIModelRegistry.shared.performModelDiscovery()
+                            await MainActor.run {
+                                isCheckingModels = false
+                                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            if isCheckingModels {
+                                ProgressView()
+                                    .scaleEffect(0.65)
+                            } else {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            Text(isCheckingModels ? "checking_models".localized(for: selectedLanguage) : "check_models".localized(for: selectedLanguage))
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(pColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(pColor.opacity(0.12))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .disabled(isCheckingModels)
+                }
             }
             .padding(.top, 2)
         }
@@ -2921,11 +2955,8 @@ struct SettingsView: View {
     }
     
     private func providerModelSubtitle(for provider: AIProvider) -> String {
-        switch provider {
-        case .gemini: return "Google Gemini 2.5 / 3.5 Flash"
-        case .chatgpt: return "OpenAI GPT-4o / GPT-4o-mini"
-        case .claude: return "Anthropic Claude 3.5 Sonnet"
-        }
+        let activeName = AIModelRegistry.shared.displayName(for: provider)
+        return "⚡ \(activeName) • " + "auto_upgrade_active".localized(for: selectedLanguage)
     }
     
     private func providerTitle(for provider: AIProvider) -> String {
@@ -3248,7 +3279,7 @@ struct SettingsView: View {
                 }
             }
             
-            // 3. Стиль оформления StandBy / Home виджетов (5 вариантов)
+            // 3. Стиль оформления StandBy / Home виджетов (9 вариантов)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "paintpalette.fill")
@@ -4520,7 +4551,14 @@ struct WidgetStyleCardButton: View {
     let onSelect: () -> Void
     
     private var accentColor: Color {
-        style == .oledStandby ? Color(hex: "F59E0B") : Color(hex: themeColorHex)
+        switch style {
+        case .oledStandby: return Color(hex: "F59E0B")
+        case .celestialEmerald: return Color(hex: "34D399")
+        case .crimsonGospel: return Color(hex: "F472B6")
+        case .auroraSunset: return Color(hex: "FB923C")
+        case .monasticStone: return Color(hex: "D97706")
+        default: return Color(hex: themeColorHex)
+        }
     }
     
     private var shadowColor: Color {
