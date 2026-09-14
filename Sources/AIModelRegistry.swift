@@ -13,9 +13,10 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Иерархии моделей в порядке убывания новизны (Актуальность: 2026 год)
     
     static let geminiHierarchy: [String] = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-2.0-flash-lite"
+        "gemini-3.5-flash-lite",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro"
     ]
     
     static let openAIHierarchy: [String] = [
@@ -47,10 +48,9 @@ final class AIModelRegistry: @unchecked Sendable {
     
     var activeGeminiModel: String {
         get {
-            let stored = UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.0-flash"
-            // Защита от устаревших pro моделей и несуществующих версий (2.5, 3.8, 3.7 и т.д.)
-            if stored.contains("pro") || stored.contains("2.5") || stored.contains("3.8") || stored.contains("3.7") || stored.contains("3.6") || !Self.geminiHierarchy.contains(stored) {
-                return "gemini-2.0-flash"
+            let stored = UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-3.5-flash-lite"
+            if stored.contains("1.5") || stored.contains("2.0") || !Self.geminiHierarchy.contains(stored) {
+                return "gemini-3.5-flash-lite"
             }
             return stored
         }
@@ -71,8 +71,8 @@ final class AIModelRegistry: @unchecked Sendable {
         // Очищаем устаревший или недопустимый кэш моделей
         let defaults = UserDefaults.standard
         if let storedGemini = defaults.string(forKey: "active_gemini_model"),
-           storedGemini.contains("2.5") || storedGemini.contains("3.8") || storedGemini.contains("3.7") || storedGemini.contains("pro") {
-            defaults.set("gemini-2.0-flash", forKey: "active_gemini_model")
+           storedGemini.contains("1.5") || storedGemini.contains("2.0") || !Self.geminiHierarchy.contains(storedGemini) {
+            defaults.set("gemini-3.5-flash-lite", forKey: "active_gemini_model")
         }
         // Фоновая тихая проверка при инициализации реестра
         discoverNewerModelsInBackground()
@@ -137,7 +137,8 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Универсальное выполнение запроса с каскадным переключением (Fail-Safe Fallback)
     
     /// Выполняет запрос к ИИ. Если основная модель возвращает ошибку несовместимости/доступности (404/400/410/429),
-    /// код автоматически переходит к следующей резервной модели из списка.
+    /// код автоматически переходит к следующей резервной модели из списка, парсит рекомендации Google из 404
+    /// или запрашивает актуальный список доступных моделей с сервера.
     func executeRequest(
         provider: AIProvider,
         apiKey: String,
@@ -146,11 +147,18 @@ final class AIModelRegistry: @unchecked Sendable {
         jsonMode: Bool = false,
         maxTokens: Int = 1024
     ) async throws -> (text: String, usedModel: String) {
-        let modelsToTry = candidateModels(for: provider)
+        var modelsToTry = candidateModels(for: provider)
         var lastError: Error?
         var attemptErrors: [String] = []
+        var triedModels = Set<String>()
         
-        for modelName in modelsToTry {
+        var index = 0
+        while index < modelsToTry.count {
+            let modelName = modelsToTry[index]
+            index += 1
+            if triedModels.contains(modelName) { continue }
+            triedModels.insert(modelName)
+            
             do {
                 let text: String
                 switch provider {
@@ -173,7 +181,37 @@ final class AIModelRegistry: @unchecked Sendable {
                 lastError = error
                 attemptErrors.append("\(modelName): \(error.localizedDescription)")
                 print("[AI Fallback] ⚠️ Модель \(modelName) вернула ошибку: \(error.localizedDescription). Пробуем резервную...")
+                
+                // САМОВОССТАНОВЛЕНИЕ: Если Google вернул рекомендацию использовать модель в тексте ошибки 404/410/400
+                if provider == .gemini {
+                    let errStr = error.localizedDescription
+                    if let range = errStr.range(of: "models/gemini-") {
+                        let sub = errStr[range.upperBound...]
+                        let modelId = "gemini-" + sub.prefix(while: { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "." })
+                        let trimmedModel = String(modelId).trimmingCharacters(in: CharacterSet(charactersIn: " .,;\"'()"))
+                        if !trimmedModel.isEmpty && !triedModels.contains(trimmedModel) && !modelsToTry.contains(trimmedModel) {
+                            print("[AI Self-Healing] 🤖 Google порекомендовал использовать модель: \(trimmedModel). Добавляем в очередь!")
+                            modelsToTry.insert(trimmedModel, at: index)
+                        }
+                    }
+                }
                 continue
+            }
+        }
+        
+        // Резервный рубеж: если все жестко заданные модели вернули ошибку, запрашиваем список живых моделей с серверов Google
+        if provider == .gemini {
+            let remoteModels = await fetchRemoteGeminiModels(apiKey: apiKey)
+            for remoteModel in remoteModels {
+                if !triedModels.contains(remoteModel) {
+                    triedModels.insert(remoteModel)
+                    print("[AI Fallback] 🔍 Пробуем удаленно обнаруженную модель: \(remoteModel)")
+                    if let text = try? await requestGemini(model: remoteModel, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens) {
+                        saveActiveModel(remoteModel, for: .gemini)
+                        print("[AI Fallback] ⚡ Успех с удаленной моделью: \(remoteModel)")
+                        return (text, remoteModel)
+                    }
+                }
             }
         }
         
@@ -436,7 +474,7 @@ final class AIModelRegistry: @unchecked Sendable {
                     return (true, displayName(for: .gemini), "models_updated_ok")
                 }
             }
-            self.activeGeminiModel = "gemini-2.0-flash"
+            self.activeGeminiModel = "gemini-3.5-flash-lite"
             return (false, displayName(for: .gemini), "model_fallback_applied")
             
         case .chatgpt:
@@ -674,7 +712,7 @@ final class AIModelRegistry: @unchecked Sendable {
     }
     
     func resetToDefaults() {
-        activeGeminiModel = "gemini-2.0-flash"
+        activeGeminiModel = "gemini-3.5-flash-lite"
         activeOpenAIModel = "gpt-4o-mini"
         activeClaudeModel = "claude-3-5-haiku-20241022"
     }

@@ -648,8 +648,8 @@ struct BibleQuizView: View {
                 } catch {
                     stopAITimer()
                     isGeneratingAI = false
-                    print("[BibleQuizView] ⚠️ Сбой генерации ИИ: \(error.localizedDescription)")
-                    activeAlert = .aiFailure(error.localizedDescription)
+                    print("[BibleQuizView] ⚠️ Сбой генерации ИИ: \(error.localizedDescription). Бесшовный переход на проверенную базу.")
+                    startOfflineQuiz()
                 }
             }
         } else {

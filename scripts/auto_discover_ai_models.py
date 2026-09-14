@@ -45,16 +45,10 @@ ROOT_UPDATE_PATH = PROJECT_ROOT / "update_ai_models.py"
 # Базовые кандидаты для проверки при недоступности ListModels
 KNOWN_CANDIDATES = {
     "gemini": [
-        "gemini-3.8-flash",
-        "gemini-3.7-flash",
+        "gemini-3.5-flash-lite",
         "gemini-3.5-flash",
-        "gemini-3.1-pro",
         "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-8b"
+        "gemini-2.5-pro"
     ],
     "openai": [
         "gpt-5",
