@@ -2083,6 +2083,7 @@ struct SettingsView: View {
     @State private var openaiKeyInput = ""
     @State private var anthropicKeyInput = ""
     @State private var isCheckingModels = false
+    @State private var activeKeyCheckToast: String? = nil
     
     @State private var selectedInterval: UpdateInterval = .everyHour
     @State private var selectedCategory: TextCategory = .both
@@ -2875,40 +2876,74 @@ struct SettingsView: View {
                 
                 Spacer()
                 
-                if isKeySaved(for: provider) {
-                    Button {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        isCheckingModels = true
-                        Task {
-                            _ = await AIModelRegistry.shared.performModelDiscovery()
-                            await MainActor.run {
-                                isCheckingModels = false
-                                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                            }
+                // Кнопка автообновления моделей (доступна для всех: Gemini, ChatGPT, Claude)
+                Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    if !isKeySaved(for: provider) {
+                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            activeKeyCheckToast = "enter_api_key_to_check".localized(for: selectedLanguage)
                         }
-                    } label: {
-                        HStack(spacing: 4) {
-                            if isCheckingModels {
-                                ProgressView()
-                                    .scaleEffect(0.65)
-                            } else {
-                                Image(systemName: "arrow.triangle.2.circlepath")
-                                    .font(.system(size: 10, weight: .bold))
-                            }
-                            Text(isCheckingModels ? "checking_models".localized(for: selectedLanguage) : "check_models".localized(for: selectedLanguage))
-                                .font(.system(size: 11, weight: .semibold))
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                            withAnimation { activeKeyCheckToast = nil }
                         }
-                        .foregroundColor(pColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(pColor.opacity(0.12))
-                        .cornerRadius(8)
+                        return
                     }
-                    .buttonStyle(ScaleButtonStyle())
-                    .disabled(isCheckingModels)
+                    
+                    isCheckingModels = true
+                    Task {
+                        let res = await AIModelRegistry.shared.updateModels(for: provider)
+                        await MainActor.run {
+                            isCheckingModels = false
+                            if res.success {
+                                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    activeKeyCheckToast = res.message.localized(for: selectedLanguage)
+                                }
+                            } else {
+                                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    activeKeyCheckToast = res.message.localized(for: selectedLanguage)
+                                }
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                                withAnimation { activeKeyCheckToast = nil }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        if isCheckingModels {
+                            ProgressView()
+                                .scaleEffect(0.65)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        Text(isCheckingModels ? "checking_models".localized(for: selectedLanguage) : "check_models".localized(for: selectedLanguage))
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(pColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(pColor.opacity(0.12))
+                    .cornerRadius(8)
                 }
+                .buttonStyle(ScaleButtonStyle())
+                .disabled(isCheckingModels)
             }
             .padding(.top, 2)
+            
+            if let toast = activeKeyCheckToast {
+                HStack(spacing: 5) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 10))
+                    Text(toast)
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundColor(pColor)
+                .transition(.opacity.combined(with: .scale))
+            }
         }
         .padding(16)
         .background(

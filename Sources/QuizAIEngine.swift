@@ -138,19 +138,33 @@ final class QuizAIEngine {
         // Выполняем генерацию через реестр моделей с авто-фолбеком на проверенные модели
         let registry = AIModelRegistry.shared
         let systemPrompt = "You are an expert Bible quiz generator. Always respond strictly with a valid JSON object containing a 'questions' array."
-        let (rawContent, _) = try await registry.executeRequest(
-            provider: provider,
-            apiKey: apiKey,
-            prompt: prompt,
-            systemPrompt: systemPrompt,
-            jsonMode: true,
-            maxTokens: 4096
-        )
-        let providerName = registry.displayName(for: provider)
         
-        let questions = try parseQuestions(from: rawContent, category: category, language: language, providerName: providerName)
-        guard !questions.isEmpty else {
-            throw QuizAIError.parsingFailed
+        let questions: [QuizQuestion]
+        do {
+            let (rawContent, _) = try await registry.executeRequest(
+                provider: provider,
+                apiKey: apiKey,
+                prompt: prompt,
+                systemPrompt: systemPrompt,
+                jsonMode: true,
+                maxTokens: 4096
+            )
+            let providerName = registry.displayName(for: provider)
+            let parsed = parseQuestions(from: rawContent, category: category, language: language, providerName: providerName)
+            if !parsed.isEmpty {
+                var finalPool = parsed
+                if finalPool.count < count {
+                    let needed = count - finalPool.count
+                    let extras = BibleQuizGenerator.shared.fetchQuestions(category: category, count: needed)
+                    finalPool.append(contentsOf: extras)
+                }
+                questions = Array(finalPool.prefix(count))
+            } else {
+                questions = BibleQuizGenerator.shared.fetchQuestions(category: category, count: count)
+            }
+        } catch {
+            print("[QuizAIEngine] ⚠️ ИИ вернул ошибку: \(error.localizedDescription). Запуск проверенной оффлайн базы.")
+            questions = BibleQuizGenerator.shared.fetchQuestions(category: category, count: count)
         }
         
         // Мгновенная регистрация сгенерированного пула в адаптивном дневнике
@@ -292,79 +306,143 @@ final class QuizAIEngine {
     
     // MARK: - Парсинг и санитизация JSON
     
-    private func parseQuestions(from rawText: String, category: QuizCategory, language: AppLanguage, providerName: String) throws -> [QuizQuestion] {
+    private func parseQuestions(from rawText: String, category: QuizCategory, language: AppLanguage, providerName: String) -> [QuizQuestion] {
         var cleaned = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Убираем маркдаун обертки ```json и ```
-        if cleaned.hasPrefix("```json") {
-            cleaned = String(cleaned.dropFirst(7))
-        } else if cleaned.hasPrefix("```") {
-            cleaned = String(cleaned.dropFirst(3))
+        // 1. Очистка от Markdown-тегов
+        if let jsonBlockStart = cleaned.range(of: "```json") {
+            cleaned = String(cleaned[jsonBlockStart.upperBound...])
+        } else if let blockStart = cleaned.range(of: "```") {
+            cleaned = String(cleaned[blockStart.upperBound...])
         }
-        if cleaned.hasSuffix("```") {
-            cleaned = String(cleaned.dropLast(3))
+        if let blockEnd = cleaned.range(of: "```") {
+            cleaned = String(cleaned[..<blockEnd.lowerBound])
         }
         cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // 1. Попытка распарсить как JSON-объект: {"questions": [...]}
-        if let objData = cleaned.data(using: .utf8),
-           let dict = try? JSONSerialization.jsonObject(with: objData) as? [String: Any] {
-            for key in ["questions", "items", "data", "quiz", "result", "results", "list"] {
-                if let innerArray = dict[key] as? [[String: Any]],
-                   let innerData = try? JSONSerialization.data(withJSONObject: innerArray) {
-                    if let questions = try? decodeRawQuestions(from: innerData, category: category, language: language, providerName: providerName), !questions.isEmpty {
-                        return questions
+        // 2. Стратегия А: Попытка распарсить JSON-объект: {"questions": [...]}
+        if let firstBrace = cleaned.firstIndex(of: "{"),
+           let lastBrace = cleaned.lastIndex(of: "}"),
+           firstBrace < lastBrace {
+            let jsonString = String(cleaned[firstBrace...lastBrace])
+            if let objData = jsonString.data(using: .utf8),
+               let dict = try? JSONSerialization.jsonObject(with: objData) as? [String: Any] {
+                for key in ["questions", "items", "data", "quiz", "result", "results", "list", "հարցեր", "вопросы"] {
+                    if let innerArray = dict[key] as? [[String: Any]] {
+                        let decoded = decodeQuestionsFromDictionaries(innerArray, category: category, language: language, providerName: providerName)
+                        if !decoded.isEmpty { return decoded }
                     }
                 }
-            }
-            // Проверяем любое значение словаря, являющееся массивом объектов
-            for (_, value) in dict {
-                if let innerArray = value as? [[String: Any]],
-                   let innerData = try? JSONSerialization.data(withJSONObject: innerArray) {
-                    if let questions = try? decodeRawQuestions(from: innerData, category: category, language: language, providerName: providerName), !questions.isEmpty {
-                        return questions
+                for (_, value) in dict {
+                    if let innerArray = value as? [[String: Any]] {
+                        let decoded = decodeQuestionsFromDictionaries(innerArray, category: category, language: language, providerName: providerName)
+                        if !decoded.isEmpty { return decoded }
                     }
                 }
             }
         }
         
-        // 2. Попытка найти границы JSON массива [...] в ответе
-        if let startIndex = cleaned.firstIndex(of: "["),
-           let endIndex = cleaned.lastIndex(of: "]"),
-           startIndex < endIndex {
-            let jsonArrayString = String(cleaned[startIndex...endIndex])
+        // 3. Стратегия Б: Попытка распарсить как JSON-массив: [...]
+        if let firstBracket = cleaned.firstIndex(of: "["),
+           let lastBracket = cleaned.lastIndex(of: "]"),
+           firstBracket < lastBracket {
+            let jsonArrayString = String(cleaned[firstBracket...lastBracket])
             if let arrayData = jsonArrayString.data(using: .utf8),
-               let questions = try? decodeRawQuestions(from: arrayData, category: category, language: language, providerName: providerName), !questions.isEmpty {
-                return questions
+               let array = try? JSONSerialization.jsonObject(with: arrayData) as? [[String: Any]] {
+                let decoded = decodeQuestionsFromDictionaries(array, category: category, language: language, providerName: providerName)
+                if !decoded.isEmpty { return decoded }
             }
         }
         
-        throw QuizAIError.parsingFailed
+        // 4. Стратегия В: Если JSON оборван на полпути по токенам, пробуем закрыть массив
+        if let firstBracket = cleaned.firstIndex(of: "["),
+           let lastBrace = cleaned.lastIndex(of: "}") {
+            let truncated = String(cleaned[firstBracket...lastBrace]) + "\n]"
+            if let arrayData = truncated.data(using: .utf8),
+               let array = try? JSONSerialization.jsonObject(with: arrayData) as? [[String: Any]] {
+                let decoded = decodeQuestionsFromDictionaries(array, category: category, language: language, providerName: providerName)
+                if !decoded.isEmpty { return decoded }
+            }
+        }
+        
+        return []
     }
     
-    private func decodeRawQuestions(from data: Data, category: QuizCategory, language: AppLanguage, providerName: String) throws -> [QuizQuestion] {
-        let rawQuestions = try JSONDecoder().decode([RawAIQuestion].self, from: data)
-        guard !rawQuestions.isEmpty else {
-            throw QuizAIError.emptyResponse
-        }
-        
-        return rawQuestions.compactMap { raw in
-            guard raw.options.count >= 4 else { return nil }
-            let safeOptions = Array(raw.options.prefix(4))
-            let safeIndex = (0..<4).contains(raw.correctAnswerIndex) ? raw.correctAnswerIndex : 0
-            let explanation = raw.explanation ?? ""
-            let verseRef = raw.verseRef ?? ""
+    private func decodeQuestionsFromDictionaries(_ dicts: [[String: Any]], category: QuizCategory, language: AppLanguage, providerName: String) -> [QuizQuestion] {
+        var result: [QuizQuestion] = []
+        for dict in dicts {
+            guard let qText = (dict["question"] as? String ??
+                               dict["q"] as? String ??
+                               dict["text"] as? String ??
+                               dict["title"] as? String ??
+                               dict["prompt"] as? String ??
+                               dict["հարց"] as? String),
+                  !qText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                continue
+            }
             
-            return QuizQuestion(
+            var rawOptions: [String] = []
+            if let opts = dict["options"] as? [String] {
+                rawOptions = opts
+            } else if let opts = dict["choices"] as? [String] {
+                rawOptions = opts
+            } else if let opts = dict["answers"] as? [String] {
+                rawOptions = opts
+            } else if let opts = dict["variants"] as? [String] {
+                rawOptions = opts
+            } else if let opts = dict["տարբերակներ"] as? [String] {
+                rawOptions = opts
+            } else if let optsDict = dict["options"] as? [String: String] {
+                let sortedKeys = optsDict.keys.sorted()
+                rawOptions = sortedKeys.compactMap { optsDict[$0] }
+            }
+            
+            var finalOptions = rawOptions.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            if finalOptions.count < 4 {
+                let defaults = ["Այո", "Ոչ", "Հայտնի չէ", "Բոլորը"]
+                for d in defaults where !finalOptions.contains(d) && finalOptions.count < 4 {
+                    finalOptions.append(d)
+                }
+            }
+            finalOptions = Array(finalOptions.prefix(4))
+            guard finalOptions.count == 4 else { continue }
+            
+            var correctIdx = 0
+            if let num = dict["correctAnswerIndex"] as? Int ??
+                         dict["correct_answer_index"] as? Int ??
+                         dict["answerIndex"] as? Int ??
+                         dict["correct"] as? Int ??
+                         dict["answer"] as? Int {
+                correctIdx = num
+            } else if let str = dict["correctAnswerIndex"] as? String ??
+                                dict["correct_answer_index"] as? String ??
+                                dict["answer"] as? String {
+                let cleanStr = str.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                if cleanStr == "A" { correctIdx = 0 }
+                else if cleanStr == "B" { correctIdx = 1 }
+                else if cleanStr == "C" { correctIdx = 2 }
+                else if cleanStr == "D" { correctIdx = 3 }
+                else if let parsed = Int(cleanStr) {
+                    correctIdx = parsed >= 1 && parsed <= 4 ? parsed - 1 : parsed
+                } else if let foundIndex = finalOptions.firstIndex(where: { $0.caseInsensitiveCompare(str) == .orderedSame }) {
+                    correctIdx = foundIndex
+                }
+            }
+            if correctIdx < 0 || correctIdx >= 4 { correctIdx = 0 }
+            
+            let explanation = (dict["explanation"] as? String ?? dict["exp"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let verseRef = (dict["verseRef"] as? String ?? dict["ref"] as? String ?? dict["verse_ref"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            result.append(QuizQuestion(
                 category: category,
                 difficulty: .medium,
-                questionHy: raw.question,
-                questionRu: raw.question,
-                questionEn: raw.question,
-                optionsHy: safeOptions,
-                optionsRu: safeOptions,
-                optionsEn: safeOptions,
-                correctAnswerIndex: safeIndex,
+                questionHy: qText,
+                questionRu: qText,
+                questionEn: qText,
+                optionsHy: finalOptions,
+                optionsRu: finalOptions,
+                optionsEn: finalOptions,
+                correctAnswerIndex: correctIdx,
                 explanationHy: explanation,
                 explanationRu: explanation,
                 explanationEn: explanation,
@@ -373,7 +451,8 @@ final class QuizAIEngine {
                 verseRefEn: verseRef,
                 isAIGenerated: true,
                 aiProviderName: providerName
-            )
+            ))
         }
+        return result
     }
 }

@@ -13,7 +13,6 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Иерархии моделей в порядке убывания новизны (Актуальность: 2026 год)
     
     static let geminiHierarchy: [String] = [
-        "gemini-3.5-flash",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
@@ -28,8 +27,8 @@ final class AIModelRegistry: @unchecked Sendable {
     
     static let claudeHierarchy: [String] = [
         "claude-3-7-sonnet-latest",
-        "claude-3-5-haiku-latest",
         "claude-3-5-sonnet-latest",
+        "claude-3-5-haiku-latest",
         "claude-3-5-haiku-20241022",
         "claude-3-haiku-20240307"
     ]
@@ -50,8 +49,8 @@ final class AIModelRegistry: @unchecked Sendable {
     var activeGeminiModel: String {
         get {
             let stored = UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.5-flash"
-            // Защита от устаревших удаленных pro моделей, но разрешаем любые валидные модели Gemini
-            if stored.contains("pro") || !stored.hasPrefix("gemini-") {
+            // Защита от устаревших pro моделей и несуществующих версий (3.8, 3.7 и т.д.)
+            if stored.contains("pro") || stored.contains("3.8") || stored.contains("3.7") || stored.contains("3.6") || !Self.geminiHierarchy.contains(stored) {
                 return "gemini-2.5-flash"
             }
             return stored
@@ -70,6 +69,12 @@ final class AIModelRegistry: @unchecked Sendable {
     }
     
     private init() {
+        // Очищаем устаревший или недопустимый кэш моделей
+        let defaults = UserDefaults.standard
+        if let storedGemini = defaults.string(forKey: "active_gemini_model"),
+           storedGemini.contains("3.8") || storedGemini.contains("3.7") || storedGemini.contains("pro") {
+            defaults.set("gemini-2.5-flash", forKey: "active_gemini_model")
+        }
         // Фоновая тихая проверка при инициализации реестра
         discoverNewerModelsInBackground()
     }
@@ -401,6 +406,70 @@ final class AIModelRegistry: @unchecked Sendable {
         return upgraded
     }
     
+    /// Точечное обнаружение и обновление моделей для конкретного выбранного провайдера
+    @discardableResult
+    func updateModels(for provider: AIProvider) async -> (success: Bool, modelName: String, message: String) {
+        let defaults = UserDefaults.standard
+        let apiKey: String
+        switch provider {
+        case .gemini:
+            apiKey = (defaults.string(forKey: "gemini_api_key_secure") ?? defaults.string(forKey: "gemini_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        case .chatgpt:
+            apiKey = (defaults.string(forKey: "openai_api_key_secure") ?? defaults.string(forKey: "openai_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        case .claude:
+            apiKey = (defaults.string(forKey: "anthropic_api_key_secure") ?? defaults.string(forKey: "anthropic_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        guard !apiKey.isEmpty else {
+            return (false, activeModel(for: provider), "api_key_required_hint")
+        }
+        
+        switch provider {
+        case .gemini:
+            let remote = await fetchRemoteGeminiModels(apiKey: apiKey)
+            var candidates = remote
+            for h in Self.geminiHierarchy where !candidates.contains(h) {
+                candidates.append(h)
+            }
+            for m in candidates {
+                if await testGeminiModel(name: m, apiKey: apiKey) {
+                    self.activeGeminiModel = m
+                    return (true, displayName(for: .gemini), "models_updated_ok")
+                }
+            }
+            self.activeGeminiModel = "gemini-2.5-flash"
+            return (false, displayName(for: .gemini), "model_fallback_applied")
+            
+        case .chatgpt:
+            let remote = await fetchRemoteOpenAIModels(apiKey: apiKey)
+            var candidates = remote
+            for h in Self.openAIHierarchy where !candidates.contains(h) {
+                candidates.append(h)
+            }
+            for m in candidates {
+                if await testOpenAIModel(name: m, apiKey: apiKey) {
+                    self.activeOpenAIModel = m
+                    return (true, displayName(for: .chatgpt), "models_updated_ok")
+                }
+            }
+            return (false, displayName(for: .chatgpt), "model_fallback_applied")
+            
+        case .claude:
+            let remote = await fetchRemoteClaudeModels(apiKey: apiKey)
+            var candidates = remote
+            for h in Self.claudeHierarchy where !candidates.contains(h) {
+                candidates.append(h)
+            }
+            for m in candidates {
+                if await testClaudeModel(name: m, apiKey: apiKey) {
+                    self.activeClaudeModel = m
+                    return (true, displayName(for: .claude), "models_updated_ok")
+                }
+            }
+            return (false, displayName(for: .claude), "model_fallback_applied")
+        }
+    }
+    
     // MARK: - Удаленное динамическое обнаружение (ListModels)
     
     private func fetchRemoteGeminiModels(apiKey: String) async -> [String] {
@@ -481,6 +550,44 @@ final class AIModelRegistry: @unchecked Sendable {
             if v1.1 != v2.1 { return v1.1 > v2.1 }
             let s1 = m1.contains("mini") ? 1 : 2
             let s2 = m2.contains("mini") ? 1 : 2
+            return s1 > s2
+        }
+    }
+    
+    private func fetchRemoteClaudeModels(apiKey: String) async -> [String] {
+        guard let url = URL(string: "https://api.anthropic.com/v1/models") else { return [] }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        req.timeoutInterval = 8.0
+        
+        guard let (data, response) = try? await Self.fastSession.data(for: req),
+              let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let list = json["data"] as? [[String: Any]] else {
+            return []
+        }
+        
+        var found: [String] = []
+        for item in list {
+            guard let mid = item["id"] as? String else { continue }
+            if mid.contains("claude") {
+                found.append(mid)
+            }
+        }
+        return sortClaudeModels(found)
+    }
+    
+    private func sortClaudeModels(_ models: [String]) -> [String] {
+        return models.sorted { m1, m2 in
+            let v1 = parseVersion(m1)
+            let v2 = parseVersion(m2)
+            if v1.0 != v2.0 { return v1.0 > v2.0 }
+            if v1.1 != v2.1 { return v1.1 > v2.1 }
+            let s1 = m1.contains("sonnet") ? 3 : (m1.contains("haiku") ? 2 : 1)
+            let s2 = m2.contains("sonnet") ? 3 : (m2.contains("haiku") ? 2 : 1)
             return s1 > s2
         }
     }

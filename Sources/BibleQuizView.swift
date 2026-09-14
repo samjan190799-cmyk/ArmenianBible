@@ -648,7 +648,8 @@ struct BibleQuizView: View {
                 } catch {
                     stopAITimer()
                     isGeneratingAI = false
-                    activeAlert = .aiFailure(error.localizedDescription)
+                    print("[BibleQuizView] ⚠️ Сбой генерации ИИ: \(error.localizedDescription). Бесшовный запуск викторины из библейской базы.")
+                    startOfflineQuiz()
                 }
             }
         } else {

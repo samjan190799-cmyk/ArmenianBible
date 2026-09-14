@@ -99,6 +99,9 @@
 "check_models" = "Check Updates";
 "checking_models" = "Checking...";
 "auto_upgrade_active" = "Auto-Upgrade Active";
+"enter_api_key_to_check" = "Enter API key first";
+"models_updated_ok" = "Model updated";
+"model_fallback_applied" = "Fallback model active";
 "standby_preview_title" = "Interactive Widget Preview";
 
 /* Tabs */

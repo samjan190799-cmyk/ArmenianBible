@@ -99,6 +99,9 @@
 "check_models" = "Проверить обновления";
 "checking_models" = "Проверка...";
 "auto_upgrade_active" = "Автообновление активно";
+"enter_api_key_to_check" = "Сначала введите API-ключ";
+"models_updated_ok" = "Модель обновлена";
+"model_fallback_applied" = "Используется проверенная модель";
 "standby_preview_title" = "Интерактивный предпросмотр виджетов";
 
 /* Tabs */

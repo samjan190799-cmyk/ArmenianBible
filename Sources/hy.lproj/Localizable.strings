@@ -99,6 +99,9 @@
 "check_models" = "Ստուգել թարմացումները";
 "checking_models" = "Ստուգում...";
 "auto_upgrade_active" = "Ավտոթարմացումն ակտիվ է";
+"enter_api_key_to_check" = "Նախ մուտքագրեք API բանալին";
+"models_updated_ok" = "Մոդելը թարմացված է";
+"model_fallback_applied" = "Ակտիվ է ստուգված մոդելը";
 "standby_preview_title" = "Վիջեթների ինտերակտիվ նախադիտում";
 
 /* Tabs */
