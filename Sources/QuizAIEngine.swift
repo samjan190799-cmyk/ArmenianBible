@@ -8,6 +8,7 @@ enum QuizAIError: LocalizedError {
     case serverError(Int, String)
     case emptyResponse
     case parsingFailed
+    case generationFailed(String)
     
     var errorDescription: String? {
         switch self {
@@ -23,6 +24,8 @@ enum QuizAIError: LocalizedError {
             return "AI returned an empty response"
         case .parsingFailed:
             return "Failed to parse questions from AI response"
+        case .generationFailed(let msg):
+            return msg
         }
     }
 }
@@ -151,7 +154,7 @@ final class QuizAIEngine {
         let parsed = parseQuestions(from: rawContent, category: category, language: language, providerName: providerName)
         
         guard !parsed.isEmpty else {
-            throw QuizAIError.generationFailed(message: "Нейросеть вернула некорректный формат ответа. Проверьте соединение.")
+            throw QuizAIError.parsingFailed
         }
         
         var finalPool = parsed
