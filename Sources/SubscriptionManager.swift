@@ -8,7 +8,6 @@ import WidgetKit
 enum SubscriptionPlan: String, CaseIterable, Identifiable {
     case monthly = "com.samvel.armenianbible.subscription.monthly"
     case yearly = "com.samvel.armenianbible.subscription.yearly"
-    case lifetime = "com.samvel.armenianbible.lifetime"
     
     var id: String { rawValue }
     
@@ -26,23 +25,15 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
             case .russian: return "1 Год"
             case .english: return "1 Year"
             }
-        case .lifetime:
-            switch language {
-            case .armenian: return "Հավերժ (Lifetime)"
-            case .russian: return "Навсегда (Вечная)"
-            case .english: return "Lifetime Access"
-            }
         }
     }
     
     func fallbackPrice(for language: AppLanguage) -> String {
         switch self {
         case .monthly:
-            return "$1.99"
+            return "$0.99"
         case .yearly:
-            return "$14.99 / տարի"
-        case .lifetime:
-            return "$29.99"
+            return "$9.99"
         }
     }
     
@@ -63,12 +54,6 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
                 return hasTrial ? "Скидка 40% • 7 дней Trial" : "Скидка 40%"
             case .english:
                 return hasTrial ? "Save 40% • 7 Days Free" : "Save 40%"
-            }
-        case .lifetime:
-            switch language {
-            case .armenian: return "Մեկընդմիշտ"
-            case .russian: return "Единоразово"
-            case .english: return "Best Value"
             }
         case .monthly:
             return nil
@@ -270,7 +255,7 @@ final class SubscriptionManager: ObservableObject {
             do {
                 let transaction = try Self.checkVerified(result)
                 
-                if SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }) {
+                if SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }) || transaction.productID == "com.samvel.armenianbible.lifetime" {
                     if transaction.revocationDate == nil {
                         hasActivePremium = true
                     }

@@ -206,6 +206,87 @@ final class BibleQuizGenerator {
             chapter: 4,
             verse: 16,
             category: .newTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Գիտենք, որ Աստծուն սիրողներին ամեն ինչ գործակից է լինում բարիքի համար»։",
+            textRu: "«Притом знаем, что любящим Бога, призванным по Его изволению, все содействует ко благу».",
+            textEn: "«And we know that in all things God works for the good of those who love him».",
+            bookId: 45, // Римлянам
+            chapter: 8,
+            verse: 28,
+            category: .newTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Ամբողջ սրտովդ Տիրոջն ապավինի՛ր և քո խելքին մի՛ վստահիր»։",
+            textRu: "«Надейся на Господа всем сердцем твоим, и не полагайся на разум твой».",
+            textEn: "«Trust in the Lord with all your heart and lean not on your own understanding».",
+            bookId: 20, // Притчи
+            chapter: 3,
+            verse: 5,
+            category: .oldTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Սերը համբերատար է, սերը քաղցրաբարո է, չի նախանձում...»։",
+            textRu: "«Любовь долготерпит, милосердствует, любовь не завидует, любовь не превозносится...».",
+            textEn: "«Love is patient, love is kind. It does not envy, it does not boast...».",
+            bookId: 46, // 1 Коринфянам
+            chapter: 13,
+            verse: 4,
+            category: .newTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Իսկ Հոգու պտուղն է՝ սեր, խնդություն, խաղաղություն, համբերատարություն, քաղցրություն...»։",
+            textRu: "«Плод же духа: любовь, радость, мир, долготерпение, благость, милосердие, вера...».",
+            textEn: "«But the fruit of the Spirit is love, joy, peace, forbearance, kindness, goodness, faithfulness...».",
+            bookId: 48, // Галатам
+            chapter: 5,
+            verse: 22,
+            category: .newTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Բայց առաջ խնդրեցե՛ք Աստծո արքայությունը և Նրա արդարությունը...»։",
+            textRu: "«Ищите же прежде Царства Божия и правды Его, и это все приложится вам».",
+            textEn: "«But seek first his kingdom and his righteousness, and all these things will be given to you as well».",
+            bookId: 40, // Матфея
+            chapter: 6,
+            verse: 33,
+            category: .gospels
+        ),
+        GoldenVerseQuote(
+            textHy: "«Քո խոսքը ճրագ է իմ ոտքերի համար և լույս՝ իմ ճանապարհներին»։",
+            textRu: "«Слово Твое — светильник ноге моей и свет стезе моей».",
+            textEn: "«Your word is a lamp for my feet, a light on my path».",
+            bookId: 19, // Псалтирь
+            chapter: 119,
+            verse: 105,
+            category: .oldTestament
+        ),
+        GoldenVerseQuote(
+            textHy: "«Գնացե՛ք ուրեմն աշակերտ դարձրե՛ք բոլոր ազգերին՝ մկրտելով նրանց Հոր, Որդու և Սուրբ Հոգու անունով»։",
+            textRu: "«Итак идите, научите все народы, крестя их во имя Отца и Сына и Святаго Духа...».",
+            textEn: "«Therefore go and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit...».",
+            bookId: 40, // Матфея
+            chapter: 28,
+            verse: 19,
+            category: .gospels
+        ),
+        GoldenVerseQuote(
+            textHy: "«Եկե՛ք Ինձ մոտ, բոլոր հոգնածնե՛ր ու բեռնավորվածնե՛ր, և Ես ձեզ կհանգստացնեմ»։",
+            textRu: "«Придите ко Мне все труждающиеся и обремененные, и Я успокою вас».",
+            textEn: "«Come to me, all you who are weary and burdened, and I will give you rest».",
+            bookId: 40, // Матфея
+            chapter: 11,
+            verse: 28,
+            category: .gospels
+        ),
+        GoldenVerseQuote(
+            textHy: "«Եվ Աստված պիտի սրբի ամեն արտասուք նրանց աչքերից, և այլևս մահ չի լինի...»։",
+            textRu: "«И отрет Бог всякую слезу с очей их, и смерти не будет уже; ни плача, ни вопля, ни болезни уже не будет...».",
+            textEn: "«He will wipe every tear from their eyes. There will be no more death or mourning or crying or pain...».",
+            bookId: 66, // Откровение
+            chapter: 21,
+            verse: 4,
+            category: .newTestament
         )
     ]
     
@@ -251,7 +332,42 @@ final class BibleQuizGenerator {
         return generated
     }
     
-    // MARK: - Генерация вопросов по структуре Библии (число глав, порядок книг)
+    // MARK: - Генерация вопросов по принадлежности к Заветам (Ветхий / Новый Завет)
+    func generateTestamentQuestions() -> [QuizQuestion] {
+        let allBooks = BibleDatabase.shared.getBooks()
+        guard allBooks.count >= 20 else { return [] }
+        var generated: [QuizQuestion] = []
+        
+        for book in allBooks {
+            let isNT = book.isNewTestament
+            let optionsHy = isNT ? ["Նոր Կտակարան", "Հին Կտակարան"] : ["Հին Կտակարան", "Նոր Կտակարան"]
+            let optionsRu = isNT ? ["Новый Завет", "Ветхий Завет"] : ["Ветхий Завет", "Новый Завет"]
+            let optionsEn = isNT ? ["New Testament", "Old Testament"] : ["Old Testament", "New Testament"]
+            
+            let q = QuizQuestion(
+                category: isNT ? .newTestament : .oldTestament,
+                difficulty: .easy,
+                questionHy: "Աստվածաշնչի ո՞ր Կտակարանին է պատկանում «\(book.nameHy)» գիրքը։",
+                questionRu: "К какому Завету Библии принадлежит священная книга «\(book.nameRu)»?",
+                questionEn: "To which Testament of the Bible does the Book of «\(book.nameEn)» belong?",
+                optionsHy: optionsHy,
+                optionsRu: optionsRu,
+                optionsEn: optionsEn,
+                correctAnswerIndex: 0,
+                explanationHy: "«\(book.nameHy)» գիրքը գտնվում է \(isNT ? "Նոր Կտակարանում" : "Հին Կտակարանում")։",
+                explanationRu: "Книга «\(book.nameRu)» входит в состав книг \(isNT ? "Нового Завета" : "Ветхого Завета").",
+                explanationEn: "The Book of «\(book.nameEn)» is part of the \(isNT ? "New Testament" : "Old Testament").",
+                verseRefHy: "\(book.nameHy) 1:1",
+                verseRefRu: "\(book.nameRu) 1:1",
+                verseRefEn: "\(book.nameEn) 1:1"
+            )
+            generated.append(q)
+        }
+        
+        return generated
+    }
+    
+    // MARK: - Генерация вопросов по структуре Библии (число глав)
     func generateBibleStructureQuestions() -> [QuizQuestion] {
         let allBooks = BibleDatabase.shared.getBooks()
         guard allBooks.count >= 10 else { return [] }
@@ -259,7 +375,7 @@ final class BibleQuizGenerator {
         var generated: [QuizQuestion] = []
         
         // Сколько глав в ключевых книгах Библии
-        let prominentBooks = allBooks.filter { [1, 19, 20, 40, 41, 42, 43, 44, 45, 66].contains($0.id) }
+        let prominentBooks = allBooks.filter { [1, 2, 19, 20, 23, 40, 41, 42, 43, 44, 45, 66].contains($0.id) }
         for book in prominentBooks {
             let correctCount = book.chaptersCount
             var wrongCandidates: Set<Int> = []
@@ -299,9 +415,9 @@ final class BibleQuizGenerator {
         return generated
     }
     
-    // MARK: - Сборка пула вопросов для викторины любого размера
+    // MARK: - Сборка пула вопросов для викторины любого размера с защитой от повторов
     @MainActor
-    func fetchQuestions(category: QuizCategory, count: Int = 10) -> [QuizQuestion] {
+    func fetchQuestions(category: QuizCategory, count: Int = 10, language: AppLanguage = .armenian) -> [QuizQuestion] {
         var pool: [QuizQuestion] = []
         
         // 1. Кураторские вопросы
@@ -328,17 +444,38 @@ final class BibleQuizGenerator {
             pool.append(contentsOf: structureQuestions.filter { $0.category == category })
         }
         
-        // 4. Невидимая адаптивная фильтрация через дневник (исключаем недавние вопросы для активных игроков)
-        let filteredPool = pool.filter { q in
-            !QuizAdaptiveDiary.shared.shouldFilterOfflineQuestion(questionText: q.questionRu)
+        // 4. Вопросы по Заветам
+        let testamentQuestions = generateTestamentQuestions()
+        if category == .all || category == .oldTestament || category == .newTestament {
+            pool.append(contentsOf: testamentQuestions.filter { category == .all || $0.category == category })
         }
         
-        let resultPool = filteredPool.count >= count ? filteredPool : pool
-        let shuffled = resultPool.shuffled()
-        if shuffled.isEmpty {
-            return Array(QuizDatabase.allQuestions.shuffled().prefix(count))
+        // 5. Умная многоязычная фильтрация адаптивного дневника (принцип колоды карт)
+        let diary = QuizAdaptiveDiary.shared
+        let unseen = pool.filter { !diary.shouldFilterOfflineQuestion(question: $0, language: language) }
+        let seen = pool.filter { diary.shouldFilterOfflineQuestion(question: $0, language: language) }
+            .sorted { (q1, q2) -> Bool in
+                let d1 = diary.lastSeenDate(for: q1, language: language) ?? .distantPast
+                let d2 = diary.lastSeenDate(for: q2, language: language) ?? .distantPast
+                return d1 < d2 // Сначала те, которые видели дольше всего назад
+            }
+        
+        var selected: [QuizQuestion] = []
+        let shuffledUnseen = unseen.shuffled()
+        
+        if shuffledUnseen.count >= count {
+            selected = Array(shuffledUnseen.prefix(count))
+        } else {
+            selected = shuffledUnseen
+            let needed = count - selected.count
+            selected.append(contentsOf: seen.prefix(needed))
         }
-        return Array(shuffled.prefix(count))
+        
+        if selected.isEmpty {
+            selected = Array(QuizDatabase.allQuestions.shuffled().prefix(count))
+        }
+        
+        return selected.shuffled()
     }
 }
 

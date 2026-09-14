@@ -139,33 +139,28 @@ final class QuizAIEngine {
         let registry = AIModelRegistry.shared
         let systemPrompt = "You are an expert Bible quiz generator. Always respond strictly with a valid JSON object containing a 'questions' array."
         
-        let questions: [QuizQuestion]
-        do {
-            let (rawContent, _) = try await registry.executeRequest(
-                provider: provider,
-                apiKey: apiKey,
-                prompt: prompt,
-                systemPrompt: systemPrompt,
-                jsonMode: true,
-                maxTokens: 4096
-            )
-            let providerName = registry.displayName(for: provider)
-            let parsed = parseQuestions(from: rawContent, category: category, language: language, providerName: providerName)
-            if !parsed.isEmpty {
-                var finalPool = parsed
-                if finalPool.count < count {
-                    let needed = count - finalPool.count
-                    let extras = BibleQuizGenerator.shared.fetchQuestions(category: category, count: needed)
-                    finalPool.append(contentsOf: extras)
-                }
-                questions = Array(finalPool.prefix(count))
-            } else {
-                questions = BibleQuizGenerator.shared.fetchQuestions(category: category, count: count)
-            }
-        } catch {
-            print("[QuizAIEngine] ⚠️ ИИ вернул ошибку: \(error.localizedDescription). Запуск проверенной оффлайн базы.")
-            questions = BibleQuizGenerator.shared.fetchQuestions(category: category, count: count)
+        let (rawContent, _) = try await registry.executeRequest(
+            provider: provider,
+            apiKey: apiKey,
+            prompt: prompt,
+            systemPrompt: systemPrompt,
+            jsonMode: true,
+            maxTokens: 4096
+        )
+        let providerName = registry.displayName(for: provider)
+        let parsed = parseQuestions(from: rawContent, category: category, language: language, providerName: providerName)
+        
+        guard !parsed.isEmpty else {
+            throw QuizAIError.generationFailed(message: "Нейросеть вернула некорректный формат ответа. Проверьте соединение.")
         }
+        
+        var finalPool = parsed
+        if finalPool.count < count {
+            let needed = count - finalPool.count
+            let extras = BibleQuizGenerator.shared.fetchQuestions(category: category, count: needed, language: language)
+            finalPool.append(contentsOf: extras)
+        }
+        let questions = Array(finalPool.prefix(count))
         
         // Мгновенная регистрация сгенерированного пула в адаптивном дневнике
         QuizAdaptiveDiary.shared.registerGeneratedBatch(questions: questions, language: language)

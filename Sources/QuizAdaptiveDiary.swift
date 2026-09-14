@@ -316,6 +316,39 @@ final class QuizAdaptiveDiary: ObservableObject {
         }
     }
     
+    /// Проверка вопроса по всем доступным языковым вариантам
+    func shouldFilterOfflineQuestion(question: QuizQuestion, language: AppLanguage) -> Bool {
+        let texts = [
+            question.question(for: language),
+            question.questionHy,
+            question.questionRu,
+            question.questionEn
+        ]
+        for t in texts where !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if shouldFilterOfflineQuestion(questionText: t) {
+                return true
+            }
+        }
+        return false
+    }
+    
+    /// Возвращает дату последнего показа вопроса для умной сортировки ротации
+    func lastSeenDate(for question: QuizQuestion, language: AppLanguage) -> Date? {
+        let texts = [
+            question.question(for: language),
+            question.questionHy,
+            question.questionRu,
+            question.questionEn
+        ]
+        for t in texts where !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let hash = generateHash(for: t)
+            if let date = entries[hash]?.lastSeenDate {
+                return date
+            }
+        }
+        return nil
+    }
+    
     // MARK: - Хэширование и персистентность
     
     private func generateHash(for text: String) -> String {

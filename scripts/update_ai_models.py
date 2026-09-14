@@ -33,8 +33,6 @@ BACKUP_PATH = PROJECT_ROOT / "Sources" / "AIModelRegistry.swift.bak"
 # Эталонные иерархии моделей (актуальность: 2026 год)
 LATEST_HIERARCHIES = {
     "gemini": [
-        "gemini-3.5-flash",
-        "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
         "gemini-2.0-flash-lite"

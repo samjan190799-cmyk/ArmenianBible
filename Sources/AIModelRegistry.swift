@@ -13,7 +13,6 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Иерархии моделей в порядке убывания новизны (Актуальность: 2026 год)
     
     static let geminiHierarchy: [String] = [
-        "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
         "gemini-2.0-flash-lite"
@@ -48,10 +47,10 @@ final class AIModelRegistry: @unchecked Sendable {
     
     var activeGeminiModel: String {
         get {
-            let stored = UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.5-flash"
-            // Защита от устаревших pro моделей и несуществующих версий (3.8, 3.7 и т.д.)
-            if stored.contains("pro") || stored.contains("3.8") || stored.contains("3.7") || stored.contains("3.6") || !Self.geminiHierarchy.contains(stored) {
-                return "gemini-2.5-flash"
+            let stored = UserDefaults.standard.string(forKey: "active_gemini_model") ?? "gemini-2.0-flash"
+            // Защита от устаревших pro моделей и несуществующих версий (2.5, 3.8, 3.7 и т.д.)
+            if stored.contains("pro") || stored.contains("2.5") || stored.contains("3.8") || stored.contains("3.7") || stored.contains("3.6") || !Self.geminiHierarchy.contains(stored) {
+                return "gemini-2.0-flash"
             }
             return stored
         }
@@ -72,8 +71,8 @@ final class AIModelRegistry: @unchecked Sendable {
         // Очищаем устаревший или недопустимый кэш моделей
         let defaults = UserDefaults.standard
         if let storedGemini = defaults.string(forKey: "active_gemini_model"),
-           storedGemini.contains("3.8") || storedGemini.contains("3.7") || storedGemini.contains("pro") {
-            defaults.set("gemini-2.5-flash", forKey: "active_gemini_model")
+           storedGemini.contains("2.5") || storedGemini.contains("3.8") || storedGemini.contains("3.7") || storedGemini.contains("pro") {
+            defaults.set("gemini-2.0-flash", forKey: "active_gemini_model")
         }
         // Фоновая тихая проверка при инициализации реестра
         discoverNewerModelsInBackground()
@@ -437,7 +436,7 @@ final class AIModelRegistry: @unchecked Sendable {
                     return (true, displayName(for: .gemini), "models_updated_ok")
                 }
             }
-            self.activeGeminiModel = "gemini-2.5-flash"
+            self.activeGeminiModel = "gemini-2.0-flash"
             return (false, displayName(for: .gemini), "model_fallback_applied")
             
         case .chatgpt:
@@ -675,7 +674,7 @@ final class AIModelRegistry: @unchecked Sendable {
     }
     
     func resetToDefaults() {
-        activeGeminiModel = "gemini-2.5-flash"
+        activeGeminiModel = "gemini-2.0-flash"
         activeOpenAIModel = "gpt-4o-mini"
         activeClaudeModel = "claude-3-5-haiku-20241022"
     }

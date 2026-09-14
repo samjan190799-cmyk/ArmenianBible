@@ -648,8 +648,8 @@ struct BibleQuizView: View {
                 } catch {
                     stopAITimer()
                     isGeneratingAI = false
-                    print("[BibleQuizView] ⚠️ Сбой генерации ИИ: \(error.localizedDescription). Бесшовный запуск викторины из библейской базы.")
-                    startOfflineQuiz()
+                    print("[BibleQuizView] ⚠️ Сбой генерации ИИ: \(error.localizedDescription)")
+                    activeAlert = .aiFailure(error.localizedDescription)
                 }
             }
         } else {
@@ -658,7 +658,11 @@ struct BibleQuizView: View {
     }
     
     private func startOfflineQuiz() {
-        activeQuestions = BibleQuizGenerator.shared.fetchQuestions(category: selectedCategory, count: selectedQuestionCount)
+        activeQuestions = BibleQuizGenerator.shared.fetchQuestions(
+            category: selectedCategory,
+            count: selectedQuestionCount,
+            language: manager.appLanguage
+        )
         currentQuestionIndex = 0
         score = 0
         selectedAnswerIndex = nil
