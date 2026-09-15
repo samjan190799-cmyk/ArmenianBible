@@ -16,10 +16,6 @@
     <string>APPL</string>
     <key>CFBundleExecutable</key>
     <string>ArmenianBible</string>
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>audio</string>
-    </array>
     <key>UIRequiresFullScreen</key>
     <false/>
     <key>UILaunchScreen</key>

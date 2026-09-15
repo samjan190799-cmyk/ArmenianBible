@@ -20,7 +20,7 @@ targets:
         CFBundleDisplayName: ArmenianBible
         CFBundleIdentifier: com.samvel.armenianbible
         CFBundleVersion: "${BUILD_NUMBER:1}"
-        CFBundleShortVersionString: "2.2"
+        CFBundleShortVersionString: "2.3"
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
         ITSAppUsesNonExemptEncryption: "NO"
@@ -32,8 +32,6 @@ targets:
           - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
         FacebookAppID: "2096476450939558"
         FacebookDisplayName: Armenian Bible
-        UIBackgroundModes:
-          - audio
         UIRequiresFullScreen: false
         UILaunchScreen:
           UIColorName: LaunchBackground
