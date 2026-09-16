@@ -423,6 +423,7 @@ struct NarekHeroPlayerCard: View {
     let cardBorderColor: Color
     let primaryTextColor: Color
     let onShowPaywall: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     private func formatTime(_ seconds: Double) -> String {
         guard !seconds.isNaN && seconds >= 0 else { return "00:00" }
@@ -609,6 +610,108 @@ struct NarekHeroPlayerCard: View {
                 }
             }
             .padding(.vertical, 4)
+            
+            // Дополнительные контроллеры: Скорость, Таймер сна, Автопереход
+            HStack(spacing: 10) {
+                // Скорость воспроизведения
+                Menu {
+                    ForEach([0.8, 1.0, 1.25], id: \.self) { rate in
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.prepare()
+                            generator.impactOccurred()
+                            audioPlayer.setPlaybackRate(rate)
+                        } label: {
+                            HStack {
+                                Text("\(String(format: "%.2gx", rate))")
+                                if audioPlayer.playbackRate == rate {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "speedometer")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(String(format: "%.2gx", audioPlayer.playbackRate))
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundColor(audioPlayer.playbackRate != 1.0 ? accentColor : .secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        (audioPlayer.playbackRate != 1.0 ? accentColor.opacity(0.12) : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)))
+                    )
+                    .cornerRadius(8)
+                }
+                
+                // Таймер сна
+                Menu {
+                    ForEach(NarekSleepTimerOption.allCases) { opt in
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.prepare()
+                            generator.impactOccurred()
+                            audioPlayer.setSleepTimer(opt)
+                        } label: {
+                            HStack {
+                                Text(opt.title(for: audioPlayer.voiceLanguage))
+                                if audioPlayer.sleepTimerOption == opt {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: audioPlayer.sleepTimerOption != .off ? "moon.zzz.fill" : "moon.zzz")
+                            .font(.system(size: 11, weight: .semibold))
+                        if audioPlayer.sleepTimerRemainingSeconds > 0 {
+                            let mins = audioPlayer.sleepTimerRemainingSeconds / 60
+                            let secs = audioPlayer.sleepTimerRemainingSeconds % 60
+                            Text(String(format: "%02d:%02d", mins, secs))
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        } else if audioPlayer.sleepTimerOption == .endOfChapter {
+                            Text(NarekSleepTimerOption.endOfChapter.title(for: audioPlayer.voiceLanguage))
+                                .font(.system(size: 11, weight: .bold))
+                        } else {
+                            Text("narek_sleep_timer_title".localized(for: audioPlayer.voiceLanguage))
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                    }
+                    .foregroundColor(audioPlayer.sleepTimerOption != .off ? Color(hex: "F59E0B") : .secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        (audioPlayer.sleepTimerOption != .off ? Color(hex: "F59E0B").opacity(0.12) : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)))
+                    )
+                    .cornerRadius(8)
+                }
+                
+                // Тумблер автоперехода к следующей главе
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.prepare()
+                    generator.impactOccurred()
+                    audioPlayer.setAutoPlayNextChapter(!audioPlayer.autoPlayNextChapter)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: audioPlayer.autoPlayNextChapter ? "repeat" : "stop.circle")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(audioPlayer.autoPlayNextChapter ? "Auto ➔" : "Stop ■")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(audioPlayer.autoPlayNextChapter ? accentColor : .secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        (audioPlayer.autoPlayNextChapter ? accentColor.opacity(0.1) : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)))
+                    )
+                    .cornerRadius(8)
+                }
+            }
+            .padding(.top, 2)
             
             // Индикатор запоминания позиции
             if audioPlayer.savedTimeSeconds > 0 && !audioPlayer.isPlaying {

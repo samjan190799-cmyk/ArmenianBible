@@ -3,6 +3,29 @@ import AVFoundation
 import MediaPlayer
 import Combine
 
+// MARK: - Опции таймера сна аудиоплеера
+enum NarekSleepTimerOption: Int, CaseIterable, Identifiable {
+    case off = 0
+    case min15 = 15
+    case min30 = 30
+    case min45 = 45
+    case min60 = 60
+    case endOfChapter = -1
+    
+    var id: Int { rawValue }
+    
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .off: return "narek_sleep_timer_off".localized(for: language)
+        case .min15: return "narek_sleep_timer_15m".localized(for: language)
+        case .min30: return "narek_sleep_timer_30m".localized(for: language)
+        case .min45: return "narek_sleep_timer_45m".localized(for: language)
+        case .min60: return "narek_sleep_timer_60m".localized(for: language)
+        case .endOfChapter: return "narek_sleep_timer_end_of_chapter".localized(for: language)
+        }
+    }
+}
+
 // MARK: - Полнофункциональный Аудиоплеер Нарекаци (Запоминание позиции, перемотка, плейлист)
 class NarekAudioPlayer: NSObject, ObservableObject {
     static let shared = NarekAudioPlayer()
@@ -18,6 +41,13 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     @Published var isStreaming: Bool = false
     @Published var voiceLanguage: AppLanguage = .armenian
     
+    // Настройки воспроизведения (Пункт 2)
+    @Published var playbackRate: Double = 1.0
+    @Published var autoPlayNextChapter: Bool = true
+    @Published var sleepTimerOption: NarekSleepTimerOption = .off
+    @Published var sleepTimerRemainingSeconds: Int = 0
+    private var sleepCountdownTimer: Timer? = nil
+    
     // Запоминание последнего прослушанного состояния
     @Published var savedPrayerId: Int = 1
     @Published var savedTimeSeconds: Double = 0.0
@@ -25,6 +55,8 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     private let kSavedPrayerId = "narek_last_prayer_id"
     private let kSavedTimeSeconds = "narek_last_time_seconds"
     private let kSavedVoiceLang = "narek_voice_language"
+    private let kSavedPlaybackRate = "narek_playback_rate"
+    private let kSavedAutoPlayNext = "narek_autoplay_next_chapter"
     
     override private init() {
         super.init()
@@ -48,6 +80,15 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             voiceLanguage = lang
         }
         
+        let savedRate = UserDefaults.standard.double(forKey: kSavedPlaybackRate)
+        playbackRate = savedRate > 0 ? savedRate : 1.0
+        
+        if UserDefaults.standard.object(forKey: kSavedAutoPlayNext) != nil {
+            autoPlayNextChapter = UserDefaults.standard.bool(forKey: kSavedAutoPlayNext)
+        } else {
+            autoPlayNextChapter = true
+        }
+        
         currentTime = savedTimeSeconds
         currentlyPlayingId = savedPrayerId
     }
@@ -59,6 +100,8 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             UserDefaults.standard.set(savedPrayerId, forKey: kSavedPrayerId)
             UserDefaults.standard.set(savedTimeSeconds, forKey: kSavedTimeSeconds)
             UserDefaults.standard.set(voiceLanguage.rawValue, forKey: kSavedVoiceLang)
+            UserDefaults.standard.set(playbackRate, forKey: kSavedPlaybackRate)
+            UserDefaults.standard.set(autoPlayNextChapter, forKey: kSavedAutoPlayNext)
         }
     }
     
@@ -92,6 +135,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             seek(to: targetTime)
             if !isPlaying {
                 p.play()
+                p.rate = Float(playbackRate)
                 isPlaying = true
             }
             updateNowPlayingInfo(prayer: prayer)
@@ -175,6 +219,15 @@ class NarekAudioPlayer: NSObject, ObservableObject {
                     // Автоматически синхронизируем активную главу с текущим таймкодом
                     if let active = NarekatsiDatabase.shared.prayers.last(where: { $0.audioTimestampSeconds(for: self.voiceLanguage) <= currentSec }) {
                         if self.currentlyPlayingId != active.id {
+                            if self.sleepTimerOption == .endOfChapter {
+                                self.setSleepTimer(.off)
+                                self.pause()
+                                return
+                            }
+                            if !self.autoPlayNextChapter && self.currentlyPlayingId != nil {
+                                self.pause()
+                                return
+                            }
                             self.currentlyPlayingId = active.id
                             self.savedPrayerId = active.id
                         }
@@ -190,6 +243,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             )
             
             newPlayer.play()
+            newPlayer.rate = Float(playbackRate)
         } else {
             print("⚠️ Аудиофайл для главы Нарекаци не найден")
             isPlaying = false
@@ -210,6 +264,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     func resume() {
         if let p = player {
             p.play()
+            p.rate = Float(playbackRate)
             isPlaying = true
             updateNowPlayingInfo()
         } else if let currentId = currentlyPlayingId,
@@ -255,10 +310,63 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     }
     
     func stop() {
+        setSleepTimer(.off)
         savePlaybackState()
         cleanupPlayer()
         isPlaying = false
         isStreaming = false
+    }
+    
+    // MARK: - Управление скоростью, автопереходом и таймером сна
+    
+    func setPlaybackRate(_ rate: Double) {
+        playbackRate = rate
+        UserDefaults.standard.set(rate, forKey: kSavedPlaybackRate)
+        if isPlaying {
+            player?.rate = Float(rate)
+        }
+        updateNowPlayingInfo()
+    }
+    
+    func setAutoPlayNextChapter(_ enabled: Bool) {
+        autoPlayNextChapter = enabled
+        UserDefaults.standard.set(enabled, forKey: kSavedAutoPlayNext)
+    }
+    
+    func setSleepTimer(_ option: NarekSleepTimerOption) {
+        sleepCountdownTimer?.invalidate()
+        sleepCountdownTimer = nil
+        sleepTimerOption = option
+        
+        switch option {
+        case .off:
+            sleepTimerRemainingSeconds = 0
+        case .min15, .min30, .min45, .min60:
+            sleepTimerRemainingSeconds = option.rawValue * 60
+            startSleepTimerCountdown()
+        case .endOfChapter:
+            sleepTimerRemainingSeconds = 0
+        }
+    }
+    
+    private func startSleepTimerCountdown() {
+        sleepCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            DispatchQueue.main.async {
+                if self.sleepTimerRemainingSeconds > 1 {
+                    self.sleepTimerRemainingSeconds -= 1
+                } else {
+                    self.sleepTimerRemainingSeconds = 0
+                    self.sleepTimerOption = .off
+                    timer.invalidate()
+                    self.sleepCountdownTimer = nil
+                    self.pause()
+                }
+            }
+        }
     }
     
     private func cleanupPlayer() {
@@ -279,7 +387,14 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     
     @objc private func playerItemDidFinishPlaying(notification: Notification) {
         DispatchQueue.main.async {
-            self.playNextPrayer()
+            if self.sleepTimerOption == .endOfChapter {
+                self.setSleepTimer(.off)
+                self.pause()
+            } else if self.autoPlayNextChapter {
+                self.playNextPrayer()
+            } else {
+                self.pause()
+            }
         }
     }
     
@@ -430,9 +545,9 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         info[MPMediaItemPropertyTitle] = currentPrayer.title(for: voiceLanguage)
         info[MPMediaItemPropertyArtist] = (voiceLanguage == .armenian) ? "Սոս Սարգսյան (Գրիգոր Նարեկացի)" : "Олег Моленко (Григор Нарекаци)"
         info[MPMediaItemPropertyAlbumTitle] = "Մատյան Ողբերգության"
-        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
+        info[MPMediaItemPropertyElapsedPlaybackTime] = currentTime
         info[MPMediaItemPropertyPlaybackDuration] = duration > 0 ? duration : 300.0
-        info[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
+        info[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? playbackRate : 0.0
         info[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue
         
         if let artImage = UIImage(named: "AppIcon") ?? UIImage(systemName: "book.pages.fill") {

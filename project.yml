@@ -26,6 +26,7 @@ targets:
         ITSAppUsesNonExemptEncryption: "NO"
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
+        NSFaceIDUsageDescription: "Protect your personal bookmarks, prayer journal, and notes with Face ID."
         NSUserTrackingUsageDescription: "We use this identifier to deliver relevant and high-quality ads."
         SKAdNetworkItems:
           - SKAdNetworkIdentifier: v9wttpbfk9.skadnetwork

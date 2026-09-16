@@ -381,4 +381,13 @@ final class QuizAdaptiveDiary: ObservableObject {
             UserDefaults.standard.set(data, forKey: sessionsStorageKey)
         }
     }
+    
+    // MARK: - Сброс дневника
+    func resetDiary() {
+        self.entries.removeAll()
+        self.sessionDates.removeAll()
+        UserDefaults.standard.removeObject(forKey: diaryStorageKey)
+        UserDefaults.standard.removeObject(forKey: sessionsStorageKey)
+        objectWillChange.send()
+    }
 }

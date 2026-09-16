@@ -2,6 +2,7 @@ import SwiftUI
 import WidgetKit
 import Foundation
 import UserNotifications
+import LocalAuthentication
 
 // MARK: - Менеджер стихов (Bible Manager)
 class BibleManager: ObservableObject {
@@ -18,9 +19,24 @@ class BibleManager: ObservableObject {
     @Published var accentTheme: AccentColorTheme = .indigo
     @Published var dailyNotificationsEnabled: Bool = false
     @Published var dailyNotificationTime: Date = Date()
+    
+    // Духовные уведомления нового поколения
+    @Published var morningNotificationsEnabled: Bool = false
+    @Published var morningNotificationTime: Date = Date()
+    @Published var eveningNotificationsEnabled: Bool = false
+    @Published var eveningNotificationTime: Date = Date()
+    @Published var churchFeastsNotificationsEnabled: Bool = false
+    @Published var readingPlanNotificationsEnabled: Bool = false
+    @Published var readingPlanNotificationTime: Date = Date()
     @Published var widgetLanguage: WidgetLanguage = .followApp
     @Published var widgetVisualStyle: WidgetVisualStyle = .oledStandby
     @Published var verseSourceScope: VerseSourceScope = .allBible
+    
+    // Системные настройки и безопасность (Пункт 6)
+    @Published var isHapticsEnabled: Bool = true
+    @Published var isBiometricLockEnabled: Bool = false
+    @Published var isAppUnlocked: Bool = true
+    @Published var cachedStorageSize: String = "0 KB"
     
     // Переменные для полной Библии и Deep Link
     @Published var bibleFontSize: Double = 18.0
@@ -96,11 +112,28 @@ class BibleManager: ObservableObject {
     private let accentThemeKey = "accent_theme"
     private let notificationsEnabledKey = "daily_notifications_enabled"
     private let notificationTimeKey = "daily_notification_time"
+    private let morningNotificationsEnabledKey = "morning_notifications_enabled"
+    private let morningNotificationTimeKey = "morning_notification_time"
+    private let eveningNotificationsEnabledKey = "evening_notifications_enabled"
+    private let eveningNotificationTimeKey = "evening_notification_time"
+    private let churchFeastsNotificationsEnabledKey = "church_feasts_notifications_enabled"
+    private let readingPlanNotificationsEnabledKey = "reading_plan_notifications_enabled"
+    private let readingPlanNotificationTimeKey = "reading_plan_notification_time"
+    private let hapticsEnabledKey = "haptics_enabled"
+    private let biometricLockEnabledKey = "biometric_lock_enabled"
+    private let aiTheologicalToneKey = "ai_theological_tone"
+    private let quizDefaultQuestionCountKey = "quiz_default_question_count"
+    private let quizTimerDurationKey = "quiz_timer_duration"
+    private let quizSoundEffectsEnabledKey = "quiz_sound_effects_enabled"
     private let lockScreenCategoryKey = "lock_screen_category"
     private let mediumWidgetCategoryKey = "medium_widget_category"
     private let largeWidgetCategoryKey = "large_widget_category"
     private let widgetVisualStyleKey = "widget_visual_style"
     
+    @Published var aiTheologicalTone: AITheologicalTone = .patristic
+    @Published var quizDefaultQuestionCount: Int = 10
+    @Published var quizTimerDuration: Int = 0
+    @Published var quizSoundEffectsEnabled: Bool = true
     @Published var lockScreenCategory: LockScreenCategory = .pearls
     @Published var mediumWidgetCategory: HomeWidgetCategory = .all
     @Published var largeWidgetCategory: HomeWidgetCategory = .all
@@ -297,22 +330,77 @@ class BibleManager: ObservableObject {
         self.widgetVisualStyle = AppGroupConstants.sharedVisualStyle()
         
         // Загрузка Уведомлений
-        if let defaults = sharedDefaults {
-            self.dailyNotificationsEnabled = defaults.bool(forKey: notificationsEnabledKey)
-            if let savedTime = defaults.object(forKey: notificationTimeKey) as? Date {
-                self.dailyNotificationTime = savedTime
-            } else {
-                var components = DateComponents()
-                components.hour = 9
-                components.minute = 0
-                self.dailyNotificationTime = Calendar.current.date(from: components) ?? Date()
-            }
+        let notifDefaults = sharedDefaults ?? UserDefaults.standard
+        let hasMorningKey = notifDefaults.object(forKey: morningNotificationsEnabledKey) != nil
+        if hasMorningKey {
+            self.morningNotificationsEnabled = notifDefaults.bool(forKey: morningNotificationsEnabledKey)
         } else {
-            self.dailyNotificationsEnabled = false
-            var components = DateComponents()
-            components.hour = 9
-            components.minute = 0
-            self.dailyNotificationTime = Calendar.current.date(from: components) ?? Date()
+            self.morningNotificationsEnabled = notifDefaults.bool(forKey: notificationsEnabledKey)
+        }
+        
+        if let savedMorning = notifDefaults.object(forKey: morningNotificationTimeKey) as? Date {
+            self.morningNotificationTime = savedMorning
+        } else if let savedLegacy = notifDefaults.object(forKey: notificationTimeKey) as? Date {
+            self.morningNotificationTime = savedLegacy
+        } else {
+            var comp = DateComponents()
+            comp.hour = 8
+            comp.minute = 30
+            self.morningNotificationTime = Calendar.current.date(from: comp) ?? Date()
+        }
+        
+        self.dailyNotificationsEnabled = self.morningNotificationsEnabled
+        self.dailyNotificationTime = self.morningNotificationTime
+        
+        self.eveningNotificationsEnabled = notifDefaults.bool(forKey: eveningNotificationsEnabledKey)
+        if let savedEvening = notifDefaults.object(forKey: eveningNotificationTimeKey) as? Date {
+            self.eveningNotificationTime = savedEvening
+        } else {
+            var comp = DateComponents()
+            comp.hour = 21
+            comp.minute = 30
+            self.eveningNotificationTime = Calendar.current.date(from: comp) ?? Date()
+        }
+        
+        self.churchFeastsNotificationsEnabled = notifDefaults.bool(forKey: churchFeastsNotificationsEnabledKey)
+        
+        self.readingPlanNotificationsEnabled = notifDefaults.bool(forKey: readingPlanNotificationsEnabledKey)
+        if let savedPlanTime = notifDefaults.object(forKey: readingPlanNotificationTimeKey) as? Date {
+            self.readingPlanNotificationTime = savedPlanTime
+        } else {
+            var comp = DateComponents()
+            comp.hour = 20
+            comp.minute = 30
+            self.readingPlanNotificationTime = Calendar.current.date(from: comp) ?? Date()
+        }
+        
+        // Загрузка тактильного отклика и биометрии
+        if notifDefaults.object(forKey: hapticsEnabledKey) != nil {
+            self.isHapticsEnabled = notifDefaults.bool(forKey: hapticsEnabledKey)
+        } else {
+            self.isHapticsEnabled = true
+        }
+        
+        self.isBiometricLockEnabled = notifDefaults.bool(forKey: biometricLockEnabledKey)
+        self.isAppUnlocked = !self.isBiometricLockEnabled
+        self.cachedStorageSize = calculateCacheSize()
+        
+        // Загрузка тона ИИ
+        if let savedToneRaw = notifDefaults.string(forKey: aiTheologicalToneKey),
+           let savedTone = AITheologicalTone(rawValue: savedToneRaw) {
+            self.aiTheologicalTone = savedTone
+        } else {
+            self.aiTheologicalTone = .patristic
+        }
+        
+        // Загрузка настроек викторины
+        let savedQuizCount = notifDefaults.integer(forKey: quizDefaultQuestionCountKey)
+        self.quizDefaultQuestionCount = savedQuizCount > 0 ? savedQuizCount : 10
+        self.quizTimerDuration = notifDefaults.integer(forKey: quizTimerDurationKey)
+        if notifDefaults.object(forKey: quizSoundEffectsEnabledKey) != nil {
+            self.quizSoundEffectsEnabled = notifDefaults.bool(forKey: quizSoundEffectsEnabledKey)
+        } else {
+            self.quizSoundEffectsEnabled = true
         }
         
         // Загрузка языка виджета
@@ -769,31 +857,92 @@ class BibleManager: ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
     }
     
-    // MARK: - Сохранение и планирование уведомлений
-    func setDailyNotificationsEnabled(_ enabled: Bool) {
+    // MARK: - Сохранение и планирование духовных уведомлений
+    func setMorningNotificationsEnabled(_ enabled: Bool) {
+        self.morningNotificationsEnabled = enabled
         self.dailyNotificationsEnabled = enabled
-        if let defaults = sharedDefaults {
-            defaults.set(enabled, forKey: notificationsEnabledKey)
-        }
-        if enabled {
-            requestNotificationPermission { granted in
-                if granted {
-                    self.scheduleDailyNotifications()
-                }
-            }
-        } else {
-            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(enabled, forKey: morningNotificationsEnabledKey)
+        defaults.set(enabled, forKey: notificationsEnabledKey)
+        handleNotificationToggleChange(enabled: enabled)
+    }
+    
+    func setMorningNotificationTime(_ time: Date) {
+        self.morningNotificationTime = time
+        self.dailyNotificationTime = time
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(time, forKey: morningNotificationTimeKey)
+        defaults.set(time, forKey: notificationTimeKey)
+        if morningNotificationsEnabled {
+            scheduleAllNotifications()
         }
     }
     
+    func setEveningNotificationsEnabled(_ enabled: Bool) {
+        self.eveningNotificationsEnabled = enabled
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(enabled, forKey: eveningNotificationsEnabledKey)
+        handleNotificationToggleChange(enabled: enabled)
+    }
+    
+    func setEveningNotificationTime(_ time: Date) {
+        self.eveningNotificationTime = time
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(time, forKey: eveningNotificationTimeKey)
+        if eveningNotificationsEnabled {
+            scheduleAllNotifications()
+        }
+    }
+    
+    func setChurchFeastsNotificationsEnabled(_ enabled: Bool) {
+        self.churchFeastsNotificationsEnabled = enabled
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(enabled, forKey: churchFeastsNotificationsEnabledKey)
+        handleNotificationToggleChange(enabled: enabled)
+    }
+    
+    func setReadingPlanNotificationsEnabled(_ enabled: Bool) {
+        self.readingPlanNotificationsEnabled = enabled
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(enabled, forKey: readingPlanNotificationsEnabledKey)
+        handleNotificationToggleChange(enabled: enabled)
+    }
+    
+    func setReadingPlanNotificationTime(_ time: Date) {
+        self.readingPlanNotificationTime = time
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(time, forKey: readingPlanNotificationTimeKey)
+        if readingPlanNotificationsEnabled {
+            scheduleAllNotifications()
+        }
+    }
+    
+    private func handleNotificationToggleChange(enabled: Bool) {
+        if enabled {
+            requestNotificationPermission { [weak self] granted in
+                guard let self = self else { return }
+                if granted {
+                    self.scheduleAllNotifications()
+                } else {
+                    self.morningNotificationsEnabled = false
+                    self.eveningNotificationsEnabled = false
+                    self.churchFeastsNotificationsEnabled = false
+                    self.readingPlanNotificationsEnabled = false
+                    self.dailyNotificationsEnabled = false
+                    self.scheduleAllNotifications()
+                }
+            }
+        } else {
+            self.scheduleAllNotifications()
+        }
+    }
+    
+    func setDailyNotificationsEnabled(_ enabled: Bool) {
+        setMorningNotificationsEnabled(enabled)
+    }
+    
     func setDailyNotificationTime(_ time: Date) {
-        self.dailyNotificationTime = time
-        if let defaults = sharedDefaults {
-            defaults.set(time, forKey: notificationTimeKey)
-        }
-        if dailyNotificationsEnabled {
-            scheduleDailyNotifications()
-        }
+        setMorningNotificationTime(time)
     }
     
     func requestNotificationPermission(completion: @escaping (Bool) -> Void = { _ in }) {
@@ -805,42 +954,373 @@ class BibleManager: ObservableObject {
     }
     
     func scheduleDailyNotifications() {
+        scheduleAllNotifications()
+    }
+    
+    func scheduleAllNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         
-        guard dailyNotificationsEnabled else { return }
-        
-        let database = getFilteredDatabase(for: selectedCategory)
-        guard !database.isEmpty else { return }
+        let anyEnabled = morningNotificationsEnabled || eveningNotificationsEnabled || churchFeastsNotificationsEnabled || readingPlanNotificationsEnabled
+        guard anyEnabled else { return }
         
         let calendar = Calendar.current
-        let timeComponents = calendar.dateComponents([.hour, .minute], from: dailyNotificationTime)
+        let now = Date()
         
-        // UNUserNotificationCenter принимает до 64 уведомлений, мы планируем 7 штук на неделю вперед
-        for dayOffset in 0..<7 {
-            let verse = database.randomElement() ?? database[0]
-            
-            let content = UNMutableNotificationContent()
-            content.title = "widget_title".localized(for: appLanguage)
-            content.body = "\(verse.text) (\(verse.reference))"
-            content.sound = .default
-            
-            guard let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: Date()) else { continue }
-            var components = calendar.dateComponents([.year, .month, .day], from: targetDate)
-            components.hour = timeComponents.hour
-            components.minute = timeComponents.minute
-            
-            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: "daily_verse_\(dayOffset)",
-                content: content,
-                trigger: trigger
-            )
-            
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error = error {
-                    print("Error scheduling notification: \(error)")
+        // 1. Утренний стих дня (7 дней вперед)
+        if morningNotificationsEnabled {
+            let database = getFilteredDatabase(for: selectedCategory)
+            if !database.isEmpty {
+                let timeComponents = calendar.dateComponents([.hour, .minute], from: morningNotificationTime)
+                for dayOffset in 0..<7 {
+                    let verse = database.randomElement() ?? database[0]
+                    let content = UNMutableNotificationContent()
+                    content.title = appLanguage == .armenian ? "Առավոտյան օրվա համար" : (appLanguage == .russian ? "Утренний стих дня" : "Morning Verse of the Day")
+                    content.body = "\(verse.text(for: appLanguage)) (\(verse.reference(for: appLanguage)))"
+                    content.sound = .default
+                    
+                    guard let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: now) else { continue }
+                    var components = calendar.dateComponents([.year, .month, .day], from: targetDate)
+                    components.hour = timeComponents.hour
+                    components.minute = timeComponents.minute
+                    
+                    if let scheduledDate = calendar.date(from: components), scheduledDate <= now {
+                        continue
+                    }
+                    
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                    let request = UNNotificationRequest(
+                        identifier: "morning_verse_\(dayOffset)",
+                        content: content,
+                        trigger: trigger
+                    )
+                    UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
                 }
             }
+        }
+        
+        // 2. Вечерняя молитва и покой (7 дней вперед)
+        if eveningNotificationsEnabled {
+            let eveningPool: [BibleVerse] = !BibleVerse.shortPsalms.isEmpty ? BibleVerse.shortPsalms : (!BibleVerse.shortPearls.isEmpty ? BibleVerse.shortPearls : BibleVerse.database)
+            if !eveningPool.isEmpty {
+                let timeComponents = calendar.dateComponents([.hour, .minute], from: eveningNotificationTime)
+                for dayOffset in 0..<7 {
+                    let verse = eveningPool.randomElement() ?? eveningPool[0]
+                    let content = UNMutableNotificationContent()
+                    content.title = appLanguage == .armenian ? "Երեկոյան աղոթք և խաղաղություն" : (appLanguage == .russian ? "Вечерняя молитва и покой" : "Evening Peace & Prayer")
+                    content.body = "\(verse.text(for: appLanguage)) (\(verse.reference(for: appLanguage)))"
+                    content.sound = .default
+                    
+                    guard let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: now) else { continue }
+                    var components = calendar.dateComponents([.year, .month, .day], from: targetDate)
+                    components.hour = timeComponents.hour
+                    components.minute = timeComponents.minute
+                    
+                    if let scheduledDate = calendar.date(from: components), scheduledDate <= now {
+                        continue
+                    }
+                    
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                    let request = UNNotificationRequest(
+                        identifier: "evening_verse_\(dayOffset)",
+                        content: content,
+                        trigger: trigger
+                    )
+                    UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+                }
+            }
+        }
+        
+        // 3. Праздники и посты Церкви (ААЦ) на 14 дней вперед (накануне в 19:30)
+        if churchFeastsNotificationsEnabled {
+            let currentYear = calendar.component(.year, from: now)
+            var upcomingFeasts = ChurchCalendarService.shared.feasts(for: currentYear)
+            if calendar.component(.month, from: now) == 12 {
+                upcomingFeasts.append(contentsOf: ChurchCalendarService.shared.feasts(for: currentYear + 1))
+            }
+            
+            let todayStart = calendar.startOfDay(for: now)
+            if let maxDate = calendar.date(byAdding: .day, value: 14, to: todayStart) {
+                let relevantFeasts = upcomingFeasts.filter {
+                    let feastDay = calendar.startOfDay(for: $0.date)
+                    return feastDay >= todayStart && feastDay <= maxDate
+                }
+                
+                for (idx, feast) in relevantFeasts.prefix(12).enumerated() {
+                    guard let eveDate = calendar.date(byAdding: .day, value: -1, to: feast.date) else { continue }
+                    var components = calendar.dateComponents([.year, .month, .day], from: eveDate)
+                    components.hour = 19
+                    components.minute = 30
+                    
+                    if let scheduledDate = calendar.date(from: components), scheduledDate <= now {
+                        continue
+                    }
+                    
+                    let content = UNMutableNotificationContent()
+                    content.title = appLanguage == .armenian ? "ՀԱԵ Տոնացույց" : (appLanguage == .russian ? "Церковный календарь ААЦ" : "Armenian Church Calendar")
+                    
+                    let feastTitle = feast.title(for: appLanguage)
+                    let feastTypeStr = feast.type.localizedTitle(for: appLanguage)
+                    content.body = appLanguage == .armenian ? "Վաղը՝ \(feastTitle) (\(feastTypeStr))" : (appLanguage == .russian ? "Завтра: \(feastTitle) (\(feastTypeStr))" : "Tomorrow: \(feastTitle) (\(feastTypeStr))")
+                    content.sound = .default
+                    
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                    let request = UNNotificationRequest(
+                        identifier: "feast_\(idx)_\(feast.id)",
+                        content: content,
+                        trigger: trigger
+                    )
+                    UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+                }
+            }
+        }
+        
+        // 4. План чтения Библии и сохранение стрика (7 дней вперед)
+        if readingPlanNotificationsEnabled {
+            let timeComponents = calendar.dateComponents([.hour, .minute], from: readingPlanNotificationTime)
+            for dayOffset in 0..<7 {
+                guard let targetDate = calendar.date(byAdding: .day, value: dayOffset, to: now) else { continue }
+                var components = calendar.dateComponents([.year, .month, .day], from: targetDate)
+                components.hour = timeComponents.hour
+                components.minute = timeComponents.minute
+                
+                if let scheduledDate = calendar.date(from: components), scheduledDate <= now {
+                    continue
+                }
+                
+                let content = UNMutableNotificationContent()
+                content.title = appLanguage == .armenian ? "Աստվածաշնչի ընթերցում" : (appLanguage == .russian ? "Чтение Библии" : "Daily Bible Reading")
+                content.body = appLanguage == .armenian ? "Մի մոռացեք այսօրվա ընթերցանությունը՝ ձեր սթրիքը պահպանելու համար:" : (appLanguage == .russian ? "Уделите время чтению Писания сегодня, чтобы не прервать стрик!" : "Don't forget today's Bible reading to keep your reading streak alive!")
+                content.sound = .default
+                
+                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                let request = UNNotificationRequest(
+                    identifier: "reading_plan_\(dayOffset)",
+                    content: content,
+                    trigger: trigger
+                )
+                UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+            }
+        }
+    }
+    
+    // MARK: - Тактильный отклик (Haptic Feedback)
+    func setHapticsEnabled(_ enabled: Bool) {
+        self.isHapticsEnabled = enabled
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(enabled, forKey: hapticsEnabledKey)
+        if enabled {
+            triggerHapticImpact(.medium)
+        }
+    }
+    
+    func triggerHapticImpact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) {
+        guard isHapticsEnabled else { return }
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
+    
+    func triggerHapticNotification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        guard isHapticsEnabled else { return }
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(type)
+    }
+    
+    // MARK: - Биометрическая безопасность (Face ID / Touch ID)
+    func setBiometricLockEnabled(_ enabled: Bool, completion: @escaping (Bool) -> Void) {
+        let context = LAContext()
+        context.localizedCancelTitle = "Отмена"
+        var error: NSError?
+        
+        let policy: LAPolicy = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) ?
+            .deviceOwnerAuthenticationWithBiometrics : .deviceOwnerAuthentication
+            
+        guard context.canEvaluatePolicy(policy, error: &error) else {
+            completion(false)
+            return
+        }
+        
+        let reason = "biometric_auth_reason".localized(for: appLanguage)
+        context.evaluatePolicy(policy, localizedReason: reason) { [weak self] success, _ in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                if success {
+                    self.isBiometricLockEnabled = enabled
+                    let defaults = self.sharedDefaults ?? UserDefaults.standard
+                    defaults.set(enabled, forKey: self.biometricLockEnabledKey)
+                    self.isAppUnlocked = true
+                    self.triggerHapticNotification(.success)
+                    completion(true)
+                } else {
+                    self.triggerHapticNotification(.error)
+                    completion(false)
+                }
+            }
+        }
+    }
+    
+    func authenticateWithBiometrics(completion: ((Bool) -> Void)? = nil) {
+        let context = LAContext()
+        context.localizedCancelTitle = "Отмена"
+        var error: NSError?
+        
+        let policy: LAPolicy = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) ?
+            .deviceOwnerAuthenticationWithBiometrics : .deviceOwnerAuthentication
+            
+        guard context.canEvaluatePolicy(policy, error: &error) else {
+            DispatchQueue.main.async {
+                self.isAppUnlocked = true
+                completion?(true)
+            }
+            return
+        }
+        
+        let reason = "biometric_auth_reason".localized(for: appLanguage)
+        context.evaluatePolicy(policy, localizedReason: reason) { [weak self] success, _ in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                if success {
+                    self.isAppUnlocked = true
+                    self.triggerHapticNotification(.success)
+                    completion?(true)
+                } else {
+                    self.isAppUnlocked = false
+                    self.triggerHapticNotification(.warning)
+                    completion?(false)
+                }
+            }
+        }
+    }
+    
+    func lockApp() {
+        if isBiometricLockEnabled {
+            isAppUnlocked = false
+        }
+    }
+    
+    // MARK: - Управление памятью и кэшем (Cache Management)
+    func calculateCacheSize() -> String {
+        var totalBytes: Int64 = 0
+        let fileManager = FileManager.default
+        
+        if let cachesUrl = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            totalBytes += directorySize(url: cachesUrl)
+        }
+        
+        let tempUrl = fileManager.temporaryDirectory
+        totalBytes += directorySize(url: tempUrl)
+        
+        if let groupUrl = fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppGroupConstants.activeSuiteName) {
+            let groupCaches = groupUrl.appendingPathComponent("Library/Caches", isDirectory: true)
+            totalBytes += directorySize(url: groupCaches)
+        }
+        
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: totalBytes)
+    }
+    
+    private func directorySize(url: URL) -> Int64 {
+        let fileManager = FileManager.default
+        guard let enumerator = fileManager.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey], options: [.skipsHiddenFiles]) else {
+            return 0
+        }
+        
+        var total: Int64 = 0
+        for case let fileUrl as URL in enumerator {
+            if fileUrl.lastPathComponent == "bible.db" { continue }
+            if let values = try? fileUrl.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
+               values.isDirectory == false,
+               let size = values.fileSize {
+                total += Int64(size)
+            }
+        }
+        return total
+    }
+    
+    @discardableResult
+    func clearAppCache() -> Bool {
+        let fileManager = FileManager.default
+        var hasClearedAny = false
+        
+        if let cachesUrl = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first,
+           let items = try? fileManager.contentsOfDirectory(at: cachesUrl, includingPropertiesForKeys: nil) {
+            for item in items {
+                if item.lastPathComponent == "bible.db" { continue }
+                try? fileManager.removeItem(at: item)
+                hasClearedAny = true
+            }
+        }
+        
+        let tempUrl = fileManager.temporaryDirectory
+        if let tempItems = try? fileManager.contentsOfDirectory(at: tempUrl, includingPropertiesForKeys: nil) {
+            for item in tempItems {
+                if item.lastPathComponent == "bible.db" { continue }
+                try? fileManager.removeItem(at: item)
+                hasClearedAny = true
+            }
+        }
+        
+        self.cachedStorageSize = calculateCacheSize()
+        triggerHapticNotification(.success)
+        return hasClearedAny
+    }
+    
+    // MARK: - Резервное копирование и экспорт (Backup & Export)
+    struct AppBackupData: Codable {
+        let appVersion: String
+        let exportDate: String
+        let appLanguage: String
+        let favoritesCount: Int
+        let favorites: [FavoriteItem]
+        let annotations: [String: VerseAnnotation]
+        let highlightedVerses: [String: String]
+        let readingStreak: Int
+        let bestStreak: Int
+        let completedReadingDays: [String: [Int]]
+    }
+    
+    func generateBackupArchive() -> URL? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let dateString = dateFormatter.string(from: Date())
+        
+        let fileDateFormatter = DateFormatter()
+        fileDateFormatter.dateFormat = "yyyyMMdd_HHmmss"
+        let fileDateString = fileDateFormatter.string(from: Date())
+        
+        let planManager = ReadingPlanManager.shared
+        
+        let backup = AppBackupData(
+            appVersion: "2.3",
+            exportDate: dateString,
+            appLanguage: appLanguage.displayName,
+            favoritesCount: favoriteVerses.count,
+            favorites: favoriteVerses,
+            annotations: annotations,
+            highlightedVerses: highlightedVerses,
+            readingStreak: planManager.currentStreak,
+            bestStreak: planManager.bestStreak,
+            completedReadingDays: planManager.completedDays
+        )
+        
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        
+        guard let data = try? encoder.encode(backup) else { return nil }
+        
+        let fileName = "ArmenianBible_Backup_\(fileDateString).json"
+        let tempUrl = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        
+        do {
+            try data.write(to: tempUrl, options: .atomic)
+            triggerHapticNotification(.success)
+            return tempUrl
+        } catch {
+            print("Failed to save backup file: \(error)")
+            return nil
         }
     }
     
@@ -1160,14 +1640,15 @@ class BibleManager: ObservableObject {
     
     // MARK: - Духовный ответчик ИИ по Библии
     func askBibleAI(question: String, completion: @escaping (Result<BibleAnswer, Error>) -> Void) {
+        let toneGuidance = aiTheologicalTone.promptGuidance(for: appLanguage)
         let prompt: String
         switch appLanguage {
         case .armenian:
-            prompt = "Դու Աստվածաշնչի փորձագետ և հոգևոր առաջնորդ ես: Օգտատերը հարցնում է. «\(question)»: Տուր մանրամասն, իմաստուն և մխիթարական պատասխան հայերեն լեզվով՝ հիմնված Սուրբ Գրքի վրա: Պատասխանի վերջում անպայման բեր մեկ հիմնական աստվածաշնչյան տող հետևյալ ճշգրիտ ֆորմատով՝\nVERSE_START\n[Տեքստ] | [Հղում]\nVERSE_END"
+            prompt = "Դու Աստվածաշնչի փորձագետ և հոգևոր առաջնորդ ես: Օգտատերը հարցնում է. «\(question)»: \(toneGuidance) Տուր մանրամասն, իմաստուն և մխիթարական պատասխան հայերեն լեզվով՝ հիմնված Սուրբ Գրքի վրա: Պատասխանի վերջում անպայման բեր մեկ հիմնական աստվածաշնչյան տող հետևյալ ճշգրիտ ֆորմատով՝\nVERSE_START\n[Տեքստ] | [Հղում]\nVERSE_END"
         case .russian:
-            prompt = "Ты эксперт по Библии и духовный наставник. Пользователь спрашивает: «\(question)». Дай подробный, мудрый и поддерживающий ответ на русском языке, основанный на Священном Писании. В самом конце ответа обязательно приведи один ключевой библейский стих в следующем точном формате:\nVERSE_START\n[Текст стиха] | [Ссылка на стих]\nVERSE_END"
+            prompt = "Ты эксперт по Библии и духовный наставник. Пользователь спрашивает: «\(question)». \(toneGuidance) Дай подробный, мудрый и поддерживающий ответ на русском языке, основанный на Священном Писании. В самом конце ответа обязательно приведи один ключевой библейский стих в следующем точном формате:\nVERSE_START\n[Текст стиха] | [Ссылка на стих]\nVERSE_END"
         case .english:
-            prompt = "You are a Bible expert and spiritual guide. The user asks: \"\(question)\". Provide a detailed, wise, and comforting answer in English based on the Holy Scriptures. At the very end of your response, include one key Bible verse in the following exact format:\nVERSE_START\n[Verse Text] | [Reference]\nVERSE_END"
+            prompt = "You are a Bible expert and spiritual guide. The user asks: \"\(question)\". \(toneGuidance) Provide a detailed, wise, and comforting answer in English based on the Holy Scriptures. At the very end of your response, include one key Bible verse in the following exact format:\nVERSE_START\n[Verse Text] | [Reference]\nVERSE_END"
         }
         
         generateTextFromAI(prompt: prompt) { [weak self] result in
@@ -1207,6 +1688,51 @@ class BibleManager: ObservableObject {
                 }
             }
         }
+    }
+    
+    // MARK: - Управление богословским тоном ИИ
+    func setAITheologicalTone(_ tone: AITheologicalTone) {
+        self.aiTheologicalTone = tone
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(tone.rawValue, forKey: aiTheologicalToneKey)
+        triggerHapticNotification(.success)
+        objectWillChange.send()
+    }
+    
+    // MARK: - Управление настройками викторины
+    func setQuizDefaultQuestionCount(_ count: Int) {
+        self.quizDefaultQuestionCount = count
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(count, forKey: quizDefaultQuestionCountKey)
+        triggerHapticImpact(.light)
+        objectWillChange.send()
+    }
+    
+    func setQuizTimerDuration(_ duration: Int) {
+        self.quizTimerDuration = duration
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(duration, forKey: quizTimerDurationKey)
+        triggerHapticImpact(.light)
+        objectWillChange.send()
+    }
+    
+    func setQuizSoundEffectsEnabled(_ enabled: Bool) {
+        self.quizSoundEffectsEnabled = enabled
+        let defaults = sharedDefaults ?? UserDefaults.standard
+        defaults.set(enabled, forKey: quizSoundEffectsEnabledKey)
+        triggerHapticImpact(.light)
+        objectWillChange.send()
+    }
+    
+    func resetQuizFullStats() {
+        self.quizBestScore = 0
+        if let defaults = sharedDefaults {
+            defaults.set(0, forKey: "quiz_best_score")
+        }
+        QuizAdaptiveDiary.shared.resetDiary()
+        AchievementsManager.shared.resetQuizStatistics()
+        triggerHapticNotification(.success)
+        objectWillChange.send()
     }
     
     // MARK: - Управление рекордами Викторины
@@ -1422,5 +1948,83 @@ struct AIChatMessage: Identifiable, Codable, Equatable {
         self.text = text
         self.verse = verse
         self.timestamp = timestamp
+    }
+}
+
+// MARK: - Богословский тон ответов ИИ
+enum AITheologicalTone: String, CaseIterable, Identifiable, Codable {
+    case patristic = "patristic"
+    case pastoral = "pastoral"
+    case historical = "historical"
+    case simple = "simple"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .patristic: return "cross.fill"
+        case .pastoral: return "heart.fill"
+        case .historical: return "book.fill"
+        case .simple: return "sun.max.fill"
+        }
+    }
+    
+    var colorHex: String {
+        switch self {
+        case .patristic: return "D97706"
+        case .pastoral: return "EC4899"
+        case .historical: return "3B82F6"
+        case .simple: return "10B981"
+        }
+    }
+    
+    func localizedTitle(for lang: AppLanguage) -> String {
+        switch self {
+        case .patristic: return "ai_tone_patristic".localized(for: lang)
+        case .pastoral: return "ai_tone_pastoral".localized(for: lang)
+        case .historical: return "ai_tone_historical".localized(for: lang)
+        case .simple: return "ai_tone_simple".localized(for: lang)
+        }
+    }
+    
+    func localizedDesc(for lang: AppLanguage) -> String {
+        switch self {
+        case .patristic: return "ai_tone_patristic_desc".localized(for: lang)
+        case .pastoral: return "ai_tone_pastoral_desc".localized(for: lang)
+        case .historical: return "ai_tone_historical_desc".localized(for: lang)
+        case .simple: return "ai_tone_simple_desc".localized(for: lang)
+        }
+    }
+    
+    func promptGuidance(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.patristic, .armenian):
+            return "Հատուկ ուշադրություն դարձրու Հայ Առաքելական Սուրբ Եկեղեցու հայրերի և վարդապետների (Գրիգոր Լուսավորիչ, Գրիգոր Նարեկացի, Ներսես Շնորհալի) ավանդությանը:"
+        case (.patristic, .russian):
+            return "Придерживайся святоотеческого толкования и древней традиции Армянской Апостольской Церкви и святых вардапетов (св. Григор Просветитель, св. Григор Нарекаци, св. Нерсес Шнорали)."
+        case (.patristic, .english):
+            return "Adhere to the patristic interpretations and the ancient sacred tradition of the Armenian Apostolic Church and holy vardapets (St. Gregory the Illuminator, St. Gregory of Narek, St. Nerses the Gracious)."
+            
+        case (.pastoral, .armenian):
+            return "Պատասխանիր հոգևոր հոգատարությամբ, ջերմությամբ և քաջալերանքով՝ շեշտելով հոգևոր մխիթարությունն ու գործնական կիրառումը քրիստոնեական կյանքում:"
+        case (.pastoral, .russian):
+            return "Отвечай пастырски, тепло и ободряюще, делая главный акцент на духовном утешении, укреплении веры и практическом применении в христианской жизни."
+        case (.pastoral, .english):
+            return "Provide a pastoral, warm, and uplifting response emphasizing personal spiritual life, faith strengthening, and comforting guidance."
+            
+        case (.historical, .armenian):
+            return "Մանրամասն ներկայացրու գրքի պատմական, աստվածաբանական և մշակութային համատեքստը՝ անդրադառնալով բնագրի լեզվին և իմաստային շերտերին:"
+        case (.historical, .russian):
+            return "Раскрой исторический, богословский и культурный контекст книги и стихов, уделяя особое внимание языку оригинала, эпохе и экзегетическому смыслу Писания."
+        case (.historical, .english):
+            return "Explore the historical, theological, and cultural context, noting original language nuances, historical era, and biblical exegesis."
+            
+        case (.simple, .armenian):
+            return "Բացատրիր հնարավորինս պարզ, մատչելի և հասկանալի լեզվով՝ առանց բարդ տերմինների, նրանց համար, ովքեր նոր են սկսում ծանոթանալ Սուրբ Գրքին:"
+        case (.simple, .russian):
+            return "Объясняй максимально просто, тепло и доступно, избегая перегруженных терминов, специально для тех, кто только начинает читать и постигать Священное Писание."
+        case (.simple, .english):
+            return "Explain simply, clearly, and accessibly without complex theological jargon, specifically tailored for beginners exploring Holy Scripture."
+        }
     }
 }

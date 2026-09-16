@@ -67,9 +67,18 @@
 "appearance_light" = "Լուսավոր";
 "appearance_dark" = "Մութ";
 "theme_section_title" = "Գունային թեմա";
-"notification_section_title" = "Օրական ծանուցումներ";
-"notification_enable_title" = "Օրվա տողը ամեն առավոտ";
+"notification_section_title" = "Հոգևոր հիշեցումներ";
+"notification_section_desc" = "Օրվա համարներ, երեկոյան աղոթքներ, Եկեղեցու տոներ և Աստվածաշնչի ընթերցում:";
+"notification_morning_title" = "Առավոտյան օրվա համար";
+"notification_morning_desc" = "Ոգեշնչում և Աստծո Խոսք ամեն օրվա սկզբում";
+"notification_evening_title" = "Երեկոյան աղոթք և խաղաղություն";
+"notification_evening_desc" = "Սաղմոսներ և աղոթքներ քնելուց առաջ";
+"notification_church_calendar_title" = "ՀԱԵ տոներ և պահք";
+"notification_church_calendar_desc" = "Ծանուցումներ մեծ տոների և պահքի նախօրեին ժամը 19:30-ին";
+"notification_reading_plan_title" = "Ընթերցանություն և սթրիք";
+"notification_reading_plan_desc" = "Հիշեցում՝ օրական սթրիքը չխզելու և Սուրբ Գիրքն ընթերցելու համար";
 "notification_time_title" = "Ծանուցման ժամը";
+"notification_enable_title" = "Օրվա տողը ամեն առավոտ";
 "share_button" = "Կիսվել";
 "save_image_success" = "Բացիկը պահպանվեց պատկերասրահում";
 "favorite_added" = "Ավելացվեց ընտրյալների մեջ";
@@ -391,3 +400,78 @@
 "read_button" = "Կարդալ";
 "reading_plan_card_hint" = "Ընտրեք ծրագիր ամենօրյա ընթերցանության համար";
 
+/* System, Security & Data */
+"system_storage_section_title" = "Համակարգ և տվյալներ";
+"system_storage_section_desc" = "Տակտիլ արձագանք, Face ID անվտանգություն, քեշի մաքրում և պահուստավորում:";
+"haptics_title" = "Տակտիլ արձագանք (Haptic)";
+"haptics_desc" = "Թրթռում կոճակների և ընտրությունների ժամանակ";
+"biometric_lock_title" = "Face ID / Touch ID կողպում";
+"biometric_lock_desc" = "Ընտրյալների, նշումների և ընթերցանության պաշտպանություն";
+"biometric_auth_reason" = "Ապակողպեք հավելված մուտք գործելու համար";
+"cache_clear_title" = "Քեշի մաքրում";
+"cache_clear_desc" = "Ազատում է հիշողությունը ժամանակավոր ֆայլերից";
+"cache_size_label" = "Զբաղեցված է՝";
+"cache_clear_btn" = "Մաքրել";
+"cache_cleared_toast" = "Քեշը հաջողությամբ մաքրվեց";
+"export_backup_title" = "Պահուստավորում և արտահանում";
+"export_backup_desc" = "Ընտրյալ համարների, նշումների և առաջընթացի արտահանում";
+"export_backup_btn" = "Արտահանել տվյալները";
+"unlock_app_btn" = "Ապակողպել";
+"app_locked_title" = "Armenian Bible-ը պաշտպանված է";
+"app_locked_subtitle" = "Շարունակելու համար հաստատեք ինքնությունը Face ID-ով կամ ծածկագրով";
+
+/* AI Settings (Tone & Chat History) */
+"ai_theological_tone_title" = "AI-ի աստվածաբանական ոճը";
+"ai_theological_tone_desc" = "Ընտրեք մեկնաբանության ուղղվածությունը և Հոգևոր Օգնականի ոճը՝";
+"ai_tone_patristic" = "Հայրապետական (ՀԱԵ)";
+"ai_tone_patristic_desc" = "Եկեղեցու հայրերի և հայ վարդապետների ավանդությամբ";
+"ai_tone_pastoral" = "Հովվական";
+"ai_tone_pastoral_desc" = "Հոգևոր մխիթարություն և գործնական կյանք";
+"ai_tone_historical" = "Պատմա-աստվածաբանական";
+"ai_tone_historical_desc" = "Դարաշրջանի համատեքստ, բնագիր և մեկնաբանություն";
+"ai_tone_simple" = "Պարզ";
+"ai_tone_simple_desc" = "Մատչելի բացատրություններ սկսնակների համար";
+"ai_clear_chat_title" = "AI-ի զրույցների պատմություն";
+"ai_clear_chat_desc" = "Մաքրում է հարցերի պատմությունը և վերագործարկում համատեքստը";
+"ai_clear_chat_btn" = "Մաքրել չաթը";
+"ai_clear_chat_confirm_title" = "Մաքրե՞լ զրույցների պատմությունը";
+"ai_clear_chat_confirm_msg" = "Հոգևոր Օգնականի հետ բոլոր հարցերն ու պատասխանները կջնջվեն:";
+"ai_clear_chat_cleared_toast" = "AI զրույցների պատմությունը մաքրված է";
+"ai_chat_messages_count" = "հաղորդագրություն";
+
+/* Quiz Settings */
+"quiz_settings_section_title" = "Վիկտորինա և Ուսուցում";
+"quiz_settings_section_desc" = "Աստվածաշնչյան վիկտորինայի փուլի կարգավորումներ, ժամաչափ և ձայներ՝";
+"quiz_default_count_title" = "Հարցերի քանակը փուլում";
+"quiz_timer_setting_title" = "Պատասխանի ժամաչափ";
+"quiz_timer_none" = "Առանց ժամաչափի";
+"quiz_timer_15s" = "15 վրկ";
+"quiz_timer_30s" = "30 վրկ";
+"quiz_timer_time_up" = "Ժամանակն սպառվեց:";
+"quiz_sound_title" = "Ձայնային էֆեկտներ";
+"quiz_sound_desc" = "Ճիշտ և սխալ պատասխանների ազդանշաններ";
+"quiz_reset_stats_title" = "Վիկտորինայի վիճակագրության զրոյացում";
+"quiz_reset_stats_desc" = "Զրոյացնել ռեկորդը, անցած հարցերն ու հարմարվողական օրագիրը";
+"quiz_reset_stats_btn" = "Զրոյացնել վիճակագրությունը";
+"quiz_reset_confirm_title" = "Զրոյացնե՞լ վիկտորինայի վիճակագրությունը";
+"quiz_reset_confirm_msg" = "Ձեր ռեկորդը և հարցերի պատմությունը կզրոյացվեն: Պարգևները կպահպանվեն:";
+"quiz_stats_reset_toast" = "Վիկտորինայի վիճակագրությունը զրոյացվեց";
+
+/* Narek Audio Player Settings */
+"narek_audio_settings_title" = "Նարեկացու Աուդիոփլեյեր";
+"narek_audio_settings_desc" = "Սուրբ Գրիգոր Նարեկացու աղոթքների ունկնդրման կարգավորումներ:";
+"narek_sleep_timer_title" = "Քնի ժամանակաչափ";
+"narek_sleep_timer_desc" = "Ավտոմատ դադարեցնել ունկնդրումը քնելուց առաջ";
+"narek_sleep_timer_off" = "Անջատված";
+"narek_sleep_timer_15m" = "15 րոպե";
+"narek_sleep_timer_30m" = "30 րոպե";
+"narek_sleep_timer_45m" = "45 րոպե";
+"narek_sleep_timer_60m" = "60 րոպե";
+"narek_sleep_timer_end_of_chapter" = "Գլխի ավարտին";
+"narek_playback_rate_title" = "Ձայնագրության արագություն";
+"narek_playback_rate_desc" = "0.8x խոհական աղոթքի համար, 1.0x ստանդարտ";
+"narek_playback_rate_08" = "0.8x";
+"narek_playback_rate_10" = "1.0x";
+"narek_playback_rate_125" = "1.25x";
+"narek_autoplay_next_title" = "Ավտոմատ անցում հաջորդ գլխին";
+"narek_autoplay_next_desc" = "Գլխի ավարտից հետո ինքնաբերաբար սկսել հաջորդը";

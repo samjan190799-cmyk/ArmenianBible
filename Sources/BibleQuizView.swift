@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import AudioToolbox
 
 // MARK: - Тип модального предупреждения викторины
 private enum QuizAlertType: Identifiable {
@@ -38,6 +39,10 @@ struct BibleQuizView: View {
     @State private var categoryBreakdown: [QuizCategory: Int] = [:]
     @State private var isShowingAchievements = false
     @State private var newlyUnlockedBadges: [AchievementBadge] = []
+    
+    // Таймер на ответ
+    @State private var timeRemaining: Int = 0
+    @State private var questionCountdownTimer: Timer? = nil
     
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
@@ -202,6 +207,39 @@ struct BibleQuizView: View {
                                     .tint(accentColor)
                                     .animation(.spring(response: 0.35, dampingFraction: 0.8), value: currentQuestionIndex)
                                     .padding(.horizontal, 20)
+                                
+                                // Индикатор таймера на ответ (если включен)
+                                if manager.quizTimerDuration > 0 && !showAnswerDetails {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "timer")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundColor(timeRemaining <= 5 ? .red : secondaryAccentColor)
+                                        
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule()
+                                                    .fill(Color.primary.opacity(0.08))
+                                                
+                                                Capsule()
+                                                    .fill(
+                                                        timeRemaining <= 5 ?
+                                                        LinearGradient(colors: [.red, .orange], startPoint: .leading, endPoint: .trailing) :
+                                                        LinearGradient(colors: [accentColor, secondaryAccentColor], startPoint: .leading, endPoint: .trailing)
+                                                    )
+                                                    .frame(width: max(0, geo.size.width * (Double(timeRemaining) / Double(max(1, manager.quizTimerDuration)))))
+                                            }
+                                        }
+                                        .frame(height: 6)
+                                        
+                                        Text("\(timeRemaining)s")
+                                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                            .foregroundColor(timeRemaining <= 5 ? .red : primaryTextColor)
+                                            .scaleEffect(timeRemaining <= 5 ? 1.08 : 1.0)
+                                            .animation(.easeInOut(duration: 0.2), value: timeRemaining)
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .transition(.opacity)
+                                }
                                 
                                 // Вопрос
                                 VStack(spacing: 12) {
@@ -512,9 +550,11 @@ struct BibleQuizView: View {
         }
         .onAppear {
             QuizAdaptiveDiary.shared.recordSession()
+            selectedQuestionCount = manager.quizDefaultQuestionCount
         }
         .onDisappear {
             stopAITimer()
+            stopQuestionTimer()
         }
     }
     
@@ -645,6 +685,7 @@ struct BibleQuizView: View {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         quizStarted = true
                     }
+                    startQuestionTimer()
                 } catch {
                     stopAITimer()
                     isGeneratingAI = false
@@ -673,9 +714,11 @@ struct BibleQuizView: View {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             quizStarted = true
         }
+        startQuestionTimer()
     }
     
     private func selectAnswer(_ index: Int, question: QuizQuestion, proxy: ScrollViewProxy) {
+        stopQuestionTimer()
         selectedAnswerIndex = index
         let isCorrect = (index == question.correctAnswerIndex)
         
@@ -685,6 +728,8 @@ struct BibleQuizView: View {
             category: question.category,
             isCorrect: isCorrect
         )
+        
+        playQuizSound(isCorrect: isCorrect)
         
         if isCorrect {
             triggerHapticNotification(.success)
@@ -710,12 +755,14 @@ struct BibleQuizView: View {
                 showAnswerDetails = false
                 currentQuestionIndex += 1
             }
+            startQuestionTimer()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     proxy.scrollTo("questionTop", anchor: .top)
                 }
             }
         } else {
+            stopQuestionTimer()
             manager.updateQuizBestScore(score)
             let unlocked = achievements.recordQuizResult(score: score, total: activeQuestions.count, categoryBreakdown: categoryBreakdown)
             newlyUnlockedBadges = unlocked
@@ -728,16 +775,60 @@ struct BibleQuizView: View {
         }
     }
     
+    // MARK: - Таймер на ответ и звуки
+    private func startQuestionTimer() {
+        stopQuestionTimer()
+        guard manager.quizTimerDuration > 0 else { return }
+        timeRemaining = manager.quizTimerDuration
+        questionCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            DispatchQueue.main.async {
+                if self.timeRemaining > 1 {
+                    self.timeRemaining -= 1
+                } else {
+                    self.timeRemaining = 0
+                    self.handleTimeUp()
+                }
+            }
+        }
+    }
+    
+    private func stopQuestionTimer() {
+        questionCountdownTimer?.invalidate()
+        questionCountdownTimer = nil
+    }
+    
+    private func handleTimeUp() {
+        guard !showAnswerDetails, currentQuestionIndex < activeQuestions.count else { return }
+        stopQuestionTimer()
+        let question = activeQuestions[currentQuestionIndex]
+        selectedAnswerIndex = -1 // Время вышло, не выбран никакой ответ
+        
+        QuizAdaptiveDiary.shared.recordQuestionAnswer(
+            questionText: question.question(for: manager.appLanguage),
+            category: question.category,
+            isCorrect: false
+        )
+        
+        playQuizSound(isCorrect: false)
+        triggerHapticNotification(.error)
+        
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+            showAnswerDetails = true
+        }
+    }
+    
+    private func playQuizSound(isCorrect: Bool) {
+        guard manager.quizSoundEffectsEnabled else { return }
+        // 1057: Tink/Success chime, 1053: Error/Warning tone
+        AudioServicesPlaySystemSound(isCorrect ? 1057 : 1053)
+    }
+    
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        manager.triggerHapticImpact(style)
     }
     
     private func triggerHapticNotification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(type)
+        manager.triggerHapticNotification(type)
     }
 }
 

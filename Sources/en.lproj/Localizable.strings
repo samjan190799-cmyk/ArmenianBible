@@ -67,9 +67,18 @@
 "appearance_light" = "Light";
 "appearance_dark" = "Dark";
 "theme_section_title" = "Accent Color Theme";
-"notification_section_title" = "Daily Notifications";
+"notification_section_title" = "Spiritual Reminders";
+"notification_section_desc" = "Daily verses, evening prayers, Church feasts, and Bible reading:";
+"notification_morning_title" = "Morning Verse of the Day";
+"notification_morning_desc" = "Inspiration and God's Word to begin your day";
+"notification_evening_title" = "Evening Prayer & Peace";
+"notification_evening_desc" = "Peaceful psalms and prayers before sleep";
+"notification_church_calendar_title" = "AAC Feasts & Fasting";
+"notification_church_calendar_desc" = "Reminders on the eve of major feasts and fasts at 7:30 PM";
+"notification_reading_plan_title" = "Reading Plan & Streak";
+"notification_reading_plan_desc" = "Gentle reminder to keep your daily reading streak alive";
+"notification_time_title" = "Reminder Time";
 "notification_enable_title" = "Verse of the day every morning";
-"notification_time_title" = "Notification Time";
 "share_button" = "Share";
 "save_image_success" = "Card saved to photo gallery!";
 "favorite_added" = "Added to Favorites";
@@ -391,3 +400,78 @@
 "read_button" = "Read";
 "reading_plan_card_hint" = "Choose a plan for daily Bible reading";
 
+/* System, Security & Data */
+"system_storage_section_title" = "System & Data";
+"system_storage_section_desc" = "Haptic feedback, Face ID security, cache cleanup, and backup:";
+"haptics_title" = "Haptic Feedback";
+"haptics_desc" = "Tactile vibration on tap and interactions";
+"biometric_lock_title" = "Face ID / Touch ID Lock";
+"biometric_lock_desc" = "Protect bookmarks, notes, and reading progress";
+"biometric_auth_reason" = "Unlock to access Armenian Bible";
+"cache_clear_title" = "Cache Cleaner";
+"cache_clear_desc" = "Frees up storage from temporary files and images";
+"cache_size_label" = "Used:";
+"cache_clear_btn" = "Clear";
+"cache_cleared_toast" = "Cache cleared successfully";
+"export_backup_title" = "Backup & Export";
+"export_backup_desc" = "Export favorites, personal notes, and reading progress";
+"export_backup_btn" = "Export Data";
+"unlock_app_btn" = "Unlock";
+"app_locked_title" = "Armenian Bible Protected";
+"app_locked_subtitle" = "Authenticate with Face ID or device passcode to continue";
+
+/* AI Settings (Tone & Chat History) */
+"ai_theological_tone_title" = "AI Theological Tone";
+"ai_theological_tone_desc" = "Choose the theological focus and style for Spiritual Guide:";
+"ai_tone_patristic" = "Patristic (AAC)";
+"ai_tone_patristic_desc" = "Church Fathers and Armenian vardapets tradition";
+"ai_tone_pastoral" = "Pastoral";
+"ai_tone_pastoral_desc" = "Spiritual comfort and practical Christian life";
+"ai_tone_historical" = "Historical & Exegetical";
+"ai_tone_historical_desc" = "Historical context, original languages, and context";
+"ai_tone_simple" = "Simple & Clear";
+"ai_tone_simple_desc" = "Accessible answers for beginners exploring Scripture";
+"ai_clear_chat_title" = "AI Conversation History";
+"ai_clear_chat_desc" = "Clears chat history and resets assistant memory context";
+"ai_clear_chat_btn" = "Clear Chat";
+"ai_clear_chat_confirm_title" = "Clear Conversation History?";
+"ai_clear_chat_confirm_msg" = "All saved questions and answers with Spiritual Guide will be removed.";
+"ai_clear_chat_cleared_toast" = "AI conversation history cleared";
+"ai_chat_messages_count" = "messages";
+
+/* Quiz Settings */
+"quiz_settings_section_title" = "Bible Quiz & Learning";
+"quiz_settings_section_desc" = "Quiz round parameters, answer timer, and audio effects:";
+"quiz_default_count_title" = "Questions per Round";
+"quiz_timer_setting_title" = "Answer Timer";
+"quiz_timer_none" = "No Timer";
+"quiz_timer_15s" = "15 sec";
+"quiz_timer_30s" = "30 sec";
+"quiz_timer_time_up" = "Time is up!";
+"quiz_sound_title" = "Sound Effects";
+"quiz_sound_desc" = "Play sounds for correct and incorrect answers";
+"quiz_reset_stats_title" = "Reset Quiz Statistics";
+"quiz_reset_stats_desc" = "Reset high score, question history, and adaptive diary";
+"quiz_reset_stats_btn" = "Reset Statistics";
+"quiz_reset_confirm_title" = "Reset Quiz Statistics?";
+"quiz_reset_confirm_msg" = "This will reset your best score and question history. Unlocked badges will remain.";
+"quiz_stats_reset_toast" = "Quiz statistics reset successfully";
+
+/* Narek Audio Player Settings */
+"narek_audio_settings_title" = "Narekatsi Audio Player";
+"narek_audio_settings_desc" = "Playback settings for the prayers of St. Gregory of Narek:";
+"narek_sleep_timer_title" = "Sleep Timer";
+"narek_sleep_timer_desc" = "Automatically stop playback before falling asleep";
+"narek_sleep_timer_off" = "Off";
+"narek_sleep_timer_15m" = "15 min";
+"narek_sleep_timer_30m" = "30 min";
+"narek_sleep_timer_45m" = "45 min";
+"narek_sleep_timer_60m" = "60 min";
+"narek_sleep_timer_end_of_chapter" = "End of chapter";
+"narek_playback_rate_title" = "Playback Speed";
+"narek_playback_rate_desc" = "0.8x for prayerful focus, 1.0x normal speed";
+"narek_playback_rate_08" = "0.8x";
+"narek_playback_rate_10" = "1.0x";
+"narek_playback_rate_125" = "1.25x";
+"narek_autoplay_next_title" = "Auto-play Next Chapter";
+"narek_autoplay_next_desc" = "Automatically start next chapter when current one finishes";

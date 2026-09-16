@@ -64,6 +64,8 @@
     <string>We need permission to save generated Bible verse wallpapers to your Photos library.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>We need permission to save generated Bible verse wallpapers to your Photos library.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Protect your personal bookmarks, prayer journal, and notes with Face ID.</string>
     <key>NSUserTrackingUsageDescription</key>
     <string>We use this identifier to deliver relevant and high-quality ads.</string>
     <key>SKAdNetworkItems</key>

@@ -67,9 +67,18 @@
 "appearance_light" = "Светлая";
 "appearance_dark" = "Темная";
 "theme_section_title" = "Цветовая тема оформления";
-"notification_section_title" = "Ежедневные уведомления";
+"notification_section_title" = "Духовные напоминания";
+"notification_section_desc" = "Стихи дня, вечерние молитвы, праздники Церкви и чтение Библии:";
+"notification_morning_title" = "Утренний стих дня";
+"notification_morning_desc" = "Вдохновение и Слово Божие на начало каждого дня";
+"notification_evening_title" = "Вечерняя молитва и покой";
+"notification_evening_desc" = "Умиротворяющие псалмы и молитвы перед сном";
+"notification_church_calendar_title" = "Праздники и посты ААЦ";
+"notification_church_calendar_desc" = "Напоминания накануне великих праздников и постов в 19:30";
+"notification_reading_plan_title" = "План чтения и стрик";
+"notification_reading_plan_desc" = "Напоминание уделить время Писанию, чтобы не прервать серию";
+"notification_time_title" = "Время напоминания";
 "notification_enable_title" = "Стих дня каждое утро";
-"notification_time_title" = "Время уведомления";
 "share_button" = "Поделиться";
 "save_image_success" = "Открытка сохранена в галерею!";
 "favorite_added" = "Добавлено в Избранное";
@@ -391,3 +400,78 @@
 "read_button" = "Читать";
 "reading_plan_card_hint" = "Выберите план для ежедневного чтения";
 
+/* System, Security & Data */
+"system_storage_section_title" = "Система и данные";
+"system_storage_section_desc" = "Тактильный отклик, безопасность Face ID, очистка кэша и резервное копирование:";
+"haptics_title" = "Тактильный отклик (Haptic)";
+"haptics_desc" = "Виброотклик при взаимодействии и переключениях";
+"biometric_lock_title" = "Блокировка Face ID / Touch ID";
+"biometric_lock_desc" = "Защита закладок, заметок и истории чтения";
+"biometric_auth_reason" = "Разблокируйте для доступа к приложению";
+"cache_clear_title" = "Очистка кэша";
+"cache_clear_desc" = "Освобождает память от временных файлов и картинок";
+"cache_size_label" = "Занято:";
+"cache_clear_btn" = "Очистить";
+"cache_cleared_toast" = "Кэш успешно очищен";
+"export_backup_title" = "Резервная копия и Экспорт";
+"export_backup_desc" = "Экспорт избранных стихов, заметок и прогресса чтения";
+"export_backup_btn" = "Экспортировать данные";
+"unlock_app_btn" = "Разблокировать";
+"app_locked_title" = "Armenian Bible защищена";
+"app_locked_subtitle" = "Для продолжения подтвердите личность с помощью Face ID или пароля";
+
+/* AI Settings (Tone & Chat History) */
+"ai_theological_tone_title" = "Богословский тон ответов ИИ";
+"ai_theological_tone_desc" = "Выберите фокус толкования и стиль бесед Духовного Помощника:";
+"ai_tone_patristic" = "Святоотеческий (ААЦ)";
+"ai_tone_patristic_desc" = "В духе отцов Церкви и армянских вардапетов";
+"ai_tone_pastoral" = "Пастырский";
+"ai_tone_pastoral_desc" = "Духовное утешение и практическая жизнь";
+"ai_tone_historical" = "Историко-богословский";
+"ai_tone_historical_desc" = "Контекст эпохи, язык оригинала и экзегетика";
+"ai_tone_simple" = "Простой";
+"ai_tone_simple_desc" = "Ясные ответы для начинающих читать Писание";
+"ai_clear_chat_title" = "История диалогов с ИИ";
+"ai_clear_chat_desc" = "Очищает память бесед и сбрасывает контекст вопросов";
+"ai_clear_chat_btn" = "Очистить чат";
+"ai_clear_chat_confirm_title" = "Очистить историю диалогов?";
+"ai_clear_chat_confirm_msg" = "Все сохраненные ответы и вопросы в чате Духовного Помощника будут удалены.";
+"ai_clear_chat_cleared_toast" = "История диалогов с ИИ очищена";
+"ai_chat_messages_count" = "сообщений";
+
+/* Quiz Settings */
+"quiz_settings_section_title" = "Викторина и Обучение";
+"quiz_settings_section_desc" = "Параметры раундов библейской викторины, таймер и звуки:";
+"quiz_default_count_title" = "Вопросов в раунде";
+"quiz_timer_setting_title" = "Таймер на ответ";
+"quiz_timer_none" = "Без таймера";
+"quiz_timer_15s" = "15 сек";
+"quiz_timer_30s" = "30 сек";
+"quiz_timer_time_up" = "Время вышло!";
+"quiz_sound_title" = "Звуковые эффекты";
+"quiz_sound_desc" = "Звуки при верных и неверных ответах";
+"quiz_reset_stats_title" = "Сброс статистики викторины";
+"quiz_reset_stats_desc" = "Сбросить рекорд, пройденные вопросы и адаптивный дневник";
+"quiz_reset_stats_btn" = "Сбросить статистику";
+"quiz_reset_confirm_title" = "Сбросить статистику викторины?";
+"quiz_reset_confirm_msg" = "Это действие обнулит ваш рекорд и очистит историю адаптивного дневника. Награды будут сохранены.";
+"quiz_stats_reset_toast" = "Статистика викторины успешно сброшена";
+
+/* Narek Audio Player Settings */
+"narek_audio_settings_title" = "Аудиоплеер Нарекаци";
+"narek_audio_settings_desc" = "Параметры озвучки молитв святого Григора Нарекаци:";
+"narek_sleep_timer_title" = "Таймер сна";
+"narek_sleep_timer_desc" = "Автоматическая остановка воспроизведения перед сном";
+"narek_sleep_timer_off" = "Выкл";
+"narek_sleep_timer_15m" = "15 мин";
+"narek_sleep_timer_30m" = "30 мин";
+"narek_sleep_timer_45m" = "45 мин";
+"narek_sleep_timer_60m" = "60 мин";
+"narek_sleep_timer_end_of_chapter" = "Конец главы";
+"narek_playback_rate_title" = "Скорость озвучки";
+"narek_playback_rate_desc" = "0.8x для вдумчивой молитвы, 1.0x стандартная";
+"narek_playback_rate_08" = "0.8x";
+"narek_playback_rate_10" = "1.0x";
+"narek_playback_rate_125" = "1.25x";
+"narek_autoplay_next_title" = "Автопереход к следующей главе";
+"narek_autoplay_next_desc" = "Автоматически начинать следующую главу после окончания";

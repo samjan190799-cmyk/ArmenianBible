@@ -3,48 +3,170 @@ import WidgetKit
 
 struct ContentView: View {
     @ObservedObject var manager = BibleManager.shared
+    @Environment(\.scenePhase) private var scenePhase
     
     private var accentColor: Color {
         Color(hex: manager.accentTheme.colorHex)
     }
     
     var body: some View {
-        if UserDefaults.standard.string(forKey: "openTab") == "lockscreen" {
-            iPadLockScreenShowcaseView()
-        } else {
-            TabView(selection: $manager.activeTabSelection) {
-                HomeView()
-                    .tabItem {
-                        Label("tab_home".localized(for: manager.appLanguage), systemImage: "house.fill")
-                    }
-                    .tag(0)
-                
-                FavoritesView()
-                    .tabItem {
-                        Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart.fill")
-                    }
-                    .tag(1)
-                
-                AIGuideView()
-                    .tabItem {
-                        Label("tab_ai_guide".localized(for: manager.appLanguage), systemImage: "sparkles")
-                    }
-                    .tag(2)
-                
-                BibleReaderView()
-                    .tabItem {
-                        Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages.fill")
-                    }
-                    .tag(3)
-            }
-            .tint(accentColor)
-            .preferredColorScheme(manager.appearanceMode.colorScheme)
-            .onAppear {
-                if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
-                    if tabArg == "favorites" { manager.activeTabSelection = 1 }
-                    else if tabArg == "ai" { manager.activeTabSelection = 2 }
-                    else if tabArg == "bible" { manager.activeTabSelection = 3 }
+        ZStack {
+            if UserDefaults.standard.string(forKey: "openTab") == "lockscreen" {
+                iPadLockScreenShowcaseView()
+            } else {
+                TabView(selection: $manager.activeTabSelection) {
+                    HomeView()
+                        .tabItem {
+                            Label("tab_home".localized(for: manager.appLanguage), systemImage: "house.fill")
+                        }
+                        .tag(0)
+                    
+                    FavoritesView()
+                        .tabItem {
+                            Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart.fill")
+                        }
+                        .tag(1)
+                    
+                    AIGuideView()
+                        .tabItem {
+                            Label("tab_ai_guide".localized(for: manager.appLanguage), systemImage: "sparkles")
+                        }
+                        .tag(2)
+                    
+                    BibleReaderView()
+                        .tabItem {
+                            Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages.fill")
+                        }
+                        .tag(3)
                 }
+                .tint(accentColor)
+                .preferredColorScheme(manager.appearanceMode.colorScheme)
+                .onAppear {
+                    if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
+                        if tabArg == "favorites" { manager.activeTabSelection = 1 }
+                        else if tabArg == "ai" { manager.activeTabSelection = 2 }
+                        else if tabArg == "bible" { manager.activeTabSelection = 3 }
+                    }
+                }
+            }
+            
+            if manager.isBiometricLockEnabled && !manager.isAppUnlocked {
+                BiometricLockOverlayView(manager: manager)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .zIndex(999)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: manager.isAppUnlocked)
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .background {
+                manager.lockApp()
+            } else if newPhase == .active {
+                if manager.isBiometricLockEnabled && !manager.isAppUnlocked {
+                    manager.authenticateWithBiometrics()
+                }
+            }
+        }
+        .onAppear {
+            if manager.isBiometricLockEnabled && !manager.isAppUnlocked {
+                manager.authenticateWithBiometrics()
+            }
+        }
+    }
+}
+
+// MARK: - Экран блокировки Face ID / Touch ID (Biometric Lock Overlay)
+struct BiometricLockOverlayView: View {
+    @ObservedObject var manager: BibleManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isPulsing = false
+    
+    private var accentColor: Color {
+        Color(hex: manager.accentTheme.colorHex)
+    }
+    
+    var body: some View {
+        ZStack {
+            // Размытый полноэкранный ультратонкий фон
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+            
+            // Полупрозрачный градиентный фон в тон темы
+            LinearGradient(
+                colors: [
+                    (colorScheme == .dark ? Color.black.opacity(0.85) : Color.white.opacity(0.92)),
+                    (colorScheme == .dark ? Color(hex: "090A0F").opacity(0.95) : Color(hex: "F8FAFC").opacity(0.95))
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 28) {
+                Spacer()
+                
+                // Иконка Face ID с пульсирующим свечением
+                ZStack {
+                    Circle()
+                        .fill(accentColor.opacity(isPulsing ? 0.22 : 0.10))
+                        .frame(width: 110, height: 110)
+                        .scaleEffect(isPulsing ? 1.08 : 0.95)
+                    
+                    Circle()
+                        .stroke(accentColor.opacity(0.3), lineWidth: 2)
+                        .frame(width: 90, height: 90)
+                    
+                    Image(systemName: "faceid")
+                        .font(.system(size: 46, weight: .semibold))
+                        .foregroundColor(accentColor)
+                }
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                        isPulsing = true
+                    }
+                }
+                
+                VStack(spacing: 10) {
+                    Text("app_locked_title".localized(for: manager.appLanguage))
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                        .multilineTextAlignment(.center)
+                    
+                    Text("app_locked_subtitle".localized(for: manager.appLanguage))
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+                
+                Spacer()
+                
+                // Кнопка разблокировки
+                Button {
+                    manager.triggerHapticImpact(.medium)
+                    manager.authenticateWithBiometrics()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "lock.open.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("unlock_app_btn".localized(for: manager.appLanguage))
+                            .font(.system(size: 16, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(
+                        LinearGradient(
+                            colors: [accentColor, Color(hex: manager.accentTheme.secondaryColorHex)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(16)
+                    .shadow(color: accentColor.opacity(0.35), radius: 10, y: 4)
+                }
+                .padding(.horizontal, 36)
+                .padding(.bottom, 40)
             }
         }
     }
@@ -584,9 +706,7 @@ struct HomeView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        manager.triggerHapticImpact(style)
     }
 }
 
@@ -1537,9 +1657,7 @@ struct AIGuideView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        manager.triggerHapticImpact(style)
     }
     
     // MARK: - Локализация предложений Rewarded рекламы
@@ -2063,9 +2181,7 @@ struct ExplanationView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        manager.triggerHapticImpact(style)
     }
 }
 
@@ -2099,9 +2215,38 @@ struct SettingsView: View {
     @State private var previewWidgetSize: PreviewWidgetSize = .small
     @State private var previewVerse: BibleVerse = BibleVerse.lockScreenPearls[0]
     
-    // Переменные для уведомлений
-    @State private var notificationsEnabled = false
-    @State private var notificationTime = Date()
+    // Переменные для духовных уведомлений
+    @State private var morningNotificationsEnabled = false
+    @State private var morningNotificationTime = Date()
+    @State private var eveningNotificationsEnabled = false
+    @State private var eveningNotificationTime = Date()
+    @State private var churchFeastsNotificationsEnabled = false
+    @State private var readingPlanNotificationsEnabled = false
+    @State private var readingPlanNotificationTime = Date()
+    
+    // Системные настройки и данные (Haptics, Face ID, Cache, Backup)
+    @State private var isHapticsEnabled = true
+    @State private var isBiometricLockEnabled = false
+    @State private var cacheSizeDisplay = "0 KB"
+    @State private var isClearingCache = false
+    @State private var showCacheClearedToast = false
+    @State private var backupShareUrl: URL? = nil
+    @State private var isShowingShareSheet = false
+    
+    // Настройки ИИ (Тон толкования и очистка истории)
+    @State private var selectedTheologicalTone: AITheologicalTone = .patristic
+    @State private var isShowingClearAIChatAlert = false
+    @State private var showAIChatClearedToast = false
+    
+    // Настройки Викторины (Количество, Таймер, Звук, Сброс)
+    @State private var quizDefaultCount: Int = 10
+    @State private var quizTimerDuration: Int = 0
+    @State private var quizSoundEnabled: Bool = true
+    @State private var isShowingResetQuizAlert = false
+    @State private var showQuizResetToast = false
+    
+    // Настройки Аудиоплеера Нарекаци (Пункт 2)
+    @ObservedObject private var narekPlayer = NarekAudioPlayer.shared
     
     // Всплывающая инструкция по виджетам
     @State private var isShowingWidgetInstruction = false
@@ -2178,13 +2323,16 @@ struct SettingsView: View {
                         appearanceModeSection
                         colorThemeSection
                         appIconSection
-                        apiKeysSection
-                        dailyNotificationsSection
+                        spiritualNotificationsSection
+                        widgetsUnifiedSection
                         updateIntervalSection
                         verseSourceScopeSection
                         contentTypeSection
-                        widgetsUnifiedSection
                         autoWallpaperSection
+                        aiAssistantSection
+                        quizSettingsSection
+                        narekAudioSection
+                        systemAndDataSection
                         aboutSection
                     }
                     .padding(20)
@@ -2217,14 +2365,26 @@ struct SettingsView: View {
                 selectedScope = manager.verseSourceScope
                 selectedTheme = manager.accentTheme
                 selectedAppearanceMode = manager.appearanceMode
-                notificationsEnabled = manager.dailyNotificationsEnabled
-                notificationTime = manager.dailyNotificationTime
+                morningNotificationsEnabled = manager.morningNotificationsEnabled
+                morningNotificationTime = manager.morningNotificationTime
+                eveningNotificationsEnabled = manager.eveningNotificationsEnabled
+                eveningNotificationTime = manager.eveningNotificationTime
+                churchFeastsNotificationsEnabled = manager.churchFeastsNotificationsEnabled
+                readingPlanNotificationsEnabled = manager.readingPlanNotificationsEnabled
+                readingPlanNotificationTime = manager.readingPlanNotificationTime
                 selectedWidgetLanguage = manager.widgetLanguage
                 selectedWidgetStyle = manager.widgetVisualStyle
                 selectedLockCategory = manager.lockScreenCategory
                 selectedMediumCategory = manager.mediumWidgetCategory
                 selectedLargeCategory = manager.largeWidgetCategory
                 selectedArmenianEdition = manager.armenianEdition
+                isHapticsEnabled = manager.isHapticsEnabled
+                isBiometricLockEnabled = manager.isBiometricLockEnabled
+                cacheSizeDisplay = manager.calculateCacheSize()
+                selectedTheologicalTone = manager.aiTheologicalTone
+                quizDefaultCount = manager.quizDefaultQuestionCount
+                quizTimerDuration = manager.quizTimerDuration
+                quizSoundEnabled = manager.quizSoundEffectsEnabled
                 pickVerseForCurrentSize(previewWidgetSize)
                 appIconManager.syncWithSystem()
             }
@@ -2243,6 +2403,11 @@ struct SettingsView: View {
             .sheet(isPresented: $isShowingWallpaperAutomation) {
                 WallpaperAutomationSheetView()
             }
+            .sheet(isPresented: $isShowingShareSheet) {
+                if let url = backupShareUrl {
+                    ActivityView(activityItems: [url])
+                }
+            }
             .alert("Панель разработчика", isPresented: $isShowingDevPasscodeAlert) {
                 SecureField("Секретный PIN-код", text: $devPasscodeInput)
                 
@@ -2259,6 +2424,44 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("Текущий статус: \(subscriptionManager.isPremium ? "👑 Premium активен" : "🆓 Free режим")\n\nВведите PIN для переключения режима.")
+            }
+            .alert("ai_clear_chat_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingClearAIChatAlert) {
+                Button("ai_clear_chat_btn".localized(for: selectedLanguage), role: .destructive) {
+                    manager.clearAIChat()
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.prepare()
+                    generator.notificationOccurred(.success)
+                    withAnimation {
+                        showAIChatClearedToast = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        withAnimation {
+                            showAIChatClearedToast = false
+                        }
+                    }
+                }
+                Button("cancel_button".localized(for: selectedLanguage), role: .cancel) {}
+            } message: {
+                Text("ai_clear_chat_confirm_msg".localized(for: selectedLanguage))
+            }
+            .alert("quiz_reset_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingResetQuizAlert) {
+                Button("quiz_reset_stats_btn".localized(for: selectedLanguage), role: .destructive) {
+                    manager.resetQuizFullStats()
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.prepare()
+                    generator.notificationOccurred(.success)
+                    withAnimation {
+                        showQuizResetToast = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        withAnimation {
+                            showQuizResetToast = false
+                        }
+                    }
+                }
+                Button("cancel_button".localized(for: selectedLanguage), role: .cancel) {}
+            } message: {
+                Text("quiz_reset_confirm_msg".localized(for: selectedLanguage))
             }
         }
         .preferredColorScheme(manager.appearanceMode.colorScheme)
@@ -2663,9 +2866,9 @@ struct SettingsView: View {
         .padding(.horizontal, 4)
     }
     
-    // MARK: - Свайп-карусель ИИ-провайдеров
+    // MARK: - Единая секция «Искусственный Интеллект»
     @ViewBuilder
-    private var apiKeysSection: some View {
+    private var aiAssistantSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Верхняя плашка заголовка секции
             HStack(spacing: 8) {
@@ -2778,6 +2981,162 @@ struct SettingsView: View {
                 Spacer()
             }
             .padding(.top, 2)
+            
+            // MARK: Богословский тон ответов ИИ
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "cross.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    Text("ai_theological_tone_title".localized(for: selectedLanguage))
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                }
+                
+                Text("ai_theological_tone_desc".localized(for: selectedLanguage))
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .lineSpacing(3)
+                
+                // Карточки 4 богословских стилей
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    ForEach(AITheologicalTone.allCases) { tone in
+                        let isSelected = selectedTheologicalTone == tone
+                        let tColor = Color(hex: tone.accentColorHex)
+                        
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.prepare()
+                            generator.impactOccurred()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                selectedTheologicalTone = tone
+                                manager.setAITheologicalTone(tone)
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    ZStack {
+                                        Circle()
+                                            .fill(isSelected ? tColor : tColor.opacity(0.12))
+                                            .frame(width: 26, height: 26)
+                                        Image(systemName: tone.iconName)
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(isSelected ? .white : tColor)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    if isSelected {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(tColor)
+                                    }
+                                }
+                                
+                                Text(tone.title(for: selectedLanguage))
+                                    .font(.system(size: 12, weight: isSelected ? .bold : .semibold))
+                                    .foregroundColor(primaryTextColor)
+                                    .lineLimit(1)
+                                
+                                Text(tone.description(for: selectedLanguage))
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(cardBackgroundColor)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(
+                                        isSelected ? tColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)),
+                                        lineWidth: isSelected ? 1.5 : 1
+                                    )
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+            }
+            .padding(.top, 6)
+            
+            // MARK: Очистка истории диалогов с ИИ
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("ai_clear_chat_title".localized(for: selectedLanguage))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(primaryTextColor)
+                            
+                            // Бейдж количества сообщений
+                            Text("\(manager.aiChatMessages.count) " + "ai_chat_messages_count".localized(for: selectedLanguage))
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                                .cornerRadius(6)
+                        }
+                        
+                        Text("ai_clear_chat_desc".localized(for: selectedLanguage))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.prepare()
+                        generator.impactOccurred()
+                        isShowingClearAIChatAlert = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("ai_clear_chat_btn".localized(for: selectedLanguage))
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(Color(hex: "EF4444"))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(hex: "EF4444").opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .disabled(manager.aiChatMessages.isEmpty)
+                    .opacity(manager.aiChatMessages.isEmpty ? 0.5 : 1.0)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                )
+                
+                if showAIChatClearedToast {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(Color(hex: "10B981"))
+                            .font(.system(size: 12))
+                        Text("ai_clear_chat_cleared_toast".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(hex: "10B981"))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 2)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .padding(.top, 4)
         }
         .onChange(of: geminiKeyInput) { val in
             manager.geminiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -3050,42 +3409,268 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - Единая секция Духовных Напоминаний
     @ViewBuilder
-    private var dailyNotificationsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("notification_section_title".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(primaryTextColor)
-            
-            Toggle(isOn: $notificationsEnabled) {
-                Text("notification_enable_title".localized(for: selectedLanguage))
-                    .font(.system(size: 14))
+    private var spiritualNotificationsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                
+                Text("notification_section_title".localized(for: selectedLanguage))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(primaryTextColor)
+                
+                Spacer()
             }
-            .tint(Color(hex: selectedTheme.colorHex))
-            .onChange(of: notificationsEnabled) { newValue in
-                manager.setDailyNotificationsEnabled(newValue)
-                if newValue {
-                    manager.requestNotificationPermission { granted in
-                        if !granted {
-                            self.notificationsEnabled = false
-                            manager.setDailyNotificationsEnabled(false)
-                        }
+            
+            Text("notification_section_desc".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(3)
+            
+            VStack(spacing: 12) {
+                // 1. Утренний стих дня
+                notificationItemRow(
+                    icon: "sun.max.fill",
+                    iconColor: Color(hex: "F59E0B"),
+                    title: "notification_morning_title".localized(for: selectedLanguage),
+                    subtitle: "notification_morning_desc".localized(for: selectedLanguage),
+                    isOn: $morningNotificationsEnabled,
+                    onToggle: { newVal in
+                        handleMorningToggle(newVal)
+                    }
+                ) {
+                    DatePicker(
+                        "notification_time_title".localized(for: selectedLanguage),
+                        selection: $morningNotificationTime,
+                        displayedComponents: .hourAndMinute
+                    )
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundColor(primaryTextColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(inputFieldBgColor)
+                    .cornerRadius(10)
+                    .onChange(of: morningNotificationTime) { newTime in
+                        manager.setMorningNotificationTime(newTime)
+                    }
+                }
+                
+                Divider().opacity(0.3)
+                
+                // 2. Вечерняя молитва и покой
+                notificationItemRow(
+                    icon: "moon.stars.fill",
+                    iconColor: Color(hex: "818CF8"),
+                    title: "notification_evening_title".localized(for: selectedLanguage),
+                    subtitle: "notification_evening_desc".localized(for: selectedLanguage),
+                    isOn: $eveningNotificationsEnabled,
+                    onToggle: { newVal in
+                        handleEveningToggle(newVal)
+                    }
+                ) {
+                    DatePicker(
+                        "notification_time_title".localized(for: selectedLanguage),
+                        selection: $eveningNotificationTime,
+                        displayedComponents: .hourAndMinute
+                    )
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundColor(primaryTextColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(inputFieldBgColor)
+                    .cornerRadius(10)
+                    .onChange(of: eveningNotificationTime) { newTime in
+                        manager.setEveningNotificationTime(newTime)
+                    }
+                }
+                
+                Divider().opacity(0.3)
+                
+                // 3. Церковные праздники и посты ААЦ
+                notificationItemRow(
+                    icon: "cross.fill",
+                    iconColor: Color(hex: "10B981"),
+                    title: "notification_church_calendar_title".localized(for: selectedLanguage),
+                    subtitle: "notification_church_calendar_desc".localized(for: selectedLanguage),
+                    isOn: $churchFeastsNotificationsEnabled,
+                    onToggle: { newVal in
+                        handleChurchFeastsToggle(newVal)
+                    }
+                )
+                
+                Divider().opacity(0.3)
+                
+                // 4. План чтения и стрик
+                notificationItemRow(
+                    icon: "flame.fill",
+                    iconColor: Color(hex: "EC4899"),
+                    title: "notification_reading_plan_title".localized(for: selectedLanguage),
+                    subtitle: "notification_reading_plan_desc".localized(for: selectedLanguage),
+                    isOn: $readingPlanNotificationsEnabled,
+                    onToggle: { newVal in
+                        handleReadingPlanToggle(newVal)
+                    }
+                ) {
+                    DatePicker(
+                        "notification_time_title".localized(for: selectedLanguage),
+                        selection: $readingPlanNotificationTime,
+                        displayedComponents: .hourAndMinute
+                    )
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundColor(primaryTextColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(inputFieldBgColor)
+                    .cornerRadius(10)
+                    .onChange(of: readingPlanNotificationTime) { newTime in
+                        manager.setReadingPlanNotificationTime(newTime)
                     }
                 }
             }
-            
-            if notificationsEnabled {
-                DatePicker("notification_time_title".localized(for: selectedLanguage), selection: $notificationTime, displayedComponents: .hourAndMinute)
-                    .font(.system(size: 14))
-                    .foregroundColor(primaryTextColor)
-                    .padding(.vertical, 4)
-                    .onChange(of: notificationTime) { newTime in
-                        manager.setDailyNotificationTime(newTime)
+            .padding(14)
+            .background(inputFieldBgColor)
+            .cornerRadius(14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(inputFieldBorderColor, lineWidth: 1)
+            )
+        }
+        .padding(16)
+        .background(cardBackgroundColor)
+        .cornerRadius(18)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private func notificationItemRow<PickerContent: View>(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        subtitle: String,
+        isOn: Binding<Bool>,
+        onToggle: @escaping (Bool) -> Void,
+        @ViewBuilder picker: () -> PickerContent
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 34, height: 34)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(iconColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 11.5))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+                
+                Spacer()
+                
+                Toggle("", isOn: isOn)
+                    .labelsHidden()
+                    .tint(Color(hex: selectedTheme.colorHex))
+                    .onChange(of: isOn.wrappedValue) { val in
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.prepare()
+                        generator.impactOccurred()
+                        onToggle(val)
                     }
             }
+            
+            if isOn.wrappedValue {
+                HStack {
+                    Spacer()
+                    picker()
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
-        .padding(.horizontal, 4)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isOn.wrappedValue)
+    }
+    
+    @ViewBuilder
+    private func notificationItemRow(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        subtitle: String,
+        isOn: Binding<Bool>,
+        onToggle: @escaping (Bool) -> Void
+    ) -> some View {
+        notificationItemRow(
+            icon: icon,
+            iconColor: iconColor,
+            title: title,
+            subtitle: subtitle,
+            isOn: isOn,
+            onToggle: onToggle,
+            picker: { EmptyView() }
+        )
+    }
+    
+    private func handleMorningToggle(_ newVal: Bool) {
+        manager.setMorningNotificationsEnabled(newVal)
+        if newVal {
+            manager.requestNotificationPermission { granted in
+                if !granted {
+                    self.morningNotificationsEnabled = false
+                    manager.setMorningNotificationsEnabled(false)
+                }
+            }
+        }
+    }
+    
+    private func handleEveningToggle(_ newVal: Bool) {
+        manager.setEveningNotificationsEnabled(newVal)
+        if newVal {
+            manager.requestNotificationPermission { granted in
+                if !granted {
+                    self.eveningNotificationsEnabled = false
+                    manager.setEveningNotificationsEnabled(false)
+                }
+            }
+        }
+    }
+    
+    private func handleChurchFeastsToggle(_ newVal: Bool) {
+        manager.setChurchFeastsNotificationsEnabled(newVal)
+        if newVal {
+            manager.requestNotificationPermission { granted in
+                if !granted {
+                    self.churchFeastsNotificationsEnabled = false
+                    manager.setChurchFeastsNotificationsEnabled(false)
+                }
+            }
+        }
+    }
+    
+    private func handleReadingPlanToggle(_ newVal: Bool) {
+        manager.setReadingPlanNotificationsEnabled(newVal)
+        if newVal {
+            manager.requestNotificationPermission { granted in
+                if !granted {
+                    self.readingPlanNotificationsEnabled = false
+                    manager.setReadingPlanNotificationsEnabled(false)
+                }
+            }
+        }
     }
     
     @ViewBuilder
@@ -3959,6 +4544,718 @@ struct SettingsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
+        .padding(.horizontal, 4)
+    }
+    
+    // MARK: - Секция «Викторина и Обучение»
+    @ViewBuilder
+    private var quizSettingsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Заголовок
+            HStack(spacing: 8) {
+                Image(systemName: "questionmark.bubble.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                
+                Text("quiz_settings_section_title".localized(for: selectedLanguage))
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+                
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+            
+            Text("quiz_settings_section_desc".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(3)
+                .padding(.horizontal, 4)
+            
+            VStack(spacing: 12) {
+                // 1. Количество вопросов по умолчанию
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "number.circle.fill")
+                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .font(.system(size: 14))
+                        Text("quiz_default_count_title".localized(for: selectedLanguage))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        Spacer()
+                    }
+                    
+                    HStack(spacing: 8) {
+                        ForEach([5, 10, 15, 20], id: \.self) { count in
+                            let isSelected = quizDefaultCount == count
+                            Button {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.prepare()
+                                generator.impactOccurred()
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    quizDefaultCount = count
+                                    manager.setQuizDefaultQuestionCount(count)
+                                }
+                            } label: {
+                                Text("\(count)")
+                                    .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                                    .foregroundColor(isSelected ? .white : primaryTextColor)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(isSelected ? Color(hex: selectedTheme.colorHex) : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .stroke(isSelected ? Color.clear : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)), lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                )
+                
+                // 2. Таймер на ответ
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "timer")
+                            .foregroundColor(Color(hex: "F59E0B"))
+                            .font(.system(size: 14))
+                        Text("quiz_timer_setting_title".localized(for: selectedLanguage))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        Spacer()
+                    }
+                    
+                    HStack(spacing: 8) {
+                        let timerOptions: [(Int, String)] = [
+                            (0, "quiz_timer_none".localized(for: selectedLanguage)),
+                            (15, "quiz_timer_15s".localized(for: selectedLanguage)),
+                            (30, "quiz_timer_30s".localized(for: selectedLanguage))
+                        ]
+                        
+                        ForEach(timerOptions, id: \.0) { option in
+                            let isSelected = quizTimerDuration == option.0
+                            Button {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.prepare()
+                                generator.impactOccurred()
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    quizTimerDuration = option.0
+                                    manager.setQuizTimerDuration(option.0)
+                                }
+                            } label: {
+                                Text(option.1)
+                                    .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                    .foregroundColor(isSelected ? .white : primaryTextColor)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(isSelected ? Color(hex: "F59E0B") : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .stroke(isSelected ? Color.clear : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)), lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                )
+                
+                // 3. Звуковые эффекты
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "10B981").opacity(0.15))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(hex: "10B981"))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("quiz_sound_title".localized(for: selectedLanguage))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        Text("quiz_sound_desc".localized(for: selectedLanguage))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: $quizSoundEnabled)
+                        .labelsHidden()
+                        .tint(Color(hex: selectedTheme.colorHex))
+                        .onChange(of: quizSoundEnabled) { newVal in
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.prepare()
+                            generator.impactOccurred()
+                            manager.setQuizSoundEffectsEnabled(newVal)
+                        }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                )
+                
+                // 4. Сброс статистики викторины
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: "EF4444").opacity(0.15))
+                                .frame(width: 32, height: 32)
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color(hex: "EF4444"))
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("quiz_reset_stats_title".localized(for: selectedLanguage))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(primaryTextColor)
+                            Text("quiz_reset_stats_desc".localized(for: selectedLanguage))
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.prepare()
+                            generator.impactOccurred()
+                            isShowingResetQuizAlert = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("quiz_reset_stats_btn".localized(for: selectedLanguage))
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundColor(Color(hex: "EF4444"))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color(hex: "EF4444").opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                    
+                    if showQuizResetToast {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(Color(hex: "10B981"))
+                                .font(.system(size: 12))
+                            Text("quiz_stats_reset_toast".localized(for: selectedLanguage))
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(Color(hex: "10B981"))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 2)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                )
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    // MARK: - Секция «Аудиоплеер Нарекаци»
+    @ViewBuilder
+    private var narekAudioSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Заголовок
+            HStack(spacing: 8) {
+                Image(systemName: "headphones")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                
+                Text("narek_audio_settings_title".localized(for: selectedLanguage))
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+                
+                Spacer()
+                
+                if narekPlayer.isPlaying {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(hex: "10B981"))
+                            .frame(width: 6, height: 6)
+                        Text("Active")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(Color(hex: "10B981"))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color(hex: "10B981").opacity(0.12))
+                    .cornerRadius(8)
+                }
+            }
+            .padding(.horizontal, 4)
+            
+            Text("narek_audio_settings_desc".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(3)
+                .padding(.horizontal, 4)
+            
+            VStack(spacing: 12) {
+                // 1. Скорость воспроизведения
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "speedometer")
+                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .font(.system(size: 14))
+                        Text("narek_playback_rate_title".localized(for: selectedLanguage))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        Spacer()
+                    }
+                    
+                    Text("narek_playback_rate_desc".localized(for: selectedLanguage))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 8) {
+                        let rateOptions: [(Double, String)] = [
+                            (0.8, "narek_playback_rate_08".localized(for: selectedLanguage)),
+                            (1.0, "narek_playback_rate_10".localized(for: selectedLanguage)),
+                            (1.25, "narek_playback_rate_125".localized(for: selectedLanguage))
+                        ]
+                        
+                        ForEach(rateOptions, id: \.0) { option in
+                            let isSelected = narekPlayer.playbackRate == option.0
+                            Button {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.prepare()
+                                generator.impactOccurred()
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    narekPlayer.setPlaybackRate(option.0)
+                                }
+                            } label: {
+                                Text(option.1)
+                                    .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                    .foregroundColor(isSelected ? .white : primaryTextColor)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(isSelected ? Color(hex: selectedTheme.colorHex) : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .stroke(isSelected ? Color.clear : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)), lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                )
+                
+                // 2. Таймер сна
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "moon.zzz.fill")
+                            .foregroundColor(Color(hex: "F59E0B"))
+                            .font(.system(size: 14))
+                        Text("narek_sleep_timer_title".localized(for: selectedLanguage))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        Spacer()
+                        
+                        if narekPlayer.sleepTimerRemainingSeconds > 0 {
+                            let mins = narekPlayer.sleepTimerRemainingSeconds / 60
+                            let secs = narekPlayer.sleepTimerRemainingSeconds % 60
+                            Text(String(format: "%02d:%02d", mins, secs))
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(Color(hex: "F59E0B"))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "F59E0B").opacity(0.12))
+                                .cornerRadius(6)
+                        }
+                    }
+                    
+                    Text("narek_sleep_timer_desc".localized(for: selectedLanguage))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(NarekSleepTimerOption.allCases) { option in
+                                let isSelected = narekPlayer.sleepTimerOption == option
+                                Button {
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.prepare()
+                                    generator.impactOccurred()
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        narekPlayer.setSleepTimer(option)
+                                    }
+                                } label: {
+                                    Text(option.title(for: selectedLanguage))
+                                        .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                        .foregroundColor(isSelected ? .white : primaryTextColor)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .fill(isSelected ? Color(hex: "F59E0B") : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .stroke(isSelected ? Color.clear : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)), lineWidth: 1)
+                                        )
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                )
+                
+                // 3. Автопереход к следующей главе
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "repeat")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("narek_autoplay_next_title".localized(for: selectedLanguage))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        Text("narek_autoplay_next_desc".localized(for: selectedLanguage))
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: Binding(
+                        get: { narekPlayer.autoPlayNextChapter },
+                        set: { newVal in
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.prepare()
+                            generator.impactOccurred()
+                            narekPlayer.setAutoPlayNextChapter(newVal)
+                        }
+                    ))
+                    .labelsHidden()
+                    .tint(Color(hex: selectedTheme.colorHex))
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(cardBackgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                )
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    // MARK: - Секция: Система и данные (Haptics, Face ID, Cache, Backup)
+    @ViewBuilder
+    private var systemAndDataSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Шапка секции
+            HStack(spacing: 8) {
+                Image(systemName: "gearshape.2.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                
+                Text("system_storage_section_title".localized(for: selectedLanguage))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+            }
+            
+            Text("system_storage_section_desc".localized(for: selectedLanguage))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineSpacing(3)
+            
+            VStack(spacing: 12) {
+                // 1. Тактильный отклик (Haptic Feedback)
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(hex: "3B82F6").opacity(0.15))
+                            .frame(width: 34, height: 34)
+                        
+                        Image(systemName: "hand.tap.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(Color(hex: "3B82F6"))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("haptics_title".localized(for: selectedLanguage))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("haptics_desc".localized(for: selectedLanguage))
+                            .font(.system(size: 11.5))
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: $isHapticsEnabled)
+                        .labelsHidden()
+                        .tint(Color(hex: selectedTheme.colorHex))
+                        .onChange(of: isHapticsEnabled) { newVal in
+                            manager.setHapticsEnabled(newVal)
+                            if newVal {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.prepare()
+                                generator.impactOccurred()
+                            }
+                        }
+                }
+                
+                Divider().opacity(0.3)
+                
+                // 2. Блокировка Face ID / Touch ID
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(hex: "10B981").opacity(0.15))
+                            .frame(width: 34, height: 34)
+                        
+                        Image(systemName: "faceid")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(Color(hex: "10B981"))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("biometric_lock_title".localized(for: selectedLanguage))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("biometric_lock_desc".localized(for: selectedLanguage))
+                            .font(.system(size: 11.5))
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: $isBiometricLockEnabled)
+                        .labelsHidden()
+                        .tint(Color(hex: selectedTheme.colorHex))
+                        .onChange(of: isBiometricLockEnabled) { newVal in
+                            manager.setBiometricLockEnabled(newVal) { success in
+                                if !success {
+                                    self.isBiometricLockEnabled = manager.isBiometricLockEnabled
+                                }
+                            }
+                        }
+                }
+                
+                Divider().opacity(0.3)
+                
+                // 3. Очистка кэша
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(hex: "EF4444").opacity(0.15))
+                            .frame(width: 34, height: 34)
+                        
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(Color(hex: "EF4444"))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("cache_clear_title".localized(for: selectedLanguage))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(primaryTextColor)
+                            
+                            // Бейдж размера кэша
+                            Text(cacheSizeDisplay)
+                                .font(.system(size: 11, weight: .bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(inputFieldBgColor)
+                                .cornerRadius(6)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Text("cache_clear_desc".localized(for: selectedLanguage))
+                            .font(.system(size: 11.5))
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        isClearingCache = true
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.prepare()
+                        generator.impactOccurred()
+                        
+                        _ = manager.clearAppCache()
+                        cacheSizeDisplay = manager.calculateCacheSize()
+                        isClearingCache = false
+                        withAnimation {
+                            showCacheClearedToast = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                            withAnimation {
+                                showCacheClearedToast = false
+                            }
+                        }
+                    } label: {
+                        Text("cache_clear_btn".localized(for: selectedLanguage))
+                            .font(.system(size: 12.5, weight: .semibold))
+                            .foregroundColor(Color(hex: "EF4444"))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color(hex: "EF4444").opacity(0.1))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+                
+                if showCacheClearedToast {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(Color(hex: "10B981"))
+                            .font(.system(size: 12))
+                        Text("cache_cleared_toast".localized(for: selectedLanguage))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(hex: "10B981"))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 2)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+                
+                Divider().opacity(0.3)
+                
+                // 4. Резервное копирование и экспорт
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(hex: "8B5CF6").opacity(0.15))
+                            .frame(width: 34, height: 34)
+                        
+                        Image(systemName: "square.and.arrow.up.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(Color(hex: "8B5CF6"))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("export_backup_title".localized(for: selectedLanguage))
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("export_backup_desc".localized(for: selectedLanguage))
+                            .font(.system(size: 11.5))
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.prepare()
+                        generator.impactOccurred()
+                        
+                        if let url = manager.generateBackupArchive() {
+                            self.backupShareUrl = url
+                            self.isShowingShareSheet = true
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .padding(8)
+                            .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+            }
+            .padding(14)
+            .background(inputFieldBgColor)
+            .cornerRadius(14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(inputFieldBorderColor, lineWidth: 1)
+            )
+        }
+        .padding(16)
+        .background(cardBackgroundColor)
+        .cornerRadius(18)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
                 .stroke(cardBorderColor, lineWidth: 1)
         )
         .padding(.horizontal, 4)

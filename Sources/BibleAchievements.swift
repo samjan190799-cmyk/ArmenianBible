@@ -380,4 +380,28 @@ final class AchievementsManager: ObservableObject {
             return "rank_beginner".localized(for: lang)
         }
     }
+    
+    // MARK: - Сброс статистики викторины
+    func resetQuizStatistics() {
+        totalCorrectAnswers = 0
+        completedRoundsCount = 0
+        perfectRoundsCount = 0
+        oldTestamentCorrect = 0
+        gospelsCorrect = 0
+        newTestamentCorrect = 0
+        churchHistoryCorrect = 0
+        versesCorrect = 0
+        
+        defaults.removeObject(forKey: "achievements_total_correct")
+        defaults.removeObject(forKey: "achievements_completed_rounds")
+        defaults.removeObject(forKey: "achievements_perfect_rounds")
+        defaults.removeObject(forKey: "achievements_ot_correct")
+        defaults.removeObject(forKey: "achievements_gospels_correct")
+        defaults.removeObject(forKey: "achievements_nt_correct")
+        defaults.removeObject(forKey: "achievements_church_history_correct")
+        defaults.removeObject(forKey: "achievements_verses_correct")
+        
+        refreshBadgesState()
+        objectWillChange.send()
+    }
 }
