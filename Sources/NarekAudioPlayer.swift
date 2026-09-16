@@ -545,7 +545,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         info[MPMediaItemPropertyTitle] = currentPrayer.title(for: voiceLanguage)
         info[MPMediaItemPropertyArtist] = (voiceLanguage == .armenian) ? "Սոս Սարգսյան (Գրիգոր Նարեկացի)" : "Олег Моленко (Григор Нарекаци)"
         info[MPMediaItemPropertyAlbumTitle] = "Մատյան Ողբերգության"
-        info[MPMediaItemPropertyElapsedPlaybackTime] = currentTime
+        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
         info[MPMediaItemPropertyPlaybackDuration] = duration > 0 ? duration : 300.0
         info[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? playbackRate : 0.0
         info[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue

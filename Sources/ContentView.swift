@@ -2870,273 +2870,12 @@ struct SettingsView: View {
     @ViewBuilder
     private var aiAssistantSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Верхняя плашка заголовка секции
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(providerAccentColor(for: selectedProvider))
-                
-                Text("ai_provider".localized(for: selectedLanguage))
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(primaryTextColor)
-                
-                Spacer()
-                
-                // Бейдж текущей выбранной модели
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(providerAccentColor(for: selectedProvider))
-                        .frame(width: 6, height: 6)
-                    Text(selectedProvider.displayName)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(primaryTextColor)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(providerAccentColor(for: selectedProvider).opacity(0.12))
-                .cornerRadius(10)
-            }
-            .padding(.horizontal, 4)
-            
-            // Верхние переключатели-пилюли с плавной анимацией
-            HStack(spacing: 6) {
-                ForEach(AIProvider.allCases) { provider in
-                    let isSelected = selectedProvider == provider
-                    let pColor = providerAccentColor(for: provider)
-                    
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                            selectedProvider = provider
-                            manager.setActiveProvider(provider)
-                        }
-                        UISelectionFeedbackGenerator().selectionChanged()
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: providerIconName(for: provider))
-                                .font(.system(size: 11, weight: .bold))
-                            Text(provider.displayName)
-                                .font(.system(size: 12, weight: isSelected ? .bold : .medium))
-                        }
-                        .foregroundColor(isSelected ? .white : primaryTextColor.opacity(0.7))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            ZStack {
-                                if isSelected {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [pColor, providerSecondaryColor(for: provider)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .shadow(color: pColor.opacity(0.35), radius: 6, y: 2)
-                                } else {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-                                }
-                            }
-                        )
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                }
-            }
-            .padding(4)
-            .background(
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.03) : Color.black.opacity(0.03))
-            )
-            .padding(.horizontal, 4)
-            
-            // Интерактивная свайп-карусель карточек с нативной пружинной физикой
-            TabView(selection: $selectedProvider) {
-                ForEach(AIProvider.allCases) { provider in
-                    aiProviderCard(for: provider)
-                        .tag(provider)
-                        .padding(.horizontal, 4)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 255)
-            .onChange(of: selectedProvider) { newProvider in
-                manager.setActiveProvider(newProvider)
-                UISelectionFeedbackGenerator().selectionChanged()
-            }
-            
-            // Нижние анимированные индикаторы страниц (dots) и подсказка свайпа
-            HStack {
-                Spacer()
-                HStack(spacing: 6) {
-                    ForEach(AIProvider.allCases) { provider in
-                        let isSelected = selectedProvider == provider
-                        let pColor = providerAccentColor(for: provider)
-                        
-                        Capsule()
-                            .fill(isSelected ? pColor : Color.secondary.opacity(0.3))
-                            .frame(width: isSelected ? 18 : 6, height: 6)
-                            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectedProvider)
-                    }
-                }
-                Spacer()
-            }
-            .padding(.top, 2)
-            
-            // MARK: Богословский тон ответов ИИ
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 6) {
-                    Image(systemName: "cross.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
-                    Text("ai_theological_tone_title".localized(for: selectedLanguage))
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(primaryTextColor)
-                }
-                
-                Text("ai_theological_tone_desc".localized(for: selectedLanguage))
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                    .lineSpacing(3)
-                
-                // Карточки 4 богословских стилей
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                    ForEach(AITheologicalTone.allCases) { tone in
-                        let isSelected = selectedTheologicalTone == tone
-                        let tColor = Color(hex: tone.accentColorHex)
-                        
-                        Button {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.prepare()
-                            generator.impactOccurred()
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                selectedTheologicalTone = tone
-                                manager.setAITheologicalTone(tone)
-                            }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    ZStack {
-                                        Circle()
-                                            .fill(isSelected ? tColor : tColor.opacity(0.12))
-                                            .frame(width: 26, height: 26)
-                                        Image(systemName: tone.iconName)
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundColor(isSelected ? .white : tColor)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    if isSelected {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(tColor)
-                                    }
-                                }
-                                
-                                Text(tone.title(for: selectedLanguage))
-                                    .font(.system(size: 12, weight: isSelected ? .bold : .semibold))
-                                    .foregroundColor(primaryTextColor)
-                                    .lineLimit(1)
-                                
-                                Text(tone.description(for: selectedLanguage))
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(2)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .padding(10)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(cardBackgroundColor)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(
-                                        isSelected ? tColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)),
-                                        lineWidth: isSelected ? 1.5 : 1
-                                    )
-                            )
-                        }
-                        .buttonStyle(ScaleButtonStyle())
-                    }
-                }
-            }
-            .padding(.top, 6)
-            
-            // MARK: Очистка истории диалогов с ИИ
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text("ai_clear_chat_title".localized(for: selectedLanguage))
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(primaryTextColor)
-                            
-                            // Бейдж количества сообщений
-                            Text("\(manager.aiChatMessages.count) " + "ai_chat_messages_count".localized(for: selectedLanguage))
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(Color(hex: selectedTheme.colorHex))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
-                                .cornerRadius(6)
-                        }
-                        
-                        Text("ai_clear_chat_desc".localized(for: selectedLanguage))
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.prepare()
-                        generator.impactOccurred()
-                        isShowingClearAIChatAlert = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("ai_clear_chat_btn".localized(for: selectedLanguage))
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundColor(Color(hex: "EF4444"))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color(hex: "EF4444").opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    .disabled(manager.aiChatMessages.isEmpty)
-                    .opacity(manager.aiChatMessages.isEmpty ? 0.5 : 1.0)
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(cardBackgroundColor)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
-                )
-                
-                if showAIChatClearedToast {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(Color(hex: "10B981"))
-                            .font(.system(size: 12))
-                        Text("ai_clear_chat_cleared_toast".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(hex: "10B981"))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 2)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-            .padding(.top, 4)
+            aiHeaderView
+            aiProviderPillSelector
+            aiCarouselView
+            aiPageIndicatorDots
+            aiTheologicalToneSection
+            aiClearChatSection
         }
         .onChange(of: geminiKeyInput) { val in
             manager.geminiApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -3147,6 +2886,291 @@ struct SettingsView: View {
         .onChange(of: anthropicKeyInput) { val in
             manager.anthropicApiKey = val.trimmingCharacters(in: .whitespacesAndNewlines)
         }
+    }
+    
+    @ViewBuilder
+    private var aiHeaderView: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(providerAccentColor(for: selectedProvider))
+            
+            Text("ai_provider".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            
+            Spacer()
+            
+            // Бейдж текущей выбранной модели
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(providerAccentColor(for: selectedProvider))
+                    .frame(width: 6, height: 6)
+                Text(selectedProvider.displayName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(primaryTextColor)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(providerAccentColor(for: selectedProvider).opacity(0.12))
+            .cornerRadius(10)
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private func aiPillBackground(for provider: AIProvider, isSelected: Bool) -> some View {
+        let pColor = providerAccentColor(for: provider)
+        let sColor = providerSecondaryColor(for: provider)
+        let unselectedFill = colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
+        
+        if isSelected {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [pColor, sColor],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: pColor.opacity(0.35), radius: 6, y: 2)
+        } else {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(unselectedFill)
+        }
+    }
+    
+    @ViewBuilder
+    private var aiProviderPillSelector: some View {
+        HStack(spacing: 6) {
+            ForEach(AIProvider.allCases) { provider in
+                let isSelected = selectedProvider == provider
+                
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                        selectedProvider = provider
+                        manager.setActiveProvider(provider)
+                    }
+                    UISelectionFeedbackGenerator().selectionChanged()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: providerIconName(for: provider))
+                            .font(.system(size: 11, weight: .bold))
+                        Text(provider.displayName)
+                            .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                    }
+                    .foregroundColor(isSelected ? .white : primaryTextColor.opacity(0.7))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(aiPillBackground(for: provider, isSelected: isSelected))
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+        }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(colorScheme == .dark ? Color.white.opacity(0.03) : Color.black.opacity(0.03))
+        )
+        .padding(.horizontal, 4)
+    }
+    
+    @ViewBuilder
+    private var aiCarouselView: some View {
+        TabView(selection: $selectedProvider) {
+            ForEach(AIProvider.allCases) { provider in
+                aiProviderCard(for: provider)
+                    .tag(provider)
+                    .padding(.horizontal, 4)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .frame(height: 255)
+        .onChange(of: selectedProvider) { newProvider in
+            manager.setActiveProvider(newProvider)
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
+    }
+    
+    @ViewBuilder
+    private var aiPageIndicatorDots: some View {
+        HStack {
+            Spacer()
+            HStack(spacing: 6) {
+                ForEach(AIProvider.allCases) { provider in
+                    let isSelected = selectedProvider == provider
+                    let pColor = providerAccentColor(for: provider)
+                    
+                    Capsule()
+                        .fill(isSelected ? pColor : Color.secondary.opacity(0.3))
+                        .frame(width: isSelected ? 18 : 6, height: 6)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectedProvider)
+                }
+            }
+            Spacer()
+        }
+        .padding(.top, 2)
+    }
+    
+    @ViewBuilder
+    private var aiTheologicalToneSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "cross.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                Text("ai_theological_tone_title".localized(for: selectedLanguage))
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(primaryTextColor)
+            }
+            
+            Text("ai_theological_tone_desc".localized(for: selectedLanguage))
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .lineSpacing(3)
+            
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                ForEach(AITheologicalTone.allCases) { tone in
+                    aiTheologicalToneCard(for: tone)
+                }
+            }
+        }
+        .padding(.top, 6)
+    }
+    
+    @ViewBuilder
+    private func aiTheologicalToneCard(for tone: AITheologicalTone) -> some View {
+        let isSelected = selectedTheologicalTone == tone
+        let tColor = Color(hex: tone.accentColorHex)
+        let strokeColor = isSelected ? tColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+        
+        Button {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.prepare()
+            generator.impactOccurred()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                selectedTheologicalTone = tone
+                manager.setAITheologicalTone(tone)
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    ZStack {
+                        Circle()
+                            .fill(isSelected ? tColor : tColor.opacity(0.12))
+                            .frame(width: 26, height: 26)
+                        Image(systemName: tone.iconName)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(isSelected ? .white : tColor)
+                    }
+                    
+                    Spacer()
+                    
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(tColor)
+                    }
+                }
+                
+                Text(tone.title(for: selectedLanguage))
+                    .font(.system(size: 12, weight: isSelected ? .bold : .semibold))
+                    .foregroundColor(primaryTextColor)
+                    .lineLimit(1)
+                
+                Text(tone.description(for: selectedLanguage))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(strokeColor, lineWidth: isSelected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+    
+    @ViewBuilder
+    private var aiClearChatSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("ai_clear_chat_title".localized(for: selectedLanguage))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("\(manager.aiChatMessages.count) " + "ai_chat_messages_count".localized(for: selectedLanguage))
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                            .cornerRadius(6)
+                    }
+                    
+                    Text("ai_clear_chat_desc".localized(for: selectedLanguage))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.prepare()
+                    generator.impactOccurred()
+                    isShowingClearAIChatAlert = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("ai_clear_chat_btn".localized(for: selectedLanguage))
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(Color(hex: "EF4444"))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(hex: "EF4444").opacity(0.1))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .disabled(manager.aiChatMessages.isEmpty)
+                .opacity(manager.aiChatMessages.isEmpty ? 0.5 : 1.0)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+            )
+            
+            if showAIChatClearedToast {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(Color(hex: "10B981"))
+                        .font(.system(size: 12))
+                    Text("ai_clear_chat_cleared_toast".localized(for: selectedLanguage))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(Color(hex: "10B981"))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 2)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(.top, 4)
     }
     
     // MARK: - Карточка отдельного ИИ-провайдера
