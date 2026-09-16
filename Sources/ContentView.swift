@@ -4,6 +4,7 @@ import WidgetKit
 struct ContentView: View {
     @ObservedObject var manager = BibleManager.shared
     @ObservedObject private var reviewManager = ReviewManager.shared
+    @ObservedObject private var updateManager = AppUpdateManager.shared
     @Environment(\.scenePhase) private var scenePhase
     
     private var accentColor: Color {
@@ -56,8 +57,16 @@ struct ContentView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     .zIndex(999)
             }
+            
+            // 🚨 Окно обязательного принудительного обновления приложения
+            if updateManager.isForceUpdateRequired {
+                ForceUpdateOverlayView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .zIndex(1000)
+            }
         }
         .animation(.easeInOut(duration: 0.25), value: manager.isAppUnlocked)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: updateManager.isForceUpdateRequired)
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .background {
                 manager.lockApp()
@@ -65,12 +74,14 @@ struct ContentView: View {
                 if manager.isBiometricLockEnabled && !manager.isAppUnlocked {
                     manager.authenticateWithBiometrics()
                 }
+                updateManager.checkForUpdates(language: manager.appLanguage)
             }
         }
         .onAppear {
             if manager.isBiometricLockEnabled && !manager.isAppUnlocked {
                 manager.authenticateWithBiometrics()
             }
+            updateManager.checkForUpdates(language: manager.appLanguage)
         }
     }
 }
@@ -5327,6 +5338,18 @@ struct SettingsView: View {
                 Spacer()
                 Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.4")
                     .foregroundColor(.secondary)
+                
+                Button {
+                    let g = UIImpactFeedbackGenerator(style: .light)
+                    g.prepare(); g.impactOccurred()
+                    AppUpdateManager.shared.checkForUpdates(language: selectedLanguage)
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        .padding(4)
+                }
+                .buttonStyle(ScaleButtonStyle())
             }
             .font(.system(size: 14))
             
