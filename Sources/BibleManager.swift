@@ -1282,6 +1282,7 @@ class BibleManager: ObservableObject {
         let completedReadingDays: [String: [Int]]
     }
     
+    @MainActor
     func generateBackupArchive() -> URL? {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -1724,6 +1725,7 @@ class BibleManager: ObservableObject {
         objectWillChange.send()
     }
     
+    @MainActor
     func resetQuizFullStats() {
         self.quizBestScore = 0
         if let defaults = sharedDefaults {
