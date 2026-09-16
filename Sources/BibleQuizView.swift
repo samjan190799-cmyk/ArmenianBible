@@ -772,6 +772,7 @@ struct BibleQuizView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                 quizFinished = true
             }
+            AdManager.shared.recordActionAndShowInterstitialIfReady()
         }
     }
     

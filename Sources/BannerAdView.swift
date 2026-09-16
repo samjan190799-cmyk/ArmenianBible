@@ -47,43 +47,47 @@ public struct BannerAdView: View {
             EmptyView()
         } else {
             VStack(spacing: 4) {
-                // Верхняя информационная полоса с кнопкой «Убрать рекламу»
-                HStack {
-                    Text(adBadgeTitle.uppercased())
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.secondary.opacity(0.8))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.primary.opacity(0.06))
-                        .cornerRadius(4)
-                    
-                    Spacer()
-                    
-                    Button {
-                        triggerHaptic(.light)
-                        isShowingPaywall = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(Color(hex: "F59E0B"))
-                            Text(removeAdsTitle)
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.secondary)
+                if isAdLoaded {
+                    // Верхняя информационная полоса с кнопкой «Убрать рекламу»
+                    HStack {
+                        Text(adBadgeTitle.uppercased())
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.secondary.opacity(0.8))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.primary.opacity(0.06))
+                            .cornerRadius(4)
+                        
+                        Spacer()
+                        
+                        Button {
+                            triggerHaptic(.light)
+                            isShowingPaywall = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(Color(hex: "F59E0B"))
+                                Text(removeAdsTitle)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color.primary.opacity(0.04))
+                            .cornerRadius(10)
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(Color.primary.opacity(0.04))
-                        .cornerRadius(10)
                     }
+                    .padding(.horizontal, 16)
+                    .transition(.opacity)
                 }
-                .padding(.horizontal, 16)
                 
                 // Нативный баннерный контейнер
                 #if canImport(FBAudienceNetwork)
                 MetaBannerRepresentable(isLoaded: $isAdLoaded)
-                    .frame(height: 50)
+                    .frame(height: isAdLoaded ? 50 : 0)
                     .frame(maxWidth: .infinity)
+                    .opacity(isAdLoaded ? 1.0 : 0.0)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
                             .fill(colorScheme == .dark ? Color.white.opacity(0.02) : Color.black.opacity(0.02))
@@ -104,7 +108,8 @@ public struct BannerAdView: View {
                 .padding(.horizontal, 16)
                 #endif
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, isAdLoaded ? 4 : 0)
+            .clipped()
             .sheet(isPresented: $isShowingPaywall) {
                 PaywallView()
             }
@@ -156,18 +161,18 @@ struct MetaBannerRepresentable: UIViewRepresentable {
     
     func updateUIView(_ uiView: MetaBannerContainerUIView, context: Context) {}
     
-    @MainActor
-    final class Coordinator: NSObject, FBAdViewDelegate {
+    final class Coordinator: NSObject, @unchecked Sendable, FBAdViewDelegate {
         var parent: MetaBannerRepresentable
-        weak var adView: FBAdView?
-        weak var containerView: MetaBannerContainerUIView?
-        weak var rootVC: UIViewController?
+        nonisolated(unsafe) weak var adView: FBAdView?
+        nonisolated(unsafe) weak var containerView: MetaBannerContainerUIView?
+        nonisolated(unsafe) weak var rootVC: UIViewController?
         private var hasFallenBackToTest: Bool = false
         
         init(_ parent: MetaBannerRepresentable) {
             self.parent = parent
         }
         
+        @MainActor
         func setupAdViewIfNeeded() {
             guard adView == nil, let container = containerView else { return }
             
@@ -218,7 +223,9 @@ struct MetaBannerRepresentable: UIViewRepresentable {
         
         nonisolated func adViewDidLoad(_ adView: FBAdView) {
             Task { @MainActor in
-                self.parent.isLoaded = true
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    self.parent.isLoaded = true
+                }
                 #if DEBUG
                 print("✅ [BannerAdView] Meta Баннер успешно загружен и отображается")
                 #endif
@@ -231,13 +238,11 @@ struct MetaBannerRepresentable: UIViewRepresentable {
                 print("⚠️ [BannerAdView] Ошибка загрузки боевого баннера: \(error.localizedDescription)")
                 #endif
                 
-                // Если в боевом режиме нет показа (No fill / код 1001) или аккаунт на проверке,
-                // мгновенно переключаемся на гарантированный тестовый баннер Meta для показа в UI
+                #if DEBUG
+                // В Debug-режиме пробуем тестовый креатив Meta
                 if !self.hasFallenBackToTest, let container = self.containerView, let root = self.rootVC {
                     self.hasFallenBackToTest = true
-                    #if DEBUG
                     print("🔄 [BannerAdView] Авто-переключение на гарантированный тестовый креатив Meta...")
-                    #endif
                     
                     adView.removeFromSuperview()
                     let testAdView = FBAdView(
@@ -262,8 +267,11 @@ struct MetaBannerRepresentable: UIViewRepresentable {
                     testAdView.loadAd()
                     return
                 }
+                #endif
                 
-                self.parent.isLoaded = false
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.parent.isLoaded = false
+                }
             }
         }
     }

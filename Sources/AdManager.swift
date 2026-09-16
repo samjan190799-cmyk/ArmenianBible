@@ -43,10 +43,12 @@ public final class AdManager: NSObject, ObservableObject {
         print("📢 [AdManager] Meta Audience Network Test Device: \(FBAdSettings.testDeviceHash())")
         #endif
         
-        // Инициализация движка Meta
+        // Инициализация движка Meta с безопасным извлечением Sendable примитивов
         FBAudienceNetworkAds.initialize(with: nil) { result in
+            let isSuccess = result.isSuccess
+            let message = result.message
             #if DEBUG
-            print("📢 [AdManager] Meta SDK Init Result: \(result.isSuccess ? "Success" : "Failed")")
+            print("📢 [AdManager] Meta SDK Init Result: \(isSuccess ? "Success" : "Failed") - \(message)")
             #endif
         }
         #endif
