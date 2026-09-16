@@ -3,6 +3,7 @@ import WidgetKit
 
 struct ContentView: View {
     @ObservedObject var manager = BibleManager.shared
+    @ObservedObject private var reviewManager = ReviewManager.shared
     @Environment(\.scenePhase) private var scenePhase
     
     private var accentColor: Color {
@@ -175,6 +176,7 @@ struct BiometricLockOverlayView: View {
 struct HomeView: View {
     @ObservedObject var manager = BibleManager.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    @ObservedObject private var reviewManager = ReviewManager.shared
     @State private var animateVerse = false
     @State private var isHeartBouncing = false
     @State private var isShowingSettings = false
@@ -572,6 +574,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isShowingWallpaperMaker) {
             BibleWallpaperMakerView(verse: manager.currentVerse)
+        }
+        .sheet(isPresented: $reviewManager.isShowingReviewSheet) {
+            ReviewPromptSheetView()
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
@@ -5320,7 +5325,7 @@ struct SettingsView: View {
             HStack {
                 Text("about_app_version".localized(for: selectedLanguage))
                 Spacer()
-                Text("2.2")
+                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.4")
                     .foregroundColor(.secondary)
             }
             .font(.system(size: 14))
@@ -5435,6 +5440,34 @@ struct SettingsView: View {
             }
             .buttonStyle(ScaleButtonStyle())
             .disabled(subscriptionManager.isPurchasing)
+            
+            // ─── Кнопка "Оценить Luys в App Store" ───────────────────────
+            Button {
+                let g = UINotificationFeedbackGenerator()
+                g.prepare(); g.notificationOccurred(.success)
+                ReviewManager.shared.openAppStoreReviewDirectly()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                    Text({
+                        switch selectedLanguage {
+                        case .armenian: return "Գնահատել Luys-ը App Store-ում ⭐⭐⭐⭐⭐"
+                        case .russian:  return "Оценить Luys в App Store ⭐⭐⭐⭐⭐"
+                        case .english:  return "Rate Luys on App Store ⭐⭐⭐⭐⭐"
+                        }
+                    }())
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Color(hex: "F59E0B"))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(Color(hex: "F59E0B").opacity(0.12))
+                .cornerRadius(10)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: "F59E0B").opacity(0.35), lineWidth: 1))
+            }
+            .buttonStyle(ScaleButtonStyle())
         }
         .padding(18)
         .background(aboutBlockBgColor)

@@ -773,6 +773,7 @@ struct BibleQuizView: View {
                 quizFinished = true
             }
             AdManager.shared.recordActionAndShowInterstitialIfReady()
+            ReviewManager.shared.recordPositiveAction()
         }
     }
     
