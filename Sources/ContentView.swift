@@ -3041,7 +3041,7 @@ struct SettingsView: View {
     @ViewBuilder
     private func aiTheologicalToneCard(for tone: AITheologicalTone) -> some View {
         let isSelected = selectedTheologicalTone == tone
-        let tColor = Color(hex: tone.accentColorHex)
+        let tColor = Color(hex: tone.colorHex)
         let strokeColor = isSelected ? tColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
         
         Button {
@@ -3059,7 +3059,7 @@ struct SettingsView: View {
                         Circle()
                             .fill(isSelected ? tColor : tColor.opacity(0.12))
                             .frame(width: 26, height: 26)
-                        Image(systemName: tone.iconName)
+                        Image(systemName: tone.icon)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(isSelected ? .white : tColor)
                     }
@@ -3073,12 +3073,12 @@ struct SettingsView: View {
                     }
                 }
                 
-                Text(tone.title(for: selectedLanguage))
+                Text(tone.localizedTitle(for: selectedLanguage))
                     .font(.system(size: 12, weight: isSelected ? .bold : .semibold))
                     .foregroundColor(primaryTextColor)
                     .lineLimit(1)
                 
-                Text(tone.description(for: selectedLanguage))
+                Text(tone.localizedDesc(for: selectedLanguage))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
                     .lineLimit(2)

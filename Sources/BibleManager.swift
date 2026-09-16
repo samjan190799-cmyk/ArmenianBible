@@ -1970,6 +1970,7 @@ enum AITheologicalTone: String, CaseIterable, Identifiable, Codable {
         case .simple: return "sun.max.fill"
         }
     }
+    var iconName: String { icon }
     
     var colorHex: String {
         switch self {
@@ -1979,6 +1980,10 @@ enum AITheologicalTone: String, CaseIterable, Identifiable, Codable {
         case .simple: return "10B981"
         }
     }
+    var accentColorHex: String { colorHex }
+    
+    func title(for lang: AppLanguage) -> String { localizedTitle(for: lang) }
+    func description(for lang: AppLanguage) -> String { localizedDesc(for: lang) }
     
     func localizedTitle(for lang: AppLanguage) -> String {
         switch self {
