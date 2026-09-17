@@ -1307,12 +1307,12 @@ struct AIGuideView: View {
             Text(errorMessage)
         }
         .confirmationDialog(
-            manager.appLanguage == .armenian ? "Ջնջե՞լ զրույցի պատմությունը" : (manager.appLanguage == .russian ? "Очистить историю чата?" : "Clear chat history?"),
+            "ai_clear_chat_confirm_title".localized(for: manager.appLanguage),
             isPresented: $showingClearChatConfirmation,
             titleVisibility: .visible
         ) {
             Button(
-                manager.appLanguage == .armenian ? "Մաքրել զրույցը" : (manager.appLanguage == .russian ? "Очистить чат" : "Clear Chat"),
+                "ai_clear_chat_btn".localized(for: manager.appLanguage),
                 role: .destructive
             ) {
                 triggerHaptic(.medium)
@@ -1553,11 +1553,13 @@ struct AIGuideView: View {
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(questionText.isEmpty ? Color.primary.opacity(0.08) : accentColor.opacity(0.5), lineWidth: 1.2)
                     )
+                    .keyboardDismissToolbar()
                 
                 Button {
                     triggerHaptic(.medium)
                     let textToSend = questionText
                     questionText = ""
+                    hideKeyboard()
                     submitQuestion(textToSend)
                 } label: {
                     ZStack {
@@ -6295,6 +6297,7 @@ struct VisibleApiKeyField: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(fieldBorderColor, lineWidth: 1.5)
         )
+        .keyboardDismissToolbar()
         .animation(.easeInOut(duration: 0.15), value: text.isEmpty)
     }
 }

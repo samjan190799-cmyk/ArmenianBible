@@ -1468,6 +1468,7 @@ struct VerseActionSheetView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(Color.primary.opacity(0.08), lineWidth: 1)
                             )
+                            .keyboardDismissToolbar()
                             .onChange(of: noteText) { _ in
                                 saveChanges()
                             }
@@ -1594,6 +1595,7 @@ struct VerseActionSheetView: View {
                 }
                 .padding(20)
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("\(book.name) \(chapter):\(verse.verseNumber)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

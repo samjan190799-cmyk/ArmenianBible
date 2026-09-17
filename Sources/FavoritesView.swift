@@ -233,6 +233,7 @@ struct FavoritesView: View {
                         TextField("favorites_search_placeholder".localized(for: manager.appLanguage), text: $searchText)
                             .font(.system(size: 15))
                             .foregroundColor(primaryTextColor)
+                            .keyboardDismissToolbar()
                         
                         if !searchText.isEmpty {
                             Button {

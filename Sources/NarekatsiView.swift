@@ -133,6 +133,7 @@ struct NarekatsiView: View {
                             TextField("Поиск по 95 главам (напр. Բան Ժ или Глава 10)...", text: $searchText)
                                 .font(.system(size: 14))
                                 .foregroundColor(primaryTextColor)
+                                .keyboardDismissToolbar()
                             if !searchText.isEmpty {
                                 Button {
                                     searchText = ""

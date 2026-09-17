@@ -47,9 +47,23 @@ final class AppUpdateManager: ObservableObject {
     /// Доступная версия в App Store
     @Published var availableVersion: String = ""
     
+    /// Определяет, запущено ли приложение в среде TestFlight, на симуляторе или в отладочной сборке.
+    /// В TestFlight и при разработке принудительное обновление никогда не блокирует пользователя.
+    var isTestFlightOrDebug: Bool {
+        #if DEBUG || targetEnvironment(simulator)
+        return true
+        #else
+        // В сборках TestFlight системный чек всегда называется sandboxReceipt
+        if let receiptURL = Bundle.main.appStoreReceiptURL, receiptURL.lastPathComponent == "sandboxReceipt" {
+            return true
+        }
+        return false
+        #endif
+    }
+    
     /// Текущая установленная версия
     var currentVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.4"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.1"
     }
     
     /// Заголовок окна обновления в зависимости от языка
@@ -64,6 +78,12 @@ final class AppUpdateManager: ObservableObject {
     
     // MARK: - Проверка обновлений
     func checkForUpdates(language: AppLanguage = .armenian) {
+        // В TestFlight, на симуляторе или при локальной отладке блокирующий экран никогда не показывается
+        if isTestFlightOrDebug {
+            isForceUpdateRequired = false
+            return
+        }
+        
         guard !isChecking else { return }
         isChecking = true
         
@@ -76,7 +96,8 @@ final class AppUpdateManager: ObservableObject {
             
             if let config = remoteConfig {
                 let isOlderThanMin = AppUpdateManager.isVersion(self.currentVersion, olderThan: config.minVersion)
-                let isForce = config.forceUpdate
+                let isOlderThanLatest = AppUpdateManager.isVersion(self.currentVersion, olderThan: config.latestVersion)
+                let isForce = config.forceUpdate && isOlderThanLatest
                 
                 if isOlderThanMin || isForce {
                     self.availableVersion = config.latestVersion

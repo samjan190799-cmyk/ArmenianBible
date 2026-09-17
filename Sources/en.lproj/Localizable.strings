@@ -32,6 +32,8 @@
 "alert_empty_key_message" = "For AI generation, you need to add the %1$@ API Key in settings.";
 "alert_error_title" = "Error";
 "alert_ok_button" = "OK";
+"alert_cancel_button" = "Cancel";
+"cancel_button" = "Cancel";
 
 /* Categories */
 "category_verses" = "Bible";
@@ -289,8 +291,6 @@
 "edit_menu_marker" = "Highlight";
 
 /* Armenian Bible Editions */
-"edition_ararat_title" = "Արարատյան (Araratian)";
-"edition_echmiadzin_title" = "Էջմիածնական (Echmiadzin)";
 "cards_translation_title" = "Verse Cards Translation";
 "cards_translation_desc" = "Choose the Bible translation edition for Home cards and widgets";
 "edition_ararat_badge" = "Ararat (Modern)";
@@ -312,7 +312,6 @@
 "narek_stop" = "Stop";
 "narek_listen_prayer" = "Listen to Prayer";
 "saint_gregory_narekatsi" = "St. Gregory of Narek";
-"alert_error_title" = "Error";
 "alert_success_title" = "Congratulations! 🕊️";
 "alert_amen" = "Amen";
 
@@ -378,7 +377,6 @@
 "widget_large_category_title" = "Large Widget Topic (4x4)";
 "lockscreen_preview_title" = "Lock Screen Preview:";
 "update_widgets_now_button" = "Refresh All Widgets Now";
-"widget_language_title" = "Widget Language";
 
 /* Reading Plans & Streaks */
 "reading_plans_title" = "Bible Reading Plans";

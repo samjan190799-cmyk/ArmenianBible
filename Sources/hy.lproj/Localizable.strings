@@ -32,6 +32,8 @@
 "alert_empty_key_message" = "ԱԲ գեներացման համար անհրաժեշտ է կարգավորումներում ավելացնել %1$@ API բանալին (API Key):";
 "alert_error_title" = "Սխալ";
 "alert_ok_button" = "Լավ";
+"alert_cancel_button" = "Չեղարկել";
+"cancel_button" = "Չեղարկել";
 
 /* Categories */
 "category_verses" = "Աստվածաշունչ";
@@ -144,7 +146,7 @@
 
 /* Widget Settings */
 "widget_settings_header" = "Վիդջեթի Կարգավորումներ";
-"widget_language_title" = "Վիդջեթի լեզուն";
+"widget_language_title" = "Վիջեթների լեզուն";
 
 /* Bible Reader */
 "tab_bible" = "Աստվածաշունչ";
@@ -289,8 +291,6 @@
 "edit_menu_marker" = "Գունանշում";
 
 /* Armenian Bible Editions */
-"edition_ararat_title" = "Արարատյան թարգմանություն";
-"edition_echmiadzin_title" = "Էջմիածնական թարգմանություն";
 "cards_translation_title" = "Քարտերի թարգմանություն";
 "cards_translation_desc" = "Ընտրեք Գլխավոր էկրանի քարտերի և վիդջեթների աստվածաշնչյան տեքստի տարբերակը";
 "edition_ararat_badge" = "Արարատ (Ժամանակակից)";
@@ -312,7 +312,6 @@
 "narek_stop" = "Դադարեցնել";
 "narek_listen_prayer" = "Լսել աղոթքը";
 "saint_gregory_narekatsi" = "Սբ. Գրիգոր Նարեկացի";
-"alert_error_title" = "Սխալ";
 "alert_success_title" = "Շնորհավորում ենք! 🕊️";
 "alert_amen" = "Ամեն";
 
@@ -378,7 +377,6 @@
 "widget_large_category_title" = "Մեծ վիջեթի թեման (4x4)";
 "lockscreen_preview_title" = "Կողպեքի էկրանի նախադիտում.";
 "update_widgets_now_button" = "Թարմացնել բոլոր վիջեթները";
-"widget_language_title" = "Վիջեթների լեզուն";
 
 /* Reading Plans & Streaks */
 "reading_plans_title" = "Ընթերցանության Ծրագրեր";

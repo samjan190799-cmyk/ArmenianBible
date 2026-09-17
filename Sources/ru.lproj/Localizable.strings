@@ -32,6 +32,8 @@
 "alert_empty_key_message" = "Для генерации ИИ необходимо добавить API-ключ %1$@ в настройках.";
 "alert_error_title" = "Ошибка";
 "alert_ok_button" = "ОК";
+"alert_cancel_button" = "Отмена";
+"cancel_button" = "Отмена";
 
 /* Categories */
 "category_verses" = "Библия";
@@ -144,7 +146,7 @@
 
 /* Widget Settings */
 "widget_settings_header" = "Настройки Виджета";
-"widget_language_title" = "Язык виджета";
+"widget_language_title" = "Язык виджетов";
 
 /* Bible Reader */
 "tab_bible" = "Библия";
@@ -177,7 +179,7 @@
 "edition_russian_subtitle" = "Синодальный перевод";
 "edition_english_subtitle" = "King James Version (KJV)";
 "edition_russian" = "Русский (Синодальный)";
-"edition_english" = "English (KJV)";
+"edition_english" = "Английский (KJV)";
 "verse_label" = "Стих";
 
 /* Favorites Tab */
@@ -289,8 +291,6 @@
 "edit_menu_marker" = "Маркер";
 
 /* Armenian Bible Editions */
-"edition_ararat_title" = "Արարատյան (Араратский)";
-"edition_echmiadzin_title" = "Էջմիածնական (Эчмиадзинский)";
 "cards_translation_title" = "Перевод стихов на карточках";
 "cards_translation_desc" = "Выберите версию перевода для карточек Главного экрана и виджетов";
 "edition_ararat_badge" = "Арарат (Современный)";
@@ -312,7 +312,6 @@
 "narek_stop" = "Остановить";
 "narek_listen_prayer" = "Слушать молитву";
 "saint_gregory_narekatsi" = "Св. Григор Нарекаци";
-"alert_error_title" = "Ошибка";
 "alert_success_title" = "Поздравляем! 🕊️";
 "alert_amen" = "Аминь";
 
@@ -378,7 +377,6 @@
 "widget_large_category_title" = "Тема для Большого виджета (4x4)";
 "lockscreen_preview_title" = "Предпросмотр экрана блокировки:";
 "update_widgets_now_button" = "Обновить все виджеты сейчас";
-"widget_language_title" = "Язык виджетов";
 
 /* Reading Plans & Streaks */
 "reading_plans_title" = "Планы чтения Библии";

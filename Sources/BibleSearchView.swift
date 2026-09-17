@@ -46,6 +46,7 @@ struct BibleSearchView: View {
                                 .textInputAutocapitalization(.never)
                                 .disableAutocorrection(true)
                                 .submitLabel(.search)
+                                .keyboardDismissToolbar()
                                 .onSubmit {
                                     performSearch()
                                 }
