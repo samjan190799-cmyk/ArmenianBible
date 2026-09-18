@@ -55,10 +55,12 @@ struct YandexBannerContainerView: UIViewRepresentable {
         
         context.coordinator.bannerView = bannerView
         
-        // Отложенная загрузка: инициируем запрос только если экран открыт пользователю
+        // Отложенная безопасная загрузка: запускаем запрос только после стабилизации сцены
         if isVisible {
-            context.coordinator.loadBanner(adUnitID: adUnitID)
-            context.coordinator.startAutoRefreshTimer()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                context.coordinator.safeLoadBanner(adUnitID: adUnitID)
+                context.coordinator.startAutoRefreshTimer()
+            }
         }
         
         return container
@@ -97,10 +99,10 @@ struct YandexBannerContainerView: UIViewRepresentable {
                 
                 // Если баннер еще ни разу не загрузился и прошло > 15 секунд от предыдущей попытки
                 if !isLoaded && timeSinceLastAttempt > 15 {
-                    loadBanner(adUnitID: adUnitID)
+                    safeLoadBanner(adUnitID: adUnitID)
                 } else if isLoaded && timeSinceLastLoad >= parent.autoRefreshInterval {
                     // Если пользователь вернулся на экран спустя интервал авторотации (45+ секунд)
-                    loadBanner(adUnitID: adUnitID)
+                    safeLoadBanner(adUnitID: adUnitID)
                 }
             } else {
                 stopAutoRefreshTimer()
@@ -112,7 +114,7 @@ struct YandexBannerContainerView: UIViewRepresentable {
             refreshTimer = Timer.scheduledTimer(withTimeInterval: parent.autoRefreshInterval, repeats: true) { [weak self] _ in
                 guard let self = self, self.parent.isVisible else { return }
                 if Date().timeIntervalSince(self.lastAttemptDate) >= 30 {
-                    self.loadBanner(adUnitID: self.parent.adUnitID)
+                    self.safeLoadBanner(adUnitID: self.parent.adUnitID)
                 }
             }
         }
@@ -122,8 +124,19 @@ struct YandexBannerContainerView: UIViewRepresentable {
             refreshTimer = nil
         }
         
-        func loadBanner(adUnitID: String) {
+        func safeLoadBanner(adUnitID: String) {
             guard let bannerView, !adUnitID.isEmpty else { return }
+            
+            // Предотвращение дедлока (Watchdog 0x8BADF00D):
+            // Если SDK Яндекса еще в процессе инициализации, ни в коем случае не вызываем loadAd синхронно,
+            // чтобы исключить взаимную блокировку главного потока с фоновыми тредами аналитики.
+            guard LuysAdManager.shared.isYandexInitialized else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                    self?.safeLoadBanner(adUnitID: adUnitID)
+                }
+                return
+            }
+            
             lastAttemptDate = Date()
             
             // Чистый AdRequest без передачи персональных данных согласно App Store Guidelines

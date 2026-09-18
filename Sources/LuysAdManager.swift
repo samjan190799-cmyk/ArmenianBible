@@ -75,6 +75,8 @@ public final class LuysAdManager: NSObject, ObservableObject {
     @AppStorage("luys_rewarded_bonuses_earned") public var totalRewardedBonusesEarned: Int = 0
     
     // MARK: - Состояния рекламы
+    @Published public private(set) var isYandexInitialized: Bool = false
+    @Published public private(set) var isInitialized: Bool = false
     @Published public private(set) var isRewardedReady: Bool = false
     @Published public private(set) var isInterstitialReady: Bool = false
     @Published public private(set) var isTrackingAuthorized: Bool = false
@@ -139,33 +141,39 @@ public final class LuysAdManager: NSObject, ObservableObject {
     
     // MARK: - Инициализация рекламных SDK
     public func initialize() {
+        guard !isInitialized else { return }
+        isInitialized = true
         determineActiveNetworkByGeo()
         
         #if canImport(YandexMobileAds)
-        Task {
+        Task.detached(priority: .utility) {
             await YandexAds.initializeSDK()
             await MainActor.run {
-                self.preloadYandexRewarded()
+                LuysAdManager.shared.isYandexInitialized = true
+                LuysAdManager.shared.preloadYandexRewarded()
             }
         }
         #endif
         
         #if canImport(FBAudienceNetwork)
-        FBAdSettings.addTestDevice(FBAdSettings.testDeviceHash())
-        FBAudienceNetworkAds.initialize(with: nil) { [weak self] _ in
-            Task { @MainActor in
-                self?.preloadInterstitial()
+        // Meta Audience Network инициализируется ТОЛЬКО вне стран СНГ
+        if self.activeProviderType == .meta {
+            Task.detached(priority: .background) {
+                FBAdSettings.addTestDevice(FBAdSettings.testDeviceHash())
+                FBAudienceNetworkAds.initialize(with: nil) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.preloadInterstitial()
+                    }
+                }
             }
         }
         #endif
         
         #if !targetEnvironment(simulator)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
             self?.requestTrackingPermission()
         }
         #endif
-        
-        preloadAds()
     }
     
     // MARK: - Запрос разрешения Apple ATT (iOS 14.5+)
