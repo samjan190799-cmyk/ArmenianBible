@@ -1372,15 +1372,13 @@ struct AIGuideView: View {
                     }
                 }
                 
-                // Статус подписки и кнопка пополнения вопросов
+                // Статус подписки и кнопка пополнения копилки вопросов
                 HStack(spacing: 6) {
-                    Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
+                    Image(systemName: subscriptionManager.isPremium ? "crown.fill" : (subscriptionManager.accumulatedBonusAiQuestions > 0 ? "archivebox.fill" : "sparkles"))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(Color(hex: "F59E0B"))
                     
-                    Text(subscriptionManager.isPremium ?
-                         (manager.appLanguage == .armenian ? "PRO • Անսահմանափակ" : (manager.appLanguage == .russian ? "PRO • Безлимитно" : "PRO • Unlimited")) :
-                         (manager.appLanguage == .armenian ? "Մնացել է \(subscriptionManager.remainingFreeAiQuestions) հարց" : (manager.appLanguage == .russian ? "Осталось \(subscriptionManager.remainingFreeAiQuestions) вопр." : "\(subscriptionManager.remainingFreeAiQuestions) questions left")))
+                    Text(headerQuestionsStatusText)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(subscriptionManager.isPremium ? Color(hex: "F59E0B") : .secondary)
                     
@@ -1398,18 +1396,22 @@ struct AIGuideView: View {
                                 .cornerRadius(4)
                         }
                         
-                        // Кнопка просмотра видео за вознаграждение (+1 вопрос)
+                        // Кнопка пополнения копилки за просмотр видео (+1 несгораемый вопрос)
                         Button {
                             triggerHaptic(.medium)
                             AdManager.shared.showRewardedAd {
-                                let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
+                                let total = subscriptionManager.remainingFreeAiQuestions
+                                let banked = subscriptionManager.accumulatedBonusAiQuestions
+                                let msg = manager.appLanguage == .armenian ?
+                                    "+1 հարց կուտակվեց: Ընդհանուր՝ \(total) (\(banked) կուտակված)" :
+                                    (manager.appLanguage == .russian ? "+1 вопрос накоплен! Всего: \(total) (\(banked) в копилке)" : "+1 question banked! Total: \(total) (\(banked) banked)")
                                 showToastMessage(msg)
                             }
                         } label: {
                             HStack(spacing: 3) {
-                                Image(systemName: "play.circle.fill")
+                                Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 9, weight: .bold))
-                                Text(manager.appLanguage == .armenian ? "+1 հարց" : (manager.appLanguage == .russian ? "+1 вопрос" : "+1 question"))
+                                Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
                                     .font(.system(size: 9, weight: .bold))
                             }
                             .foregroundColor(.white)
@@ -1573,10 +1575,10 @@ struct AIGuideView: View {
     // MARK: - Нижняя панель ввода (Bottom Input Bar)
     private var chatBottomInputBar: some View {
         VStack(spacing: 0) {
-            // Предупреждение и быстрая кнопка просмотра видео при исчерпании лимита вопросов
+            // Предупреждение и быстрая кнопка пополнения копилки при исчерпании лимита вопросов
             if !subscriptionManager.isPremium && subscriptionManager.remainingFreeAiQuestions == 0 {
                 HStack(spacing: 8) {
-                    Image(systemName: "play.circle.fill")
+                    Image(systemName: "archivebox.fill")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(Color(hex: "F59E0B"))
                     
@@ -1589,14 +1591,15 @@ struct AIGuideView: View {
                     Button {
                         triggerHaptic(.medium)
                         AdManager.shared.showRewardedAd {
-                            let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
+                            let total = subscriptionManager.remainingFreeAiQuestions
+                            let msg = manager.appLanguage == .armenian ? "+1 հարց կուտակվեց: Ընդհանուր՝ \(total)" : (manager.appLanguage == .russian ? "+1 вопрос накоплен! Всего: \(total)" : "+1 question banked! Total: \(total)")
                             showToastMessage(msg)
                         }
                     } label: {
                         HStack(spacing: 3) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 8, weight: .bold))
-                            Text(manager.appLanguage == .armenian ? "+1 հարց (դիտել)" : (manager.appLanguage == .russian ? "+1 вопрос (видео)" : "+1 question (watch)"))
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
                                 .font(.system(size: 11, weight: .bold))
                         }
                         .foregroundColor(.white)
@@ -1742,27 +1745,41 @@ struct AIGuideView: View {
                         )
                         .frame(width: 42, height: 42)
                     
-                    Image(systemName: "play.rectangle.fill")
+                    Image(systemName: "archivebox.fill")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(Color(hex: "F59E0B"))
                 }
                 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(manager.appLanguage == .armenian ? "Ստանալ +1 անվճար հարց" : (manager.appLanguage == .russian ? "Получить +1 вопрос бесплатно" : "Get +1 Free Question"))
+                        Text(manager.appLanguage == .armenian ? "Հարցերի Կուտակիչ (+1)" : (manager.appLanguage == .russian ? "Копилка вопросов (+1)" : "Question Bank (+1)"))
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(primaryTextColor)
                         
-                        Text("REWARD")
-                            .font(.system(size: 8, weight: .black))
+                        if subscriptionManager.accumulatedBonusAiQuestions > 0 {
+                            HStack(spacing: 2) {
+                                Image(systemName: "archivebox.fill")
+                                    .font(.system(size: 7))
+                                Text("\(subscriptionManager.accumulatedBonusAiQuestions)")
+                                    .font(.system(size: 9, weight: .black))
+                            }
                             .foregroundColor(.white)
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, 5)
                             .padding(.vertical, 1.5)
-                            .background(Color(hex: "F59E0B"))
-                            .cornerRadius(3)
+                            .background(Color(hex: "10B981"))
+                            .cornerRadius(4)
+                        } else {
+                            Text("REWARD")
+                                .font(.system(size: 8, weight: .black))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1.5)
+                                .background(Color(hex: "F59E0B"))
+                                .cornerRadius(3)
+                        }
                     }
                     
-                    Text(manager.appLanguage == .armenian ? "Դիտեք կարճ տեսահոլովակ՝ հարցերի քանակն ավելացնելու համար" : (manager.appLanguage == .russian ? "Посмотрите короткое видео для пополнения баланса вопросов" : "Watch a short video to increase your question limit"))
+                    Text(manager.appLanguage == .armenian ? "Դիտեք գովազդներ և կուտակեք հարցեր առանց սահմանափակման: Կուտակված հարցերը երբեք չեն սպառվում օրվա ավարտին:" : (manager.appLanguage == .russian ? "Смотрите видео и копите вопросы без ограничений! Накопленные вопросы сохраняются навсегда и не сгорают завтра." : "Watch videos to bank questions with no limit! Banked questions never expire at midnight."))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
@@ -1772,7 +1789,7 @@ struct AIGuideView: View {
                 Spacer()
                 
                 HStack(spacing: 4) {
-                    Text(manager.appLanguage == .armenian ? "Դիտել" : (manager.appLanguage == .russian ? "Смотреть" : "Watch"))
+                    Text(manager.appLanguage == .armenian ? "Կուտակել" : (manager.appLanguage == .russian ? "Копить" : "Bank"))
                         .font(.system(size: 11, weight: .bold))
                     Image(systemName: "play.fill")
                         .font(.system(size: 8, weight: .bold))
@@ -1808,6 +1825,34 @@ struct AIGuideView: View {
         }
         .buttonStyle(ScaleButtonStyle())
         .padding(.horizontal, 4)
+    }
+    
+    // Текст статуса вопросов в шапке с учетом накопленной копилки
+    private var headerQuestionsStatusText: String {
+        if subscriptionManager.isPremium {
+            switch manager.appLanguage {
+            case .armenian: return "PRO • Անսահմանափակ"
+            case .russian: return "PRO • Безлимитно"
+            case .english: return "PRO • Unlimited"
+            }
+        }
+        
+        let total = subscriptionManager.remainingFreeAiQuestions
+        let banked = subscriptionManager.accumulatedBonusAiQuestions
+        
+        if banked > 0 {
+            switch manager.appLanguage {
+            case .armenian: return "Մնացել է \(total) հարց (\(banked) կուտակված)"
+            case .russian: return "Осталось \(total) вопр. (\(banked) в копилке)"
+            case .english: return "\(total) questions (\(banked) banked)"
+            }
+        } else {
+            switch manager.appLanguage {
+            case .armenian: return "Մնացել է \(total) հարց"
+            case .russian: return "Осталось \(total) вопр."
+            case .english: return "\(total) questions left"
+            }
+        }
     }
     
     private func showToastMessage(_ text: String) {
@@ -1863,17 +1908,17 @@ struct AIGuideView: View {
     
     private var limitDialogMessage: String {
         switch manager.appLanguage {
-        case .armenian: return "Դիտեք կարճ տեսահոլովակ՝ ևս 1 անվճար հարց ստանալու համար, կամ ակտիվացրեք Premium-ը:"
-        case .russian: return "Посмотрите короткий видеоролик, чтобы получить +1 вопрос бесплатно, или оформите Premium для безлимита:"
-        case .english: return "Watch a short video ad to get +1 question for free, or upgrade to Premium for unlimited access:"
+        case .armenian: return "Դիտեք կարճ տեսահոլովակ՝ հարցերի կուտակիչը լիցքավորելու համար (+1 հարց, չի սպառվում), կամ ակտիվացրեք Premium-ը:"
+        case .russian: return "Посмотрите короткий видеоролик, чтобы пополнить копилку вопросов (+1 вопрос, никогда не сгорает), или оформите Premium для безлимита:"
+        case .english: return "Watch a short video ad to bank an extra question (never expires), or upgrade to Premium for unlimited access:"
         }
     }
     
     private var limitDialogWatchAdTitle: String {
         switch manager.appLanguage {
-        case .armenian: return "Դիտել գովազդ (+1 հարց)"
-        case .russian: return "Смотреть рекламу (+1 вопрос)"
-        case .english: return "Watch Ad (+1 Question)"
+        case .armenian: return "Կուտակել +1 հարց (դիտել)"
+        case .russian: return "Копить +1 вопрос (видео)"
+        case .english: return "Bank +1 Question (Watch)"
         }
     }
     

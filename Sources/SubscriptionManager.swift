@@ -353,38 +353,66 @@ final class SubscriptionManager: ObservableObject {
     }
     
     private let kDailyAiBonusKey = "daily_ai_bonus_reward_count_key"
+    private let kPermanentBonusAiQuestionsKey = "permanent_bonus_ai_questions_accumulated_key"
     
-    /// Проверка доступности ИИ-ассистента (3 бесплатных вопроса в сутки + бонусы за рекламу, далее Premium)
-    func canAskAI() -> Bool {
-        if isPremium { return true }
-        
-        let (todayCount, _) = currentDailyAiUsage()
-        let bonus = UserDefaults.standard.integer(forKey: kDailyAiBonusKey)
-        return todayCount < (maxFreeDailyAiQueries + bonus)
+    /// Накопленные пользователем несгораемые бонусные вопросы за просмотр рекламы (Копилка вопросов)
+    public var accumulatedBonusAiQuestions: Int {
+        get {
+            // Бесшовная миграция со старого ключа
+            let legacy = UserDefaults.standard.integer(forKey: kDailyAiBonusKey)
+            let stored = UserDefaults.standard.integer(forKey: kPermanentBonusAiQuestionsKey)
+            if legacy > 0 && stored == 0 {
+                UserDefaults.standard.set(legacy, forKey: kPermanentBonusAiQuestionsKey)
+                UserDefaults.standard.set(0, forKey: kDailyAiBonusKey)
+                return legacy
+            }
+            return stored
+        }
+        set {
+            UserDefaults.standard.set(max(0, newValue), forKey: kPermanentBonusAiQuestionsKey)
+            objectWillChange.send()
+        }
     }
     
-    /// Количество оставшихся бесплатных вопросов к ИИ на сегодня
-    var remainingFreeAiQuestions: Int {
+    /// Оставшиеся ежедневные бесплатные вопросы на сегодня (базовый суточный лимит)
+    public var remainingDailyFreeQuestions: Int {
         if isPremium { return 999 }
         let (todayCount, _) = currentDailyAiUsage()
-        let bonus = UserDefaults.standard.integer(forKey: kDailyAiBonusKey)
-        return max(0, (maxFreeDailyAiQueries + bonus) - todayCount)
+        return max(0, maxFreeDailyAiQueries - todayCount)
     }
     
-    /// Добавление бонусного вопроса к ИИ за просмотр рекламы с вознаграждением (Meta Rewarded Video)
+    /// Проверка доступности ИИ-ассистента (есть ли вопросы в суточном лимите или в копилке)
+    func canAskAI() -> Bool {
+        if isPremium { return true }
+        return remainingFreeAiQuestions > 0
+    }
+    
+    /// Общее количество доступных вопросов к ИИ (ежедневные бесплатные + накопленные в копилке)
+    var remainingFreeAiQuestions: Int {
+        if isPremium { return 999 }
+        return remainingDailyFreeQuestions + accumulatedBonusAiQuestions
+    }
+    
+    /// Добавление бонусного вопроса к ИИ за просмотр рекламы (сохраняется в несгораемую копилку)
     func grantBonusAiQuestionFromAd() {
-        let currentBonus = UserDefaults.standard.integer(forKey: kDailyAiBonusKey)
-        UserDefaults.standard.set(currentBonus + 1, forKey: kDailyAiBonusKey)
+        accumulatedBonusAiQuestions += 1
         objectWillChange.send()
     }
     
-    /// Фиксация одного использованного бесплатного вопроса к ИИ
+    /// Фиксация одного использованного вопроса к ИИ
     func recordAiQuestionUsed() {
         if isPremium { return }
         
         let (count, todayString) = currentDailyAiUsage()
-        UserDefaults.standard.set(count + 1, forKey: kDailyAiCountKey)
-        UserDefaults.standard.set(todayString, forKey: kDailyAiDateKey)
+        if count < maxFreeDailyAiQueries {
+            // Сначала расходуется суточная бесплатная квота
+            UserDefaults.standard.set(count + 1, forKey: kDailyAiCountKey)
+            UserDefaults.standard.set(todayString, forKey: kDailyAiDateKey)
+        } else if accumulatedBonusAiQuestions > 0 {
+            // Когда суточный лимит исчерпан — списываем из накопленной копилки
+            accumulatedBonusAiQuestions -= 1
+        }
+        objectWillChange.send()
     }
     
     private func currentDailyAiUsage() -> (count: Int, todayString: String) {
@@ -397,10 +425,10 @@ final class SubscriptionManager: ObservableObject {
             let count = UserDefaults.standard.integer(forKey: kDailyAiCountKey)
             return (count, todayString)
         } else {
-            // Новый день - сброс
+            // Новый день - сбрасывается ТОЛЬКО использованный суточный счетчик.
+            // Накопленная копилка бонусов (accumulatedBonusAiQuestions) НЕ СБРАСЫВАЕТСЯ и сохраняется навсегда!
             UserDefaults.standard.set(todayString, forKey: kDailyAiDateKey)
             UserDefaults.standard.set(0, forKey: kDailyAiCountKey)
-            UserDefaults.standard.set(0, forKey: kDailyAiBonusKey)
             return (0, todayString)
         }
     }
