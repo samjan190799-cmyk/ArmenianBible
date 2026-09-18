@@ -40,7 +40,7 @@ struct YandexBannerContainerView: UIViewRepresentable {
         
         let screenWidth = max(320, UIScreen.main.bounds.width - 32)
         let adSize = BannerAdSize.sticky(containerWidth: screenWidth)
-        let bannerView = BannerAdView(adSize: adSize)
+        let bannerView = YandexMobileAds.BannerAdView(adSize: adSize)
         bannerView.delegate = context.coordinator
         bannerView.translatesAutoresizingMaskIntoConstraints = false
         bannerView.layer.cornerRadius = 14
@@ -75,9 +75,10 @@ struct YandexBannerContainerView: UIViewRepresentable {
     }
     
     // MARK: - Координатор и Делегат баннера Яндекса
-    final class Coordinator: NSObject, @unchecked Sendable, BannerAdViewDelegate {
+    @MainActor
+    final class Coordinator: NSObject, BannerAdViewDelegate {
         let parent: YandexBannerContainerView
-        var bannerView: BannerAdView?
+        var bannerView: YandexMobileAds.BannerAdView?
         var isLoaded: Bool = false
         var hasEverLoaded: Bool = false
         var lastAttemptDate: Date = .distantPast
@@ -130,40 +131,32 @@ struct YandexBannerContainerView: UIViewRepresentable {
             bannerView.loadAd(with: request)
         }
         
-        // MARK: - BannerAdViewDelegate (Strict Concurrency Safe)
-        nonisolated public func bannerAdViewDidLoad(_ bannerAdView: BannerAdView) {
-            Task { @MainActor in
-                self.isLoaded = true
-                self.hasEverLoaded = true
-                self.lastLoadedDate = Date()
-                let height = bannerAdView.intrinsicContentSize.height
-                self.parent.onAdLoaded?(height > 0 ? height : 50)
-                LuysAdManager.shared.logImpression()
+        // MARK: - BannerAdViewDelegate (YandexMobileAds)
+        func bannerAdViewDidLoad(_ bannerAdView: YandexMobileAds.BannerAdView) {
+            self.isLoaded = true
+            self.hasEverLoaded = true
+            self.lastLoadedDate = Date()
+            let height = bannerAdView.intrinsicContentSize.height
+            self.parent.onAdLoaded?(height > 0 ? height : 50)
+            LuysAdManager.shared.logImpression()
+        }
+        
+        func bannerAdViewDidFailLoading(_ bannerAdView: YandexMobileAds.BannerAdView, error: any Error) {
+            self.isLoaded = false
+            // Защита от мигания (No-Flicker):
+            // Если баннер уже однажды успешно отобразился, при временном сбое ротации
+            // не скрываем старый креатив, он продолжает висеть до следующего цикла.
+            if !self.hasEverLoaded {
+                self.parent.onAdFailed?(error)
             }
         }
         
-        nonisolated public func bannerAdViewDidFailLoading(_ bannerAdView: BannerAdView, error: any Error) {
-            Task { @MainActor in
-                self.isLoaded = false
-                // Защита от мигания (No-Flicker):
-                // Если баннер уже однажды успешно отобразился, при временном сбое ротации
-                // не скрываем старый креатив, он продолжает висеть до следующего цикла.
-                if !self.hasEverLoaded {
-                    self.parent.onAdFailed?(error)
-                }
-            }
+        func bannerAdViewDidClick(_ bannerAdView: YandexMobileAds.BannerAdView) {
+            LuysAdManager.shared.logClick()
         }
         
-        nonisolated public func bannerAdViewDidClick(_ bannerAdView: BannerAdView) {
-            Task { @MainActor in
-                LuysAdManager.shared.logClick()
-            }
-        }
-        
-        nonisolated public func bannerAdView(_ bannerAdView: BannerAdView, didTrackImpression impressionData: (any ImpressionData)?) {
-            Task { @MainActor in
-                LuysAdManager.shared.logImpression()
-            }
+        func bannerAdView(_ bannerAdView: YandexMobileAds.BannerAdView, didTrackImpression impressionData: (any ImpressionData)?) {
+            LuysAdManager.shared.logImpression()
         }
     }
 }
