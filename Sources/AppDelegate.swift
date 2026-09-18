@@ -17,8 +17,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         // в didFinishLaunchingWithOptions ДО активации сцены UIKit.
         YandexAds.initializeSDK {
             Task { @MainActor in
-                LuysAdManager.shared.isYandexInitialized = true
-                LuysAdManager.shared.preloadYandexRewarded()
+                LuysAdManager.shared.markYandexInitialized()
             }
         }
         #endif

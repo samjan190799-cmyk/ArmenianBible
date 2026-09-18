@@ -75,7 +75,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     @AppStorage("luys_rewarded_bonuses_earned") public var totalRewardedBonusesEarned: Int = 0
     
     // MARK: - Состояния рекламы
-    @Published public private(set) var isYandexInitialized: Bool = false
+    @Published public var isYandexInitialized: Bool = false
     @Published public private(set) var isInitialized: Bool = false
     @Published public private(set) var isRewardedReady: Bool = false
     @Published public private(set) var isInterstitialReady: Bool = false
@@ -151,8 +151,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
             // Официальный стандарт Яндекса: initializeSDK с completionHandler строго на Главном потоке
             YandexAds.initializeSDK { [weak self] in
                 Task { @MainActor in
-                    self?.isYandexInitialized = true
-                    self?.preloadYandexRewarded()
+                    self?.markYandexInitialized()
                 }
             }
         }
@@ -180,6 +179,14 @@ public final class LuysAdManager: NSObject, ObservableObject {
                 }
             }
         }
+        #endif
+    }
+    
+    // MARK: - Системный коллбэк готовности Яндекс SDK
+    public func markYandexInitialized() {
+        self.isYandexInitialized = true
+        #if canImport(YandexMobileAds)
+        self.preloadYandexRewarded()
         #endif
     }
     
