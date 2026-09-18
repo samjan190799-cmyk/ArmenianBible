@@ -56,8 +56,11 @@ public struct LuysHybridBannerView: View {
     @State private var isShowingPaywall: Bool = false
     @State private var isLiveAdLoaded: Bool = false
     @State private var liveBannerHeight: CGFloat = 60
-    @State private var isVisibleOnScreen: Bool = false
+    @State private var isVisibleOnScreen: Bool = true
     @State private var currentCreativeIndex: Int = 0
+    
+    // Таймер авторотации спонсорских креативов каждые 45 секунд при отсутствии живой рекламы
+    private let fallbackRotationTimer = Timer.publish(every: AdConfig.bannerAutoRefreshInterval, on: .main, in: .common).autoconnect()
     
     // Духовные спонсорские креативы Luys для гарантированного показа без пустых мест
     private let sponsorCreatives: [LuysSponsorCreative] = [
@@ -223,10 +226,18 @@ public struct LuysHybridBannerView: View {
             .padding(.vertical, 4)
             .onAppear {
                 isVisibleOnScreen = true
-                currentCreativeIndex = Int.random(in: 0..<sponsorCreatives.count)
+                if currentCreativeIndex == 0 {
+                    currentCreativeIndex = Int.random(in: 0..<sponsorCreatives.count)
+                }
             }
             .onDisappear {
                 isVisibleOnScreen = false
+            }
+            .onReceive(fallbackRotationTimer) { _ in
+                guard isVisibleOnScreen && !isLiveAdLoaded else { return }
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    currentCreativeIndex = (currentCreativeIndex + 1) % sponsorCreatives.count
+                }
             }
             .sheet(isPresented: $isShowingPaywall) {
                 PaywallView()

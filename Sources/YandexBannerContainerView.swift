@@ -38,6 +38,9 @@ struct YandexBannerContainerView: UIViewRepresentable {
         let container = UIView()
         container.backgroundColor = .clear
         context.coordinator.container = container
+        context.coordinator.parent = self
+        context.coordinator.currentIsVisible = isVisible
+        context.coordinator.currentAdUnitID = adUnitID
         
         // Отложенная безопасная загрузка: запускаем запрос только после стабилизации сцены и SDK
         if isVisible {
@@ -49,6 +52,7 @@ struct YandexBannerContainerView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.parent = self
         context.coordinator.updateVisibility(isVisible: isVisible, adUnitID: adUnitID)
     }
     
@@ -61,27 +65,34 @@ struct YandexBannerContainerView: UIViewRepresentable {
     // MARK: - Координатор и Делегат баннера Яндекса
     @MainActor
     final class Coordinator: NSObject, BannerAdViewDelegate {
-        let parent: YandexBannerContainerView
+        var parent: YandexBannerContainerView
         weak var container: UIView?
         var bannerView: YandexMobileAds.BannerAdView?
         var isLoaded: Bool = false
         var hasEverLoaded: Bool = false
         var lastAttemptDate: Date = .distantPast
         var lastLoadedDate: Date = .distantPast
+        var currentIsVisible: Bool = true
+        var currentAdUnitID: String = ""
         private var refreshTimer: Timer?
         
         init(_ parent: YandexBannerContainerView) {
             self.parent = parent
+            self.currentIsVisible = parent.isVisible
+            self.currentAdUnitID = parent.adUnitID
         }
         
         func updateVisibility(isVisible: Bool, adUnitID: String) {
+            self.currentIsVisible = isVisible
+            self.currentAdUnitID = adUnitID
+            
             if isVisible {
                 startAutoRefreshTimer()
                 let timeSinceLastAttempt = Date().timeIntervalSince(lastAttemptDate)
                 let timeSinceLastLoad = Date().timeIntervalSince(lastLoadedDate)
                 
-                // Если баннер еще ни разу не загрузился и прошло > 15 секунд от предыдущей попытки
-                if !isLoaded && timeSinceLastAttempt > 15 {
+                // Если баннер еще ни разу не загрузился и прошло > 10 секунд от предыдущей попытки
+                if !isLoaded && timeSinceLastAttempt > 10 {
                     safeLoadBanner(adUnitID: adUnitID)
                 } else if isLoaded && timeSinceLastLoad >= parent.autoRefreshInterval {
                     // Если пользователь вернулся на экран спустя интервал авторотации (45+ секунд)
@@ -94,12 +105,17 @@ struct YandexBannerContainerView: UIViewRepresentable {
         
         func startAutoRefreshTimer() {
             guard refreshTimer == nil else { return }
-            refreshTimer = Timer.scheduledTimer(withTimeInterval: parent.autoRefreshInterval, repeats: true) { [weak self] _ in
-                guard let self = self, self.parent.isVisible else { return }
-                if Date().timeIntervalSince(self.lastAttemptDate) >= 30 {
-                    self.safeLoadBanner(adUnitID: self.parent.adUnitID)
-                }
+            let interval = parent.autoRefreshInterval > 0 ? parent.autoRefreshInterval : 45.0
+            let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                guard self.currentIsVisible else { return }
+                #if DEBUG
+                print("🔄 [LuysAds] Авторотация баннера (каждые \(interval)с): запрос свежей рекламы для \(self.currentAdUnitID)")
+                #endif
+                self.safeLoadBanner(adUnitID: self.currentAdUnitID)
             }
+            RunLoop.main.add(timer, forMode: .common)
+            self.refreshTimer = timer
         }
         
         func stopAutoRefreshTimer() {

@@ -112,12 +112,17 @@ public final class LuysAdManager: NSObject, ObservableObject {
         let region = Locale.current.region?.identifier.uppercased() ?? "AM"
         self.detectedRegionCode = region
         
+        #if canImport(FBAudienceNetwork)
         let cisRegions: Set<String> = ["AM", "RU", "BY", "KZ", "UZ", "KG", "TJ", "AZ", "MD", "GE"]
         if cisRegions.contains(region) {
             self.activeProviderType = .yandex
         } else {
             self.activeProviderType = .meta
         }
+        #else
+        // В проекте подключен официальный SDK Yandex Mobile Ads v8.x
+        self.activeProviderType = .yandex
+        #endif
     }
     
     /// Получение индивидуального AdUnitID для экрана для избежания No-Fill при параллельных запросах
@@ -187,7 +192,38 @@ public final class LuysAdManager: NSObject, ObservableObject {
         self.isYandexInitialized = true
         #if canImport(YandexMobileAds)
         self.preloadYandexRewarded()
+        self.startPeriodicAdCheck()
         #endif
+    }
+    
+    // MARK: - Периодический цикл автообновления и проверки рекламы (каждые 45 секунд)
+    private var adRefreshTimer: Timer?
+    
+    public func startPeriodicAdCheck() {
+        guard adRefreshTimer == nil else { return }
+        let interval = AdConfig.bannerAutoRefreshInterval > 0 ? AdConfig.bannerAutoRefreshInterval : 45.0
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self else { return }
+                guard !SubscriptionManager.shared.isPremium, self.isAdsEnabled else { return }
+                
+                #if canImport(YandexMobileAds)
+                if self.isYandexInitialized && !self.isRewardedReady {
+                    #if DEBUG
+                    print("🔄 [LuysAds] Периодический цикл (каждые \(interval)с): Запрос новой RewardedAd")
+                    #endif
+                    self.preloadYandexRewarded()
+                }
+                #endif
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.adRefreshTimer = timer
+    }
+    
+    public func stopPeriodicAdCheck() {
+        adRefreshTimer?.invalidate()
+        adRefreshTimer = nil
     }
     
     // MARK: - Предзагрузка объявлений
@@ -196,6 +232,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         
         #if canImport(YandexMobileAds)
         preloadYandexRewarded()
+        startPeriodicAdCheck()
         #endif
         
         #if canImport(FBAudienceNetwork)
@@ -207,6 +244,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     public func preloadYandexRewarded() {
         #if canImport(YandexMobileAds)
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
+        guard !isRewardedReady else { return }
         
         let unitId = isTestMode ? AdConfig.yandexDemoRewardedId : yandexRewardedId
         guard !unitId.isEmpty else { return }
