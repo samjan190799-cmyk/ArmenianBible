@@ -1284,8 +1284,11 @@ struct AIGuideView: View {
             Button(limitDialogWatchAdTitle) {
                 triggerHaptic(.medium)
                 AdManager.shared.showRewardedAd {
-                    subscriptionManager.grantBonusAiQuestionFromAd()
-                    submitQuestion(questionText)
+                    let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
+                    showToastMessage(msg)
+                    if !questionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        submitQuestion(questionText)
+                    }
                 }
             }
             Button(limitDialogPaywallTitle) {
@@ -1369,8 +1372,8 @@ struct AIGuideView: View {
                     }
                 }
                 
-                // Статус подписки
-                HStack(spacing: 5) {
+                // Статус подписки и кнопка пополнения вопросов
+                HStack(spacing: 6) {
                     Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(Color(hex: "F59E0B"))
@@ -1390,9 +1393,37 @@ struct AIGuideView: View {
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(accentColor)
                                 .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
+                                .padding(.vertical, 1.5)
                                 .background(accentColor.opacity(0.12))
                                 .cornerRadius(4)
+                        }
+                        
+                        // Кнопка просмотра видео за вознаграждение (+1 вопрос)
+                        Button {
+                            triggerHaptic(.medium)
+                            AdManager.shared.showRewardedAd {
+                                let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
+                                showToastMessage(msg)
+                            }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 9, weight: .bold))
+                                Text(manager.appLanguage == .armenian ? "+1 հարց" : (manager.appLanguage == .russian ? "+1 вопрос" : "+1 question"))
+                                    .font(.system(size: 9, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1.5)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .cornerRadius(4)
+                            .shadow(color: Color(hex: "F59E0B").opacity(0.3), radius: 2, x: 0, y: 1)
                         }
                     }
                 }
@@ -1488,6 +1519,11 @@ struct AIGuideView: View {
                 .padding(.horizontal, 4)
                 .padding(.vertical, 2)
             
+            // MARK: - Карточка получения вопросов за просмотр рекламы (+1 вопрос)
+            if !subscriptionManager.isPremium {
+                rewardedBonusCard
+            }
+            
             // Подсказки быстрых вопросов
             VStack(alignment: .leading, spacing: 10) {
                 Text("suggested_questions_title".localized(for: manager.appLanguage))
@@ -1537,6 +1573,51 @@ struct AIGuideView: View {
     // MARK: - Нижняя панель ввода (Bottom Input Bar)
     private var chatBottomInputBar: some View {
         VStack(spacing: 0) {
+            // Предупреждение и быстрая кнопка просмотра видео при исчерпании лимита вопросов
+            if !subscriptionManager.isPremium && subscriptionManager.remainingFreeAiQuestions == 0 {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                    
+                    Text(manager.appLanguage == .armenian ? "Հարցերի լիմիտը սպառվել է" : (manager.appLanguage == .russian ? "Лимит вопросов исчерпан" : "Question limit reached"))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(primaryTextColor)
+                    
+                    Spacer()
+                    
+                    Button {
+                        triggerHaptic(.medium)
+                        AdManager.shared.showRewardedAd {
+                            let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
+                            showToastMessage(msg)
+                        }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 8, weight: .bold))
+                            Text(manager.appLanguage == .armenian ? "+1 հարց (դիտել)" : (manager.appLanguage == .russian ? "+1 вопрос (видео)" : "+1 question (watch)"))
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3.5)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(hex: "F59E0B"), Color(hex: "EA580C")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 7)
+                .background(cardBackgroundColor)
+            }
+            
             Divider()
                 .opacity(0.3)
             
@@ -1640,18 +1721,111 @@ struct AIGuideView: View {
         }
     }
     
-    private func copyText(_ text: String) {
-        triggerHaptic(.light)
-        UIPasteboard.general.string = text
-        toastMessage = "copied_to_clipboard".localized(for: manager.appLanguage)
-        withAnimation {
+    // MARK: - Карточка вознаграждения за просмотр рекламы (+1 вопрос к ИИ)
+    private var rewardedBonusCard: some View {
+        Button {
+            triggerHaptic(.medium)
+            AdManager.shared.showRewardedAd {
+                let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
+                showToastMessage(msg)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "F59E0B").opacity(0.2), Color(hex: "EA580C").opacity(0.12)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 42, height: 42)
+                    
+                    Image(systemName: "play.rectangle.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                }
+                
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(manager.appLanguage == .armenian ? "Ստանալ +1 անվճար հարց" : (manager.appLanguage == .russian ? "Получить +1 вопрос бесплатно" : "Get +1 Free Question"))
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("REWARD")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1.5)
+                            .background(Color(hex: "F59E0B"))
+                            .cornerRadius(3)
+                    }
+                    
+                    Text(manager.appLanguage == .armenian ? "Դիտեք կարճ տեսահոլովակ՝ հարցերի քանակն ավելացնելու համար" : (manager.appLanguage == .russian ? "Посмотрите короткое видео для пополнения баланса вопросов" : "Watch a short video to increase your question limit"))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    Text(manager.appLanguage == .armenian ? "Դիտել" : (manager.appLanguage == .russian ? "Смотреть" : "Watch"))
+                        .font(.system(size: 11, weight: .bold))
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 8, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    LinearGradient(
+                        colors: [Color(hex: "F59E0B"), Color(hex: "EA580C")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(10)
+                .shadow(color: Color(hex: "F59E0B").opacity(0.35), radius: 3, x: 0, y: 1.5)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(cardBackgroundColor)
+            .cornerRadius(14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color(hex: "F59E0B").opacity(0.35), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.2
+                    )
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .padding(.horizontal, 4)
+    }
+    
+    private func showToastMessage(_ text: String) {
+        triggerHaptic(.medium)
+        toastMessage = text
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
             showCopiedToast = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            withAnimation {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 showCopiedToast = false
             }
         }
+    }
+    
+    private func copyText(_ text: String) {
+        UIPasteboard.general.string = text
+        showToastMessage("copied_to_clipboard".localized(for: manager.appLanguage))
     }
     
     @MainActor
@@ -1689,9 +1863,9 @@ struct AIGuideView: View {
     
     private var limitDialogMessage: String {
         switch manager.appLanguage {
-        case .armenian: return "Դիտեք կարճ գովազդ՝ ևս 1 անվճար հարց ստանալու համար, կամ ակտիվացրեք Premium-ը:"
-        case .russian: return "Посмотрите короткий ролик Meta, чтобы получить +1 вопрос бесплатно, или оформите Premium для безлимита:"
-        case .english: return "Watch a short Meta video ad to get +1 question for free, or upgrade to Premium for unlimited access:"
+        case .armenian: return "Դիտեք կարճ տեսահոլովակ՝ ևս 1 անվճար հարց ստանալու համար, կամ ակտիվացրեք Premium-ը:"
+        case .russian: return "Посмотрите короткий видеоролик, чтобы получить +1 вопрос бесплатно, или оформите Premium для безлимита:"
+        case .english: return "Watch a short video ad to get +1 question for free, or upgrade to Premium for unlimited access:"
         }
     }
     
