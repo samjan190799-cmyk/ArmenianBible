@@ -2,6 +2,9 @@ name: ArmenianBible
 options:
   bundleIdPrefix: com.samvel.armenianbible
 packages:
+  YandexMobileAds:
+    url: https://github.com/yandexmobile/yandex-ads-sdk-ios
+    from: 8.0.0
   FBAudienceNetwork:
     url: https://github.com/facebook/FBAudienceNetwork
     from: 6.22.0
@@ -27,8 +30,15 @@ targets:
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSFaceIDUsageDescription: "Protect your personal bookmarks, prayer journal, and notes with Face ID."
-        NSUserTrackingUsageDescription: "We use this identifier to deliver relevant and high-quality ads."
+        NSUserTrackingUsageDescription: "Разрешите отслеживание для персонализации рекомендаций и полезных предложений"
         SKAdNetworkItems:
+          - SKAdNetworkIdentifier: zq492l623r.skadnetwork
+          - SKAdNetworkIdentifier: ludvb6z3bs.skadnetwork
+          - SKAdNetworkIdentifier: 2u9pt9hc89.skadnetwork
+          - SKAdNetworkIdentifier: 446h53uz2q.skadnetwork
+          - SKAdNetworkIdentifier: 4pfyvq9l8r.skadnetwork
+          - SKAdNetworkIdentifier: 9t245vhm4fac.skadnetwork
+          - SKAdNetworkIdentifier: tl5878mr92.skadnetwork
           - SKAdNetworkIdentifier: v9wttpbfk9.skadnetwork
           - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
         FacebookAppID: "2096476450939558"
@@ -68,8 +78,12 @@ targets:
           - "$(inherited)"
           - "-ObjC"
     dependencies:
+      - package: YandexMobileAds
+        product: YandexMobileAds
       - package: FBAudienceNetwork
         product: FBAudienceNetwork
+      - sdk: AppTrackingTransparency.framework
+      - sdk: AdSupport.framework
       - target: BibleWidget
       - sdk: libsqlite3.dylib
       - sdk: libxml2.tbd

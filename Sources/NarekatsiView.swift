@@ -154,8 +154,8 @@ struct NarekatsiView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
                         
-                        // MARK: - Баннерная Реклама Meta (на самом видном месте над списком молитв)
-                        BannerAdView()
+                        // MARK: - Баннерная Реклама Яндекса (LuysHybridBannerView)
+                        LuysHybridBannerView(placement: .narekatsi)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 2)
                         
@@ -221,8 +221,8 @@ struct NarekatsiView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
                         
-                        // MARK: - Баннерная Реклама Meta (на самом видном месте под плеером)
-                        BannerAdView()
+                        // MARK: - Баннерная Реклама Яндекса (LuysHybridBannerView)
+                        LuysHybridBannerView(placement: .narekatsi)
                             .padding(.horizontal, 16)
                         
                         // ЗАГОЛОВОК ПЛЕЙЛИСТА

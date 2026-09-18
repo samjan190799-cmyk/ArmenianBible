@@ -457,8 +457,8 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 6)
                     
-                    // MARK: - Баннерная Реклама Meta (на самом видном месте сразу под стихом дня)
-                    BannerAdView()
+                    // MARK: - Баннерная Реклама Яндекса (LuysHybridBannerView)
+                    LuysHybridBannerView(placement: .home)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 2)
                     
@@ -1483,8 +1483,8 @@ struct AIGuideView: View {
             }
             .padding(.vertical, 2)
             
-            // MARK: - Баннерная Реклама Meta
-            BannerAdView()
+            // MARK: - Баннерная Реклама Яндекса
+            LuysHybridBannerView(placement: .home)
                 .padding(.horizontal, 4)
                 .padding(.vertical, 2)
             
@@ -2352,6 +2352,10 @@ struct SettingsView: View {
                         narekAudioSection
                         systemAndDataSection
                         aboutSection
+                        
+                        // MARK: - Баннерная Реклама в Настройках
+                        LuysHybridBannerView(placement: .settings)
+                            .padding(.top, 4)
                     }
                     .padding(20)
                     .frame(maxWidth: 680)

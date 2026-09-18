@@ -5,7 +5,7 @@ struct ArmenianBibleApp: App {
     @ObservedObject private var manager = BibleManager.shared
     
     init() {
-        AdManager.shared.initialize()
+        LuysAdManager.shared.initialize()
     }
     
     var body: some Scene {

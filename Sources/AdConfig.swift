@@ -28,7 +28,26 @@ public enum AdConfig {
     public static let testInterstitialPlacementID: String = "VID_HD_9_16_39S_APP_INSTALL#2096476450939558_2096479900939213"
     public static let testRewardedPlacementID: String = "VID_HD_9_16_39S_APP_INSTALL#2096476450939558_2096479907605879"
     
-    // MARK: - Активные Placement ID
+    // MARK: - Идентификаторы Yandex Mobile Ads (РСЯ v8.x)
+    /// Боевые блоки РСЯ для раздельных экранов
+    public static let yandexDefaultBannerId: String = "R-M-20070273-1"
+    public static let yandexDefaultRewardedId: String = "R-M-20070273-2"
+    public static let yandexBannerHomeId: String = "R-M-20070273-1"
+    public static let yandexBannerReaderId: String = "R-M-20070273-3"
+    public static let yandexBannerFavoritesId: String = "R-M-20070273-4"
+    public static let yandexBannerNarekatsiId: String = "R-M-20070273-5"
+    public static let yandexBannerSettingsId: String = "R-M-20070273-1"
+    
+    /// Официальные демо-блоки Yandex для надежного тестирования
+    public static let yandexDemoBannerId: String = "demo-banner-yandex"
+    public static let yandexDemoRewardedId: String = "demo-rewarded-yandex"
+    public static let yandexDemoInterstitialId: String = "demo-interstitial-yandex"
+    
+    // MARK: - Тайминги авторотации и безопасности UX
+    /// Безопасный интервал автообновления баннера (по правилам РСЯ: 30-60 сек)
+    public static let bannerAutoRefreshInterval: TimeInterval = 45.0
+    
+    // MARK: - Активные Placement ID Meta
     public static var bannerPlacementID: String {
         isTestMode ? testBannerPlacementID : productionBannerPlacementID
     }
