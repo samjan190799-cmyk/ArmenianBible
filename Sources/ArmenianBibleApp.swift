@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct ArmenianBibleApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @ObservedObject private var manager = BibleManager.shared
     
     var body: some Scene {

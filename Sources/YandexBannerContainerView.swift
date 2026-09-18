@@ -37,30 +37,12 @@ struct YandexBannerContainerView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let container = UIView()
         container.backgroundColor = .clear
+        context.coordinator.container = container
         
-        let screenWidth = max(320, UIScreen.main.bounds.width - 32)
-        let adSize = BannerAdSize.sticky(containerWidth: screenWidth)
-        let bannerView = YandexMobileAds.BannerAdView(adSize: adSize)
-        bannerView.delegate = context.coordinator
-        bannerView.translatesAutoresizingMaskIntoConstraints = false
-        bannerView.layer.cornerRadius = 14
-        bannerView.clipsToBounds = true
-        
-        container.addSubview(bannerView)
-        NSLayoutConstraint.activate([
-            bannerView.topAnchor.constraint(equalTo: container.topAnchor),
-            bannerView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            bannerView.centerXAnchor.constraint(equalTo: container.centerXAnchor)
-        ])
-        
-        context.coordinator.bannerView = bannerView
-        
-        // Отложенная безопасная загрузка: запускаем запрос только после стабилизации сцены
+        // Отложенная безопасная загрузка: запускаем запрос только после стабилизации сцены и SDK
         if isVisible {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                context.coordinator.safeLoadBanner(adUnitID: adUnitID)
-                context.coordinator.startAutoRefreshTimer()
-            }
+            context.coordinator.safeLoadBanner(adUnitID: adUnitID)
+            context.coordinator.startAutoRefreshTimer()
         }
         
         return container
@@ -80,6 +62,7 @@ struct YandexBannerContainerView: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, BannerAdViewDelegate {
         let parent: YandexBannerContainerView
+        weak var container: UIView?
         var bannerView: YandexMobileAds.BannerAdView?
         var isLoaded: Bool = false
         var hasEverLoaded: Bool = false
@@ -125,23 +108,43 @@ struct YandexBannerContainerView: UIViewRepresentable {
         }
         
         func safeLoadBanner(adUnitID: String) {
-            guard let bannerView, !adUnitID.isEmpty else { return }
+            guard !adUnitID.isEmpty else { return }
             
             // Предотвращение дедлока (Watchdog 0x8BADF00D):
-            // Если SDK Яндекса еще в процессе инициализации, ни в коем случае не вызываем loadAd синхронно,
-            // чтобы исключить взаимную блокировку главного потока с фоновыми тредами аналитики.
+            // Ждем завершения инициализации SDK в AppDelegate
             guard LuysAdManager.shared.isYandexInitialized else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                     self?.safeLoadBanner(adUnitID: adUnitID)
                 }
                 return
+            }
+            
+            guard let container = self.container else { return }
+            
+            // Ленивое создание BannerAdView строго после готовности SDK
+            if bannerView == nil {
+                let screenWidth = max(320, UIScreen.main.bounds.width - 32)
+                let adSize = BannerAdSize.sticky(containerWidth: screenWidth)
+                let bView = YandexMobileAds.BannerAdView(adSize: adSize)
+                bView.delegate = self
+                bView.translatesAutoresizingMaskIntoConstraints = false
+                bView.layer.cornerRadius = 14
+                bView.clipsToBounds = true
+                
+                container.addSubview(bView)
+                NSLayoutConstraint.activate([
+                    bView.topAnchor.constraint(equalTo: container.topAnchor),
+                    bView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                    bView.centerXAnchor.constraint(equalTo: container.centerXAnchor)
+                ])
+                self.bannerView = bView
             }
             
             lastAttemptDate = Date()
             
             // Чистый AdRequest без передачи персональных данных согласно App Store Guidelines
             let request = AdRequest(adUnitID: adUnitID)
-            bannerView.loadAd(with: request)
+            bannerView?.loadAd(with: request)
         }
         
         // MARK: - BannerAdViewDelegate (YandexMobileAds)

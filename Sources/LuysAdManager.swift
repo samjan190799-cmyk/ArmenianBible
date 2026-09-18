@@ -140,37 +140,26 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
     
     // MARK: - Инициализация рекламных SDK
+    @MainActor
     public func initialize() {
         guard !isInitialized else { return }
         isInitialized = true
         determineActiveNetworkByGeo()
         
         #if canImport(YandexMobileAds)
-        Task.detached(priority: .utility) {
-            await YandexAds.initializeSDK()
-            await MainActor.run {
-                LuysAdManager.shared.isYandexInitialized = true
-                LuysAdManager.shared.preloadYandexRewarded()
-            }
-        }
-        #endif
-        
-        #if canImport(FBAudienceNetwork)
-        // Meta Audience Network инициализируется ТОЛЬКО вне стран СНГ
-        if self.activeProviderType == .meta {
-            Task.detached(priority: .background) {
-                FBAdSettings.addTestDevice(FBAdSettings.testDeviceHash())
-                FBAudienceNetworkAds.initialize(with: nil) { [weak self] _ in
-                    Task { @MainActor in
-                        self?.preloadInterstitial()
-                    }
+        if !isYandexInitialized {
+            // Официальный стандарт Яндекса: initializeSDK с completionHandler строго на Главном потоке
+            YandexAds.initializeSDK { [weak self] in
+                Task { @MainActor in
+                    self?.isYandexInitialized = true
+                    self?.preloadYandexRewarded()
                 }
             }
         }
         #endif
         
         #if !targetEnvironment(simulator)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
             self?.requestTrackingPermission()
         }
         #endif

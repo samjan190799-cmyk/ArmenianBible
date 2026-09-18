@@ -5,9 +5,6 @@ packages:
   YandexMobileAds:
     url: https://github.com/yandexmobile/yandex-ads-sdk-ios
     from: 8.0.0
-  FBAudienceNetwork:
-    url: https://github.com/facebook/FBAudienceNetwork
-    from: 6.22.0
 
 targets:
   ArmenianBible:
@@ -80,8 +77,6 @@ targets:
     dependencies:
       - package: YandexMobileAds
         product: YandexMobileAds
-      - package: FBAudienceNetwork
-        product: FBAudienceNetwork
       - sdk: AppTrackingTransparency.framework
       - sdk: AdSupport.framework
       - target: BibleWidget
