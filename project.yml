@@ -5,6 +5,10 @@ packages:
   YandexMobileAds:
     url: https://github.com/yandexmobile/yandex-ads-sdk-ios
     from: 8.0.0
+  YandexMobileAdsMediation:
+    url: https://github.com/yandexmobile/yandex-ads-sdk-mediation-ios
+    from: 8.5.0
+
 
 targets:
   ArmenianBible:
@@ -77,6 +81,8 @@ targets:
     dependencies:
       - package: YandexMobileAds
         product: YandexMobileAds
+      - package: YandexMobileAdsMediation
+        product: MyTargetYandexMobileAdsAdapters
       - sdk: AppTrackingTransparency.framework
       - sdk: AdSupport.framework
       - target: BibleWidget

@@ -8,42 +8,117 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            max-width: 800px;
+            color: #2c3e50;
+            max-width: 840px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f9f9f9;
+            padding: 24px;
+            background-color: #f8fafc;
         }
         .container {
             background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            padding: 36px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
         }
-        h1 { color: #1a1a1a; font-size: 28px; margin-bottom: 8px; }
-        h2 { color: #2c3e50; font-size: 20px; margin-top: 24px; }
-        p { margin-bottom: 16px; color: #555; }
-        .date { font-size: 14px; color: #888; margin-bottom: 24px; }
+        .lang-switch {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .lang-btn {
+            background: #e2e8f0;
+            color: #334155;
+            padding: 6px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .lang-btn.active {
+            background: #3b82f6;
+            color: #ffffff;
+        }
+        h1 { color: #0f172a; font-size: 28px; margin-bottom: 8px; }
+        h2 { color: #1e293b; font-size: 20px; margin-top: 28px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+        p { margin-bottom: 14px; color: #475569; }
+        ul { color: #475569; margin-bottom: 16px; padding-left: 20px; }
+        li { margin-bottom: 8px; }
+        a { color: #2563eb; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .date { font-size: 14px; color: #64748b; margin-bottom: 24px; }
+        .badge { display: inline-block; background: #ecfdf5; color: #047857; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        hr { border: none; border-top: 2px dashed #e2e8f0; margin: 40px 0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Privacy Policy</h1>
-        <div class="date">Last updated: July 31, 2026</div>
+        <!-- English Version -->
+        <section id="en">
+            <h1>Privacy Policy</h1>
+            <div class="date">Last updated: September 20, 2026 &bull; <span class="badge">GDPR & CCPA Compliant</span></div>
 
-        <p>This Privacy Policy applies to the mobile application <strong>Luys: Armenian Bible & AI</strong> (the "Application").</p>
+            <p>This Privacy Policy governs the manner in which the mobile application <strong>Luys: Armenian Bible & AI</strong> ("Application", "we", "us") collects, uses, maintains, and discloses information collected from users.</p>
 
-        <h2>1. Data Collection and Usage</h2>
-        <p><strong>Luys: Armenian Bible & AI</strong> does NOT collect, store, transmit, or share any personal data, user identifiers, location data, or usage statistics.</p>
+            <h2>1. Personal Data & Privacy Commitment</h2>
+            <p><strong>Luys: Armenian Bible & AI</strong> is built with user privacy as a cornerstone. We do NOT collect, store, or sell personally identifiable information (such as your name, email address, phone number, or precise GPS location).</p>
 
-        <h2>2. Local Storage</h2>
-        <p>All application preferences, selected Bible verses, bookmarks, and settings are stored locally on your iOS device and are never uploaded to any external servers.</p>
+            <h2>2. Local Storage & Offline Functionality</h2>
+            <p>All core spiritual content, prayer bookmarks, reading history, and application settings are stored strictly on your local device and are never transmitted to external cloud servers without your explicit action.</p>
 
-        <h2>3. Third-Party Services</h2>
-        <p>The Application does not use any third-party tracking, analytics, or advertising frameworks.</p>
+            <h2>3. Third-Party Advertising & Analytics</h2>
+            <p>To support the development and maintenance of the free version of the Application, third-party advertising networks are utilized. These networks may collect non-personally identifiable technical identifiers (such as device model, OS version, IP address, and advertising identifiers IDFA/IDFV where permitted) strictly to deliver relevant advertisements and prevent ad fraud.</p>
+            
+            <p>The Application may utilize the following accredited partner networks:</p>
+            <ul>
+                <li><strong>Yandex Advertising Network (ООО «Яндекс»)</strong> — provides contextual and personalized mobile advertisements. Privacy Policy: <a href="https://yandex.ru/legal/privacy/" target="_blank" rel="noopener">https://yandex.ru/legal/privacy/</a></li>
+                <li><strong>VK Ad Network / myTarget (VK LLC)</strong> — provides mobile advertising and mediation. Privacy Policy: <a href="https://legal.vk.com/privacy" target="_blank" rel="noopener">https://legal.vk.com/privacy</a></li>
+                <li><strong>Meta Audience Network (Meta Platforms, Inc.)</strong> — provides global mobile app advertising. Privacy Policy: <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">https://www.facebook.com/privacy/policy/</a></li>
+            </ul>
 
-        <h2>4. Contact Us</h2>
-        <p>If you have any questions regarding this Privacy Policy, please contact us at: <strong>samjan190799@gmail.com</strong></p>
+            <p><strong>Ad-Free Experience:</strong> Users who subscribe to or purchase <em>Luys Premium</em> enjoy an entirely ad-free experience, and all advertising SDKs are disabled.</p>
+
+            <h2>4. App Tracking Transparency (ATT)</h2>
+            <p>In compliance with Apple iOS 14.5+ guidelines, the Application requests explicit user permission before any tracking identifier is accessed. Users may grant or revoke this permission at any time via iOS Settings &gt; Privacy & Security &gt; Tracking.</p>
+
+            <h2>5. Contact Information</h2>
+            <p>If you have any questions or suggestions regarding this Privacy Policy, please contact the developer at: <a href="mailto:samjan190799@gmail.com">samjan190799@gmail.com</a></p>
+        </section>
+
+        <hr>
+
+        <!-- Russian Version (для модерации РСЯ Яндекс) -->
+        <section id="ru">
+            <h1>Политика конфиденциальности</h1>
+            <div class="date">Дата вступления в силу: 20 сентября 2026 г. &bull; <span class="badge">Соответствие 152-ФЗ и GDPR</span></div>
+
+            <p>Настоящая Политика конфиденциальности определяет порядок обработки и защиты информации пользователей мобильного приложения <strong>«Luys: Armenian Bible & AI»</strong> (далее — «Приложение»).</p>
+
+            <h2>1. Персональные данные</h2>
+            <p>Приложение <strong>не собирает</strong>, не хранит и не передает третьим лицам личные персональные данные пользователей (имя, номер телефона, контакты, точную геолокацию).</p>
+
+            <h2>2. Локальное хранение</h2>
+            <p>Все закладки, история чтения Священного Писания, избранные главы и пользовательские настройки сохраняются исключительно локально в памяти вашего устройства Apple iOS.</p>
+
+            <h2>3. Рекламные сервисы и монетизация</h2>
+            <p>Для поддержания бесплатного доступа к приложению в бесплатной версии могут демонстрироваться рекламные материалы от официальных партнерских сетей. Партнерские сети могут использовать обезличенные технические идентификаторы устройства (тип устройства, версия ОС, IP-адрес, IDFA при наличии согласия) исключительно для подбора и показа рекламы:</p>
+
+            <ul>
+                <li><strong>Рекламная сеть Яндекса (ООО «ЯНДЕКС»)</strong> — показ рекламы в мобильных приложениях. Политика конфиденциальности: <a href="https://yandex.ru/legal/confidential/" target="_blank" rel="noopener">https://yandex.ru/legal/confidential/</a></li>
+                <li><strong>VK Реклама / myTarget (ООО «ВК»)</strong> — мобильная реклама. Политика конфиденциальности: <a href="https://legal.vk.com/privacy" target="_blank" rel="noopener">https://legal.vk.com/privacy</a></li>
+                <li><strong>Meta Audience Network</strong> — показ международной рекламы. Политика: <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">https://www.facebook.com/privacy/policy/</a></li>
+            </ul>
+
+            <p><strong>Отключение рекламы:</strong> Пользователи с активной подпиской <em>Luys Premium</em> освобождаются от просмотра любой рекламы, а рекламные компоненты полностью деактивируются.</p>
+
+            <h2>4. Запрос на отслеживание (App Tracking Transparency)</h2>
+            <p>В соответствии с требованиями Apple, приложение запрашивает разрешение пользователя на персонализацию рекламы. Вы можете изменить свой выбор в любой момент в настройках iOS: «Настройки» &gt; «Конфиденциальность и безопасность» &gt; «Отслеживание».</p>
+
+            <h2>5. Контакты разработчика</h2>
+            <p>По всем вопросам касательно настоящей политики: <a href="mailto:samjan190799@gmail.com">samjan190799@gmail.com</a></p>
+        </section>
     </div>
 </body>
 </html>

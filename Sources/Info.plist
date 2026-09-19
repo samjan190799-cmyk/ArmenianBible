@@ -106,6 +106,10 @@
             <key>SKAdNetworkIdentifier</key>
             <string>n38lu8286q.skadnetwork</string>
         </dict>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>r26jy69rpl.skadnetwork</string>
+        </dict>
     </array>
     <key>FacebookAppID</key>
     <string>2096476450939558</string>
