@@ -170,7 +170,7 @@ struct BibleBookListView: View {
             .padding(.top, 12)
             .tint(accentColor)
             
-            // MARK: - Баннерная Реклама Яндекса (LuysHybridBannerView)
+            // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
             LuysHybridBannerView(placement: .reader)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 4)

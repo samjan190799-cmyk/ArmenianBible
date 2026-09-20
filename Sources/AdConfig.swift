@@ -28,20 +28,20 @@ public enum AdConfig {
     public static let testInterstitialPlacementID: String = "VID_HD_9_16_39S_APP_INSTALL#2096476450939558_2096479900939213"
     public static let testRewardedPlacementID: String = "VID_HD_9_16_39S_APP_INSTALL#2096476450939558_2096479907605879"
     
-    // MARK: - Идентификаторы Yandex Mobile Ads (РСЯ v8.x)
-    /// Боевые блоки РСЯ для раздельных экранов Luys
-    public static let yandexDefaultBannerId: String = "R-M-20071426-1"
-    public static let yandexDefaultRewardedId: String = "R-M-20071426-5"
-    public static let yandexBannerHomeId: String = "R-M-20071426-1"
-    public static let yandexBannerReaderId: String = "R-M-20071426-2"
-    public static let yandexBannerFavoritesId: String = "R-M-20071426-3"
-    public static let yandexBannerNarekatsiId: String = "R-M-20071426-4"
-    public static let yandexBannerSettingsId: String = "R-M-20071426-1"
+    // MARK: - Идентификаторы VK Рекламы / myTarget (ads.vk.com)
+    /// Официальные стабильные демо/тестовые Slot ID для MyTarget SDK
+    public static let vkDemoBannerSlotId: UInt = 794557
+    public static let vkDemoRewardedSlotId: UInt = 577495
+    public static let vkDemoInterstitialSlotId: UInt = 6899
     
-    /// Официальные демо-блоки Yandex для надежного тестирования
-    public static let yandexDemoBannerId: String = "demo-banner-yandex"
-    public static let yandexDemoRewardedId: String = "demo-rewarded-yandex"
-    public static let yandexDemoInterstitialId: String = "demo-interstitial-yandex"
+    /// Боевые Slot ID для раздельных экранов Luys
+    public static let vkDefaultBannerSlotId: UInt = 2070985
+    public static let vkDefaultRewardedSlotId: UInt = 2070988
+    public static let vkBannerHomeSlotId: UInt = 2070985
+    public static let vkBannerReaderSlotId: UInt = 2070985
+    public static let vkBannerFavoritesSlotId: UInt = 2070985
+    public static let vkBannerNarekatsiSlotId: UInt = 2070985
+    public static let vkBannerSettingsSlotId: UInt = 2070985
     
     // MARK: - Тайминги авторотации и безопасности UX
     /// Безопасный интервал автообновления баннера (по правилам РСЯ: 30-60 сек)

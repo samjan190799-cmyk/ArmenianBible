@@ -457,7 +457,7 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 6)
                     
-                    // MARK: - Баннерная Реклама Яндекса (LuysHybridBannerView)
+                    // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
                     LuysHybridBannerView(placement: .home)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 2)
@@ -1516,7 +1516,7 @@ struct AIGuideView: View {
             }
             .padding(.vertical, 2)
             
-            // MARK: - Баннерная Реклама Яндекса
+            // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
             LuysHybridBannerView(placement: .home)
                 .padding(.horizontal, 4)
                 .padding(.vertical, 2)

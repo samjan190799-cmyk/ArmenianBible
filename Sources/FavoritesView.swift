@@ -256,7 +256,7 @@ struct FavoritesView: View {
                 }
                 .padding(.bottom, 6)
                 
-                // MARK: - Баннерная Реклама Яндекса (LuysHybridBannerView)
+                // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
                 LuysHybridBannerView(placement: .favorites)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 6)

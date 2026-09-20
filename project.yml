@@ -2,12 +2,9 @@ name: ArmenianBible
 options:
   bundleIdPrefix: com.samvel.armenianbible
 packages:
-  YandexMobileAds:
-    url: https://github.com/yandexmobile/yandex-ads-sdk-ios
-    from: 8.0.0
-  YandexMobileAdsMediation:
-    url: https://github.com/yandexmobile/yandex-ads-sdk-mediation-ios
-    from: 8.5.0
+  MyTargetSDK:
+    url: https://github.com/myTargetSDK/mytarget-ios-spm
+    from: 5.46.0
 
 
 targets:
@@ -79,10 +76,8 @@ targets:
           - "$(inherited)"
           - "-ObjC"
     dependencies:
-      - package: YandexMobileAds
-        product: YandexMobileAds
-      - package: YandexMobileAdsMediation
-        product: MyTargetYandexMobileAdsAdapters
+      - package: MyTargetSDK
+        product: MyTargetSDK
       - sdk: AppTrackingTransparency.framework
       - sdk: AdSupport.framework
       - target: BibleWidget

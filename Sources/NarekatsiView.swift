@@ -154,7 +154,7 @@ struct NarekatsiView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
                         
-                        // MARK: - Баннерная Реклама Яндекса (LuysHybridBannerView)
+                        // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
                         LuysHybridBannerView(placement: .narekatsi)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 2)
@@ -221,7 +221,7 @@ struct NarekatsiView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
                         
-                        // MARK: - Баннерная Реклама Яндекса (LuysHybridBannerView)
+                        // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
                         LuysHybridBannerView(placement: .narekatsi)
                             .padding(.horizontal, 16)
                         

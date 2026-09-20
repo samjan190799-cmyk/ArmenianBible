@@ -4,8 +4,8 @@ import Combine
 import AppTrackingTransparency
 import AdSupport
 
-#if canImport(YandexMobileAds)
-import YandexMobileAds
+#if canImport(MyTargetSDK)
+import MyTargetSDK
 #endif
 
 #if canImport(FBAudienceNetwork)
@@ -35,7 +35,7 @@ public enum LuysBannerPlacement: String, CaseIterable, Identifiable, Sendable {
 
 // MARK: - Доступные рекламные провайдеры
 public enum LuysAdNetworkType: String, CaseIterable, Identifiable, Sendable {
-    case yandex = "Яндекс РСЯ"
+    case vk = "VK Реклама"
     case meta = "Meta Audience Network"
     case houseAd = "Luys House Ad"
     
@@ -43,14 +43,14 @@ public enum LuysAdNetworkType: String, CaseIterable, Identifiable, Sendable {
     
     public var icon: String {
         switch self {
-        case .yandex: return "y.circle.fill"
+        case .vk: return "v.circle.fill"
         case .meta: return "m.circle.fill"
         case .houseAd: return "cross.fill"
         }
     }
 }
 
-// MARK: - Центральный менеджер рекламы Luys (Yandex Mobile Ads v8.x + Meta Fallback)
+// MARK: - Центральный менеджер рекламы Luys (VK Ads / MyTargetSDK + Meta Fallback)
 /// Построен строго по архитектурным стандартам 2026 года: Swift 6 Strict Concurrency,
 /// изоляция `@MainActor`, гео-роутинг и безопасное управление жизненным циклом памяти.
 @MainActor
@@ -61,13 +61,13 @@ public final class LuysAdManager: NSObject, ObservableObject {
     @AppStorage("luys_ads_enabled") public var isAdsEnabled: Bool = true
     @AppStorage("luys_ad_test_mode") public var isTestMode: Bool = false
     
-    // MARK: - Идентификаторы Yandex Mobile Ads (РСЯ v8.x) для раздельных экранов
-    @AppStorage("yandex_rewarded_unit_id") public var yandexRewardedId: String = AdConfig.yandexDefaultRewardedId
-    @AppStorage("yandex_banner_home_id") public var yandexBannerHomeId: String = AdConfig.yandexBannerHomeId
-    @AppStorage("yandex_banner_reader_id") public var yandexBannerReaderId: String = AdConfig.yandexBannerReaderId
-    @AppStorage("yandex_banner_favorites_id") public var yandexBannerFavoritesId: String = AdConfig.yandexBannerFavoritesId
-    @AppStorage("yandex_banner_narekatsi_id") public var yandexBannerNarekatsiId: String = AdConfig.yandexBannerNarekatsiId
-    @AppStorage("yandex_banner_settings_id") public var yandexBannerSettingsId: String = AdConfig.yandexBannerSettingsId
+    // MARK: - Идентификаторы VK Рекламы / myTarget Slot ID для раздельных экранов
+    @AppStorage("vk_rewarded_slot_id") public var vkRewardedSlotId: Int = Int(AdConfig.vkDefaultRewardedSlotId)
+    @AppStorage("vk_banner_home_slot_id") public var vkBannerHomeSlotId: Int = Int(AdConfig.vkBannerHomeSlotId)
+    @AppStorage("vk_banner_reader_slot_id") public var vkBannerReaderSlotId: Int = Int(AdConfig.vkBannerReaderSlotId)
+    @AppStorage("vk_banner_favorites_slot_id") public var vkBannerFavoritesSlotId: Int = Int(AdConfig.vkBannerFavoritesSlotId)
+    @AppStorage("vk_banner_narekatsi_slot_id") public var vkBannerNarekatsiSlotId: Int = Int(AdConfig.vkBannerNarekatsiSlotId)
+    @AppStorage("vk_banner_settings_slot_id") public var vkBannerSettingsSlotId: Int = Int(AdConfig.vkBannerSettingsSlotId)
     
     // MARK: - Аналитика показов, кликов и наград
     @AppStorage("luys_ad_impressions") public var totalImpressions: Int = 0
@@ -75,12 +75,11 @@ public final class LuysAdManager: NSObject, ObservableObject {
     @AppStorage("luys_rewarded_bonuses_earned") public var totalRewardedBonusesEarned: Int = 0
     
     // MARK: - Состояния рекламы
-    @Published public var isYandexInitialized: Bool = false
     @Published public private(set) var isInitialized: Bool = false
     @Published public private(set) var isRewardedReady: Bool = false
     @Published public private(set) var isInterstitialReady: Bool = false
     @Published public private(set) var isTrackingAuthorized: Bool = false
-    @Published public private(set) var activeProviderType: LuysAdNetworkType = .yandex
+    @Published public private(set) var activeProviderType: LuysAdNetworkType = .vk
     @Published public private(set) var detectedRegionCode: String = "AM"
     
     // MARK: - Внутренние свойства
@@ -88,12 +87,11 @@ public final class LuysAdManager: NSObject, ObservableObject {
     private var actionCounter: Int = 0
     private var onRewardCompletion: (() -> Void)? = nil
     
-    #if canImport(YandexMobileAds)
-    private var yandexRewardedLoader: RewardedAdLoader?
-    private var yandexRewardedAd: RewardedAd?
+    #if canImport(MyTargetSDK)
+    private var vkRewardedAd: MTRGRewardedAd?
     /// КРИТИЧЕСКИЙ SWIFT 6 БАГФИКС: Сохраняем сильную ссылку на показываемое объявление,
     /// иначе ARC очищает объект из памяти до завершения воспроизведения и коллбэка награды.
-    private var currentlyShowingRewardedAd: RewardedAd?
+    private var currentlyShowingRewardedAd: MTRGRewardedAd?
     #endif
     
     #if canImport(FBAudienceNetwork)
@@ -107,7 +105,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
     
     // MARK: - Гео-маршрутизация (Geo-Routing)
-    /// Для стран СНГ (Армения, Россия, Беларусь, Казахстан и др.) приоритетно используется Яндекс РСЯ.
+    /// Для стран СНГ (Армения, Россия, Беларусь, Казахстан и др.) приоритетно используется VK Реклама.
     public func determineActiveNetworkByGeo() {
         let region = Locale.current.region?.identifier.uppercased() ?? "AM"
         self.detectedRegionCode = region
@@ -115,32 +113,32 @@ public final class LuysAdManager: NSObject, ObservableObject {
         #if canImport(FBAudienceNetwork)
         let cisRegions: Set<String> = ["AM", "RU", "BY", "KZ", "UZ", "KG", "TJ", "AZ", "MD", "GE"]
         if cisRegions.contains(region) {
-            self.activeProviderType = .yandex
+            self.activeProviderType = .vk
         } else {
             self.activeProviderType = .meta
         }
         #else
-        // В проекте подключен официальный SDK Yandex Mobile Ads v8.x
-        self.activeProviderType = .yandex
+        // В проекте подключен прямой SDK VK Рекламы (myTarget)
+        self.activeProviderType = .vk
         #endif
     }
     
-    /// Получение индивидуального AdUnitID для экрана для избежания No-Fill при параллельных запросах
-    public func bannerId(for placement: LuysBannerPlacement) -> String {
+    /// Получение индивидуального Slot ID для экрана для избежания No-Fill при параллельных запросах
+    public func bannerSlotId(for placement: LuysBannerPlacement) -> UInt {
         if isTestMode {
-            return AdConfig.yandexDemoBannerId
+            return AdConfig.vkDemoBannerSlotId
         }
         switch placement {
         case .home:
-            return !yandexBannerHomeId.isEmpty ? yandexBannerHomeId : AdConfig.yandexBannerHomeId
+            return vkBannerHomeSlotId > 0 ? UInt(vkBannerHomeSlotId) : AdConfig.vkBannerHomeSlotId
         case .reader:
-            return !yandexBannerReaderId.isEmpty ? yandexBannerReaderId : AdConfig.yandexBannerReaderId
+            return vkBannerReaderSlotId > 0 ? UInt(vkBannerReaderSlotId) : AdConfig.vkBannerReaderSlotId
         case .favorites:
-            return !yandexBannerFavoritesId.isEmpty ? yandexBannerFavoritesId : AdConfig.yandexBannerFavoritesId
+            return vkBannerFavoritesSlotId > 0 ? UInt(vkBannerFavoritesSlotId) : AdConfig.vkBannerFavoritesSlotId
         case .narekatsi:
-            return !yandexBannerNarekatsiId.isEmpty ? yandexBannerNarekatsiId : AdConfig.yandexBannerNarekatsiId
+            return vkBannerNarekatsiSlotId > 0 ? UInt(vkBannerNarekatsiSlotId) : AdConfig.vkBannerNarekatsiSlotId
         case .settings:
-            return !yandexBannerSettingsId.isEmpty ? yandexBannerSettingsId : AdConfig.yandexBannerSettingsId
+            return vkBannerSettingsSlotId > 0 ? UInt(vkBannerSettingsSlotId) : AdConfig.vkBannerSettingsSlotId
         }
     }
     
@@ -151,15 +149,9 @@ public final class LuysAdManager: NSObject, ObservableObject {
         isInitialized = true
         determineActiveNetworkByGeo()
         
-        #if canImport(YandexMobileAds)
-        if !isYandexInitialized {
-            // Официальный стандарт Яндекса: initializeSDK с completionHandler строго на Главном потоке
-            YandexAds.initializeSDK { [weak self] in
-                Task { @MainActor in
-                    self?.markYandexInitialized()
-                }
-            }
-        }
+        #if canImport(MyTargetSDK)
+        preloadVkRewarded()
+        startPeriodicAdCheck()
         #endif
         
         #if !targetEnvironment(simulator)
@@ -187,15 +179,6 @@ public final class LuysAdManager: NSObject, ObservableObject {
         #endif
     }
     
-    // MARK: - Системный коллбэк готовности Яндекс SDK
-    public func markYandexInitialized() {
-        self.isYandexInitialized = true
-        #if canImport(YandexMobileAds)
-        self.preloadYandexRewarded()
-        self.startPeriodicAdCheck()
-        #endif
-    }
-    
     // MARK: - Периодический цикл автообновления и проверки рекламы (каждые 45 секунд)
     private var adRefreshTimer: Timer?
     
@@ -207,12 +190,12 @@ public final class LuysAdManager: NSObject, ObservableObject {
                 guard let self = self else { return }
                 guard !SubscriptionManager.shared.isPremium, self.isAdsEnabled else { return }
                 
-                #if canImport(YandexMobileAds)
-                if self.isYandexInitialized && !self.isRewardedReady {
+                #if canImport(MyTargetSDK)
+                if !self.isRewardedReady {
                     #if DEBUG
-                    print("🔄 [LuysAds] Периодический цикл (каждые \(interval)с): Запрос новой RewardedAd")
+                    print("🔄 [LuysAds] Периодический цикл (каждые \(interval)с): Запрос новой VK RewardedAd")
                     #endif
-                    self.preloadYandexRewarded()
+                    self.preloadVkRewarded()
                 }
                 #endif
             }
@@ -230,8 +213,8 @@ public final class LuysAdManager: NSObject, ObservableObject {
     public func preloadAds() {
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
         
-        #if canImport(YandexMobileAds)
-        preloadYandexRewarded()
+        #if canImport(MyTargetSDK)
+        preloadVkRewarded()
         startPeriodicAdCheck()
         #endif
         
@@ -241,29 +224,18 @@ public final class LuysAdManager: NSObject, ObservableObject {
         #endif
     }
     
-    public func preloadYandexRewarded() {
-        #if canImport(YandexMobileAds)
+    public func preloadVkRewarded() {
+        #if canImport(MyTargetSDK)
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
         guard !isRewardedReady else { return }
         
-        let unitId = isTestMode ? AdConfig.yandexDemoRewardedId : yandexRewardedId
-        guard !unitId.isEmpty else { return }
+        let slotId = isTestMode ? AdConfig.vkDemoRewardedSlotId : UInt(max(0, vkRewardedSlotId))
+        guard slotId > 0 else { return }
         
-        let loader = RewardedAdLoader()
-        self.yandexRewardedLoader = loader
-        
-        // Согласно правилам Apple: передаем только чистый AdRequest без персональных данных
-        let request = AdRequest(adUnitID: unitId)
-        Task {
-            do {
-                let ad = try await loader.loadAd(with: request)
-                self.yandexRewardedAd = ad
-                ad.delegate = self
-                self.isRewardedReady = true
-            } catch {
-                self.isRewardedReady = false
-            }
-        }
+        let rewarded = MTRGRewardedAd(slotId: slotId)
+        rewarded.delegate = self
+        self.vkRewardedAd = rewarded
+        rewarded.load()
         #endif
     }
     
@@ -300,40 +272,27 @@ public final class LuysAdManager: NSObject, ObservableObject {
             }
         }
         
+        actionCounter += 1
+        return actionCounter >= AdConfig.interstitialActionInterval
+    }
+    
+    public func showInterstitialIfAllowed(from viewController: UIViewController? = nil) -> Bool {
+        guard canShowInterstitial() else { return false }
+        
+        let rootVC = viewController ?? getTopViewController()
+        guard let presenter = rootVC else { return false }
+        
         #if canImport(FBAudienceNetwork)
         if let interstitial = currentInterstitial, interstitial.isAdValid {
+            interstitial.show(fromRootViewController: presenter)
+            lastInterstitialTime = Date()
+            actionCounter = 0
+            isInterstitialReady = false
             return true
         }
         #endif
+        
         return false
-    }
-    
-    public func recordActionAndShowInterstitialIfReady(from viewController: UIViewController? = nil) {
-        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
-        
-        actionCounter += 1
-        if actionCounter >= AdConfig.interstitialActionInterval {
-            showInterstitialIfReady(from: viewController)
-        }
-    }
-    
-    @discardableResult
-    public func showInterstitialIfReady(from viewController: UIViewController? = nil) -> Bool {
-        guard canShowInterstitial() else { return false }
-        
-        #if canImport(FBAudienceNetwork)
-        guard let interstitial = currentInterstitial, interstitial.isAdValid else { return false }
-        let presenter = viewController ?? getTopViewController()
-        guard let targetVC = presenter else { return false }
-        
-        interstitial.show(fromRootViewController: targetVC)
-        lastInterstitialTime = Date()
-        actionCounter = 0
-        isInterstitialReady = false
-        return true
-        #else
-        return false
-        #endif
     }
     
     // MARK: - Реклама с вознаграждением (Rewarded Video)
@@ -346,16 +305,15 @@ public final class LuysAdManager: NSObject, ObservableObject {
         
         let rootVC = viewController ?? getTopViewController()
         
-        // 1. Приоритетный показ Yandex Mobile Ads
-        #if canImport(YandexMobileAds)
-        if let yandexAd = self.yandexRewardedAd, let presenter = rootVC {
+        // 1. Приоритетный показ VK Рекламы (myTarget)
+        #if canImport(MyTargetSDK)
+        if let vkAd = self.vkRewardedAd, let presenter = rootVC {
             self.onRewardCompletion = onReward
-            yandexAd.delegate = self
             // Фиксируем сильную ссылку для защиты от ARC
-            self.currentlyShowingRewardedAd = yandexAd
-            self.yandexRewardedAd = nil
+            self.currentlyShowingRewardedAd = vkAd
+            self.vkRewardedAd = nil
             self.isRewardedReady = false
-            yandexAd.show(from: presenter)
+            vkAd.show(with: presenter)
             return
         }
         #endif
@@ -372,7 +330,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         
         // 3. Graceful UX Fallback: если ни одна сеть не готова — даем награду пользователю
         onReward()
-        preloadYandexRewarded()
+        preloadVkRewarded()
     }
     
     // MARK: - Начисление награды
@@ -384,7 +342,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         onRewardCompletion = nil
         callback?()
         
-        preloadYandexRewarded()
+        preloadVkRewarded()
     }
     
     // MARK: - Аналитика
@@ -417,45 +375,43 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
 }
 
-// MARK: - Делегаты Yandex Mobile Ads (Rewarded Video)
-#if canImport(YandexMobileAds)
-extension LuysAdManager: RewardedAdDelegate {
-    nonisolated public func rewardedAd(_ rewardedAd: RewardedAd, didReward reward: Reward) {
+// MARK: - Делегаты VK Рекламы / myTarget (Rewarded Video)
+#if canImport(MyTargetSDK)
+extension LuysAdManager: MTRGRewardedAdDelegate {
+    nonisolated public func onLoad(with rewardedAd: MTRGRewardedAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.isRewardedReady = true
+        }
+    }
+    
+    nonisolated public func onLoadFailed(error: any Error, rewardedAd: MTRGRewardedAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.isRewardedReady = false
+        }
+    }
+    
+    nonisolated public func onReward(_ reward: MTRGReward, rewardedAd: MTRGRewardedAd) {
         Task { @MainActor in
             LuysAdManager.shared.completeRewardedAdAndGrantReward()
         }
     }
     
-    nonisolated public func rewardedAdDidShow(_ rewardedAd: RewardedAd) {
+    nonisolated public func onDisplay(with rewardedAd: MTRGRewardedAd) {
         Task { @MainActor in
             LuysAdManager.shared.logImpression()
         }
     }
     
-    nonisolated public func rewardedAd(_ rewardedAd: RewardedAd, didTrackImpression impressionData: (any ImpressionData)?) {
-        Task { @MainActor in
-            LuysAdManager.shared.logImpression()
-        }
-    }
-    
-    nonisolated public func rewardedAdDidClick(_ rewardedAd: RewardedAd) {
+    nonisolated public func onClick(with rewardedAd: MTRGRewardedAd) {
         Task { @MainActor in
             LuysAdManager.shared.logClick()
         }
     }
     
-    nonisolated public func rewardedAdDidDismiss(_ rewardedAd: RewardedAd) {
+    nonisolated public func onClose(with rewardedAd: MTRGRewardedAd) {
         Task { @MainActor in
             LuysAdManager.shared.currentlyShowingRewardedAd = nil
-            LuysAdManager.shared.preloadYandexRewarded()
-        }
-    }
-    
-    nonisolated public func rewardedAd(_ rewardedAd: RewardedAd, didFailToShow error: any Error) {
-        Task { @MainActor in
-            LuysAdManager.shared.currentlyShowingRewardedAd = nil
-            // При ошибке показа выполняем фолбек начисления, чтобы не ломать UX
-            LuysAdManager.shared.completeRewardedAdAndGrantReward()
+            LuysAdManager.shared.preloadVkRewarded()
         }
     }
 }

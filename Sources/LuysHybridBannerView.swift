@@ -42,7 +42,7 @@ struct LuysSponsorCreative: Identifiable, Sendable {
     }
 }
 
-// MARK: - Универсальный гибридный баннер Luys (Yandex РСЯ + Apple HIG Резерв)
+// MARK: - Универсальный гибридный баннер Luys (VK Реклама + Apple HIG Резерв)
 /// Полностью исчезает при активной PRO-подписке, адаптируется под размер экрана,
 /// поддерживает авторотацию, плавные пружинные анимации и резервные креативы.
 public struct LuysHybridBannerView: View {
@@ -155,15 +155,15 @@ public struct LuysHybridBannerView: View {
         if subscriptionManager.isPremium || !adManager.isAdsEnabled {
             EmptyView()
         } else {
-            let adUnitId = adManager.bannerId(for: placement)
+            let slotId = adManager.bannerSlotId(for: placement)
             let creative = sponsorCreatives[currentCreativeIndex]
             
             VStack(spacing: 6) {
-                // Живой адаптивный баннер Яндекса
-                #if canImport(YandexMobileAds)
-                if adManager.activeProviderType == .yandex && !adUnitId.isEmpty {
-                    YandexBannerContainerView(
-                        adUnitID: adUnitId,
+                // Живой адаптивный баннер VK Рекламы (myTarget)
+                #if canImport(MyTargetSDK)
+                if adManager.activeProviderType == .vk && slotId > 0 {
+                    VKBannerContainerView(
+                        slotId: slotId,
                         isVisible: isVisibleOnScreen,
                         autoRefreshInterval: AdConfig.bannerAutoRefreshInterval,
                         onAdLoaded: { height in
