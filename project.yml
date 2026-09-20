@@ -21,7 +21,7 @@ targets:
         CFBundleDisplayName: ArmenianBible
         CFBundleIdentifier: com.samvel.armenianbible
         CFBundleVersion: "${BUILD_NUMBER:1}"
-        CFBundleShortVersionString: "3.3"
+        CFBundleShortVersionString: "3.4"
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
         ITSAppUsesNonExemptEncryption: "NO"
@@ -102,7 +102,7 @@ targets:
         CFBundleDisplayName: BibleWidget
         CFBundleIdentifier: com.samvel.armenianbible.BibleWidget
         CFBundleVersion: "${BUILD_NUMBER:1}"
-        CFBundleShortVersionString: "3.3"
+        CFBundleShortVersionString: "3.4"
         CFBundlePackageType: XPC!
         CFBundleExecutable: BibleWidget
         NSExtension:

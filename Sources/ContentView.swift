@@ -5561,7 +5561,7 @@ struct SettingsView: View {
             HStack {
                 Text("about_app_version".localized(for: selectedLanguage))
                 Spacer()
-                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.3")
+                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.4")
                     .foregroundColor(.secondary)
                 
                 Button {
