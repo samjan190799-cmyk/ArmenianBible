@@ -44,6 +44,9 @@ struct VKBannerContainerView: UIViewRepresentable {
     
     func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.parent = self
+        if context.coordinator.adView?.viewController == nil {
+            context.coordinator.adView?.viewController = LuysAdManager.shared.getTopViewController()
+        }
         if context.coordinator.currentSlotId != slotId {
             context.coordinator.loadBanner(slotId: slotId)
         }
@@ -70,6 +73,7 @@ struct VKBannerContainerView: UIViewRepresentable {
             
             let banner = MTRGAdView(slotId: slotId, shouldRefreshAd: true)
             banner.delegate = self
+            banner.viewController = LuysAdManager.shared.getTopViewController()
             banner.adSize = MTRGAdSize.forCurrentOrientation()
             banner.translatesAutoresizingMaskIntoConstraints = false
             self.adView = banner
@@ -92,6 +96,9 @@ struct VKBannerContainerView: UIViewRepresentable {
         // MARK: - MTRGAdViewDelegate (Swift 6 Concurrency Safe)
         nonisolated func onLoad(with adView: MTRGAdView) {
             Task { @MainActor in
+                #if DEBUG
+                print("✅ [VK Ads] Баннер успешно загружен: slotId \(self.currentSlotId)")
+                #endif
                 let height = adView.adSize.size.height
                 self.parent.onAdLoaded?(height > 0 ? height : 50)
                 LuysAdManager.shared.logImpression()
@@ -100,6 +107,9 @@ struct VKBannerContainerView: UIViewRepresentable {
         
         nonisolated func onLoadFailed(error: any Error, adView: MTRGAdView) {
             Task { @MainActor in
+                #if DEBUG
+                print("⚠️ [VK Ads] Ошибка загрузки баннера slotId \(self.currentSlotId): \(error.localizedDescription)")
+                #endif
                 self.parent.onAdFailed?(error.localizedDescription)
             }
         }
