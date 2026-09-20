@@ -68,7 +68,7 @@ struct VKBannerContainerView: UIViewRepresentable {
             adView?.removeFromSuperview()
             adView?.delegate = nil
             
-            let banner = MTRGAdView.adView(withSlotId: slotId, shouldRefreshAd: true)
+            let banner = MTRGAdView(slotId: slotId, shouldRefreshAd: true)
             banner.delegate = self
             banner.adSize = MTRGAdSize.adSizeForCurrentOrientation()
             banner.translatesAutoresizingMaskIntoConstraints = false
@@ -92,7 +92,7 @@ struct VKBannerContainerView: UIViewRepresentable {
         // MARK: - MTRGAdViewDelegate (Swift 6 Concurrency Safe)
         nonisolated func onLoad(with adView: MTRGAdView) {
             Task { @MainActor in
-                let height = adView.adSize?.size.height ?? 50
+                let height = adView.adSize.size.height
                 self.parent.onAdLoaded?(height > 0 ? height : 50)
                 LuysAdManager.shared.logImpression()
             }
