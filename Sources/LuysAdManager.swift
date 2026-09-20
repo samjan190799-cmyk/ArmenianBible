@@ -272,11 +272,26 @@ public final class LuysAdManager: NSObject, ObservableObject {
             }
         }
         
-        actionCounter += 1
-        return actionCounter >= AdConfig.interstitialActionInterval
+        #if canImport(FBAudienceNetwork)
+        if let interstitial = currentInterstitial, interstitial.isAdValid {
+            return true
+        }
+        #endif
+        
+        return false
     }
     
-    public func showInterstitialIfAllowed(from viewController: UIViewController? = nil) -> Bool {
+    public func recordActionAndShowInterstitialIfReady(from viewController: UIViewController? = nil) {
+        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
+        
+        actionCounter += 1
+        if actionCounter >= AdConfig.interstitialActionInterval {
+            showInterstitialIfReady(from: viewController)
+        }
+    }
+    
+    @discardableResult
+    public func showInterstitialIfReady(from viewController: UIViewController? = nil) -> Bool {
         guard canShowInterstitial() else { return false }
         
         let rootVC = viewController ?? getTopViewController()
@@ -293,6 +308,11 @@ public final class LuysAdManager: NSObject, ObservableObject {
         #endif
         
         return false
+    }
+    
+    @discardableResult
+    public func showInterstitialIfAllowed(from viewController: UIViewController? = nil) -> Bool {
+        return showInterstitialIfReady(from: viewController)
     }
     
     // MARK: - Реклама с вознаграждением (Rewarded Video)
