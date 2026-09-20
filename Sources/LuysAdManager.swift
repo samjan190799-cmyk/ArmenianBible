@@ -150,6 +150,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         determineActiveNetworkByGeo()
         
         #if canImport(MyTargetSDK)
+        MTRGManager.setDebugMode(true)
         preloadVkRewarded()
         startPeriodicAdCheck()
         #endif
@@ -316,25 +317,29 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
     
     // MARK: - Реклама с вознаграждением (Rewarded Video)
-    public func showRewardedAd(from viewController: UIViewController? = nil, onReward: @escaping () -> Void) {
+    @discardableResult
+    public func showRewardedAd(from viewController: UIViewController? = nil, onReward: @escaping () -> Void) -> Bool {
         // Если у пользователя Premium — сразу начисляем бонус без рекламы
         if SubscriptionManager.shared.isPremium || !isAdsEnabled {
             onReward()
-            return
+            return true
         }
         
         let rootVC = viewController ?? getTopViewController()
         
         // 1. Приоритетный показ VK Рекламы (myTarget)
         #if canImport(MyTargetSDK)
-        if let vkAd = self.vkRewardedAd, let presenter = rootVC {
+        if isRewardedReady, let vkAd = self.vkRewardedAd, let presenter = rootVC {
             self.onRewardCompletion = onReward
             // Фиксируем сильную ссылку для защиты от ARC
             self.currentlyShowingRewardedAd = vkAd
             self.vkRewardedAd = nil
             self.isRewardedReady = false
+            #if DEBUG
+            print("🎬 [VK Rewarded] Запуск показа полноэкранного видео...")
+            #endif
             vkAd.show(with: presenter)
-            return
+            return true
         }
         #endif
         
@@ -344,13 +349,16 @@ public final class LuysAdManager: NSObject, ObservableObject {
             self.onRewardCompletion = onReward
             metaRewarded.show(fromRootViewController: presenter)
             self.isRewardedReady = false
-            return
+            return true
         }
         #endif
         
-        // 3. Graceful UX Fallback: если ни одна сеть не готова — даем награду пользователю
-        onReward()
+        // 3. Если реклама еще не готова — запускаем подгрузку и возвращаем false
+        #if DEBUG
+        print("⏳ [VK Rewarded] Видео еще загружается с серверов VK... Запущена подгрузка.")
+        #endif
         preloadVkRewarded()
+        return false
     }
     
     // MARK: - Начисление награды
@@ -375,6 +383,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
     
     // MARK: - Поиск верхнего UIViewController
+    @MainActor
     public func getTopViewController(base: UIViewController? = nil) -> UIViewController? {
         let root = base ?? UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
@@ -400,12 +409,18 @@ public final class LuysAdManager: NSObject, ObservableObject {
 extension LuysAdManager: MTRGRewardedAdDelegate {
     nonisolated public func onLoad(with rewardedAd: MTRGRewardedAd) {
         Task { @MainActor in
+            #if DEBUG
+            print("✅ [VK Rewarded] Видео успешно загружено и готово к показу!")
+            #endif
             LuysAdManager.shared.isRewardedReady = true
         }
     }
     
     nonisolated public func onLoadFailed(error: any Error, rewardedAd: MTRGRewardedAd) {
         Task { @MainActor in
+            #if DEBUG
+            print("⚠️ [VK Rewarded] Ошибка загрузки видео: \(error.localizedDescription)")
+            #endif
             LuysAdManager.shared.isRewardedReady = false
         }
     }

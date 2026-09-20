@@ -1399,13 +1399,19 @@ struct AIGuideView: View {
                         // Кнопка пополнения копилки за просмотр видео (+1 несгораемый вопрос)
                         Button {
                             triggerHaptic(.medium)
-                            AdManager.shared.showRewardedAd {
+                            let isShown = AdManager.shared.showRewardedAd {
                                 let total = subscriptionManager.remainingFreeAiQuestions
                                 let banked = subscriptionManager.accumulatedBonusAiQuestions
                                 let msg = manager.appLanguage == .armenian ?
                                     "+1 հարց կուտակվեց: Ընդհանուր՝ \(total) (\(banked) կուտակված)" :
                                     (manager.appLanguage == .russian ? "+1 вопрос накоплен! Всего: \(total) (\(banked) в копилке)" : "+1 question banked! Total: \(total) (\(banked) banked)")
                                 showToastMessage(msg)
+                            }
+                            if !isShown {
+                                let waitMsg = manager.appLanguage == .armenian ?
+                                    "Գովազդը բեռնվում է, խնդրում ենք սպասել մի քանի վայրկյան..." :
+                                    (manager.appLanguage == .russian ? "Реклама загружается, пожалуйста, подождите пару секунд..." : "Ad is loading, please wait a few seconds...")
+                                showToastMessage(waitMsg)
                             }
                         } label: {
                             HStack(spacing: 3) {
