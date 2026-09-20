@@ -70,7 +70,7 @@ struct VKBannerContainerView: UIViewRepresentable {
             
             let banner = MTRGAdView(slotId: slotId, shouldRefreshAd: true)
             banner.delegate = self
-            banner.adSize = MTRGAdSize.adSizeForCurrentOrientation()
+            banner.adSize = MTRGAdSize.forCurrentOrientation()
             banner.translatesAutoresizingMaskIntoConstraints = false
             self.adView = banner
             
