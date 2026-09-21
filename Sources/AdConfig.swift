@@ -35,13 +35,13 @@ public enum AdConfig {
     public static let vkDemoInterstitialSlotId: UInt = 6899
     
     /// Боевые Slot ID для раздельных экранов Luys
-    public static let vkDefaultBannerSlotId: UInt = 2070985
-    public static let vkDefaultRewardedSlotId: UInt = 2070988
-    public static let vkBannerHomeSlotId: UInt = 2070985
-    public static let vkBannerReaderSlotId: UInt = 2070985
-    public static let vkBannerFavoritesSlotId: UInt = 2070985
-    public static let vkBannerNarekatsiSlotId: UInt = 2070985
-    public static let vkBannerSettingsSlotId: UInt = 2070985
+    public static let vkDefaultBannerSlotId: UInt = 2071440
+    public static let vkDefaultRewardedSlotId: UInt = 2071443
+    public static let vkBannerHomeSlotId: UInt = 2071440
+    public static let vkBannerReaderSlotId: UInt = 2071440
+    public static let vkBannerFavoritesSlotId: UInt = 2071440
+    public static let vkBannerNarekatsiSlotId: UInt = 2071440
+    public static let vkBannerSettingsSlotId: UInt = 2071440
     
     // MARK: - Тайминги авторотации и безопасности UX
     /// Безопасный интервал автообновления баннера (по правилам РСЯ: 30-60 сек)
