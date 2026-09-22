@@ -111,6 +111,10 @@
             <string>r26jy69rpl.skadnetwork</string>
         </dict>
     </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+    </array>
     <key>FacebookAppID</key>
     <string>2096476450939558</string>
     <key>FacebookDisplayName</key>

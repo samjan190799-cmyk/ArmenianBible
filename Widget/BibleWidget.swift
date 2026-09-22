@@ -966,10 +966,11 @@ struct BibleWidgetEntryView: View {
                     
                     HStack(spacing: 3) {
                         Text("✝")
-                            .font(.system(size: 8))
+                            .font(.system(size: 8, weight: .semibold))
                             .foregroundColor(.secondary)
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 9.5, weight: .bold, design: fontDesign))
+                            .font(.system(size: 9.5, weight: .semibold, design: fontDesign))
+                            .italic()
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
                             .foregroundColor(.secondary)

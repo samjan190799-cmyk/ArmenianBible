@@ -150,7 +150,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         determineActiveNetworkByGeo()
         
         #if canImport(MyTargetSDK)
-        MTRGManager.setDebugMode(true)
+        MTRGManager.setDebugMode(isTestMode) // Боевой режим когда isTestMode = false
         preloadVkRewarded()
         startPeriodicAdCheck()
         #endif

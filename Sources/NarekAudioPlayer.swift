@@ -3,6 +3,22 @@ import AVFoundation
 import MediaPlayer
 import Combine
 
+// MARK: - Детектор сборки TestFlight
+/// Официальный метод Apple: в TestFlight/Sandbox чек находится по URL
+/// содержащему "sandboxReceipt". В App Store — "receipt" без префикса.
+/// Симулятор считается TestFlight-средой для удобства разработки.
+private enum BuildEnvironment {
+    /// Возвращает `true` если приложение запущено из TestFlight или симулятора.
+    static var isTestFlight: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        guard let receiptURL = Bundle.main.appStoreReceiptURL else { return false }
+        return receiptURL.lastPathComponent == "sandboxReceipt"
+        #endif
+    }
+}
+
 // MARK: - Опции таймера сна аудиоплеера
 enum NarekSleepTimerOption: Int, CaseIterable, Identifiable {
     case off = 0
@@ -152,15 +168,38 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         isPlaying = true
         currentTime = startAtSeconds
         
-        // Настройка AVAudioSession для полноценного системного плеера на Lock Screen
+        // Настройка AVAudioSession для системного плеера на Lock Screen
+        // Фоновое воспроизведение разрешено только для тестеров TestFlight:
+        // в боевой App Store сборке плеер приостанавливается при уходе в фон.
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
+            if BuildEnvironment.isTestFlight {
+                // TestFlight: полное фоновое воспроизведение (.mixWithOthers убран намеренно
+                // чтобы плеер получал аудиофокус и отображался на Lock Screen)
+                try AVAudioSession.sharedInstance().setCategory(
+                    .playback,
+                    mode: .spokenAudio,
+                    options: []
+                )
+                #if DEBUG
+                print("🎧 [NarekPlayer] TestFlight: включён режим фонового аудио")
+                #endif
+            } else {
+                // App Store: воспроизведение только пока приложение активно
+                try AVAudioSession.sharedInstance().setCategory(
+                    .playback,
+                    mode: .spokenAudio,
+                    options: [.mixWithOthers]
+                )
+                #if DEBUG
+                print("🔇 [NarekPlayer] App Store: фоновое аудио ограничено")
+                #endif
+            }
             try AVAudioSession.sharedInstance().setActive(true)
             DispatchQueue.main.async {
                 UIApplication.shared.beginReceivingRemoteControlEvents()
             }
         } catch {
-            print("Failed to set AVAudioSession category: \(error)")
+            print("⚠️ [NarekPlayer] Ошибка настройки AVAudioSession: \(error)")
         }
         
         // Проверяем наличие встроенного файла в бандле приложения
