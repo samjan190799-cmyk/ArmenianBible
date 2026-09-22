@@ -66,6 +66,69 @@ enum AppGroupConstants {
     }
 }
 
+// MARK: - Шрифт виджета экрана блокировки
+/// Четыре варианта начертания для виджета Lock Screen.
+/// Хранится в App Group по ключу "lock_screen_font_design".
+enum LockScreenFontDesign: String, CaseIterable, Identifiable {
+    case serif     = "serif"      // Классический (Georgia/Times) — по умолчанию
+    case rounded   = "rounded"    // Мягкий закруглённый
+    case monospaced = "monospaced" // Моноширинный (технический)
+    case standard  = "standard"   // Системный (San Francisco)
+    
+    var id: String { rawValue }
+    
+    var fontDesign: Font.Design {
+        switch self {
+        case .serif:      return .serif
+        case .rounded:    return .rounded
+        case .monospaced: return .monospaced
+        case .standard:   return .default
+        }
+    }
+    
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .serif:
+            switch language {
+            case .armenian: return "Դասական (Serif)"
+            case .russian:  return "Классический (Serif)"
+            case .english:  return "Classic (Serif)"
+            }
+        case .rounded:
+            switch language {
+            case .armenian: return "Կլոր (Rounded)"
+            case .russian:  return "Округлый (Rounded)"
+            case .english:  return "Rounded"
+            }
+        case .monospaced:
+            switch language {
+            case .armenian: return "Մոնո (Monospaced)"
+            case .russian:  return "Моно (Monospaced)"
+            case .english:  return "Monospaced"
+            }
+        case .standard:
+            switch language {
+            case .armenian: return "Համակարգ (Default)"
+            case .russian:  return "Системный (Default)"
+            case .english:  return "System (Default)"
+            }
+        }
+    }
+    
+    var previewText: String { "Ա • А • A" }
+}
+
+extension AppGroupConstants {
+    /// Считывает выбранный шрифт виджета блокировки из App Group
+    static func sharedLockScreenFontDesign() -> LockScreenFontDesign {
+        if let raw = sharedString(forKey: "lock_screen_font_design"),
+           let design = LockScreenFontDesign(rawValue: raw) {
+            return design
+        }
+        return .serif
+    }
+}
+
 // MARK: - Определение выбранного перевода (Арарат или Эчмиадзин)
 func isAraratEditionSelected() -> Bool {
     if let savedEdition = AppGroupConstants.sharedDefaults.string(forKey: "armenian_bible_edition") {

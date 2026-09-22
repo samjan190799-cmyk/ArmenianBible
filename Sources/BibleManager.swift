@@ -129,12 +129,14 @@ class BibleManager: ObservableObject {
     private let mediumWidgetCategoryKey = "medium_widget_category"
     private let largeWidgetCategoryKey = "large_widget_category"
     private let widgetVisualStyleKey = "widget_visual_style"
+    private let lockScreenFontDesignKey = "lock_screen_font_design"
     
     @Published var aiTheologicalTone: AITheologicalTone = .patristic
     @Published var quizDefaultQuestionCount: Int = 10
     @Published var quizTimerDuration: Int = 0
     @Published var quizSoundEffectsEnabled: Bool = true
     @Published var lockScreenCategory: LockScreenCategory = .pearls
+    @Published var lockScreenFontDesign: LockScreenFontDesign = .serif
     @Published var mediumWidgetCategory: HomeWidgetCategory = .all
     @Published var largeWidgetCategory: HomeWidgetCategory = .all
     
@@ -328,6 +330,9 @@ class BibleManager: ObservableObject {
         
         // Загрузка визуального стиля виджетов и StandBy (отказоустойчивый опрос всех хранилищ)
         self.widgetVisualStyle = AppGroupConstants.sharedVisualStyle()
+        
+        // Загрузка шрифта виджета Lock Screen
+        self.lockScreenFontDesign = AppGroupConstants.sharedLockScreenFontDesign()
         
         // Загрузка Уведомлений
         let notifDefaults = sharedDefaults ?? UserDefaults.standard
@@ -575,6 +580,15 @@ class BibleManager: ObservableObject {
             defaults.set(category.rawValue, forKey: lockScreenCategoryKey)
         }
         syncLockScreenWidget()
+    }
+    
+    // MARK: - Сохранение шрифта виджета экрана блокировки
+    func setLockScreenFontDesign(_ design: LockScreenFontDesign) {
+        self.lockScreenFontDesign = design
+        AppGroupConstants.syncToAll { defaults in
+            defaults.set(design.rawValue, forKey: lockScreenFontDesignKey)
+        }
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
     // MARK: - Сохранение категории для среднего виджета (4x2)

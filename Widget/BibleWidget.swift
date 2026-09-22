@@ -889,6 +889,11 @@ struct BibleWidgetEntryView: View {
         activeStyle.fontDesign
     }
     
+    /// Шрифт специально для виджета Lock Screen — настраивается пользователем отдельно
+    private var lockScreenFontDesign: Font.Design {
+        AppGroupConstants.sharedLockScreenFontDesign().fontDesign
+    }
+    
     private func getLanguage() -> AppLanguage {
         if let forced = entry.configuration.language.appLanguage {
             return forced
@@ -953,7 +958,7 @@ struct BibleWidgetEntryView: View {
                 // Прямоугольный виджет на экране блокировки: строгие 2 строки для текста стиха + гарантированно видимая ссылка внизу
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .semibold, design: fontDesign))
+                        .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .semibold, design: lockScreenFontDesign))
                         .lineLimit(2)
                         .lineSpacing(-0.5)
                         .minimumScaleFactor(0.75)
@@ -969,7 +974,7 @@ struct BibleWidgetEntryView: View {
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundColor(.secondary)
                         Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 9.5, weight: .semibold, design: fontDesign))
+                            .font(.system(size: 9.5, weight: .semibold, design: lockScreenFontDesign))
                             .italic()
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)

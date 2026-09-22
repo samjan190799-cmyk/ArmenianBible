@@ -2452,6 +2452,7 @@ struct SettingsView: View {
     @State private var selectedWidgetLanguage: WidgetLanguage = .followApp
     @State private var selectedWidgetStyle: WidgetVisualStyle = .oledStandby
     @State private var selectedLockCategory: LockScreenCategory = .pearls
+    @State private var selectedLockFontDesign: LockScreenFontDesign = .serif
     @State private var selectedMediumCategory: HomeWidgetCategory = .all
     @State private var selectedLargeCategory: HomeWidgetCategory = .all
     @State private var selectedArmenianEdition: ArmenianBibleEdition = .ararat
@@ -2622,6 +2623,7 @@ struct SettingsView: View {
                 selectedWidgetLanguage = manager.widgetLanguage
                 selectedWidgetStyle = manager.widgetVisualStyle
                 selectedLockCategory = manager.lockScreenCategory
+                selectedLockFontDesign = manager.lockScreenFontDesign
                 selectedMediumCategory = manager.mediumWidgetCategory
                 selectedLargeCategory = manager.largeWidgetCategory
                 selectedArmenianEdition = manager.armenianEdition
@@ -4603,6 +4605,49 @@ struct SettingsView: View {
                                             pickVerseForCurrentSize(previewWidgetSize)
                                         }
                                     }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        
+                        // Выбор шрифта для виджета Lock Screen
+                        Text(selectedLanguage == .armenian ? "Ֆոնտ" : selectedLanguage == .russian ? "Шрифт виджета" : "Widget Font")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(LockScreenFontDesign.allCases) { design in
+                                    let isSelected = selectedLockFontDesign == design
+                                    Button {
+                                        let gen = UIImpactFeedbackGenerator(style: .light)
+                                        gen.prepare()
+                                        gen.impactOccurred()
+                                        selectedLockFontDesign = design
+                                        manager.setLockScreenFontDesign(design)
+                                    } label: {
+                                        VStack(spacing: 3) {
+                                            Text(design.previewText)
+                                                .font(.system(size: 13, weight: .semibold, design: design.fontDesign))
+                                                .foregroundColor(isSelected ? Color(hex: selectedTheme.colorHex) : primaryTextColor)
+                                            Text(design.title(for: selectedLanguage))
+                                                .font(.system(size: 9, weight: .medium))
+                                                .foregroundColor(isSelected ? Color(hex: selectedTheme.colorHex) : .secondary)
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 7)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(isSelected
+                                                    ? Color(hex: selectedTheme.colorHex).opacity(0.15)
+                                                    : inputFieldBgColor)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 10)
+                                                        .stroke(isSelected ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: isSelected ? 1.5 : 1)
+                                                )
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(.vertical, 2)
