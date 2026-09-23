@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        application.beginReceivingRemoteControlEvents()
         Task { @MainActor in
             LuysAdManager.shared.initialize()
         }

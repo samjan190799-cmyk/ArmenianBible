@@ -50,15 +50,7 @@ final class AppUpdateManager: ObservableObject {
     /// Определяет, запущено ли приложение в среде TestFlight, на симуляторе или в отладочной сборке.
     /// В TestFlight и при разработке принудительное обновление никогда не блокирует пользователя.
     var isTestFlightOrDebug: Bool {
-        #if DEBUG || targetEnvironment(simulator)
-        return true
-        #else
-        // В сборках TestFlight системный чек всегда называется sandboxReceipt
-        if let receiptURL = Bundle.main.appStoreReceiptURL, receiptURL.lastPathComponent == "sandboxReceipt" {
-            return true
-        }
-        return false
-        #endif
+        Bundle.isTestFlightOrDebug
     }
     
     /// Текущая установленная версия

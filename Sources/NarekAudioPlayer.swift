@@ -2,6 +2,23 @@ import Foundation
 import AVFoundation
 import MediaPlayer
 import Combine
+import UIKit
+
+// MARK: - Проверка среды выполнения (TestFlight vs App Store)
+extension Bundle {
+    /// Флаг определения среды: true для TestFlight (sandboxReceipt), DEBUG или симулятора.
+    /// В боевом App Store возвращает false.
+    static var isTestFlightOrDebug: Bool {
+        #if DEBUG || targetEnvironment(simulator)
+        return true
+        #else
+        if let receiptURL = Bundle.main.appStoreReceiptURL, receiptURL.lastPathComponent == "sandboxReceipt" {
+            return true
+        }
+        return false
+        #endif
+    }
+}
 
 // MARK: - Опции таймера сна аудиоплеера
 enum NarekSleepTimerOption: Int, CaseIterable, Identifiable {
@@ -152,25 +169,27 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         isPlaying = true
         currentTime = startAtSeconds
         
-        // Настройка AVAudioSession: категория .playback без .mixWithOthers
-        // обеспечивает полный аудиофокус и гарантированное воспроизведение в фоне.
-        // UIBackgroundModes: audio в Info.plist является системным разрешением.
+        // Настройка AVAudioSession: категория .playback с default режимом и опциями маршрутизации
+        // гарантирует непрерывное воспроизведение при блокировке экрана и сворачивании
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playback,
-                mode: .spokenAudio,
-                options: []
+                mode: .default,
+                options: [.allowAirPlay, .allowBluetooth, .allowBluetoothA2DP]
             )
-            try AVAudioSession.sharedInstance().setActive(true)
+            try AVAudioSession.sharedInstance().setActive(true, options: [])
             DispatchQueue.main.async {
                 UIApplication.shared.beginReceivingRemoteControlEvents()
             }
             #if DEBUG
-            print("🎧 [NarekPlayer] AVAudioSession активирован — фоновое воспроизведение включено")
+            print("🎧 [NarekPlayer] AVAudioSession активирован (.playback, .default) — TestFlight: \(Bundle.isTestFlightOrDebug)")
             #endif
         } catch {
             print("⚠️ [NarekPlayer] Ошибка настройки AVAudioSession: \(error)")
         }
+        
+        // Немедленно регистрируем информацию о треке в Центре управления и на Экране блокировки
+        updateNowPlayingInfo(prayer: prayer)
         
         // Проверяем наличие встроенного файла в бандле приложения
         let resourceName = (language == .armenian) ? "narek_sos_sargsyan" : "narek_oleg_molenko"
@@ -191,7 +210,12 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         if let url = targetUrl {
             isStreaming = url.scheme == "http" || url.scheme == "https"
             let playerItem = AVPlayerItem(url: url)
+            playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
+            playerItem.preferredForwardBufferDuration = 30.0
+            
             let newPlayer = AVPlayer(playerItem: playerItem)
+            newPlayer.automaticallyWaitsToMinimizeStalling = false
+            newPlayer.preventsDisplaySleepDuringVideoPlayback = false
             self.player = newPlayer
             
             // Наблюдение за статусом
@@ -223,10 +247,16 @@ class NarekAudioPlayer: NSObject, ObservableObject {
                 let currentSec = time.seconds
                 if !currentSec.isNaN {
                     self.currentTime = currentSec
-                    self.savePlaybackState()
+                    
+                    // Сохраняем состояние на диск только периодически (раз в 5 сек),
+                    // чтобы не нагружать I/O и не вызывать срабатывание системного watchdog в фоне
+                    if Int(currentSec) % 5 == 0 {
+                        self.savePlaybackState()
+                    }
                     
                     // Автоматически синхронизируем активную главу с текущим таймкодом
-                    if let active = NarekatsiDatabase.shared.prayers.last(where: { $0.audioTimestampSeconds(for: self.voiceLanguage) <= currentSec }) {
+                    if abs(currentSec - startAtSeconds) > 1.0,
+                       let active = NarekatsiDatabase.shared.prayers.last(where: { $0.audioTimestampSeconds(for: self.voiceLanguage) <= currentSec }) {
                         if self.currentlyPlayingId != active.id {
                             if self.sleepTimerOption == .endOfChapter {
                                 self.setSleepTimer(.off)
@@ -239,6 +269,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
                             }
                             self.currentlyPlayingId = active.id
                             self.savedPrayerId = active.id
+                            self.savePlaybackState()
                         }
                     }
                 }
@@ -271,6 +302,17 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     }
     
     func resume() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback,
+                mode: .default,
+                options: [.allowAirPlay, .allowBluetooth, .allowBluetoothA2DP]
+            )
+            try AVAudioSession.sharedInstance().setActive(true, options: [])
+        } catch {
+            print("⚠️ [NarekPlayer] Ошибка активации AVAudioSession в resume: \(error)")
+        }
+        
         if let p = player {
             p.play()
             p.rate = Float(playbackRate)
@@ -324,6 +366,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         cleanupPlayer()
         isPlaying = false
         isStreaming = false
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
     
     // MARK: - Управление скоростью, автопереходом и таймером сна
@@ -407,7 +450,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Системные уведомления AVAudioSession (Прерывания и отключение наушников)
+    // MARK: - Системные уведомления AVAudioSession и Жизненного Цикла
     
     private func setupAudioSessionNotifications() {
         NotificationCenter.default.addObserver(
@@ -422,6 +465,35 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             name: AVAudioSession.routeChangeNotification,
             object: AVAudioSession.sharedInstance()
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+    }
+    
+    @objc private func handleAppDidEnterBackground() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // ВАЖНОЕ ТРЕБОВАНИЕ: Фоновое воспроизведение и работа при блокировке экрана
+            // активны ТОЛЬКО для пользователей TestFlight (и разработчиков в Debug).
+            // В боевом релизе App Store фоновое воспроизведение автоматически ставится на паузу.
+            if !Bundle.isTestFlightOrDebug {
+                if self.isPlaying {
+                    #if DEBUG
+                    print("🛑 [NarekPlayer] Режим App Store: фоновое воспроизведение отключено при сворачивании")
+                    #endif
+                    self.pause()
+                }
+            } else {
+                // Для TestFlight: обновляем информацию на экране блокировки
+                if self.isPlaying {
+                    self.updateNowPlayingInfo()
+                }
+            }
+        }
     }
     
     @objc private func handleAudioInterruption(_ notification: Notification) {
@@ -556,6 +628,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         info[MPMediaItemPropertyAlbumTitle] = "Մատյան Ողբերգության"
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
         info[MPMediaItemPropertyPlaybackDuration] = duration > 0 ? duration : 300.0
+        info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
         info[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? playbackRate : 0.0
         info[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue
         
