@@ -402,9 +402,19 @@ def audit_data_flow_and_widgets(repo_root: Path, report: AuditReport):
             report.pass_check("Widget Timeline Invalidation", "При изменении стиля вызывается WidgetCenter.shared.reloadAllTimelines().")
 
     # Проверяем согласованность ключа стиля
-    mgr_writes_style = "widget_visual_style" in mgr_text or "widget_visual_style" in verse_text
-    widget_reads_style = "widget_visual_style" in widget_text or "widget_visual_style" in verse_text
+    # После рефакторинга ключ может быть в AppGroupConstants.swift или WidgetTypes.swift
+    agc_path = repo_root / "Sources" / "AppGroupConstants.swift"
+    widget_types_path = repo_root / "Sources" / "WidgetTypes.swift"
     
+    extra_texts = []
+    for p in [agc_path, widget_types_path]:
+        if p.exists():
+            extra_texts.append(p.read_text(encoding="utf-8", errors="ignore"))
+    all_source_text = verse_text + mgr_text + " ".join(extra_texts)
+    
+    mgr_writes_style = "widget_visual_style" in all_source_text
+    widget_reads_style = "widget_visual_style" in widget_text or "widget_visual_style" in all_source_text
+
     if mgr_writes_style and widget_reads_style:
         report.pass_check("Style Key Contract", "Ключ 'widget_visual_style' согласован между приложением и виджетом.")
     else:
