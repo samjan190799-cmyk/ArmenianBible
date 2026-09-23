@@ -92,6 +92,10 @@ targets:
     sources:
       - path: Widget
       - path: Sources/BibleVerse.swift
+      - path: Sources/BibleModels.swift
+      - path: Sources/AppGroupConstants.swift
+      - path: Sources/AppTypes.swift
+      - path: Sources/WidgetTypes.swift
       - path: Sources/en.lproj
       - path: Sources/ru.lproj
       - path: Sources/hy.lproj
