@@ -1,11 +1,12 @@
 import SwiftUI
 import WidgetKit
 import LocalAuthentication
+import Foundation
 
 extension SettingsView {
     // MARK: - Секция «Аудиоплеер Нарекаци»
     @ViewBuilder
-    private var narekAudioSection: some View {
+    var narekAudioSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Заголовок
             HStack(spacing: 8) {

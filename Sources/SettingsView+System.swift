@@ -1,11 +1,12 @@
 import SwiftUI
 import WidgetKit
 import LocalAuthentication
+import Foundation
 
 extension SettingsView {
     // MARK: - Секция: Система и данные (Haptics, Face ID, Cache, Backup)
     @ViewBuilder
-    private var systemAndDataSection: some View {
+    var systemAndDataSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Шапка секции
             HStack(spacing: 8) {
@@ -248,7 +249,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var aboutSection: some View {
+    var aboutSection: some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 12) {
                 // 🔐 Секретная зона разработчика: 5 быстрых тапов → диалог PIN-кода
@@ -482,7 +483,7 @@ extension SettingsView {
     }
     
     // MARK: - Обработка переключения режима разработчика
-    private func handleDevToggle(enablePremium: Bool) {
+    func handleDevToggle(enablePremium: Bool) {
         let code = devPasscodeInput.trimmingCharacters(in: .whitespaces)
         if code == "1907" || code == "7777" || code == "2026" {
             subscriptionManager.toggleDeveloperPremium(to: enablePremium)
@@ -515,7 +516,7 @@ extension SettingsView {
     }
     
     // MARK: - Выбор стиха для текущего размера виджета в предпросмотре
-    private func pickVerseForCurrentSize(_ size: PreviewWidgetSize) {
+    func pickVerseForCurrentSize(_ size: PreviewWidgetSize) {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             switch size {
             case .lockScreen:

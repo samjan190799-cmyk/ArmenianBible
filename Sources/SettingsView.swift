@@ -6,113 +6,113 @@ import LocalAuthentication
 struct SettingsView: View {
     @Binding var isPresented: Bool
     @ObservedObject var manager = BibleManager.shared
-    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
-    @ObservedObject private var appIconManager = AppIconManager.shared
+    @ObservedObject var subscriptionManager = SubscriptionManager.shared
+    @ObservedObject var appIconManager = AppIconManager.shared
     
-    @State private var isShowingPaywall = false
-    @State private var selectedProvider: AIProvider = .gemini
-    @State private var selectedLanguage: AppLanguage = .armenian
-    @State private var geminiKeyInput = ""
-    @State private var openaiKeyInput = ""
-    @State private var anthropicKeyInput = ""
-    @State private var isCheckingModels = false
-    @State private var activeKeyCheckToast: String? = nil
+    @State var isShowingPaywall = false
+    @State var selectedProvider: AIProvider = .gemini
+    @State var selectedLanguage: AppLanguage = .armenian
+    @State var geminiKeyInput = ""
+    @State var openaiKeyInput = ""
+    @State var anthropicKeyInput = ""
+    @State var isCheckingModels = false
+    @State var activeKeyCheckToast: String? = nil
     
-    @State private var selectedInterval: UpdateInterval = .everyHour
-    @State private var selectedCategory: TextCategory = .both
-    @State private var selectedScope: VerseSourceScope = .allBible
-    @State private var selectedTheme: AccentColorTheme = .indigo
-    @State private var selectedAppearanceMode: AppAppearanceMode = .system
-    @State private var selectedWidgetLanguage: WidgetLanguage = .followApp
-    @State private var selectedWidgetStyle: WidgetVisualStyle = .oledStandby
-    @State private var selectedLockCategory: LockScreenCategory = .pearls
-    @State private var selectedLockFontDesign: LockScreenFontDesign = .serif
-    @State private var selectedMediumCategory: HomeWidgetCategory = .all
-    @State private var selectedLargeCategory: HomeWidgetCategory = .all
-    @State private var selectedArmenianEdition: ArmenianBibleEdition = .ararat
-    @State private var previewWidgetSize: PreviewWidgetSize = .small
-    @State private var previewVerse: BibleVerse = BibleVerse.lockScreenPearls[0]
+    @State var selectedInterval: UpdateInterval = .everyHour
+    @State var selectedCategory: TextCategory = .both
+    @State var selectedScope: VerseSourceScope = .allBible
+    @State var selectedTheme: AccentColorTheme = .indigo
+    @State var selectedAppearanceMode: AppAppearanceMode = .system
+    @State var selectedWidgetLanguage: WidgetLanguage = .followApp
+    @State var selectedWidgetStyle: WidgetVisualStyle = .oledStandby
+    @State var selectedLockCategory: LockScreenCategory = .pearls
+    @State var selectedLockFontDesign: LockScreenFontDesign = .serif
+    @State var selectedMediumCategory: HomeWidgetCategory = .all
+    @State var selectedLargeCategory: HomeWidgetCategory = .all
+    @State var selectedArmenianEdition: ArmenianBibleEdition = .ararat
+    @State var previewWidgetSize: PreviewWidgetSize = .small
+    @State var previewVerse: BibleVerse = BibleVerse.lockScreenPearls[0]
     
     // Переменные для духовных уведомлений
-    @State private var morningNotificationsEnabled = false
-    @State private var morningNotificationTime = Date()
-    @State private var eveningNotificationsEnabled = false
-    @State private var eveningNotificationTime = Date()
-    @State private var churchFeastsNotificationsEnabled = false
-    @State private var readingPlanNotificationsEnabled = false
-    @State private var readingPlanNotificationTime = Date()
+    @State var morningNotificationsEnabled = false
+    @State var morningNotificationTime = Date()
+    @State var eveningNotificationsEnabled = false
+    @State var eveningNotificationTime = Date()
+    @State var churchFeastsNotificationsEnabled = false
+    @State var readingPlanNotificationsEnabled = false
+    @State var readingPlanNotificationTime = Date()
     
     // Системные настройки и данные (Haptics, Face ID, Cache, Backup)
-    @State private var isHapticsEnabled = true
-    @State private var isBiometricLockEnabled = false
-    @State private var cacheSizeDisplay = "0 KB"
-    @State private var isClearingCache = false
-    @State private var showCacheClearedToast = false
-    @State private var backupShareUrl: URL? = nil
-    @State private var isShowingShareSheet = false
+    @State var isHapticsEnabled = true
+    @State var isBiometricLockEnabled = false
+    @State var cacheSizeDisplay = "0 KB"
+    @State var isClearingCache = false
+    @State var showCacheClearedToast = false
+    @State var backupShareUrl: URL? = nil
+    @State var isShowingShareSheet = false
     
     // Настройки ИИ (Тон толкования и очистка истории)
-    @State private var selectedTheologicalTone: AITheologicalTone = .patristic
-    @State private var isShowingClearAIChatAlert = false
-    @State private var showAIChatClearedToast = false
+    @State var selectedTheologicalTone: AITheologicalTone = .patristic
+    @State var isShowingClearAIChatAlert = false
+    @State var showAIChatClearedToast = false
     
     // Настройки Викторины (Количество, Таймер, Звук, Сброс)
-    @State private var quizDefaultCount: Int = 10
-    @State private var quizTimerDuration: Int = 0
-    @State private var quizSoundEnabled: Bool = true
-    @State private var isShowingResetQuizAlert = false
-    @State private var showQuizResetToast = false
+    @State var quizDefaultCount: Int = 10
+    @State var quizTimerDuration: Int = 0
+    @State var quizSoundEnabled: Bool = true
+    @State var isShowingResetQuizAlert = false
+    @State var showQuizResetToast = false
     
     // Настройки Аудиоплеера Нарекаци (Пункт 2)
-    @ObservedObject private var narekPlayer = NarekAudioPlayer.shared
+    @ObservedObject var narekPlayer = NarekAudioPlayer.shared
     
     // Всплывающая инструкция по виджетам
-    @State private var isShowingWidgetInstruction = false
-    @State private var isShowingWallpaperAutomation = false
+    @State var isShowingWidgetInstruction = false
+    @State var isShowingWallpaperAutomation = false
     
     // 🔐 Панель разработчика (переключение Premium/Free по PIN-коду)
-    @State private var secretTapCount = 0
-    @State private var secretLastTap = Date.distantPast
-    @State private var isShowingDevPasscodeAlert = false
-    @State private var devPasscodeInput = ""
-    @State private var devToastMessage = ""
-    @State private var devToastSubtitle = ""
-    @State private var devToastIcon = "crown.fill"
-    @State private var devToastColor: [Color] = [Color(hex: "F59E0B"), Color(hex: "D97706")]
-    @State private var showDevToast = false
-    @State private var isWidgetsUpdatedSuccess = false
+    @State var secretTapCount = 0
+    @State var secretLastTap = Date.distantPast
+    @State var isShowingDevPasscodeAlert = false
+    @State var devPasscodeInput = ""
+    @State var devToastMessage = ""
+    @State var devToastSubtitle = ""
+    @State var devToastIcon = "crown.fill"
+    @State var devToastColor: [Color] = [Color(hex: "F59E0B"), Color(hex: "D97706")]
+    @State var showDevToast = false
+    @State var isWidgetsUpdatedSuccess = false
 
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorScheme) var colorScheme
     
-    private var backgroundColor: Color {
+    var backgroundColor: Color {
         colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
     }
     
-    private var primaryTextColor: Color {
+    var primaryTextColor: Color {
         colorScheme == .dark ? .white : Color(hex: "1E293B")
     }
     
-    private var inputFieldBgColor: Color {
+    var inputFieldBgColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
     }
     
-    private var inputFieldBorderColor: Color {
+    var inputFieldBorderColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.08)
     }
     
-    private var aboutBlockBgColor: Color {
+    var aboutBlockBgColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.02) : Color.black.opacity(0.015)
     }
     
-    private var aboutBlockBorderColor: Color {
+    var aboutBlockBorderColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)
     }
     
-    private var cardBackgroundColor: Color {
+    var cardBackgroundColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
     }
     
-    private var cardBorderColor: LinearGradient {
+    var cardBorderColor: LinearGradient {
         if colorScheme == .dark {
             return LinearGradient(
                 colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
@@ -293,7 +293,7 @@ struct SettingsView: View {
     
     // MARK: - Подсекции настроек
     @ViewBuilder
-    private var premiumMembershipSection: some View {
+    var premiumMembershipSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 ZStack {
@@ -413,7 +413,7 @@ struct SettingsView: View {
     
     // MARK: - Подсекции настроек
     @ViewBuilder
-    private var appLanguageSection: some View {
+    var appLanguageSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ai_language".localized(for: selectedLanguage))
                 .font(.system(size: 15, weight: .bold))
@@ -487,7 +487,7 @@ struct SettingsView: View {
     }
     
     @ViewBuilder
-    private var appearanceModeSection: some View {
+    var appearanceModeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("appearance_section_title".localized(for: selectedLanguage))
                 .font(.system(size: 15, weight: .bold))
@@ -513,7 +513,7 @@ struct SettingsView: View {
     }
     
     @ViewBuilder
-    private var colorThemeSection: some View {
+    var colorThemeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("theme_section_title".localized(for: selectedLanguage))
                 .font(.system(size: 15, weight: .bold))
@@ -555,7 +555,7 @@ struct SettingsView: View {
     }
     
     @ViewBuilder
-    private var appIconSection: some View {
+    var appIconSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {

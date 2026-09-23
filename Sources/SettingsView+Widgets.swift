@@ -1,11 +1,12 @@
 import SwiftUI
 import WidgetKit
 import LocalAuthentication
+import Foundation
 
 extension SettingsView {
     // MARK: - Объединенная секция: Виджеты, Экран блокировки и StandBy
     @ViewBuilder
-    private var widgetsUnifiedSection: some View {
+    var widgetsUnifiedSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 1. Шапка карточки: Заголовок + Бейдж + Кнопка справки
             HStack(spacing: 8) {
@@ -697,7 +698,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var autoWallpaperSection: some View {
+    var autoWallpaperSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 ZStack {

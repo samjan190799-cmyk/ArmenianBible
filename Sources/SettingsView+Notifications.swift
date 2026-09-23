@@ -1,11 +1,12 @@
 import SwiftUI
 import WidgetKit
 import LocalAuthentication
+import Foundation
 
 extension SettingsView {
     // MARK: - Единая секция Духовных Напоминаний
     @ViewBuilder
-    private var spiritualNotificationsSection: some View {
+    var spiritualNotificationsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: "bell.badge.fill")
@@ -143,7 +144,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private func notificationItemRow<PickerContent: View>(
+    func notificationItemRow<PickerContent: View>(
         icon: String,
         iconColor: Color,
         title: String,
@@ -200,7 +201,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private func notificationItemRow(
+    func notificationItemRow(
         icon: String,
         iconColor: Color,
         title: String,
@@ -219,7 +220,7 @@ extension SettingsView {
         )
     }
     
-    private func handleMorningToggle(_ newVal: Bool) {
+    func handleMorningToggle(_ newVal: Bool) {
         manager.setMorningNotificationsEnabled(newVal)
         if newVal {
             manager.requestNotificationPermission { granted in
@@ -231,7 +232,7 @@ extension SettingsView {
         }
     }
     
-    private func handleEveningToggle(_ newVal: Bool) {
+    func handleEveningToggle(_ newVal: Bool) {
         manager.setEveningNotificationsEnabled(newVal)
         if newVal {
             manager.requestNotificationPermission { granted in
@@ -243,7 +244,7 @@ extension SettingsView {
         }
     }
     
-    private func handleChurchFeastsToggle(_ newVal: Bool) {
+    func handleChurchFeastsToggle(_ newVal: Bool) {
         manager.setChurchFeastsNotificationsEnabled(newVal)
         if newVal {
             manager.requestNotificationPermission { granted in
@@ -255,7 +256,7 @@ extension SettingsView {
         }
     }
     
-    private func handleReadingPlanToggle(_ newVal: Bool) {
+    func handleReadingPlanToggle(_ newVal: Bool) {
         manager.setReadingPlanNotificationsEnabled(newVal)
         if newVal {
             manager.requestNotificationPermission { granted in
@@ -268,7 +269,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var updateIntervalSection: some View {
+    var updateIntervalSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("update_interval_title".localized(for: selectedLanguage))
@@ -324,7 +325,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var verseSourceScopeSection: some View {
+    var verseSourceScopeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("verse_source_scope_title".localized(for: selectedLanguage))
                 .font(.system(size: 15, weight: .bold))
@@ -380,7 +381,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var contentTypeSection: some View {
+    var contentTypeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("content_type_title".localized(for: selectedLanguage))
                 .font(.system(size: 15, weight: .bold))

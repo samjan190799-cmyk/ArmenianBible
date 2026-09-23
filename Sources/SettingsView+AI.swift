@@ -1,11 +1,12 @@
 import SwiftUI
 import WidgetKit
 import LocalAuthentication
+import Foundation
 
 extension SettingsView {
     // MARK: - Единая секция «Искусственный Интеллект»
     @ViewBuilder
-    private var aiAssistantSection: some View {
+    var aiAssistantSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             aiHeaderView
             aiProviderPillSelector
@@ -26,7 +27,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var aiHeaderView: some View {
+    var aiHeaderView: some View {
         HStack(spacing: 8) {
             Image(systemName: "sparkles")
                 .font(.system(size: 15, weight: .bold))
@@ -56,7 +57,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private func aiPillBackground(for provider: AIProvider, isSelected: Bool) -> some View {
+    func aiPillBackground(for provider: AIProvider, isSelected: Bool) -> some View {
         let pColor = providerAccentColor(for: provider)
         let sColor = providerSecondaryColor(for: provider)
         let unselectedFill = colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
@@ -78,7 +79,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var aiProviderPillSelector: some View {
+    var aiProviderPillSelector: some View {
         HStack(spacing: 6) {
             ForEach(AIProvider.allCases) { provider in
                 let isSelected = selectedProvider == provider
@@ -113,7 +114,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var aiCarouselView: some View {
+    var aiCarouselView: some View {
         TabView(selection: $selectedProvider) {
             ForEach(AIProvider.allCases) { provider in
                 aiProviderCard(for: provider)
@@ -130,7 +131,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var aiPageIndicatorDots: some View {
+    var aiPageIndicatorDots: some View {
         HStack {
             Spacer()
             HStack(spacing: 6) {
@@ -150,7 +151,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var aiTheologicalToneSection: some View {
+    var aiTheologicalToneSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "cross.fill")
@@ -176,7 +177,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private func aiTheologicalToneCard(for tone: AITheologicalTone) -> some View {
+    func aiTheologicalToneCard(for tone: AITheologicalTone) -> some View {
         let isSelected = selectedTheologicalTone == tone
         let tColor = Color(hex: tone.colorHex)
         let strokeColor = isSelected ? tColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
@@ -236,7 +237,7 @@ extension SettingsView {
     }
     
     @ViewBuilder
-    private var aiClearChatSection: some View {
+    var aiClearChatSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
@@ -312,7 +313,7 @@ extension SettingsView {
     
     // MARK: - Карточка отдельного ИИ-провайдера
     @ViewBuilder
-    private func aiProviderCard(for provider: AIProvider) -> some View {
+    func aiProviderCard(for provider: AIProvider) -> some View {
         let pColor = providerAccentColor(for: provider)
         let isCurrentActive = manager.activeProvider == provider
         
@@ -485,7 +486,7 @@ extension SettingsView {
     }
     
     // MARK: - Вспомогательные методы для ИИ-карусели
-    private func providerAccentColor(for provider: AIProvider) -> Color {
+    func providerAccentColor(for provider: AIProvider) -> Color {
         switch provider {
         case .gemini: return Color(hex: "4E80EE")
         case .chatgpt: return Color(hex: "10A37F")
@@ -493,7 +494,7 @@ extension SettingsView {
         }
     }
     
-    private func providerSecondaryColor(for provider: AIProvider) -> Color {
+    func providerSecondaryColor(for provider: AIProvider) -> Color {
         switch provider {
         case .gemini: return Color(hex: "8E55EA")
         case .chatgpt: return Color(hex: "059669")
@@ -501,7 +502,7 @@ extension SettingsView {
         }
     }
     
-    private func providerIconName(for provider: AIProvider) -> String {
+    func providerIconName(for provider: AIProvider) -> String {
         switch provider {
         case .gemini: return "sparkles"
         case .chatgpt: return "bubble.left.and.text.bubble.right.fill"
@@ -509,12 +510,12 @@ extension SettingsView {
         }
     }
     
-    private func providerModelSubtitle(for provider: AIProvider) -> String {
+    func providerModelSubtitle(for provider: AIProvider) -> String {
         let activeName = AIModelRegistry.shared.displayName(for: provider)
         return "⚡ \(activeName) • " + "auto_upgrade_active".localized(for: selectedLanguage)
     }
     
-    private func providerTitle(for provider: AIProvider) -> String {
+    func providerTitle(for provider: AIProvider) -> String {
         switch provider {
         case .gemini: return "gemini_settings_title".localized(for: selectedLanguage)
         case .chatgpt: return "chatgpt_settings_title".localized(for: selectedLanguage)
@@ -522,7 +523,7 @@ extension SettingsView {
         }
     }
     
-    private func providerDescription(for provider: AIProvider) -> String {
+    func providerDescription(for provider: AIProvider) -> String {
         switch provider {
         case .gemini: return "gemini_settings_description".localized(for: selectedLanguage)
         case .chatgpt: return "chatgpt_settings_description".localized(for: selectedLanguage)
@@ -530,7 +531,7 @@ extension SettingsView {
         }
     }
     
-    private func providerPlaceholder(for provider: AIProvider) -> String {
+    func providerPlaceholder(for provider: AIProvider) -> String {
         switch provider {
         case .gemini: return "placeholder_gemini_key".localized(for: selectedLanguage)
         case .chatgpt: return "placeholder_openai_key".localized(for: selectedLanguage)
@@ -538,7 +539,7 @@ extension SettingsView {
         }
     }
     
-    private func providerKeyBinding(for provider: AIProvider) -> Binding<String> {
+    func providerKeyBinding(for provider: AIProvider) -> Binding<String> {
         switch provider {
         case .gemini: return $geminiKeyInput
         case .chatgpt: return $openaiKeyInput
@@ -546,7 +547,7 @@ extension SettingsView {
         }
     }
     
-    private func isKeySaved(for provider: AIProvider) -> Bool {
+    func isKeySaved(for provider: AIProvider) -> Bool {
         switch provider {
         case .gemini: return !manager.geminiApiKey.isEmpty && !geminiKeyInput.isEmpty
         case .chatgpt: return !manager.openaiApiKey.isEmpty && !openaiKeyInput.isEmpty
@@ -554,7 +555,7 @@ extension SettingsView {
         }
     }
     
-    private var activeBadgeText: String {
+    var activeBadgeText: String {
         switch selectedLanguage {
         case .armenian: return "Ակտիվ"
         case .russian: return "Активная"
@@ -562,7 +563,7 @@ extension SettingsView {
         }
     }
     
-    private var apiKeyRequiredText: String {
+    var apiKeyRequiredText: String {
         switch selectedLanguage {
         case .armenian: return "Մուտքագրեք անձնական API բանալին"
         case .russian: return "Введите персональный API-ключ"

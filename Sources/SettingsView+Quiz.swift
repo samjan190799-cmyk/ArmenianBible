@@ -1,11 +1,12 @@
 import SwiftUI
 import WidgetKit
 import LocalAuthentication
+import Foundation
 
 extension SettingsView {
     // MARK: - Секция «Викторина и Обучение»
     @ViewBuilder
-    private var quizSettingsSection: some View {
+    var quizSettingsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Заголовок
             HStack(spacing: 8) {
