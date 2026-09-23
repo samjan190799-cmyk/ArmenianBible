@@ -10,6 +10,7 @@ class BibleManager: ObservableObject {
     
     @Published var currentVerse: BibleVerse
     @Published var isGeneratingAI = false
+    @Published var isGeneratingText: Bool = false
     @Published var updateInterval: UpdateInterval = .everyHour
     @Published var selectedCategory: TextCategory = .both
     @Published var activeProvider: AIProvider = .gemini

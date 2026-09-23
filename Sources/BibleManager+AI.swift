@@ -81,9 +81,6 @@ extension BibleManager {
         }
     }
     
-    // MARK: - Состояние генерации текста толкования
-    @Published var isGeneratingText: Bool = false
-    
     // MARK: - Общая генерация текста через ИИ (для толкований и свободных молитв)
     func generateTextFromAI(prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
         let apiKey: String
@@ -522,26 +519,6 @@ extension BibleManager {
         
         WidgetCenter.shared.reloadAllTimelines()
         objectWillChange.send()
-    }
-}
-
-// MARK: - Армянский редактор текста Библии
-enum ArmenianBibleEdition: String, CaseIterable, Identifiable, Codable {
-    case ararat = "ararat"
-    case echmiadzin = "echmiadzin"
-    case grabar = "grabar"
-    
-    var id: String { rawValue }
-    
-    func localizedTitle(for language: AppLanguage) -> String {
-        switch self {
-        case .ararat:
-            return "edition_ararat_title".localized(for: language)
-        case .echmiadzin:
-            return "edition_echmiadzin_title".localized(for: language)
-        case .grabar:
-            return "edition_grabar_title".localized(for: language)
-        }
     }
 }
 
