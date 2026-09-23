@@ -96,6 +96,11 @@ targets:
       - path: Sources/AppGroupConstants.swift
       - path: Sources/AppTypes.swift
       - path: Sources/WidgetTypes.swift
+      - path: Sources/BibleDatabase.swift
+      - path: Sources/BibleVerseDatabase.swift
+      - path: Sources/BibleVerseDatabase+Faith.swift
+      - path: Sources/BibleVerseDatabase+Faith2.swift
+      - path: Sources/BibleVerseDatabase+Filter.swift
       - path: Sources/en.lproj
       - path: Sources/ru.lproj
       - path: Sources/hy.lproj
