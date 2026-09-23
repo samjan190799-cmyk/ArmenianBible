@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import WidgetKit
 import UserNotifications
+import LocalAuthentication
 
 extension BibleManager {
     // MARK: - Тактильный отклик (Haptic Feedback)
@@ -43,7 +44,7 @@ extension BibleManager {
         }
         
         let reason = "biometric_auth_reason".localized(for: appLanguage)
-        context.evaluatePolicy(policy, localizedReason: reason) { [weak self] success, _ in
+        context.evaluatePolicy(policy, localizedReason: reason) { [weak self] (success: Bool, _: Error?) in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 if success {
@@ -78,7 +79,7 @@ extension BibleManager {
         }
         
         let reason = "biometric_auth_reason".localized(for: appLanguage)
-        context.evaluatePolicy(policy, localizedReason: reason) { [weak self] success, _ in
+        context.evaluatePolicy(policy, localizedReason: reason) { [weak self] (success: Bool, _: Error?) in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 if success {

@@ -96,41 +96,41 @@ class BibleManager: ObservableObject {
     }
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
-    private let appGroupSuiteName = AppGroupConstants.activeSuiteName
+    let appGroupSuiteName = AppGroupConstants.activeSuiteName
     
-    private let textKey = "currentVerseText"
-    private let referenceKey = "currentVerseReference"
-    private let apiKeyStoreKey = "gemini_api_key_secure"
-    private let openaiApiKeyStoreKey = "openai_api_key_secure"
-    private let anthropicApiKeyStoreKey = "anthropic_api_key_secure"
-    private let updateIntervalKey = "widgetUpdateInterval"
-    private let categoryKey = "selectedCategory"
-    private let activeProviderKey = "active_ai_provider"
-    private let appLanguageKey = "app_language"
-    private let favoritesKey = "favorite_verses"
-    private let verseSourceScopeKey = "verse_source_scope"
-    private let appearanceModeKey = "app_appearance_mode"
-    private let accentThemeKey = "accent_theme"
-    private let notificationsEnabledKey = "daily_notifications_enabled"
-    private let notificationTimeKey = "daily_notification_time"
-    private let morningNotificationsEnabledKey = "morning_notifications_enabled"
-    private let morningNotificationTimeKey = "morning_notification_time"
-    private let eveningNotificationsEnabledKey = "evening_notifications_enabled"
-    private let eveningNotificationTimeKey = "evening_notification_time"
-    private let churchFeastsNotificationsEnabledKey = "church_feasts_notifications_enabled"
-    private let readingPlanNotificationsEnabledKey = "reading_plan_notifications_enabled"
-    private let readingPlanNotificationTimeKey = "reading_plan_notification_time"
-    private let hapticsEnabledKey = "haptics_enabled"
-    private let biometricLockEnabledKey = "biometric_lock_enabled"
-    private let aiTheologicalToneKey = "ai_theological_tone"
-    private let quizDefaultQuestionCountKey = "quiz_default_question_count"
-    private let quizTimerDurationKey = "quiz_timer_duration"
-    private let quizSoundEffectsEnabledKey = "quiz_sound_effects_enabled"
-    private let lockScreenCategoryKey = "lock_screen_category"
-    private let mediumWidgetCategoryKey = "medium_widget_category"
-    private let largeWidgetCategoryKey = "large_widget_category"
-    private let widgetVisualStyleKey = "widget_visual_style"
-    private let lockScreenFontDesignKey = "lock_screen_font_design"
+    let textKey = "currentVerseText"
+    let referenceKey = "currentVerseReference"
+    let apiKeyStoreKey = "gemini_api_key_secure"
+    let openaiApiKeyStoreKey = "openai_api_key_secure"
+    let anthropicApiKeyStoreKey = "anthropic_api_key_secure"
+    let updateIntervalKey = "widgetUpdateInterval"
+    let categoryKey = "selectedCategory"
+    let activeProviderKey = "active_ai_provider"
+    let appLanguageKey = "app_language"
+    let favoritesKey = "favorite_verses"
+    let verseSourceScopeKey = "verse_source_scope"
+    let appearanceModeKey = "app_appearance_mode"
+    let accentThemeKey = "accent_theme"
+    let notificationsEnabledKey = "daily_notifications_enabled"
+    let notificationTimeKey = "daily_notification_time"
+    let morningNotificationsEnabledKey = "morning_notifications_enabled"
+    let morningNotificationTimeKey = "morning_notification_time"
+    let eveningNotificationsEnabledKey = "evening_notifications_enabled"
+    let eveningNotificationTimeKey = "evening_notification_time"
+    let churchFeastsNotificationsEnabledKey = "church_feasts_notifications_enabled"
+    let readingPlanNotificationsEnabledKey = "reading_plan_notifications_enabled"
+    let readingPlanNotificationTimeKey = "reading_plan_notification_time"
+    let hapticsEnabledKey = "haptics_enabled"
+    let biometricLockEnabledKey = "biometric_lock_enabled"
+    let aiTheologicalToneKey = "ai_theological_tone"
+    let quizDefaultQuestionCountKey = "quiz_default_question_count"
+    let quizTimerDurationKey = "quiz_timer_duration"
+    let quizSoundEffectsEnabledKey = "quiz_sound_effects_enabled"
+    let lockScreenCategoryKey = "lock_screen_category"
+    let mediumWidgetCategoryKey = "medium_widget_category"
+    let largeWidgetCategoryKey = "large_widget_category"
+    let widgetVisualStyleKey = "widget_visual_style"
+    let lockScreenFontDesignKey = "lock_screen_font_design"
     
     @Published var aiTheologicalTone: AITheologicalTone = .patristic
     @Published var quizDefaultQuestionCount: Int = 10
@@ -141,7 +141,7 @@ class BibleManager: ObservableObject {
     @Published var mediumWidgetCategory: HomeWidgetCategory = .all
     @Published var largeWidgetCategory: HomeWidgetCategory = .all
     
-    private var sharedDefaults: UserDefaults? {
+    var sharedDefaults: UserDefaults? {
         AppGroupConstants.sharedDefaults
     }
     
