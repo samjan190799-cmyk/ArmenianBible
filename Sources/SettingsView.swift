@@ -485,7 +485,10 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(
                     LinearGradient(
-                        colors: [Color(hex: "F59E0B").opacity(0.35), cardBorderColor],
+                        colors: [
+                            Color(hex: "F59E0B").opacity(0.35),
+                            colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
