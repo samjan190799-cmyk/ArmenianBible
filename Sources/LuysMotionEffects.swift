@@ -2,15 +2,15 @@ import SwiftUI
 
 // MARK: - 1. Божественный «дышащий» ореол (Divine Breathing Glow)
 /// Непрерывно плавно пульсирующее свечение в тон акцентной темы приложения.
-public struct DivineBreathingGlow: View {
+struct DivineBreathingGlow: View {
     let color: Color
     @State private var isExpanded: Bool = false
     
-    public init(color: Color) {
+    init(color: Color) {
         self.color = color
     }
     
-    public var body: some View {
+    var body: some View {
         Circle()
             .fill(color)
             .frame(width: isExpanded ? 380 : 320, height: isExpanded ? 380 : 320)
@@ -29,7 +29,7 @@ public struct DivineBreathingGlow: View {
 
 // MARK: - 2. Золотой салют искорок (Golden Spark Burst)
 /// Микро-частицы благородного золотого света, разлетающиеся при добавлении в избранное.
-public struct GoldenSparkBurstView: View {
+struct GoldenSparkBurstView: View {
     let isTriggered: Bool
     
     @State private var particles: [SparkParticle] = []
@@ -42,11 +42,11 @@ public struct GoldenSparkBurstView: View {
         let color: Color
     }
     
-    public init(isTriggered: Bool) {
+    init(isTriggered: Bool) {
         self.isTriggered = isTriggered
     }
     
-    public var body: some View {
+    var body: some View {
         ZStack {
             if isTriggered {
                 ForEach(0..<12, id: \.self) { index in
@@ -76,7 +76,7 @@ public struct GoldenSparkBurstView: View {
 
 // MARK: - 3. Живой огонь лампады (Flickering Candle Flame)
 /// Реалистичное, благоговейное мерцание пламени свечи (микро-покачивание и дыхание света).
-public struct FlickeringCandleFlame: View {
+struct FlickeringCandleFlame: View {
     let baseColor: Color
     let iconSize: CGFloat
     
@@ -84,12 +84,12 @@ public struct FlickeringCandleFlame: View {
     @State private var flickerOffset: CGFloat = 0.0
     @State private var flickerOpacity: Double = 0.95
     
-    public init(baseColor: Color = Color(hex: "F59E0B"), iconSize: CGFloat = 20) {
+    init(baseColor: Color = Color(hex: "F59E0B"), iconSize: CGFloat = 20) {
         self.baseColor = baseColor
         self.iconSize = iconSize
     }
     
-    public var body: some View {
+    var body: some View {
         ZStack {
             // Теплый ореол позади пламени
             Circle()
@@ -127,17 +127,17 @@ public struct FlickeringCandleFlame: View {
 
 // MARK: - 4. Золотой световой блик (Shimmer Effect Modifier)
 /// Элегантный луч света, плавно пробегающий под углом через бейджи или карточки.
-public struct LuysShimmerModifier: ViewModifier {
+struct LuysShimmerModifier: ViewModifier {
     @State private var phase: CGFloat = -1.0
     let duration: Double
     let delay: Double
     
-    public init(duration: Double = 2.2, delay: Double = 3.5) {
+    init(duration: Double = 2.2, delay: Double = 3.5) {
         self.duration = duration
         self.delay = delay
     }
     
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         content
             .overlay(
                 GeometryReader { geo in
@@ -173,24 +173,24 @@ public struct LuysShimmerModifier: ViewModifier {
 
 extension View {
     /// Применяет деликатный золотистый блик света
-    public func luysShimmer(duration: Double = 2.4) -> some View {
+    func luysShimmer(duration: Double = 2.4) -> some View {
         modifier(LuysShimmerModifier(duration: duration))
     }
 }
 
 // MARK: - 5. Каскадное появление (Staggered Entrance Animation)
 /// Позволяет карточкам плавно выплывать волной сверху вниз с каскадной задержкой.
-public struct StaggeredEntranceModifier: ViewModifier {
+struct StaggeredEntranceModifier: ViewModifier {
     let index: Int
     let baseDelay: Double
     @State private var isVisible: Bool = false
     
-    public init(index: Int, baseDelay: Double = 0.05) {
+    init(index: Int, baseDelay: Double = 0.05) {
         self.index = index
         self.baseDelay = baseDelay
     }
     
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         content
             .opacity(isVisible ? 1.0 : 0.0)
             .offset(y: isVisible ? 0 : 22)
@@ -208,27 +208,27 @@ public struct StaggeredEntranceModifier: ViewModifier {
 
 extension View {
     /// Каскадный вход элемента списка или набора карточек
-    public func staggeredEntrance(index: Int, baseDelay: Double = 0.05) -> some View {
+    func staggeredEntrance(index: Int, baseDelay: Double = 0.05) -> some View {
         modifier(StaggeredEntranceModifier(index: index, baseDelay: baseDelay))
     }
 }
 
 // MARK: - 6. Живой аудио-эквалайзер (Equalizer Waveform Bars)
 /// Индикатор проигрывания аудио с динамически танцующими волнами звука.
-public struct AudioWaveformIndicator: View {
+struct AudioWaveformIndicator: View {
     let isPlaying: Bool
     let color: Color
     let barCount: Int
     
     @State private var animPhase: Bool = false
     
-    public init(isPlaying: Bool, color: Color = Color(hex: "F59E0B"), barCount: Int = 4) {
+    init(isPlaying: Bool, color: Color = Color(hex: "F59E0B"), barCount: Int = 4) {
         self.isPlaying = isPlaying
         self.color = color
         self.barCount = barCount
     }
     
-    public var body: some View {
+    var body: some View {
         HStack(alignment: .bottom, spacing: 3) {
             ForEach(0..<barCount, id: \.self) { idx in
                 RoundedRectangle(cornerRadius: 1.5)
