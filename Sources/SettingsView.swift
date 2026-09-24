@@ -10,6 +10,7 @@ struct SettingsView: View {
     @ObservedObject var appIconManager = AppIconManager.shared
     
     @State var isShowingPaywall = false
+    @State var isShowingSanctuarySheet = false
     @State var selectedProvider: AIProvider = .gemini
     @State var selectedLanguage: AppLanguage = .armenian
     @State var geminiKeyInput = ""
@@ -137,6 +138,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         premiumMembershipSection
+                        sanctuaryCandlesSection
                         appLanguageSection
                         appearanceModeSection
                         colorThemeSection
@@ -225,6 +227,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $isShowingWallpaperAutomation) {
                 WallpaperAutomationSheetView()
+            }
+            .sheet(isPresented: $isShowingSanctuarySheet) {
+                PrayerSanctuaryView()
             }
             .sheet(isPresented: $isShowingShareSheet) {
                 if let url = backupShareUrl {
@@ -407,6 +412,84 @@ struct SettingsView: View {
                         endPoint: .bottomTrailing
                     ),
                     lineWidth: 1.2
+                )
+        )
+    }
+    
+    // MARK: - Секция Храмовых Молитвенных Свечей
+    @ViewBuilder
+    var sanctuaryCandlesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "D97706").opacity(0.15)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 44, height: 44)
+                    
+                    FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 20)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(selectedLanguage == .armenian ? "Տաճարային Մոմավառություն" : (selectedLanguage == .russian ? "Храмовая молитва и свечи" : "Sanctuary & Prayer Candles"))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(primaryTextColor)
+                    }
+                    
+                    Text(selectedLanguage == .armenian ? "Վառեք մոմ սրտի լռության մեջ հարազատների համար" : (selectedLanguage == .russian ? "Зажгите свечу в тишине сердца за близких" : "Light a vigil candle in quiet prayer for loved ones"))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            
+            Button {
+                let generator = UIImpactFeedbackGenerator(style: .medium)
+                generator.impactOccurred()
+                isShowingSanctuarySheet = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    Text(selectedLanguage == .armenian ? "Մտնել Տաճար • Վառել Մոմ" : (selectedLanguage == .russian ? "Войти в притвор храма" : "Enter Sanctuary"))
+                        .font(.system(size: 13, weight: .bold))
+                }
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    LinearGradient(
+                        colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(10)
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+        .padding(16)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(cardBackgroundColor)
+            }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: "F59E0B").opacity(0.35), cardBorderColor],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
                 )
         )
     }

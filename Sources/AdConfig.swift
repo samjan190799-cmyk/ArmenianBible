@@ -4,8 +4,9 @@ import Foundation
 /// Централизованное хранилище идентификаторов рекламных блоков и настроек показа.
 public enum AdConfig {
     
-    // MARK: - Идентификатор приложения в Meta
-    public static let facebookAppID: String = "2096476450939558"
+    // MARK: - Идентификатор приложения в Meta (Новый зарубежный аккаунт)
+    /// Новый Facebook App ID будет указан после создания приложения в новом аккаунте Meta Developer
+    public static let facebookAppID: String = ""
     
     // MARK: - Режим тестирования
     /// Если false — показывается реальная реклама Meta Audience Network.
@@ -13,20 +14,20 @@ public enum AdConfig {
     /// защищая вас от случайных кликов.
     public static var isTestMode: Bool = false
     
-    // MARK: - Рабочие Placement ID Meta (Armenian Bible)
+    // MARK: - Рабочие Placement ID Meta (Новый зарубежный аккаунт)
     /// Рабочий Placement ID для Баннера (320x50 / адаптивный)
-    public static let productionBannerPlacementID: String = "2096476450939558_2096479904272546"
+    public static let productionBannerPlacementID: String = ""
     
     /// Рабочий Placement ID для Межстраничной рекламы (Interstitial)
-    public static let productionInterstitialPlacementID: String = "2096476450939558_2096479900939213"
+    public static let productionInterstitialPlacementID: String = ""
     
     /// Рабочий Placement ID для Рекламы с вознаграждением (Rewarded Video)
-    public static let productionRewardedPlacementID: String = "2096476450939558_2096479907605879"
+    public static let productionRewardedPlacementID: String = ""
     
-    // MARK: - Тестовые Placement ID от Meta
-    public static let testBannerPlacementID: String = "IMG_16_9_APP_INSTALL#2096476450939558_2096479904272546"
-    public static let testInterstitialPlacementID: String = "VID_HD_9_16_39S_APP_INSTALL#2096476450939558_2096479900939213"
-    public static let testRewardedPlacementID: String = "VID_HD_9_16_39S_APP_INSTALL#2096476450939558_2096479907605879"
+    // MARK: - Тестовые Placement ID от Meta (Новый зарубежный аккаунт)
+    public static let testBannerPlacementID: String = ""
+    public static let testInterstitialPlacementID: String = ""
+    public static let testRewardedPlacementID: String = ""
     
     // MARK: - Идентификаторы VK Рекламы / myTarget (ads.vk.com)
     /// Официальные стабильные демо/тестовые Slot ID для MyTarget SDK
@@ -58,6 +59,11 @@ public enum AdConfig {
     
     public static var rewardedPlacementID: String {
         isTestMode ? testRewardedPlacementID : productionRewardedPlacementID
+    }
+    
+    /// Флаг готовности рекламных блоков Meta нового аккаунта
+    public static var hasMetaPlacements: Bool {
+        !facebookAppID.isEmpty && (!bannerPlacementID.isEmpty || !interstitialPlacementID.isEmpty || !rewardedPlacementID.isEmpty)
     }
     
     // MARK: - Настройки частоты показа (Кулдауны для бережного UX)

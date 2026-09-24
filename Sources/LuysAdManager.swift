@@ -112,7 +112,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         
         #if canImport(FBAudienceNetwork)
         let cisRegions: Set<String> = ["AM", "RU", "BY", "KZ", "UZ", "KG", "TJ", "AZ", "MD", "GE"]
-        if cisRegions.contains(region) {
+        if cisRegions.contains(region) || !AdConfig.hasMetaPlacements {
             self.activeProviderType = .vk
         } else {
             self.activeProviderType = .meta
@@ -172,7 +172,9 @@ public final class LuysAdManager: NSObject, ObservableObject {
                     self?.isTrackingAuthorized = authorized
                     
                     #if canImport(FBAudienceNetwork)
-                    FBAdSettings.setAdvertiserTrackingEnabled(authorized)
+                    if AdConfig.hasMetaPlacements {
+                        FBAdSettings.setAdvertiserTrackingEnabled(authorized)
+                    }
                     #endif
                 }
             }
@@ -244,6 +246,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         #if canImport(FBAudienceNetwork)
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
         let placementID = AdConfig.interstitialPlacementID
+        guard !placementID.isEmpty else { return }
         let interstitial = FBInterstitialAd(placementID: placementID)
         interstitial.delegate = self
         self.currentInterstitial = interstitial
@@ -255,6 +258,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         #if canImport(FBAudienceNetwork)
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
         let placementID = AdConfig.rewardedPlacementID
+        guard !placementID.isEmpty else { return }
         let rewarded = FBRewardedVideoAd(placementID: placementID)
         rewarded.delegate = self
         self.currentRewarded = rewarded

@@ -39,8 +39,6 @@ targets:
           - SKAdNetworkIdentifier: tl5878mr92.skadnetwork
           - SKAdNetworkIdentifier: v9wttpbfk9.skadnetwork
           - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
-        FacebookAppID: "2096476450939558"
-        FacebookDisplayName: Armenian Bible
         UIBackgroundModes:
           - audio
         UIRequiresFullScreen: false

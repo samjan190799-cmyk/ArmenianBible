@@ -190,10 +190,13 @@ struct HomeView: View {
     @ObservedObject private var reviewManager = ReviewManager.shared
     @State private var animateVerse = false
     @State private var isHeartBouncing = false
+    @State private var isSparkBurstActive = false
+    @State private var cardFlipAngle: Double = 0.0
     @State private var isShowingSettings = false
     @State private var isShowingReadingPlans = false
     @State private var isShowingQuiz = false
     @State private var isShowingCalendar = false
+    @State private var isShowingSanctuary = false
     @State private var isShowingPaywall = false
     
     // Переменные для обработки ошибок ИИ
@@ -295,11 +298,8 @@ struct HomeView: View {
             StaticDotGridView(dotColor: dotGridColor)
                 .ignoresSafeArea()
             
-            // Фоновое неоновое свечение позади текста
-            Circle()
-                .fill(glowColor)
-                .frame(width: 350, height: 350)
-                .blur(radius: 90)
+            // Фоновое живое «дышащее» свечение позади текста (Divine Breathing Glow)
+            DivineBreathingGlow(color: glowColor)
                 .offset(y: -70)
             
             ScrollView(showsIndicators: false) {
@@ -364,7 +364,7 @@ struct HomeView: View {
                         
                         // Кнопки управления стихом: Избранное, Обои, Аудио-озвучка, Поделиться
                         HStack(spacing: 24) {
-                            // 1. Кнопка Лайка (Избранное) с упругой пружинной анимацией
+                            // 1. Кнопка Лайка (Избранное) с упругой пружинной анимацией и золотым салютом
                             Button {
                                 triggerHaptic(.medium)
                                 withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) {
@@ -373,6 +373,10 @@ struct HomeView: View {
                                     } else {
                                         manager.addToFavorites(manager.currentVerse)
                                         isHeartBouncing = true
+                                        isSparkBurstActive = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+                                            isSparkBurstActive = false
+                                        }
                                     }
                                 }
                                 if isHeartBouncing {
@@ -383,13 +387,17 @@ struct HomeView: View {
                                     }
                                 }
                             } label: {
-                                Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(manager.isFavorite(manager.currentVerse) ? .red : primaryTextColor.opacity(0.6))
-                                    .scaleEffect(isHeartBouncing ? 1.32 : 1.0)
-                                    .padding(11)
-                                    .background(primaryTextColor.opacity(0.05))
-                                    .clipShape(Circle())
+                                ZStack {
+                                    Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundColor(manager.isFavorite(manager.currentVerse) ? .red : primaryTextColor.opacity(0.6))
+                                        .scaleEffect(isHeartBouncing ? 1.35 : 1.0)
+                                    
+                                    GoldenSparkBurstView(isTriggered: isSparkBurstActive)
+                                }
+                                .padding(11)
+                                .background(primaryTextColor.opacity(0.05))
+                                .clipShape(Circle())
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
@@ -439,20 +447,29 @@ struct HomeView: View {
                             .stroke(cardBorderColor, lineWidth: 1.2)
                     )
                     .padding(.horizontal, 20)
+                    .rotation3DEffect(
+                        .degrees(cardFlipAngle),
+                        axis: (x: 0.0, y: 1.0, z: 0.0),
+                        perspective: 0.35
+                    )
                     .onTapGesture {
                         triggerHaptic(.medium)
                         
-                        withAnimation(.easeOut(duration: 0.18)) {
+                        withAnimation(.easeIn(duration: 0.15)) {
+                            cardFlipAngle = 90.0
                             animateVerse = false
                         }
                         
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                             manager.selectRandomVerse()
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            cardFlipAngle = -90.0
+                            withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
+                                cardFlipAngle = 0.0
                                 animateVerse = true
                             }
                         }
                     }
+                    .staggeredEntrance(index: 0)
                     
                     Spacer()
                         .frame(height: 6)
@@ -461,9 +478,9 @@ struct HomeView: View {
                     LuysHybridBannerView(placement: .home)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 2)
+                        .staggeredEntrance(index: 1)
                     
                     // MARK: - Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
-
                     NarekatsiBannerCardView(
                         language: manager.appLanguage,
                         accentColor: accentColor,
@@ -476,6 +493,22 @@ struct HomeView: View {
                             manager.openNarekatsi()
                         }
                     )
+                    .staggeredEntrance(index: 2)
+                    
+                    // MARK: - Карточка Храмовой Молитвы и Свечей (Մոմավառություն)
+                    PrayerSanctuaryBannerCardView(
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        cardBackgroundColor: cardBackgroundColor,
+                        cardBorderColor: cardBorderColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpenSanctuary: {
+                            triggerHaptic(.medium)
+                            isShowingSanctuary = true
+                        }
+                    )
+                    .staggeredEntrance(index: 3)
                     
                     // MARK: - Карточка Плана Чтения Библии и Стрика (Reading Plans & Daily Streak)
                     ReadingPlanBannerCardView(
@@ -490,6 +523,7 @@ struct HomeView: View {
                             isShowingReadingPlans = true
                         }
                     )
+                    .staggeredEntrance(index: 4)
                     
                     // MARK: - Карточка Библейской Викторины
                     BibleQuizCardView(
@@ -505,6 +539,7 @@ struct HomeView: View {
                             isShowingQuiz = true
                         }
                     )
+                    .staggeredEntrance(index: 5)
                     
                     // MARK: - Карточка Церковных праздников и Календаря
                     ChurchFeastsBannerCardView(
@@ -519,6 +554,7 @@ struct HomeView: View {
                             isShowingCalendar = true
                         }
                     )
+                    .staggeredEntrance(index: 6)
                     
                     // MARK: - Карточка Armenian Bible Premium
                     PremiumPromoBannerCardView(
@@ -534,6 +570,7 @@ struct HomeView: View {
                             isShowingPaywall = true
                         }
                     )
+                    .staggeredEntrance(index: 7)
                 }
                 .padding(.bottom, 30)
                 .frame(maxWidth: 680)
@@ -582,6 +619,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isShowingCalendar) {
             ChurchCalendarView()
+        }
+        .sheet(isPresented: $isShowingSanctuary) {
+            PrayerSanctuaryView()
         }
         .sheet(isPresented: $isShowingWallpaperMaker) {
             BibleWallpaperMakerView(verse: manager.currentVerse)
@@ -736,6 +776,8 @@ struct NarekatsiBannerCardView: View {
     let primaryTextColor: Color
     let onOpenNarek: () -> Void
     
+    @ObservedObject private var narekAudio = NarekAudioPlayer.shared
+    
     var body: some View {
         Button {
             onOpenNarek()
@@ -745,15 +787,19 @@ struct NarekatsiBannerCardView: View {
                     Circle()
                         .fill(accentColor.opacity(0.12))
                         .frame(width: 48, height: 48)
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(accentColor)
+                    FlickeringCandleFlame(baseColor: accentColor, iconSize: 22)
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("narekatsi_title".localized(for: language))
-                        .font(.system(size: 16, weight: .bold, design: .serif))
-                        .foregroundColor(primaryTextColor)
+                    HStack(spacing: 8) {
+                        Text("narekatsi_title".localized(for: language))
+                            .font(.system(size: 16, weight: .bold, design: .serif))
+                            .foregroundColor(primaryTextColor)
+                        
+                        if narekAudio.isPlaying {
+                            AudioWaveformIndicator(isPlaying: true, color: accentColor)
+                        }
+                    }
                     
                     Text("narekatsi_subtitle".localized(for: language))
                         .font(.system(size: 12, weight: .medium, design: .serif))
@@ -780,6 +826,94 @@ struct NarekatsiBannerCardView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(cardBorderColor, lineWidth: 1)
+            )
+            .padding(.horizontal, 20)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Баннерная Карточка Молитвенного Притвора и Свечей (Մոմավառություն)
+struct PrayerSanctuaryBannerCardView: View {
+    let language: AppLanguage
+    let accentColor: Color
+    let secondaryAccentColor: Color
+    let cardBackgroundColor: Color
+    let cardBorderColor: LinearGradient
+    let primaryTextColor: Color
+    let onOpenSanctuary: () -> Void
+    
+    @ObservedObject private var candleManager = CandleManager.shared
+    
+    var body: some View {
+        Button {
+            onOpenSanctuary()
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "D97706").opacity(0.15)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 48, height: 48)
+                    
+                    FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 22)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(language == .armenian ? "ՏԱՃԱՐԱՅԻՆ ՄՈՄԱՎԱՌՈՒԹՅՈՒՆ" : (language == .russian ? "ХРАМОВАЯ СВЕЧА И МОЛИТВА" : "SANCTUARY PRAYER CANDLE"))
+                            .font(.system(size: 11, weight: .black))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                        
+                        if !candleManager.hasUsedDailyFreeCandle {
+                            Text(language == .armenian ? "ԱՆՎՃԱՐ" : (language == .russian ? "ДАР" : "FREE"))
+                                .font(.system(size: 9, weight: .black))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color(hex: "10B981"))
+                                .cornerRadius(4)
+                                .luysShimmer(duration: 2.2)
+                        }
+                    }
+                    
+                    Text(language == .armenian ? "Վառեք մոմ հարազատների առողջության կամ հոգու համար" : (language == .russian ? "Зажгите свечу о здравии или упокоении близких" : "Light a candle for health, peace, or memory"))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(primaryTextColor.opacity(0.85))
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(primaryTextColor.opacity(0.3))
+            }
+            .padding(16)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(cardBackgroundColor)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color(hex: "F59E0B").opacity(0.4), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.2
+                    )
             )
             .padding(.horizontal, 20)
         }
@@ -822,9 +956,13 @@ struct ChurchFeastsBannerCardView: View {
                         )
                         .frame(width: 48, height: 48)
                     
-                    Image(systemName: todayFeast != nil ? todayFeast!.type.icon : "calendar")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                    if todayFeast != nil {
+                        FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 22)
+                    } else {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                    }
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
@@ -837,6 +975,7 @@ struct ChurchFeastsBannerCardView: View {
                                 .padding(.vertical, 2)
                                 .background(Color.red)
                                 .cornerRadius(5)
+                                .luysShimmer(duration: 2.2)
                             
                             Text(today.title(for: language))
                                 .font(.system(size: 15, weight: .bold, design: .serif))
@@ -942,6 +1081,7 @@ struct PremiumPromoBannerCardView: View {
                                 .padding(.vertical, 2)
                                 .background(Color(hex: "FDE68A"))
                                 .cornerRadius(4)
+                                .luysShimmer(duration: 2.5)
                         }
                     }
                     

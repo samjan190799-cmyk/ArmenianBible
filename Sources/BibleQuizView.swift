@@ -334,9 +334,12 @@ struct BibleQuizView: View {
                                                 
                                                 if selectedAnswerIndex != nil {
                                                     if isCorrect {
-                                                        Image(systemName: "checkmark.circle.fill")
-                                                            .foregroundColor(.green)
-                                                            .transition(.scale.combined(with: .opacity))
+                                                        ZStack {
+                                                            Image(systemName: "checkmark.circle.fill")
+                                                                .foregroundColor(.green)
+                                                            GoldenSparkBurstView(isTriggered: true)
+                                                        }
+                                                        .transition(.scale.combined(with: .opacity))
                                                     } else if isSelected {
                                                         Image(systemName: "xmark.circle.fill")
                                                             .foregroundColor(.red)

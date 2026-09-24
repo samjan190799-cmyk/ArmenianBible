@@ -261,9 +261,7 @@ struct NarekatsiView: View {
                                                 .frame(width: 42, height: 42)
                                             
                                             if isThisPlaying {
-                                                Image(systemName: "waveform")
-                                                    .font(.system(size: 16, weight: .bold))
-                                                    .foregroundColor(accentColor)
+                                                AudioWaveformIndicator(isPlaying: true, color: accentColor)
                                             } else if isChapterLocked {
                                                 Image(systemName: "lock.fill")
                                                     .font(.system(size: 14, weight: .semibold))
@@ -444,6 +442,10 @@ struct NarekHeroPlayerCard: View {
                             .font(.system(size: 18, weight: .bold, design: .serif))
                             .foregroundColor(accentColor)
                         
+                        if audioPlayer.isPlaying {
+                            AudioWaveformIndicator(isPlaying: true, color: accentColor)
+                        }
+                        
                         if isLocked {
                             Text("👑 PREMIUM")
                                 .font(.system(size: 10, weight: .heavy))
@@ -452,6 +454,7 @@ struct NarekHeroPlayerCard: View {
                                 .padding(.vertical, 2)
                                 .background(Color(hex: "FDE68A"))
                                 .cornerRadius(5)
+                                .luysShimmer(duration: 2.5)
                         } else if audioPlayer.isStreaming {
                             Text("narek_loading_audio".localized(for: audioPlayer.voiceLanguage))
                                 .font(.system(size: 11, weight: .semibold))
