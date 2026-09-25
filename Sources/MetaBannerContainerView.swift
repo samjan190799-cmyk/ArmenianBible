@@ -46,9 +46,6 @@ struct MetaBannerContainerView: UIViewRepresentable {
     
     func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.parent = self
-        if context.coordinator.adView?.rootViewController == nil {
-            context.coordinator.adView?.rootViewController = LuysAdManager.shared.getTopViewController()
-        }
     }
     
     @MainActor
