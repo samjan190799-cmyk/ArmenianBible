@@ -161,6 +161,12 @@ struct PrayerSanctuaryView: View {
             .sheet(item: $selectedCandleForPrayer) { candle in
                 CandleDetailPrayerSheetView(candle: candle, language: manager.appLanguage)
             }
+            .onAppear {
+                candleManager.cleanExpiredCandles()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                candleManager.cleanExpiredCandles()
+            }
         }
     }
     
@@ -291,7 +297,7 @@ struct CandleStandCellView: View {
                             Text("🎬")
                                 .font(.system(size: 8))
                         }
-                        Text("\(candle.hoursRemaining) " + (language == .armenian ? "ժ." : (language == .russian ? "ч." : "h.")))
+                        Text(candle.remainingTimeText(for: language))
                             .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     }
                     .foregroundColor(.white.opacity(0.65))
@@ -838,9 +844,9 @@ struct CandleDetailPrayerSheetView: View {
     
     private var burningTimeRemainingText: String {
         switch language {
-        case .armenian: return "Կվառվի ևս \(candle.hoursRemaining) ժամ"
-        case .russian: return "Горит еще \(candle.hoursRemaining) ч."
-        case .english: return "Burns for \(candle.hoursRemaining) more hrs"
+        case .armenian: return "Կվառվի ևս \(candle.remainingTimeText(for: language))"
+        case .russian: return "Горит еще \(candle.remainingTimeText(for: language))"
+        case .english: return "Burns for \(candle.remainingTimeText(for: language))"
         }
     }
 }

@@ -125,11 +125,17 @@ struct CandleAccessoryCircularView: View {
             let elapsed = Date().timeIntervalSince(candle.litDate)
             let progress = max(0.0, min(1.0, 1.0 - (elapsed / total)))
             
+            let remaining = candle.expirationDate.timeIntervalSince(Date())
             Gauge(value: progress, in: 0...1) {
                 Image(systemName: "flame.fill")
             } currentValueLabel: {
-                Text("\(candle.hoursRemaining)h")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                if remaining < 3600 {
+                    Text("\(max(1, Int(ceil(remaining / 60.0))))m")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                } else {
+                    Text("\(candle.hoursRemaining)h")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                }
             }
             .gaugeStyle(.accessoryCircularCapacity)
             .tint(Color(hex: "F59E0B"))

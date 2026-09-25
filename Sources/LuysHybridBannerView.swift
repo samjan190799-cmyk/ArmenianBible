@@ -161,54 +161,34 @@ public struct LuysHybridBannerView: View {
             VStack(spacing: 6) {
                 // Живой баннер Meta Audience Network
                 if adManager.activeProviderType == .meta && !AdConfig.bannerPlacementID.isEmpty {
-                    MetaBannerContainerView(
-                        placementID: AdConfig.bannerPlacementID,
-                        onAdLoaded: {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                liveBannerHeight = 50
-                                isLiveAdLoaded = true
+                    ZStack {
+                        MetaBannerContainerView(
+                            placementID: AdConfig.bannerPlacementID,
+                            onAdLoaded: {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    liveBannerHeight = 50
+                                    isLiveAdLoaded = true
+                                }
+                            },
+                            onAdFailed: { _ in
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    isLiveAdLoaded = false
+                                }
                             }
-                        },
-                        onAdFailed: { _ in
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                isLiveAdLoaded = false
-                            }
+                        )
+                        .frame(height: 50)
+                        .frame(maxWidth: .infinity)
+                        .opacity(isLiveAdLoaded ? 1 : 0)
+                        .allowsHitTesting(isLiveAdLoaded)
+                        
+                        // Пока баннер загружается или при No-Fill — показываем спонсорскую карточку
+                        if !isLiveAdLoaded {
+                            fallbackSponsorCard(creative: creative)
+                                .transition(.opacity.combined(with: .scale(scale: 0.98)))
                         }
-                    )
-                    .frame(height: isLiveAdLoaded ? liveBannerHeight : 0)
-                    .frame(maxWidth: .infinity)
-                    .opacity(isLiveAdLoaded ? 1 : 0)
-                    .clipped()
-                }
-                
-                // Живой адаптивный баннер VK Рекламы (myTarget)
-                #if canImport(MyTargetSDK)
-                if adManager.activeProviderType == .vk && slotId > 0 {
-                    VKBannerContainerView(
-                        slotId: slotId,
-                        isVisible: isVisibleOnScreen,
-                        autoRefreshInterval: AdConfig.bannerAutoRefreshInterval,
-                        onAdLoaded: { height in
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                liveBannerHeight = height
-                                isLiveAdLoaded = true
-                            }
-                        },
-                        onAdFailed: { _ in
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                isLiveAdLoaded = false
-                            }
-                        }
-                    )
-                    .frame(height: isLiveAdLoaded ? liveBannerHeight : 0)
-                    .frame(maxWidth: .infinity)
-                    .opacity(isLiveAdLoaded ? 1 : 0)
-                    .clipped()
-                }
-                #endif
-                
-                // Резервный спонсорский баннер в эстетике Apple HIG (при No-Fill, офлайн или загрузке)
-                if !isLiveAdLoaded {
+                    }
+                } else {
+                    // Резервный спонсорский баннер в эстетике Apple HIG
                     fallbackSponsorCard(creative: creative)
                         .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }

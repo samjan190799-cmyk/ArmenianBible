@@ -198,6 +198,42 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
         let remaining = expirationDate.timeIntervalSince(Date())
         return max(0, Int(ceil(remaining / 3600.0)))
     }
+    
+    /// Процент сгорания свечи от 0.0 (только зажжена) до 1.0 (полностью сгорела)
+    var burnProgress: Double {
+        guard duration > 0 else { return 1.0 }
+        let elapsed = Date().timeIntervalSince(litDate)
+        return min(1.0, max(0.0, elapsed / duration))
+    }
+    
+    /// Человекочитаемое форматирование оставшегося времени (с минутами, если < 1 часа)
+    func remainingTimeText(for language: AppLanguage) -> String {
+        let remaining = expirationDate.timeIntervalSince(Date())
+        guard remaining > 0 else {
+            switch language {
+            case .armenian: return "Մարած"
+            case .russian: return "Угасла"
+            case .english: return "Extinguished"
+            }
+        }
+        
+        let totalMinutes = Int(ceil(remaining / 60.0))
+        if totalMinutes < 60 {
+            let m = max(1, totalMinutes)
+            switch language {
+            case .armenian: return "\(m) ր."
+            case .russian: return "\(m) мин."
+            case .english: return "\(m)m"
+            }
+        }
+        
+        let hours = Int(ceil(Double(totalMinutes) / 60.0))
+        switch language {
+        case .armenian: return "\(hours) ժ."
+        case .russian: return "\(hours) ч."
+        case .english: return "\(hours)h"
+        }
+    }
 }
 
 // MARK: - Константы хранилища свечей

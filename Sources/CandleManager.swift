@@ -242,6 +242,15 @@ final class CandleManager: ObservableObject {
         }
     }
     
+    // MARK: - Автоматическая очистка угасших свечей
+    func cleanExpiredCandles() {
+        let initialCount = activeCandles.count
+        activeCandles.removeAll { !$0.isLit }
+        if activeCandles.count != initialCount {
+            saveCandles()
+        }
+    }
+    
     // MARK: - Хранилище свечей
     private func saveCandles() {
         if let data = try? JSONEncoder().encode(activeCandles) {
@@ -270,6 +279,12 @@ final class CandleManager: ObservableObject {
             saveCandles()
             return
         }
-        self.activeCandles = list
+        
+        // Оставляем только горящие свечи
+        let litCandles = list.filter { $0.isLit }
+        self.activeCandles = litCandles
+        if litCandles.count != list.count {
+            saveCandles()
+        }
     }
 }
