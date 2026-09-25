@@ -1,5 +1,94 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
+
+// MARK: - AppEntity для выбора конкретной свечи в виджете (по долгому нажатию)
+@available(iOS 17.0, *)
+struct CandleAppEntity: AppEntity, Identifiable {
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Молитвенная свеча"
+    static var defaultQuery = CandleAppEntityQuery()
+    
+    var id: String
+    var title: String
+    var subtitle: String
+    
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(
+            title: "\(title)",
+            subtitle: "\(subtitle)"
+        )
+    }
+}
+
+@available(iOS 17.0, *)
+struct CandleAppEntityQuery: EntityQuery {
+    func entities(for identifiers: [String]) async throws -> [CandleAppEntity] {
+        let all = loadActiveCandleEntities()
+        return all.filter { identifiers.contains($0.id) }
+    }
+    
+    func suggestedEntities() async throws -> [CandleAppEntity] {
+        return loadActiveCandleEntities()
+    }
+    
+    func defaultResult() async -> CandleAppEntity? {
+        return loadActiveCandleEntities().first
+    }
+    
+    private func loadActiveCandleEntities() -> [CandleAppEntity] {
+        let lang = getLanguage()
+        var result: [CandleAppEntity] = [
+            CandleAppEntity(
+                id: "latest",
+                title: lang == .armenian ? "🔥 Վերջին մոմը" : (lang == .russian ? "🔥 Последняя свеча" : "🔥 Latest Candle"),
+                subtitle: lang == .armenian ? "Ավտոմատ կերպով" : (lang == .russian ? "Автоматически" : "Automatic")
+            )
+        ]
+        
+        guard let data = AppGroupConstants.sharedDefaults.data(forKey: CandleConstants.candlesStorageKey)
+                ?? UserDefaults.standard.data(forKey: CandleConstants.candlesStorageKey),
+              let list = try? JSONDecoder().decode([PrayerCandle].self, from: data) else {
+            return result
+        }
+        
+        let now = Date()
+        let active = list.filter { $0.litDate.addingTimeInterval($0.duration) > now }
+        
+        for candle in active {
+            let name = candle.personName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let intentTitle = candle.intention.title(for: lang)
+            let candleTitle = name.isEmpty ? intentTitle : name
+            let timeRemaining = candle.remainingTimeText(for: lang)
+            
+            result.append(
+                CandleAppEntity(
+                    id: candle.id.uuidString,
+                    title: "🕯️ \(candleTitle)",
+                    subtitle: "\(intentTitle) • \(timeRemaining)"
+                )
+            )
+        }
+        return result
+    }
+    
+    private func getLanguage() -> AppLanguage {
+        if let langStr = AppGroupConstants.sharedString(forKey: "app_language"),
+           let lang = AppLanguage(rawValue: langStr) {
+            return lang
+        }
+        return .armenian
+    }
+}
+
+// MARK: - Намерение конфигурации виджета свечи (WidgetConfigurationIntent)
+@available(iOS 17.0, *)
+struct SelectPrayerCandleIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "Выбор свечи"
+    static var description: LocalizedStringResource = "Выберите, какую зажженную свечу показывать в виджете."
+    
+    @Parameter(title: "Молитвенная свеча")
+    var selectedCandle: CandleAppEntity?
+}
 
 // MARK: - Модель записи временной шкалы виджета свечи (PrayerCandleEntry)
 struct PrayerCandleEntry: TimelineEntry {
@@ -8,9 +97,11 @@ struct PrayerCandleEntry: TimelineEntry {
     let language: AppLanguage
 }
 
-// MARK: - Провайдер временной шкалы (PrayerCandleProvider)
-struct PrayerCandleProvider: TimelineProvider {
+// MARK: - Провайдер временной шкалы с поддержкой конфигурации (AppIntentTimelineProvider)
+@available(iOS 17.0, *)
+struct PrayerCandleAppIntentProvider: AppIntentTimelineProvider {
     typealias Entry = PrayerCandleEntry
+    typealias Intent = SelectPrayerCandleIntent
     
     func placeholder(in context: Context) -> PrayerCandleEntry {
         let sample = PrayerCandle(
@@ -23,14 +114,13 @@ struct PrayerCandleProvider: TimelineProvider {
         return PrayerCandleEntry(date: Date(), candle: sample, language: getSharedLanguage())
     }
     
-    func getSnapshot(in context: Context, completion: @escaping (PrayerCandleEntry) -> Void) {
-        let candle = loadCurrentActiveCandle() ?? placeholder(in: context).candle
-        let entry = PrayerCandleEntry(date: Date(), candle: candle, language: getSharedLanguage())
-        completion(entry)
+    func snapshot(for configuration: SelectPrayerCandleIntent, in context: Context) async -> PrayerCandleEntry {
+        let candle = resolveCandle(for: configuration) ?? placeholder(in: context).candle
+        return PrayerCandleEntry(date: Date(), candle: candle, language: getSharedLanguage())
     }
     
-    func getTimeline(in context: Context, completion: @escaping (Timeline<PrayerCandleEntry>) -> Void) {
-        let currentCandle = loadCurrentActiveCandle()
+    func timeline(for configuration: SelectPrayerCandleIntent, in context: Context) async -> Timeline<PrayerCandleEntry> {
+        let currentCandle = resolveCandle(for: configuration)
         let language = getSharedLanguage()
         let now = Date()
         
@@ -42,11 +132,11 @@ struct PrayerCandleProvider: TimelineProvider {
                 // Текущая запись
                 entries.append(PrayerCandleEntry(date: now, candle: candle, language: language))
                 
-                // Промежуточные записи каждый час для обновления визуала шкалы
-                var intermediate = now.addingTimeInterval(3600)
+                // Промежуточные записи каждые 30 минут
+                var intermediate = now.addingTimeInterval(1800)
                 while intermediate < expirationDate {
                     entries.append(PrayerCandleEntry(date: intermediate, candle: candle, language: language))
-                    intermediate = intermediate.addingTimeInterval(3600)
+                    intermediate = intermediate.addingTimeInterval(1800)
                 }
                 
                 // Запись в момент угасания свечи
@@ -62,21 +152,28 @@ struct PrayerCandleProvider: TimelineProvider {
             ? min(now.addingTimeInterval(1800), currentCandle!.litDate.addingTimeInterval(currentCandle!.duration))
             : now.addingTimeInterval(1800)
         
-        let timeline = Timeline(entries: entries, policy: .after(nextUpdate))
-        completion(timeline)
+        return Timeline(entries: entries, policy: .after(nextUpdate))
     }
     
-    private func loadCurrentActiveCandle() -> PrayerCandle? {
+    private func resolveCandle(for configuration: SelectPrayerCandleIntent) -> PrayerCandle? {
         guard let data = AppGroupConstants.sharedDefaults.data(forKey: CandleConstants.candlesStorageKey)
                 ?? UserDefaults.standard.data(forKey: CandleConstants.candlesStorageKey),
               let list = try? JSONDecoder().decode([PrayerCandle].self, from: data) else {
             return nil
         }
+        
         let now = Date()
-        // Возвращаем первую горящую свечу
-        return list.first { candle in
-            candle.litDate.addingTimeInterval(candle.duration) > now
+        let litCandles = list.filter { $0.litDate.addingTimeInterval($0.duration) > now }
+        
+        guard let selectedId = configuration.selectedCandle?.id, selectedId != "latest" else {
+            return litCandles.first
         }
+        
+        if let match = litCandles.first(where: { $0.id.uuidString == selectedId }) {
+            return match
+        }
+        
+        return litCandles.first
     }
     
     private func getSharedLanguage() -> AppLanguage {
@@ -587,7 +684,7 @@ struct PrayerCandleWidget: Widget {
     let kind: String = "PrayerCandleWidget"
     
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: PrayerCandleProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: SelectPrayerCandleIntent.self, provider: PrayerCandleAppIntentProvider()) { entry in
             PrayerCandleWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Տաճարային Մոմ • Храмовая Свеча")

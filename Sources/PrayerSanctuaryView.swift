@@ -328,6 +328,7 @@ struct CandleStandCellView: View {
 // MARK: - Лист возжжения новой свечи (LightCandleFormSheetView)
 struct LightCandleFormSheetView: View {
     let language: AppLanguage
+    var initialTier: CandleTier? = nil
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var candleManager = CandleManager.shared
     
@@ -422,24 +423,84 @@ struct LightCandleFormSheetView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        // 4. Текст молитвы
+                        // 4. Текст молитвы (с возможностью ручного написания)
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(prayerSectionTitle)
-                                .font(.system(size: 13, weight: .bold, design: .serif))
-                                .foregroundColor(Color(hex: "F59E0B"))
+                            HStack {
+                                Text(prayerSectionTitle)
+                                    .font(.system(size: 13, weight: .bold, design: .serif))
+                                    .foregroundColor(Color(hex: "F59E0B"))
+                                
+                                Spacer()
+                                
+                                // Кнопка подстановки канонической молитвы
+                                Button {
+                                    triggerHaptic(.light)
+                                    customPrayer = selectedIntention.defaultPrayer(for: language)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "book.closed")
+                                            .font(.system(size: 10))
+                                        Text(canonicalPrayerButtonTitle)
+                                            .font(.system(size: 11, weight: .semibold))
+                                    }
+                                    .foregroundColor(Color(hex: "FDE68A"))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color(hex: "F59E0B").opacity(0.15))
+                                    .cornerRadius(8)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                                
+                                if !customPrayer.isEmpty {
+                                    Button {
+                                        triggerHaptic(.light)
+                                        customPrayer = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.white.opacity(0.4))
+                                    }
+                                }
+                            }
                             
-                            Text(customPrayer.isEmpty ? selectedIntention.defaultPrayer(for: language) : customPrayer)
-                                .font(.system(size: 14, weight: .medium, design: .serif))
-                                .foregroundColor(.white.opacity(0.9))
-                                .lineSpacing(5)
-                                .padding(14)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.white.opacity(0.03))
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                                )
+                            // Многострочный редактор молитвы с поддержкой ручного ввода
+                            ZStack(alignment: .topLeading) {
+                                if customPrayer.isEmpty {
+                                    Text(prayerPlaceholderText)
+                                        .font(.system(size: 14, design: .serif))
+                                        .foregroundColor(.white.opacity(0.35))
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 14)
+                                        .allowsHitTesting(false)
+                                }
+                                
+                                TextEditor(text: $customPrayer)
+                                    .font(.system(size: 14, weight: .medium, design: .serif))
+                                    .foregroundColor(.white.opacity(0.95))
+                                    .lineSpacing(4)
+                                    .scrollContentBackground(.hidden)
+                                    .background(Color.clear)
+                                    .frame(minHeight: 100, maxHeight: 150)
+                                    .padding(8)
+                            }
+                            .background(Color.white.opacity(0.04))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                            )
+                            
+                            HStack {
+                                Text(prayerHintText)
+                                    .font(.system(size: 10.5))
+                                    .foregroundColor(.secondary)
+                                
+                                Spacer()
+                                
+                                Text("\(customPrayer.count)/500")
+                                    .font(.system(size: 10, weight: .monospaced))
+                                    .foregroundColor(customPrayer.count > 500 ? .red : .secondary.opacity(0.6))
+                            }
                         }
                         .padding(.horizontal, 20)
                         
@@ -561,12 +622,16 @@ struct LightCandleFormSheetView: View {
                 }
             }
             .onAppear {
-                if !candleManager.hasUsedDailyFreeCandle {
+                if let initialTier {
+                    selectedTier = initialTier
+                } else if !candleManager.hasUsedDailyFreeCandle {
                     selectedTier = .freeDaily
                 } else {
                     selectedTier = .rewarded
                 }
-                customPrayer = selectedIntention.defaultPrayer(for: language)
+                if customPrayer.isEmpty {
+                    customPrayer = selectedIntention.defaultPrayer(for: language)
+                }
             }
         }
     }
@@ -745,6 +810,29 @@ struct LightCandleFormSheetView: View {
         case .armenian: return "Ձեր աղոթքը բարձրացավ Աստծուն: Թող Տերը լսի և օրհնի ձեզ:"
         case .russian: return "Ваша молитва вознесена к Богу. Да благословит Господь вас и ваших близких!"
         case .english: return "Your prayer is lifted to God. May the Lord bless and protect you and your loved ones!"
+        }
+    }
+    private var canonicalPrayerButtonTitle: String {
+        switch language {
+        case .armenian: return "Կանոնական"
+        case .russian: return "Каноническая"
+        case .english: return "Canonical"
+        }
+    }
+    
+    private var prayerPlaceholderText: String {
+        switch language {
+        case .armenian: return "Գրեք Ձեր սրտի աղոթքը, խնդրանքը կամ շնորհակալությունը..."
+        case .russian: return "Напишите здесь молитву, прошение или благодарность от всего сердца..."
+        case .english: return "Write your personal prayer, petition, or gratitude from the heart..."
+        }
+    }
+    
+    private var prayerHintText: String {
+        switch language {
+        case .armenian: return "Կարող եք ազատ խմբագրել կամ գրել սեփական աղոթքը"
+        case .russian: return "Вы можете написать свою молитву или отредактировать текст"
+        case .english: return "You can freely write or edit your own prayer"
         }
     }
     

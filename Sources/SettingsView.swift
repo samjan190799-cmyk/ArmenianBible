@@ -11,6 +11,7 @@ struct SettingsView: View {
     
     @State var isShowingPaywall = false
     @State var isShowingSanctuarySheet = false
+    @State var selectedCandleTierForDirectLight: CandleTier? = nil
     @State var selectedProvider: AIProvider = .gemini
     @State var selectedLanguage: AppLanguage = .armenian
     @State var geminiKeyInput = ""
@@ -245,6 +246,9 @@ struct SettingsView: View {
             .sheet(isPresented: $isShowingSanctuarySheet) {
                 PrayerSanctuaryView()
             }
+            .sheet(item: $selectedCandleTierForDirectLight) { tier in
+                LightCandleFormSheetView(language: selectedLanguage, initialTier: tier)
+            }
             .sheet(isPresented: $isShowingShareSheet) {
                 if let url = backupShareUrl {
                     ActivityView(activityItems: [url])
@@ -431,9 +435,11 @@ struct SettingsView: View {
     }
     
     // MARK: - Секция Храмовых Молитвенных Свечей
+    // MARK: - Секция Храмовых Молитвенных Свечей
     @ViewBuilder
     var sanctuaryCandlesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
+            // Заголовок секции
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
@@ -454,29 +460,101 @@ struct SettingsView: View {
                         Text(selectedLanguage == .armenian ? "Տաճարային Մոմավառություն" : (selectedLanguage == .russian ? "Храмовая молитва и свечи" : "Sanctuary & Prayer Candles"))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(primaryTextColor)
+                        
+                        Spacer()
+                        
+                        if !CandleManager.shared.activeCandles.isEmpty {
+                            Text("🔥 \(CandleManager.shared.activeCandles.count)")
+                                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                                .foregroundColor(Color(hex: "FDE68A"))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(hex: "F59E0B").opacity(0.2))
+                                .clipShape(Capsule())
+                        }
                     }
                     
-                    Text(selectedLanguage == .armenian ? "Վառեք մոմ սրտի լռության մեջ հարազատների համար" : (selectedLanguage == .russian ? "Зажгите свечу в тишине сердца за близких" : "Light a vigil candle in quiet prayer for loved ones"))
+                    Text(selectedLanguage == .armenian ? "Տարբերակներ՝ 1 անվճար և տաճարային լամպադներ" : (selectedLanguage == .russian ? "Варианты: бесплатная ежедневная и храмовые лампады" : "Options: 1 free daily & sacred temple lamps"))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
             }
             
+            // Список вариантов свечей (1 бесплатный + платные)
+            VStack(spacing: 8) {
+                // 1. Бесплатная ежедневная свеча
+                settingsCandleTierCard(
+                    tier: .freeDaily,
+                    title: selectedLanguage == .armenian ? "Օրական Մոմ" : (selectedLanguage == .russian ? "Ежедневная свеча" : "Daily Candle"),
+                    subtitle: selectedLanguage == .armenian ? "12 ժամ • Ամեն օր հասանելի է անվճար" : (selectedLanguage == .russian ? "12 часов • Доступна каждый день бесплатно" : "12 hrs • Available free every day"),
+                    badge: CandleManager.shared.hasUsedDailyFreeCandle
+                        ? (selectedLanguage == .armenian ? "Վառված է" : (selectedLanguage == .russian ? "Уже зажжена" : "Lit Today"))
+                        : (selectedLanguage == .armenian ? "ԱՆՎՃԱՐ" : (selectedLanguage == .russian ? "БЕСПЛАТНО" : "FREE")),
+                    badgeColor: CandleManager.shared.hasUsedDailyFreeCandle ? Color.gray : Color(hex: "10B981"),
+                    icon: "flame"
+                )
+                
+                // 2. Свеча за просмотр видео
+                settingsCandleTierCard(
+                    tier: .rewarded,
+                    title: selectedLanguage == .armenian ? "Աղոթքի Մոմ" : (selectedLanguage == .russian ? "Молитвенная свеча" : "Prayer Candle"),
+                    subtitle: selectedLanguage == .armenian ? "24 ժամ • 1 տեսանյութի դիտմամբ" : (selectedLanguage == .russian ? "24 часа • За 1 видео (без оплаты)" : "24 hrs • Watch 1 video (free)"),
+                    badge: selectedLanguage == .armenian ? "🎬 ՏԵՍԱՆՅՈՒԹ" : (selectedLanguage == .russian ? "🎬 1 ВИДЕО" : "🎬 1 VIDEO"),
+                    badgeColor: Color(hex: "3B82F6"),
+                    icon: "play.circle.fill"
+                )
+                
+                // 3. Малая храмовая свеча (Платная)
+                settingsCandleTierCard(
+                    tier: .small,
+                    title: selectedLanguage == .armenian ? "Փոքրիկ Մոմ" : (selectedLanguage == .russian ? "Малая свеча" : "Small Candle"),
+                    subtitle: selectedLanguage == .armenian ? "24 ժամ • Տաճարի աջակցության համար" : (selectedLanguage == .russian ? "24 часа • В поддержку служения" : "24 hrs • Support sanctuary"),
+                    badge: "$0.99",
+                    badgeColor: Color(hex: "F59E0B"),
+                    icon: "flame.fill"
+                )
+                
+                // 4. Храмовая лампада (Платная)
+                settingsCandleTierCard(
+                    tier: .temple,
+                    title: selectedLanguage == .armenian ? "Տաճարային Կանթեղ" : (selectedLanguage == .russian ? "Храмовая лампада" : "Temple Vigil Lamp"),
+                    subtitle: selectedLanguage == .armenian ? "48 ժամ (2 օր) • Խաղաղության և առողջության" : (selectedLanguage == .russian ? "48 часов (2 дня) • О здравии и защите" : "48 hrs (2 days) • For health & peace"),
+                    badge: "$1.99",
+                    badgeColor: Color(hex: "F59E0B"),
+                    icon: "sparkles"
+                )
+                
+                // 5. Большая свеча святилища (Платная)
+                settingsCandleTierCard(
+                    tier: .generous,
+                    title: selectedLanguage == .armenian ? "Մեծ Տաճարային Մոմ" : (selectedLanguage == .russian ? "Большая свеча святилища" : "Large Temple Candle"),
+                    subtitle: selectedLanguage == .armenian ? "7 օր • Անմար աղոթք ողջ շաբաթվա ընթացքում" : (selectedLanguage == .russian ? "7 дней • Неугасимая молитва на всю седмицу" : "7 days • Continuous prayer for full week"),
+                    badge: "$4.99",
+                    badgeColor: Color(hex: "D97706"),
+                    icon: "cross.fill"
+                )
+            }
+            
+            // Кнопка перехода в общий притвор храма
             Button {
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
                 isShowingSanctuarySheet = true
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
+                HStack(spacing: 8) {
+                    Image(systemName: "building.columns.fill")
                         .font(.system(size: 13, weight: .bold))
-                    Text(selectedLanguage == .armenian ? "Մտնել Տաճար • Վառել Մոմ" : (selectedLanguage == .russian ? "Войти в притвор храма" : "Enter Sanctuary"))
+                    Text(selectedLanguage == .armenian ? "Մտնել Տաճար • Տեսնել բոլոր մոմերը" : (selectedLanguage == .russian ? "Войти в притвор • Все горящие свечи" : "Enter Sanctuary • View All Candles"))
                         .font(.system(size: 13, weight: .bold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .opacity(0.7)
                 }
                 .foregroundColor(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
                 .background(
                     LinearGradient(
                         colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B")],
@@ -484,9 +562,27 @@ struct SettingsView: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .cornerRadius(10)
+                .cornerRadius(12)
             }
             .buttonStyle(ScaleButtonStyle())
+            
+            // Подсказка по виджету и долгому нажатию
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "hand.tap.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "F59E0B"))
+                    .padding(.top, 2)
+                
+                Text(selectedLanguage == .armenian
+                     ? "Հուշում. տեղադրեք մոմի վիջեթը Lock Screen-ում և երկար սեղմեք վրան՝ կոնկրետ մոմ ընտրելու համար:"
+                     : (selectedLanguage == .russian
+                        ? "Подсказка: добавьте виджет свечи на экран блокировки и удерживайте его долгим нажатием для выбора нужной свечи."
+                        : "Tip: Add candle widget to Lock Screen and long-press to select a specific prayer candle."))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .lineSpacing(2)
+            }
+            .padding(.top, 2)
         }
         .padding(16)
         .background(
@@ -509,6 +605,64 @@ struct SettingsView: View {
                     lineWidth: 1
                 )
         )
+    }
+    
+    @ViewBuilder
+    private func settingsCandleTierCard(
+        tier: CandleTier,
+        title: String,
+        subtitle: String,
+        badge: String,
+        badgeColor: Color,
+        icon: String
+    ) -> some View {
+        Button {
+            let g = UIImpactFeedbackGenerator(style: .light)
+            g.impactOccurred()
+            selectedCandleTierForDirectLight = tier
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(badgeColor.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(badgeColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 13.5, weight: .bold))
+                        .foregroundColor(primaryTextColor)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                Text(badge)
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .foregroundColor(badgeColor)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3.5)
+                    .background(badgeColor.opacity(0.12))
+                    .clipShape(Capsule())
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary.opacity(0.6))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color.primary.opacity(0.03))
+            .cornerRadius(12)
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
     
     // MARK: - Подсекции настроек
