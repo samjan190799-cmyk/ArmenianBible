@@ -137,27 +137,38 @@ struct SettingsView: View {
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        premiumMembershipSection
-                        sanctuaryCandlesSection
-                        appLanguageSection
-                        appearanceModeSection
-                        colorThemeSection
-                        appIconSection
-                        spiritualNotificationsSection
-                        widgetsUnifiedSection
-                        updateIntervalSection
-                        verseSourceScopeSection
-                        contentTypeSection
-                        autoWallpaperSection
-                        aiAssistantSection
-                        quizSettingsSection
-                        narekAudioSection
-                        systemAndDataSection
-                        aboutSection
+                        Group {
+                            premiumMembershipSection
+                            sanctuaryCandlesSection
+                            appLanguageSection
+                            appearanceModeSection
+                            colorThemeSection
+                        }
                         
-                        // MARK: - Баннерная Реклама в Настройках
-                        LuysHybridBannerView(placement: .settings)
-                            .padding(.top, 4)
+                        Group {
+                            appIconSection
+                            spiritualNotificationsSection
+                            widgetsUnifiedSection
+                            updateIntervalSection
+                            verseSourceScopeSection
+                        }
+                        
+                        Group {
+                            contentTypeSection
+                            autoWallpaperSection
+                            aiAssistantSection
+                            quizSettingsSection
+                            narekAudioSection
+                        }
+                        
+                        Group {
+                            systemAndDataSection
+                            aboutSection
+                            
+                            // MARK: - Баннерная Реклама в Настройках
+                            LuysHybridBannerView(placement: .settings)
+                                .padding(.top, 4)
+                        }
                     }
                     .padding(20)
                     .frame(maxWidth: 680)

@@ -250,309 +250,333 @@ extension SettingsView {
         .padding(.horizontal, 4)
     }
     
+    // MARK: - Локализованные строки для секции "О приложении"
+    private var idfaRowTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "IDFA (Գովազդային ID)"
+        case .russian:  return "IDFA (Рекламный ID)"
+        case .english:  return "IDFA (Advertising ID)"
+        }
+    }
+    
+    private var idfaRowSubtitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Meta-ում թեստային սարք ավելացնելու համար"
+        case .russian:  return "Для добавления тестового устройства в Meta"
+        case .english:  return "For adding test device in Meta"
+        }
+    }
+    
+    private var copyActionTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Պատճենել"
+        case .russian:  return "Скопировать"
+        case .english:  return "Copy"
+        }
+    }
+    
+    private var premiumActiveTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Ձեր բաժանորդագրությունն ակտիվ է ✓"
+        case .russian:  return "Ваша подписка активна ✓"
+        case .english:  return "Your subscription is active ✓"
+        }
+    }
+    
+    private var unlockFeaturesButtonTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Բացեք բոլոր հնարավորությունները →"
+        case .russian:  return "Открыть все возможности →"
+        case .english:  return "Unlock all features →"
+        }
+    }
+    
+    private var restorePurchasesButtonTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Վերականգնել գնումները"
+        case .russian:  return "Восстановить покупки"
+        case .english:  return "Restore Purchases"
+        }
+    }
+    
+    private var rateAppButtonTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Գնահատել Luys-ը App Store-ում ⭐⭐⭐⭐⭐"
+        case .russian:  return "Оценить Luys в App Store ⭐⭐⭐⭐⭐"
+        case .english:  return "Rate Luys on App Store ⭐⭐⭐⭐⭐"
+        }
+    }
+    
     @ViewBuilder
     var aboutSection: some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 12) {
-                // 🔐 Секретная зона разработчика: 5 быстрых тапов → диалог PIN-кода
-                HStack(spacing: 6) {
-                    Text("about_app_title".localized(for: selectedLanguage))
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(primaryTextColor)
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    let now = Date()
-                    // Сброс счётчика если пауза между тапами > 2.5 секунд
-                    if now.timeIntervalSince(secretLastTap) > 2.5 {
-                        secretTapCount = 0
-                    }
-                    secretLastTap = now
-                    secretTapCount += 1
-                    
-                    let g = UIImpactFeedbackGenerator(style: secretTapCount >= 5 ? .heavy : .light)
-                    g.prepare()
-                    g.impactOccurred()
-                    
-                    if secretTapCount >= 5 {
-                        secretTapCount = 0
-                        devPasscodeInput = ""
-                        isShowingDevPasscodeAlert = true
-                    }
-                }
-            
-            HStack {
-                Text("about_app_version".localized(for: selectedLanguage))
-                Spacer()
-                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.4")
-                    .foregroundColor(.secondary)
-                
-                Button {
-                    let g = UIImpactFeedbackGenerator(style: .light)
-                    g.prepare(); g.impactOccurred()
-                    AppUpdateManager.shared.checkForUpdates(language: selectedLanguage)
-                } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
-                        .padding(4)
-                }
-                .buttonStyle(ScaleButtonStyle())
+                aboutAppHeaderBlock
+                aboutAppIdfaRow
+                Divider().opacity(0.4)
+                aboutAppSubscriptionAndReviewBlock
             }
-            .font(.system(size: 14))
+            .padding(18)
+            .background(aboutBlockBgColor)
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(aboutBlockBorderColor, lineWidth: 1)
+            )
             
-            HStack {
-                Text("about_app_developer".localized(for: selectedLanguage))
-                Spacer()
-                Text("Samvel")
-                    .foregroundColor(.secondary)
+            if showDevToast {
+                devToastOverlay
             }
-            .font(.system(size: 14))
+        }
+    }
+    
+    @ViewBuilder
+    private var aboutAppHeaderBlock: some View {
+        // 🔐 Секретная зона разработчика: 5 быстрых тапов → диалог PIN-кода
+        HStack(spacing: 6) {
+            Text("about_app_title".localized(for: selectedLanguage))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(primaryTextColor)
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            let now = Date()
+            if now.timeIntervalSince(secretLastTap) > 2.5 {
+                secretTapCount = 0
+            }
+            secretLastTap = now
+            secretTapCount += 1
             
-            // ─── Идентификатор устройства для рекламы (IDFA) ─────────────
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text({
-                        switch selectedLanguage {
-                        case .armenian: return "IDFA (Գովազդային ID)"
-                        case .russian:  return "IDFA (Рекламный ID)"
-                        case .english:  return "IDFA (Advertising ID)"
-                        }
-                    }())
+            let g = UIImpactFeedbackGenerator(style: secretTapCount >= 5 ? .heavy : .light)
+            g.prepare()
+            g.impactOccurred()
+            
+            if secretTapCount >= 5 {
+                secretTapCount = 0
+                devPasscodeInput = ""
+                isShowingDevPasscodeAlert = true
+            }
+        }
+        
+        HStack {
+            Text("about_app_version".localized(for: selectedLanguage))
+            Spacer()
+            Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.4")
+                .foregroundColor(.secondary)
+            
+            Button {
+                let g = UIImpactFeedbackGenerator(style: .light)
+                g.prepare(); g.impactOccurred()
+                AppUpdateManager.shared.checkForUpdates(language: selectedLanguage)
+            } label: {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .padding(4)
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+        .font(.system(size: 14))
+        
+        HStack {
+            Text("about_app_developer".localized(for: selectedLanguage))
+            Spacer()
+            Text("Samvel")
+                .foregroundColor(.secondary)
+        }
+        .font(.system(size: 14))
+    }
+    
+    @ViewBuilder
+    private var aboutAppIdfaRow: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(idfaRowTitle)
                     .font(.system(size: 14))
                     .foregroundColor(primaryTextColor)
-                    
-                    Text({
-                        switch selectedLanguage {
-                        case .armenian: return "Meta-ում թեստային սարք ավելացնելու համար"
-                        case .russian:  return "Для добавления тестового устройства в Meta"
-                        case .english:  return "For adding test device in Meta"
-                        }
-                    }())
+                
+                Text(idfaRowSubtitle)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                Button {
-                    let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
-                    UIPasteboard.general.string = idfa
-                    let g = UINotificationFeedbackGenerator()
-                    g.prepare()
-                    g.notificationOccurred(.success)
-                    
-                    devToastIcon = "doc.on.doc.fill"
-                    if idfa.contains("00000000-0000") {
-                        devToastMessage = "IDFA: 0000-... (включите Отслеживание)"
-                        devToastSubtitle = "Настройки iOS → Конфиденциальность → Отслеживание"
-                        devToastColor = [Color(hex: "F59E0B"), Color(hex: "D97706")]
-                    } else {
-                        devToastMessage = "IDFA скопирован в буфер!"
-                        devToastSubtitle = idfa
-                        devToastColor = [Color(hex: "3B82F6"), Color(hex: "1D4ED8")]
-                    }
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                        showDevToast = true
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
-                        withAnimation { showDevToast = false }
-                    }
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "doc.on.doc")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text({
-                            switch selectedLanguage {
-                            case .armenian: return "Պատճենել"
-                            case .russian:  return "Скопировать"
-                            case .english:  return "Copy"
-                            }
-                        }())
-                        .font(.system(size: 12, weight: .semibold))
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
-                    .cornerRadius(8)
-                }
-                .buttonStyle(ScaleButtonStyle())
             }
             
-            Divider().opacity(0.4)
+            Spacer()
             
-            // ─── Кнопка "Armenian Bible Premium" ────────────────────────
-            if subscriptionManager.isPremium {
-                // Уже Premium — показываем статус
+            Button {
+                let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+                UIPasteboard.general.string = idfa
+                let g = UINotificationFeedbackGenerator()
+                g.prepare()
+                g.notificationOccurred(.success)
+                
+                devToastIcon = "doc.on.doc.fill"
+                if idfa.contains("00000000-0000") {
+                    devToastMessage = "IDFA: 0000-... (включите Отслеживание)"
+                    devToastSubtitle = "Настройки iOS → Конфиденциальность → Отслеживание"
+                    devToastColor = [Color(hex: "F59E0B"), Color(hex: "D97706")]
+                } else {
+                    devToastMessage = "IDFA скопирован в буфер!"
+                    devToastSubtitle = idfa
+                    devToastColor = [Color(hex: "3B82F6"), Color(hex: "1D4ED8")]
+                }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    showDevToast = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                    withAnimation { showDevToast = false }
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(copyActionTitle)
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                .foregroundColor(Color(hex: selectedTheme.colorHex))
+                .cornerRadius(8)
+            }
+            .buttonStyle(ScaleButtonStyle())
+        }
+    }
+    
+    @ViewBuilder
+    private var aboutAppSubscriptionAndReviewBlock: some View {
+        if subscriptionManager.isPremium {
+            HStack(spacing: 10) {
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(Color(hex: "F59E0B"))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ARMENIAN BIBLE PREMIUM")
+                        .font(.system(size: 12, weight: .black))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                    Text(premiumActiveTitle)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundColor(.green)
+            }
+            .padding(12)
+            .background(Color(hex: "F59E0B").opacity(0.08))
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
+        } else {
+            Button {
+                let g = UIImpactFeedbackGenerator(style: .medium)
+                g.prepare(); g.impactOccurred()
+                isShowingPaywall = true
+            } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: "crown.fill")
+                    Image(systemName: "sparkles")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(Color(hex: "F59E0B"))
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ARMENIAN BIBLE PREMIUM")
                             .font(.system(size: 12, weight: .black))
                             .foregroundColor(Color(hex: "F59E0B"))
-                        Text({
-                            switch selectedLanguage {
-                            case .armenian: return "Ձեր բաժանորդագրությունն ակտիվ է ✓"
-                            case .russian:  return "Ваша подписка активна ✓"
-                            case .english:  return "Your subscription is active ✓"
-                            }
-                        }())
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        Text(unlockFeaturesButtonTitle)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
                     }
                     Spacer()
-                    Image(systemName: "checkmark.seal.fill")
-                        .foregroundColor(.green)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(hex: "F59E0B").opacity(0.7))
                 }
                 .padding(12)
                 .background(Color(hex: "F59E0B").opacity(0.08))
                 .cornerRadius(12)
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
-            } else {
-                // Не Premium — кнопка открытия Paywall
-                Button {
-                    let g = UIImpactFeedbackGenerator(style: .medium)
-                    g.prepare(); g.impactOccurred()
-                    isShowingPaywall = true
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(Color(hex: "F59E0B"))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("ARMENIAN BIBLE PREMIUM")
-                                .font(.system(size: 12, weight: .black))
-                                .foregroundColor(Color(hex: "F59E0B"))
-                            Text({
-                                switch selectedLanguage {
-                                case .armenian: return "Բացեք բոլոր հնարավորությունները →"
-                                case .russian:  return "Открыть все возможности →"
-                                case .english:  return "Unlock all features →"
-                                }
-                            }())
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(Color(hex: "F59E0B").opacity(0.7))
-                    }
-                    .padding(12)
-                    .background(Color(hex: "F59E0B").opacity(0.08))
-                    .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
-                }
-                .buttonStyle(ScaleButtonStyle())
-            }
-            
-            // ─── Кнопка "Восстановить покупки" ──────────────────────────
-            Button {
-                let g = UINotificationFeedbackGenerator()
-                g.prepare(); g.notificationOccurred(.success)
-                Task {
-                    let restored = await subscriptionManager.restorePurchases()
-                    if restored {
-                        let s = UINotificationFeedbackGenerator()
-                        s.notificationOccurred(.success)
-                    }
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text({
-                        switch selectedLanguage {
-                        case .armenian: return "Վերականգնել գնումները"
-                        case .russian:  return "Восстановить покупки"
-                        case .english:  return "Restore Purchases"
-                        }
-                    }())
-                    .font(.system(size: 13, weight: .medium))
-                }
-                .foregroundColor(Color(hex: selectedTheme.colorHex))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color(hex: selectedTheme.colorHex).opacity(0.07))
-                .cornerRadius(10)
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: selectedTheme.colorHex).opacity(0.2), lineWidth: 1))
             }
             .buttonStyle(ScaleButtonStyle())
-            .disabled(subscriptionManager.isPurchasing)
-            
-            // ─── Кнопка "Оценить Luys в App Store" ───────────────────────
-            Button {
-                let g = UINotificationFeedbackGenerator()
-                g.prepare(); g.notificationOccurred(.success)
-                ReviewManager.shared.openAppStoreReviewDirectly()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
-                    Text({
-                        switch selectedLanguage {
-                        case .armenian: return "Գնահատել Luys-ը App Store-ում ⭐⭐⭐⭐⭐"
-                        case .russian:  return "Оценить Luys в App Store ⭐⭐⭐⭐⭐"
-                        case .english:  return "Rate Luys on App Store ⭐⭐⭐⭐⭐"
-                        }
-                    }())
+        }
+        
+        Button {
+            let g = UINotificationFeedbackGenerator()
+            g.prepare(); g.notificationOccurred(.success)
+            Task {
+                let restored = await subscriptionManager.restorePurchases()
+                if restored {
+                    let s = UINotificationFeedbackGenerator()
+                    s.notificationOccurred(.success)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .semibold))
+                Text(restorePurchasesButtonTitle)
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .foregroundColor(Color(hex: selectedTheme.colorHex))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color(hex: selectedTheme.colorHex).opacity(0.07))
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: selectedTheme.colorHex).opacity(0.2), lineWidth: 1))
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .disabled(subscriptionManager.isPurchasing)
+        
+        Button {
+            let g = UINotificationFeedbackGenerator()
+            g.prepare(); g.notificationOccurred(.success)
+            ReviewManager.shared.openAppStoreReviewDirectly()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "star.fill")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(Color(hex: "F59E0B"))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .background(Color(hex: "F59E0B").opacity(0.12))
-                .cornerRadius(10)
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: "F59E0B").opacity(0.35), lineWidth: 1))
+                Text(rateAppButtonTitle)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Color(hex: "F59E0B"))
             }
-            .buttonStyle(ScaleButtonStyle())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(Color(hex: "F59E0B").opacity(0.12))
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: "F59E0B").opacity(0.35), lineWidth: 1))
         }
-        .padding(18)
-        .background(aboutBlockBgColor)
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(aboutBlockBorderColor, lineWidth: 1)
-        )
-        
-        // ─── Всплывающее уведомление режима разработчика ────────────────────
-        if showDevToast {
-            HStack(spacing: 12) {
-                Image(systemName: devToastIcon)
-                    .font(.system(size: 20, weight: .bold))
+        .buttonStyle(ScaleButtonStyle())
+    }
+    
+    @ViewBuilder
+    private var devToastOverlay: some View {
+        HStack(spacing: 12) {
+            Image(systemName: devToastIcon)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(devToastMessage)
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(devToastMessage)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                    Text(devToastSubtitle)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.85))
-                }
-                Spacer()
+                Text(devToastSubtitle)
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.85))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(
-                        LinearGradient(
-                            colors: devToastColor,
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .shadow(color: (devToastColor.first ?? .clear).opacity(0.45), radius: 12, x: 0, y: 4)
-            )
-            .padding(.top, 10)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            Spacer()
         }
-        } // конец ZStack
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(
+                    LinearGradient(
+                        colors: devToastColor,
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .shadow(color: (devToastColor.first ?? .clear).opacity(0.45), radius: 12, x: 0, y: 4)
+        )
+        .padding(.top, 10)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
     
     // MARK: - Обработка переключения режима разработчика
