@@ -78,9 +78,10 @@ enum CandleIntention: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
-// MARK: - Типы и размеры свечей (In-App Purchases)
+// MARK: - Типы и размеры свечей (In-App Purchases & Rewarded Video)
 enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
     case freeDaily = "free_daily"
+    case rewarded = "rewarded_candle"
     case small = "com.samvel.armenianbible.candle.small"
     case temple = "com.samvel.armenianbible.candle.temple"
     case generous = "com.samvel.armenianbible.candle.generous"
@@ -91,9 +92,14 @@ enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
         self == .freeDaily
     }
     
+    var isRewarded: Bool {
+        self == .rewarded
+    }
+    
     var burnHours: Int {
         switch self {
         case .freeDaily: return 12
+        case .rewarded: return 24
         case .small: return 24
         case .temple: return 48
         case .generous: return 168 // 7 дней
@@ -107,6 +113,12 @@ enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
             case .armenian: return "Օրական մոմ (Անվճար)"
             case .russian: return "Ежедневная свеча (Бесплатно)"
             case .english: return "Daily Candle (Free)"
+            }
+        case .rewarded:
+            switch language {
+            case .armenian: return "Աղոթքի մոմ (Գովազդով)"
+            case .russian: return "Молитвенная свеча (За видео)"
+            case .english: return "Prayer Candle (Watch Video)"
             }
         case .small:
             switch language {
@@ -133,6 +145,8 @@ enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
         switch self {
         case .freeDaily:
             return language == .armenian ? "Անվճար" : (language == .russian ? "Бесплатно" : "Free")
+        case .rewarded:
+            return language == .armenian ? "🎬 Տեսանյութ" : (language == .russian ? "🎬 1 Видео" : "🎬 1 Video")
         case .small:
             return "$0.99"
         case .temple:

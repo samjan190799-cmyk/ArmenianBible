@@ -251,61 +251,68 @@ struct CandleStandCellView: View {
         Button {
             onTap()
         } label: {
-            VStack(spacing: 8) {
-                // Живое пламя
-                FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 24)
-                    .padding(.top, 4)
+            ZStack(alignment: .top) {
+                // Мягкое свечение пламени на верхнюю часть карточки подсвечника
+                RadialGradient(
+                    colors: [Color(hex: "F59E0B").opacity(0.18), Color.clear],
+                    center: .top,
+                    startRadius: 10,
+                    endRadius: 85
+                )
                 
-                // Восковой столбик свечи
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "FEF3C7"), Color(hex: "FDE68A"), Color(hex: "D97706")],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                VStack(spacing: 8) {
+                    // Реалистичная армянская восковая свеча с живым пламенем
+                    RealisticArmenianCandleView(
+                        tier: candle.tier,
+                        randomSeed: Double(abs(candle.id.hashValue))
                     )
-                    .frame(width: candle.tier == .generous ? 20 : (candle.tier == .temple ? 16 : 12), height: candle.tier == .generous ? 48 : (candle.tier == .temple ? 40 : 32))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 3)
-                            .stroke(Color.white.opacity(0.3), lineWidth: 0.8)
-                    )
-                
-                // Подставка
-                Capsule()
-                    .fill(Color(hex: "4B5563"))
-                    .frame(width: 44, height: 4)
-                
-                // Имя
-                Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
-                    .font(.system(size: 13, weight: .bold, design: .serif))
-                    .foregroundColor(.white)
+                    .padding(.top, 8)
+                    
+                    // Имя близкого или название намерения
+                    Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
+                        .font(.system(size: 13, weight: .bold, design: .serif))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .padding(.horizontal, 6)
+                    
+                    // Духовное намерение с иконкой
+                    HStack(spacing: 4) {
+                        Image(systemName: candle.intention.icon)
+                            .font(.system(size: 9))
+                        Text(candle.intention.title(for: language))
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundColor(Color(hex: "F59E0B"))
                     .lineLimit(1)
-                    .padding(.horizontal, 4)
-                
-                // Намерение
-                HStack(spacing: 4) {
-                    Image(systemName: candle.intention.icon)
-                        .font(.system(size: 9))
-                    Text(candle.intention.title(for: language))
-                        .font(.system(size: 10, weight: .medium))
+                    
+                    // Оставшееся время горения и бейдж
+                    HStack(spacing: 4) {
+                        if candle.tier == .rewarded {
+                            Text("🎬")
+                                .font(.system(size: 8))
+                        }
+                        Text("\(candle.hoursRemaining) " + (language == .armenian ? "ժ." : (language == .russian ? "ч." : "h.")))
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    }
+                    .foregroundColor(.white.opacity(0.65))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(Capsule())
+                    .padding(.bottom, 8)
                 }
-                .foregroundColor(Color(hex: "F59E0B"))
-                .lineLimit(1)
-                
-                // Таймер горения
-                Text("\(candle.hoursRemaining) " + (language == .armenian ? "ժ." : (language == .russian ? "ч." : "h.")))
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.5))
-                    .padding(.bottom, 6)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
             .background(Color.white.opacity(0.04))
-            .cornerRadius(16)
+            .cornerRadius(18)
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(
+                        candle.tier == .generous
+                            ? Color(hex: "F59E0B").opacity(0.35)
+                            : Color.white.opacity(0.08),
+                        lineWidth: 1
+                    )
             )
         }
         .buttonStyle(ScaleButtonStyle())
@@ -397,11 +404,14 @@ struct LightCandleFormSheetView: View {
                             VStack(spacing: 10) {
                                 // Бесплатная ежедневная свеча
                                 if !candleManager.hasUsedDailyFreeCandle {
-                                    candleTierRow(tier: .freeDaily, badge: "ДАР ДНЯ")
+                                    candleTierRow(tier: .freeDaily, badge: dailyFreeBadgeText)
                                 }
-                                candleTierRow(tier: .small, badge: "24 ЧАСА")
-                                candleTierRow(tier: .temple, badge: "48 ЧАСОВ")
-                                candleTierRow(tier: .generous, badge: "7 ДНЕЙ")
+                                // Свеча за просмотр видео
+                                candleTierRow(tier: .rewarded, badge: rewardedBadgeText)
+                                
+                                candleTierRow(tier: .small, badge: smallBadgeText)
+                                candleTierRow(tier: .temple, badge: templeBadgeText)
+                                candleTierRow(tier: .generous, badge: generousBadgeText)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -428,57 +438,83 @@ struct LightCandleFormSheetView: View {
                         .padding(.horizontal, 20)
                         
                         // 5. Кнопка совершения молитвы и возжжения
-                        Button {
-                            triggerHaptic(.medium)
-                            Task {
-                                let name = personName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                    ? selectedIntention.title(for: language)
-                                    : personName
-                                
-                                let prayer = customPrayer.isEmpty ? selectedIntention.defaultPrayer(for: language) : customPrayer
-                                
-                                let success = await candleManager.purchaseAndLightCandle(
-                                    tier: selectedTier,
-                                    name: name,
-                                    intention: selectedIntention,
-                                    customPrayer: prayer
-                                )
-                                
-                                if success {
-                                    withAnimation(.spring()) {
-                                        isShowingSuccessAnimation = true
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                                        dismiss()
+                        VStack(spacing: 8) {
+                            Button {
+                                triggerHaptic(.medium)
+                                Task {
+                                    let name = personName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                        ? selectedIntention.title(for: language)
+                                        : personName
+                                    
+                                    let prayer = customPrayer.isEmpty ? selectedIntention.defaultPrayer(for: language) : customPrayer
+                                    
+                                    let success = await candleManager.purchaseAndLightCandle(
+                                        tier: selectedTier,
+                                        name: name,
+                                        intention: selectedIntention,
+                                        customPrayer: prayer
+                                    )
+                                    
+                                    if success {
+                                        withAnimation(.spring()) {
+                                            isShowingSuccessAnimation = true
+                                        }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                                            dismiss()
+                                        }
                                     }
                                 }
-                            }
-                        } label: {
-                            HStack(spacing: 10) {
-                                if candleManager.isPurchasing {
-                                    ProgressView()
-                                        .tint(.black)
-                                } else {
-                                    FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 20)
-                                    Text(submitButtonText)
-                                        .font(.system(size: 16, weight: .bold, design: .serif))
-                                        .foregroundColor(.black)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    if candleManager.isPurchasing {
+                                        ProgressView()
+                                            .tint(.black)
+                                        Text(loadingText)
+                                            .font(.system(size: 15, weight: .bold, design: .serif))
+                                            .foregroundColor(.black)
+                                    } else {
+                                        if selectedTier == .rewarded && !SubscriptionManager.shared.isPremium {
+                                            Image(systemName: "play.rectangle.fill")
+                                                .font(.system(size: 18, weight: .bold))
+                                                .foregroundColor(.black)
+                                        } else {
+                                            FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 20)
+                                        }
+                                        Text(submitButtonText)
+                                            .font(.system(size: 16, weight: .bold, design: .serif))
+                                            .foregroundColor(.black)
+                                    }
                                 }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B"), Color(hex: "D97706")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
                                 )
-                            )
-                            .cornerRadius(16)
-                            .shadow(color: Color(hex: "F59E0B").opacity(0.35), radius: 10, y: 4)
+                                .cornerRadius(16)
+                                .shadow(color: Color(hex: "F59E0B").opacity(0.35), radius: 10, y: 4)
+                            }
+                            .disabled(candleManager.isPurchasing)
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // Сообщение об ошибке или подготовке рекламы
+                            if let error = candleManager.errorMessage {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(Color(hex: "F59E0B"))
+                                    Text(error)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(Color(hex: "FDE68A"))
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.top, 4)
+                                .transition(.opacity)
+                            }
                         }
-                        .disabled(candleManager.isPurchasing)
-                        .buttonStyle(ScaleButtonStyle())
                         .padding(.horizontal, 20)
                         .padding(.bottom, 24)
                     }
@@ -522,7 +558,7 @@ struct LightCandleFormSheetView: View {
                 if !candleManager.hasUsedDailyFreeCandle {
                     selectedTier = .freeDaily
                 } else {
-                    selectedTier = .small
+                    selectedTier = .rewarded
                 }
                 customPrayer = selectedIntention.defaultPrayer(for: language)
             }
@@ -544,9 +580,16 @@ struct LightCandleFormSheetView: View {
                     Text(tier.title(for: language))
                         .font(.system(size: 14, weight: .bold, design: .serif))
                         .foregroundColor(.white)
-                    Text(badge)
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                    
+                    if tier == .rewarded && SubscriptionManager.shared.isPremium {
+                        Text(language == .armenian ? "PRO • ԱՌԱՆՑ ԳՈՎԱԶԴԻ" : (language == .russian ? "PRO • БЕЗ РЕКЛАМЫ" : "PRO • NO ADS"))
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color(hex: "34D399"))
+                    } else {
+                        Text(badge)
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                    }
                 }
                 
                 Spacer()
@@ -613,11 +656,75 @@ struct LightCandleFormSheetView: View {
         case .english: return "4. PRAYER WORDS"
         }
     }
-    private var submitButtonText: String {
+    private var dailyFreeBadgeText: String {
         switch language {
-        case .armenian: return "Վառել մոմը տաճարում"
-        case .russian: return "Зажечь свечу в притворе"
-        case .english: return "Light Candle in Sanctuary"
+        case .armenian: return "ՕՐՎԱ ՊԱՐԳԵՎ • 12 ԺԱՄ"
+        case .russian: return "ДАР ДНЯ • 12 ЧАСОВ"
+        case .english: return "DAILY GIFT • 12 HOURS"
+        }
+    }
+    private var rewardedBadgeText: String {
+        switch language {
+        case .armenian: return "🎬 1 ՏԵՍԱՆՅՈՒԹ • 24 ԺԱՄ"
+        case .russian: return "🎬 1 ВИДЕО • 24 ЧАСА"
+        case .english: return "🎬 1 VIDEO • 24 HOURS"
+        }
+    }
+    private var smallBadgeText: String {
+        switch language {
+        case .armenian: return "24 ԺԱՄ"
+        case .russian: return "24 ЧАСА"
+        case .english: return "24 HOURS"
+        }
+    }
+    private var templeBadgeText: String {
+        switch language {
+        case .armenian: return "48 ԺԱՄ • ՏԱՃԱՐԱՅԻՆ"
+        case .russian: return "48 ЧАСОВ • ХРАМОВАЯ"
+        case .english: return "48 HOURS • TEMPLE"
+        }
+    }
+    private var generousBadgeText: String {
+        switch language {
+        case .armenian: return "7 ՕՐ • ՄԵԾԱՀՈԳԻ"
+        case .russian: return "7 ДНЕЙ • БОЛЬШАЯ"
+        case .english: return "7 DAYS • GENEROUS"
+        }
+    }
+    private var loadingText: String {
+        switch language {
+        case .armenian: return "Բեռնում..."
+        case .russian: return "Загрузка..."
+        case .english: return "Loading..."
+        }
+    }
+    private var submitButtonText: String {
+        if selectedTier == .rewarded {
+            if SubscriptionManager.shared.isPremium {
+                switch language {
+                case .armenian: return "Վառել մոմը (PRO • Առանց գովազդի)"
+                case .russian: return "Зажечь свечу (PRO • Без рекламы)"
+                case .english: return "Light Candle (PRO • No Ads)"
+                }
+            } else {
+                switch language {
+                case .armenian: return "🎬 Դիտել գովազդը և վառել մոմը"
+                case .russian: return "🎬 Посмотреть видео и зажечь свечу"
+                case .english: return "🎬 Watch Video & Light Candle"
+                }
+            }
+        } else if selectedTier == .freeDaily {
+            switch language {
+            case .armenian: return "Վառել նվեր մոմը"
+            case .russian: return "Зажечь свечу дара"
+            case .english: return "Light Gift Candle"
+            }
+        } else {
+            switch language {
+            case .armenian: return "Վառել մոմը տաճարում"
+            case .russian: return "Зажечь свечу в притворе"
+            case .english: return "Light Candle in Sanctuary"
+            }
         }
     }
     private var successTitle: String {
@@ -655,8 +762,14 @@ struct CandleDetailPrayerSheetView: View {
                 DivineBreathingGlow(color: Color(hex: "F59E0B")).offset(y: -50)
                 
                 VStack(spacing: 20) {
-                    FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 36)
-                        .padding(.top, 20)
+                    RealisticArmenianCandleView(
+                        tier: candle.tier,
+                        candleHeight: 64,
+                        candleWidth: 22,
+                        flameSize: 32,
+                        randomSeed: Double(abs(candle.id.hashValue))
+                    )
+                    .padding(.top, 24)
                     
                     Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
                         .font(.system(size: 22, weight: .bold, design: .serif))
@@ -681,7 +794,7 @@ struct CandleDetailPrayerSheetView: View {
                             .padding(.horizontal, 24)
                     }
                     
-                    Text("Горит еще \(candle.hoursRemaining) ч.")
+                    Text(burningTimeRemainingText)
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundColor(.white.opacity(0.6))
                     
@@ -720,6 +833,14 @@ struct CandleDetailPrayerSheetView: View {
                     }
                 }
             }
+        }
+    }
+    
+    private var burningTimeRemainingText: String {
+        switch language {
+        case .armenian: return "Կվառվի ևս \(candle.hoursRemaining) ժամ"
+        case .russian: return "Горит еще \(candle.hoursRemaining) ч."
+        case .english: return "Burns for \(candle.hoursRemaining) more hrs"
         }
     }
 }

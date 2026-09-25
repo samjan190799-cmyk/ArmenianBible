@@ -75,51 +75,282 @@ struct GoldenSparkBurstView: View {
 }
 
 // MARK: - 3. Живой огонь лампады (Flickering Candle Flame)
-/// Реалистичное, благоговейное мерцание пламени свечи (микро-покачивание и дыхание света).
+/// Реалистичное, благоговейное многослойное пламя церковной свечи:
+/// хлопковый фитиль, синее основание, яркое белое ядро, золотой лепесток и мягкая аура света.
 struct FlickeringCandleFlame: View {
     let baseColor: Color
     let iconSize: CGFloat
+    let randomDelay: Double
     
-    @State private var flickerScale: CGFloat = 1.0
-    @State private var flickerOffset: CGFloat = 0.0
-    @State private var flickerOpacity: Double = 0.95
+    @State private var breathePhase: CGFloat = 1.0
+    @State private var swayAngle: Double = 0.0
+    @State private var microFlicker: CGFloat = 1.0
     
-    init(baseColor: Color = Color(hex: "F59E0B"), iconSize: CGFloat = 20) {
+    init(baseColor: Color = Color(hex: "F59E0B"), iconSize: CGFloat = 20, randomDelay: Double = 0.0) {
         self.baseColor = baseColor
         self.iconSize = iconSize
+        self.randomDelay = randomDelay
     }
     
     var body: some View {
-        ZStack {
-            // Теплый ореол позади пламени
+        ZStack(alignment: .bottom) {
+            // 1. Мягкая теплая радиальная аура (свет свечи в храме)
             Circle()
-                .fill(baseColor.opacity(0.35))
-                .frame(width: iconSize * 1.8, height: iconSize * 1.8)
-                .scaleEffect(flickerScale * 1.1)
-                .blur(radius: 6)
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            baseColor.opacity(0.48),
+                            Color(hex: "F59E0B").opacity(0.22),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: iconSize * 1.5
+                    )
+                )
+                .frame(width: iconSize * 2.8, height: iconSize * 2.8)
+                .scaleEffect(breathePhase * microFlicker)
+                .blur(radius: iconSize * 0.35)
+                .offset(y: -iconSize * 0.3)
             
-            // Основной язычок пламени
+            // 2. Хлопковый фитилек свечи
+            Capsule()
+                .fill(Color(hex: "1F2937"))
+                .frame(width: max(1.5, iconSize * 0.08), height: iconSize * 0.28)
+                .offset(y: iconSize * 0.1)
+            
+            // 3. Сапфирово-голубая зона основания пламени (горение воска)
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: "60A5FA").opacity(0.85), Color(hex: "3B82F6").opacity(0.15)],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                )
+                .frame(width: iconSize * 0.35, height: iconSize * 0.25)
+                .blur(radius: 0.5)
+                .offset(y: -iconSize * 0.04)
+            
+            // 4. Внешний золотисто-огненный лепесток пламени
             Image(systemName: "flame.fill")
                 .font(.system(size: iconSize, weight: .bold))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [Color(hex: "FDE047"), baseColor, Color(hex: "EA580C")],
+                        colors: [
+                            Color(hex: "FFFBEB"),
+                            Color(hex: "FEF08A"),
+                            baseColor,
+                            Color(hex: "EA580C")
+                        ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
-                .scaleEffect(x: flickerScale, y: 2.0 - flickerScale, anchor: .bottom)
-                .rotationEffect(.degrees(Double(flickerOffset) * 2.5), anchor: .bottom)
-                .opacity(flickerOpacity)
+                .scaleEffect(x: 1.0 / microFlicker, y: breathePhase, anchor: .bottom)
+                .rotationEffect(.degrees(swayAngle), anchor: .bottom)
+                .shadow(color: Color(hex: "F59E0B").opacity(0.6), radius: iconSize * 0.25, y: -2)
+            
+            // 5. Внутреннее белое сияющее ядро (сверхгорячая сердцевина огня)
+            Image(systemName: "flame.fill")
+                .font(.system(size: iconSize * 0.55, weight: .black))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.white, Color(hex: "FEF9C3"), Color(hex: "FDE047").opacity(0.6)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .scaleEffect(x: microFlicker, y: breathePhase * 0.95, anchor: .bottom)
+                .rotationEffect(.degrees(swayAngle * 0.6), anchor: .bottom)
+                .offset(y: -iconSize * 0.05)
+                .blur(radius: 0.6)
         }
+        .frame(width: iconSize * 1.5, height: iconSize * 1.5, alignment: .bottom)
         .onAppear {
+            let offset = randomDelay.truncatingRemainder(dividingBy: 0.4)
+            // Плавное глубокое дыхание огня
             withAnimation(
-                .easeInOut(duration: 0.9)
+                .easeInOut(duration: 1.25 + offset)
                 .repeatForever(autoreverses: true)
+                .delay(randomDelay)
             ) {
-                flickerScale = 1.08
-                flickerOffset = 1.0
-                flickerOpacity = 1.0
+                breathePhase = 1.14
+            }
+            
+            // Живое покачивание пламени на ветру
+            withAnimation(
+                .easeInOut(duration: 1.6 + offset * 1.5)
+                .repeatForever(autoreverses: true)
+                .delay(randomDelay * 0.5)
+            ) {
+                swayAngle = 3.4
+            }
+            
+            // Быстрое мерцание / трепет огня (микро-фликер)
+            withAnimation(
+                .easeInOut(duration: 0.3 + offset * 0.3)
+                .repeatForever(autoreverses: true)
+                .delay(randomDelay * 0.2)
+            ) {
+                microFlicker = 1.06
+            }
+        }
+    }
+}
+
+// MARK: - 3.1. Реалистичная армянская храмовая свеча (Realistic Armenian Candle)
+/// Детализированная модель церковной восковой свечи:
+/// живое пламя с синим основанием, восковой столб с цилиндрическим бликом,
+/// чаша оплавленного воска у фитиля, капли воска и латунный храмовый подсвечник.
+struct RealisticArmenianCandleView: View {
+    let tier: CandleTier
+    let candleHeight: CGFloat?
+    let candleWidth: CGFloat?
+    let flameSize: CGFloat
+    let randomSeed: Double
+    
+    init(
+        tier: CandleTier,
+        candleHeight: CGFloat? = nil,
+        candleWidth: CGFloat? = nil,
+        flameSize: CGFloat? = nil,
+        randomSeed: Double = 0.0
+    ) {
+        self.tier = tier
+        self.candleHeight = candleHeight
+        self.candleWidth = candleWidth
+        self.randomSeed = randomSeed
+        
+        if let flameSize {
+            self.flameSize = flameSize
+        } else {
+            switch tier {
+            case .generous: self.flameSize = 25
+            case .temple: self.flameSize = 23
+            case .rewarded: self.flameSize = 21
+            case .small: self.flameSize = 20
+            case .freeDaily: self.flameSize = 18
+            }
+        }
+    }
+    
+    private var resolvedWidth: CGFloat {
+        if let candleWidth { return candleWidth }
+        switch tier {
+        case .generous: return 20
+        case .temple: return 17
+        case .rewarded: return 15
+        case .small: return 14
+        case .freeDaily: return 12
+        }
+    }
+    
+    private var resolvedHeight: CGFloat {
+        if let candleHeight { return candleHeight }
+        switch tier {
+        case .generous: return 52
+        case .temple: return 44
+        case .rewarded: return 38
+        case .small: return 34
+        case .freeDaily: return 28
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // 1. Живой огонь с естественным разбросом фазы дыхания
+            FlickeringCandleFlame(
+                baseColor: Color(hex: "F59E0B"),
+                iconSize: flameSize,
+                randomDelay: randomSeed.truncatingRemainder(dividingBy: 0.8)
+            )
+            .offset(y: 4)
+            .zIndex(2)
+            
+            // 2. Восковой столбик свечи
+            ZStack(alignment: .top) {
+                // Чаша расплавленного полупрозрачного воска у вершины
+                Capsule()
+                    .fill(Color(hex: "FEF9C3"))
+                    .frame(width: resolvedWidth, height: 3.5)
+                    .zIndex(1)
+                
+                // Основной восковой цилиндр с текстурой медового пчелиного воска
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "FEF08A"),
+                                Color(hex: "FDE047"),
+                                Color(hex: "F59E0B"),
+                                Color(hex: "D97706"),
+                                Color(hex: "92400E")
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: resolvedWidth, height: resolvedHeight)
+                    .overlay(
+                        HStack {
+                            LinearGradient(
+                                colors: [Color.clear, Color.white.opacity(0.35), Color.clear],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: max(2, resolvedWidth * 0.28))
+                            .offset(x: resolvedWidth * 0.15)
+                            Spacer()
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 2.5))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2.5)
+                            .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
+                    )
+                
+                // Восковая капля / потек воска (для больших и наградных свечей)
+                if tier == .generous || tier == .temple || tier == .rewarded {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "FEF3C7"), Color(hex: "FDE68A")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 2.2, height: resolvedHeight * 0.42)
+                        .offset(x: (resolvedWidth / 2) - 1.2, y: 4)
+                        .shadow(color: Color.black.opacity(0.18), radius: 0.8, x: -0.5, y: 0.5)
+                }
+            }
+            .zIndex(1)
+            
+            // 3. Латунный подсвечник
+            VStack(spacing: 0) {
+                // Кольцо-воскоуловитель (латунь)
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "FDE68A"), Color(hex: "D97706"), Color(hex: "78350F")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: resolvedWidth + 8, height: 3)
+                
+                // Нижнее массивное блюдце подсвечника
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "D97706"), Color(hex: "92400E"), Color(hex: "451A03")],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: max(38, resolvedWidth + 18), height: 4)
+                    .shadow(color: Color.black.opacity(0.4), radius: 3, y: 2)
             }
         }
     }

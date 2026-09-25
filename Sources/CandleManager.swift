@@ -76,7 +76,7 @@ final class CandleManager: ObservableObject {
         return true
     }
     
-    // MARK: - Покупка и зажжение свечи (Consumable In-App Purchase)
+    // MARK: - Покупка и зажжение свечи (Consumable In-App Purchase или Rewarded Video)
     func purchaseAndLightCandle(
         tier: CandleTier,
         name: String,
@@ -85,6 +85,10 @@ final class CandleManager: ObservableObject {
     ) async -> Bool {
         if tier.isFree {
             return lightFreeDailyCandle(name: name, intention: intention, customPrayer: customPrayer)
+        }
+        
+        if tier.isRewarded {
+            return await lightRewardedCandle(name: name, intention: intention, customPrayer: customPrayer)
         }
         
         isPurchasing = true
@@ -165,6 +169,76 @@ final class CandleManager: ObservableObject {
             return false
         }
         #endif
+    }
+    
+    // MARK: - Зажжение свечи за просмотр видеорекламы (Meta Rewarded Video)
+    func lightRewardedCandle(
+        name: String,
+        intention: CandleIntention,
+        customPrayer: String?
+    ) async -> Bool {
+        // Если у пользователя активна PRO-подписка, свеча зажигается сразу без рекламы
+        if SubscriptionManager.shared.isPremium {
+            let candle = PrayerCandle(
+                personName: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                intention: intention,
+                customPrayer: customPrayer,
+                tier: .rewarded,
+                litDate: Date()
+            )
+            activeCandles.insert(candle, at: 0)
+            saveCandles()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            return true
+        }
+        
+        isPurchasing = true
+        errorMessage = nil
+        
+        return await withCheckedContinuation { continuation in
+            var hasResumed = false
+            let resumeOnce: (Bool) -> Void = { result in
+                guard !hasResumed else { return }
+                hasResumed = true
+                continuation.resume(returning: result)
+            }
+            
+            let isShown = LuysAdManager.shared.showRewardedAd(
+                onReward: { [weak self] in
+                    guard let self = self else {
+                        resumeOnce(false)
+                        return
+                    }
+                    let candle = PrayerCandle(
+                        personName: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                        intention: intention,
+                        customPrayer: customPrayer,
+                        tier: .rewarded,
+                        litDate: Date()
+                    )
+                    self.activeCandles.insert(candle, at: 0)
+                    self.saveCandles()
+                    self.isPurchasing = false
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    resumeOnce(true)
+                },
+                onDismissWithoutReward: { [weak self] in
+                    guard let self = self else {
+                        resumeOnce(false)
+                        return
+                    }
+                    self.isPurchasing = false
+                    self.errorMessage = "Для зажжения свечи необходимо досмотреть видеоролик до конца."
+                    resumeOnce(false)
+                }
+            )
+            
+            if !isShown {
+                self.isPurchasing = false
+                self.errorMessage = "Реклама подготавливается. Пожалуйста, подождите пару секунд и нажмите снова."
+                resumeOnce(false)
+            }
+        }
     }
     
     // MARK: - Хранилище свечей

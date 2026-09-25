@@ -86,6 +86,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     private var lastInterstitialTime: Date? = nil
     private var actionCounter: Int = 0
     private var onRewardCompletion: (() -> Void)? = nil
+    private var onDismissWithoutReward: (() -> Void)? = nil
     
     #if canImport(MyTargetSDK)
     private var vkRewardedAd: MTRGRewardedAd?
@@ -334,7 +335,11 @@ public final class LuysAdManager: NSObject, ObservableObject {
     
     // MARK: - Реклама с вознаграждением (Rewarded Video)
     @discardableResult
-    public func showRewardedAd(from viewController: UIViewController? = nil, onReward: @escaping () -> Void) -> Bool {
+    public func showRewardedAd(
+        from viewController: UIViewController? = nil,
+        onReward: @escaping () -> Void,
+        onDismissWithoutReward: (() -> Void)? = nil
+    ) -> Bool {
         // Если у пользователя Premium — сразу начисляем бонус без рекламы
         if SubscriptionManager.shared.isPremium || !isAdsEnabled {
             onReward()
@@ -342,6 +347,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         }
         
         let rootVC = viewController ?? getTopViewController()
+        self.onDismissWithoutReward = onDismissWithoutReward
         
         // Гибридный показ с учетом активного провайдера
         if activeProviderType == .meta {
@@ -409,6 +415,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         
         let callback = onRewardCompletion
         onRewardCompletion = nil
+        onDismissWithoutReward = nil
         callback?()
         
         preloadVkRewarded()
@@ -487,6 +494,11 @@ extension LuysAdManager: MTRGRewardedAdDelegate {
     nonisolated public func onClose(with rewardedAd: MTRGRewardedAd) {
         Task { @MainActor in
             LuysAdManager.shared.currentlyShowingRewardedAd = nil
+            if LuysAdManager.shared.onRewardCompletion != nil {
+                LuysAdManager.shared.onDismissWithoutReward?()
+                LuysAdManager.shared.onRewardCompletion = nil
+                LuysAdManager.shared.onDismissWithoutReward = nil
+            }
             LuysAdManager.shared.preloadVkRewarded()
         }
     }
@@ -538,6 +550,11 @@ extension LuysAdManager: FBRewardedVideoAdDelegate {
     nonisolated public func rewardedVideoAdDidClose(_ rewardedVideoAd: FBRewardedVideoAd) {
         Task { @MainActor in
             LuysAdManager.shared.isRewardedReady = false
+            if LuysAdManager.shared.onRewardCompletion != nil {
+                LuysAdManager.shared.onDismissWithoutReward?()
+                LuysAdManager.shared.onRewardCompletion = nil
+                LuysAdManager.shared.onDismissWithoutReward = nil
+            }
             LuysAdManager.shared.preloadMetaRewarded()
         }
     }
