@@ -69,10 +69,8 @@ struct MetaBannerContainerView: UIViewRepresentable {
             NSLayoutConstraint.activate([
                 adView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
                 adView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                adView.topAnchor.constraint(equalTo: container.topAnchor),
-                adView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-                adView.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor),
-                adView.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor)
+                adView.widthAnchor.constraint(equalToConstant: 320),
+                adView.heightAnchor.constraint(equalToConstant: 50)
             ])
             
             self.adView = adView

@@ -388,58 +388,111 @@ extension SettingsView {
         .font(.system(size: 14))
     }
     
+    private var trackingStatusText: String {
+        switch ATTrackingManager.trackingAuthorizationStatus {
+        case .authorized:
+            return "✅ " + (selectedLanguage == .armenian ? "Հետևումը թույլատրված է" : (selectedLanguage == .russian ? "Отслеживание разрешено" : "Tracking Allowed"))
+        case .denied:
+            return "⚠️ " + (selectedLanguage == .armenian ? "Անջատված է iOS կարգավորումներում" : (selectedLanguage == .russian ? "Отключено в Настройках iOS" : "Disabled in iOS Settings"))
+        case .notDetermined:
+            return "⏳ " + (selectedLanguage == .armenian ? "Հարցումը չի ուղարկվել" : (selectedLanguage == .russian ? "Нажмите для запроса" : "Tap to Request"))
+        case .restricted:
+            return "🔒 " + (selectedLanguage == .armenian ? "Սահմանափակված է համակարգով" : (selectedLanguage == .russian ? "Ограничено iOS" : "Restricted by iOS"))
+        @unknown default:
+            return ""
+        }
+    }
+    
     @ViewBuilder
     private var aboutAppIdfaRow: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(idfaRowTitle)
-                    .font(.system(size: 14))
-                    .foregroundColor(primaryTextColor)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(idfaRowTitle)
+                        .font(.system(size: 14))
+                        .foregroundColor(primaryTextColor)
+                    
+                    Text(trackingStatusText)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(ATTrackingManager.trackingAuthorizationStatus == .authorized ? .green : .secondary)
+                }
                 
-                Text(idfaRowSubtitle)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                Spacer()
+                
+                Button {
+                    let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+                    UIPasteboard.general.string = idfa
+                    let g = UINotificationFeedbackGenerator()
+                    g.prepare()
+                    g.notificationOccurred(.success)
+                    
+                    devToastIcon = "doc.on.doc.fill"
+                    if idfa.contains("00000000-0000") {
+                        devToastMessage = "IDFA: 0000-... (включите Отслеживание)"
+                        devToastSubtitle = "Настройки iOS → Конфиденциальность → Отслеживание"
+                        devToastColor = [Color(hex: "F59E0B"), Color(hex: "D97706")]
+                    } else {
+                        devToastMessage = "IDFA скопирован в буфер!"
+                        devToastSubtitle = idfa
+                        devToastColor = [Color(hex: "3B82F6"), Color(hex: "1D4ED8")]
+                    }
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                        showDevToast = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { showDevToast = false }
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(copyActionTitle)
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(ScaleButtonStyle())
             }
             
-            Spacer()
-            
-            Button {
-                let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
-                UIPasteboard.general.string = idfa
-                let g = UINotificationFeedbackGenerator()
-                g.prepare()
-                g.notificationOccurred(.success)
-                
-                devToastIcon = "doc.on.doc.fill"
-                if idfa.contains("00000000-0000") {
-                    devToastMessage = "IDFA: 0000-... (включите Отслеживание)"
-                    devToastSubtitle = "Настройки iOS → Конфиденциальность → Отслеживание"
-                    devToastColor = [Color(hex: "F59E0B"), Color(hex: "D97706")]
-                } else {
-                    devToastMessage = "IDFA скопирован в буфер!"
-                    devToastSubtitle = idfa
-                    devToastColor = [Color(hex: "3B82F6"), Color(hex: "1D4ED8")]
+            if ATTrackingManager.trackingAuthorizationStatus == .notDetermined {
+                Button {
+                    let g = UIImpactFeedbackGenerator(style: .medium)
+                    g.prepare(); g.impactOccurred()
+                    LuysAdManager.shared.requestTrackingPermission()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "hand.raised.fill")
+                            .font(.system(size: 12))
+                        Text(selectedLanguage == .armenian ? "Թույլատրել գովազդային ID (ATT)" : (selectedLanguage == .russian ? "Запросить разрешение на отслеживание" : "Request Ad Tracking (ATT)"))
+                            .font(.system(size: 11.5, weight: .medium))
+                    }
+                    .foregroundColor(.blue)
+                    .padding(.vertical, 2)
                 }
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    showDevToast = true
+                .buttonStyle(ScaleButtonStyle())
+            } else if ATTrackingManager.trackingAuthorizationStatus == .denied {
+                Button {
+                    let g = UIImpactFeedbackGenerator(style: .medium)
+                    g.prepare(); g.impactOccurred()
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 11))
+                        Text(selectedLanguage == .armenian ? "Բացել iOS կարգավորումները" : (selectedLanguage == .russian ? "Открыть Настройки iPhone для включения" : "Open iPhone Settings to Enable"))
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(Color(hex: "F59E0B"))
+                    .padding(.vertical, 2)
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
-                    withAnimation { showDevToast = false }
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "doc.on.doc")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(copyActionTitle)
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
-                .foregroundColor(Color(hex: selectedTheme.colorHex))
-                .cornerRadius(8)
+                .buttonStyle(ScaleButtonStyle())
             }
-            .buttonStyle(ScaleButtonStyle())
         }
     }
     
