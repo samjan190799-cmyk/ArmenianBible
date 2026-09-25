@@ -597,6 +597,7 @@ struct HomeView: View {
                         isShowingWallpaperMaker = true
                     }
                 }
+                UserDefaults.standard.removeObject(forKey: "openTab")
             }
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 animateVerse = true

@@ -129,6 +129,38 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - Элемент секции со стиранием типа (Type Erasure) для защиты от переполнения стека рантайма
+    private struct SettingsSectionItem: Identifiable {
+        let id: String
+        let view: AnyView
+    }
+    
+    private var settingSections: [SettingsSectionItem] {
+        [
+            SettingsSectionItem(id: "premium", view: AnyView(premiumMembershipSection)),
+            SettingsSectionItem(id: "candles", view: AnyView(sanctuaryCandlesSection)),
+            SettingsSectionItem(id: "language", view: AnyView(appLanguageSection)),
+            SettingsSectionItem(id: "appearance", view: AnyView(appearanceModeSection)),
+            SettingsSectionItem(id: "theme", view: AnyView(colorThemeSection)),
+            SettingsSectionItem(id: "icon", view: AnyView(appIconSection)),
+            SettingsSectionItem(id: "notifications", view: AnyView(spiritualNotificationsSection)),
+            SettingsSectionItem(id: "widgets", view: AnyView(widgetsUnifiedSection)),
+            SettingsSectionItem(id: "interval", view: AnyView(updateIntervalSection)),
+            SettingsSectionItem(id: "scope", view: AnyView(verseSourceScopeSection)),
+            SettingsSectionItem(id: "content", view: AnyView(contentTypeSection)),
+            SettingsSectionItem(id: "wallpaper", view: AnyView(autoWallpaperSection)),
+            SettingsSectionItem(id: "ai", view: AnyView(aiAssistantSection)),
+            SettingsSectionItem(id: "quiz", view: AnyView(quizSettingsSection)),
+            SettingsSectionItem(id: "audio", view: AnyView(narekAudioSection)),
+            SettingsSectionItem(id: "system", view: AnyView(systemAndDataSection)),
+            SettingsSectionItem(id: "about", view: AnyView(aboutSection)),
+            SettingsSectionItem(id: "banner", view: AnyView(
+                LuysHybridBannerView(placement: .settings)
+                    .padding(.top, 4)
+            ))
+        ]
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -137,37 +169,8 @@ struct SettingsView: View {
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        Group {
-                            premiumMembershipSection
-                            sanctuaryCandlesSection
-                            appLanguageSection
-                            appearanceModeSection
-                            colorThemeSection
-                        }
-                        
-                        Group {
-                            appIconSection
-                            spiritualNotificationsSection
-                            widgetsUnifiedSection
-                            updateIntervalSection
-                            verseSourceScopeSection
-                        }
-                        
-                        Group {
-                            contentTypeSection
-                            autoWallpaperSection
-                            aiAssistantSection
-                            quizSettingsSection
-                            narekAudioSection
-                        }
-                        
-                        Group {
-                            systemAndDataSection
-                            aboutSection
-                            
-                            // MARK: - Баннерная Реклама в Настройках
-                            LuysHybridBannerView(placement: .settings)
-                                .padding(.top, 4)
+                        ForEach(settingSections) { section in
+                            section.view
                         }
                     }
                     .padding(20)

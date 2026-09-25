@@ -172,6 +172,12 @@ public final class LuysAdManager: NSObject, ObservableObject {
     public func requestTrackingPermission() {
         #if !targetEnvironment(simulator)
         if #available(iOS 14.5, *) {
+            guard UIApplication.shared.applicationState == .active else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                    self?.requestTrackingPermission()
+                }
+                return
+            }
             ATTrackingManager.requestTrackingAuthorization { [weak self] status in
                 Task { @MainActor in
                     let authorized = (status == .authorized)
