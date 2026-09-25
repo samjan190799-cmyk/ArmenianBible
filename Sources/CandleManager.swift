@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import StoreKit
+import WidgetKit
 
 // MARK: - Центральный менеджер виртуальных свечей и пожертвований (CandleManager)
 /// Управляет зажженными свечами, бесплатной ежедневной молитвой и разовыми покупками StoreKit 2.
@@ -14,7 +15,7 @@ final class CandleManager: ObservableObject {
     @Published private(set) var candleProducts: [Product] = []
     @Published var errorMessage: String? = nil
     
-    private let kCandlesStorageKey = "luys_saved_prayer_candles_v1"
+    private let kCandlesStorageKey = CandleConstants.candlesStorageKey
     private let kLastFreeCandleDateKey = "luys_last_free_candle_date"
     
     private init() {
@@ -245,11 +246,17 @@ final class CandleManager: ObservableObject {
     private func saveCandles() {
         if let data = try? JSONEncoder().encode(activeCandles) {
             UserDefaults.standard.set(data, forKey: kCandlesStorageKey)
+            AppGroupConstants.syncToAll { defaults in
+                defaults.set(data, forKey: self.kCandlesStorageKey)
+            }
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
     
     private func loadSavedCandles() {
-        guard let data = UserDefaults.standard.data(forKey: kCandlesStorageKey),
+        let savedData = AppGroupConstants.sharedDefaults.data(forKey: kCandlesStorageKey)
+            ?? UserDefaults.standard.data(forKey: kCandlesStorageKey)
+        guard let data = savedData,
               let list = try? JSONDecoder().decode([PrayerCandle].self, from: data) else {
             // Если сохраненных нет — добавляем 1 благоговейную свечу по умолчанию за мир
             let defaultCandle = PrayerCandle(
@@ -260,6 +267,7 @@ final class CandleManager: ObservableObject {
                 litDate: Date()
             )
             self.activeCandles = [defaultCandle]
+            saveCandles()
             return
         }
         self.activeCandles = list

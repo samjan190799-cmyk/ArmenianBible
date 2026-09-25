@@ -108,6 +108,7 @@ targets:
       - path: Sources/BibleVerseDatabase+Faith.swift
       - path: Sources/BibleVerseDatabase+Faith2.swift
       - path: Sources/BibleVerseDatabase+Filter.swift
+      - path: Sources/PrayerCandleModels.swift
       - path: Sources/en.lproj
       - path: Sources/ru.lproj
       - path: Sources/hy.lproj

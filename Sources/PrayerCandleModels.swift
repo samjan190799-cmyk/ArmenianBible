@@ -182,13 +182,25 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
         self.litDate = litDate
     }
     
+    var duration: TimeInterval {
+        Double(tier.burnHours) * 3600.0
+    }
+    
+    var expirationDate: Date {
+        litDate.addingTimeInterval(duration)
+    }
+    
     var isLit: Bool {
-        let elapsedHours = Date().timeIntervalSince(litDate) / 3600.0
-        return elapsedHours < Double(tier.burnHours)
+        Date() < expirationDate
     }
     
     var hoursRemaining: Int {
-        let elapsedHours = Date().timeIntervalSince(litDate) / 3600.0
-        return max(0, tier.burnHours - Int(elapsedHours))
+        let remaining = expirationDate.timeIntervalSince(Date())
+        return max(0, Int(ceil(remaining / 3600.0)))
     }
+}
+
+// MARK: - Константы хранилища свечей
+enum CandleConstants {
+    public static let candlesStorageKey = "luys_saved_prayer_candles_v1"
 }

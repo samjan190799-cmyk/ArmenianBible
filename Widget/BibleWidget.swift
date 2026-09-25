@@ -1241,9 +1241,8 @@ struct BibleWidgetEntryView: View {
     }
 }
 
-// MARK: - Конфигурация виджета (Widget Settings)
+// MARK: - Конфигурация виджета стихов Библии (BibleWidget)
 @available(iOS 17.0, *)
-@main
 struct BibleWidget: Widget {
     let kind: String = "BibleWidget"
 
@@ -1262,6 +1261,16 @@ struct BibleWidget: Widget {
             .systemLarge
         ])
         .disableContentMarginsIfNeeded()
+    }
+}
+
+// MARK: - Бандл виджетов приложения (WidgetBundle)
+@available(iOS 17.0, *)
+@main
+struct ArmenianBibleWidgetBundle: WidgetBundle {
+    var body: some Widget {
+        BibleWidget()
+        PrayerCandleWidget()
     }
 }
 

@@ -647,7 +647,11 @@ struct HomeView: View {
         }
         .onOpenURL { url in
             if url.scheme == "armenianbible" {
-                if url.host == "next-verse" {
+                if url.host == "sanctuary" || url.host == "candle" {
+                    triggerHaptic(.medium)
+                    manager.activeTabSelection = 0
+                    isShowingSanctuary = true
+                } else if url.host == "next-verse" {
                     triggerHaptic(.medium)
                     manager.activeTabSelection = 0
                     withAnimation(.easeOut(duration: 0.18)) {
