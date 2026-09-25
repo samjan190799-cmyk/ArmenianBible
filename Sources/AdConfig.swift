@@ -5,8 +5,8 @@ import Foundation
 public enum AdConfig {
     
     // MARK: - Идентификатор приложения в Meta (Новый зарубежный аккаунт)
-    /// Новый Facebook App ID будет указан после создания приложения в новом аккаунте Meta Developer
-    public static let facebookAppID: String = ""
+    /// Новый Facebook App ID
+    public static let facebookAppID: String = "965349189941367"
     
     // MARK: - Режим тестирования
     /// Если false — показывается реальная реклама Meta Audience Network.
@@ -16,13 +16,13 @@ public enum AdConfig {
     
     // MARK: - Рабочие Placement ID Meta (Новый зарубежный аккаунт)
     /// Рабочий Placement ID для Баннера (320x50 / адаптивный)
-    public static let productionBannerPlacementID: String = ""
+    public static let productionBannerPlacementID: String = "965349189941367_965349289941357"
     
     /// Рабочий Placement ID для Межстраничной рекламы (Interstitial)
-    public static let productionInterstitialPlacementID: String = ""
+    public static let productionInterstitialPlacementID: String = "965349189941367_965349296608023"
     
     /// Рабочий Placement ID для Рекламы с вознаграждением (Rewarded Video)
-    public static let productionRewardedPlacementID: String = ""
+    public static let productionRewardedPlacementID: String = "965349189941367_965349299941356"
     
     // MARK: - Тестовые Placement ID от Meta (Новый зарубежный аккаунт)
     public static let testBannerPlacementID: String = ""
@@ -50,15 +50,18 @@ public enum AdConfig {
     
     // MARK: - Активные Placement ID Meta
     public static var bannerPlacementID: String {
-        isTestMode ? testBannerPlacementID : productionBannerPlacementID
+        let id = isTestMode ? testBannerPlacementID : productionBannerPlacementID
+        return id.isEmpty ? productionBannerPlacementID : id
     }
     
     public static var interstitialPlacementID: String {
-        isTestMode ? testInterstitialPlacementID : productionInterstitialPlacementID
+        let id = isTestMode ? testInterstitialPlacementID : productionInterstitialPlacementID
+        return id.isEmpty ? productionInterstitialPlacementID : id
     }
     
     public static var rewardedPlacementID: String {
-        isTestMode ? testRewardedPlacementID : productionRewardedPlacementID
+        let id = isTestMode ? testRewardedPlacementID : productionRewardedPlacementID
+        return id.isEmpty ? productionRewardedPlacementID : id
     }
     
     /// Флаг готовности рекламных блоков Meta нового аккаунта

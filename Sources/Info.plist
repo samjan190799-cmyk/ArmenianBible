@@ -68,6 +68,10 @@
     <string>Protect your personal bookmarks, prayer journal, and notes with Face ID.</string>
     <key>NSUserTrackingUsageDescription</key>
     <string>Разрешите отслеживание для персонализации рекомендаций и полезных предложений</string>
+    <key>FacebookAppID</key>
+    <string>965349189941367</string>
+    <key>FacebookDisplayName</key>
+    <string>Armenian Bible</string>
     <key>SKAdNetworkItems</key>
     <array>
         <dict>

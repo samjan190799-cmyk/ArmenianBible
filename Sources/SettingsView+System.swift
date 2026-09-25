@@ -2,6 +2,8 @@ import SwiftUI
 import WidgetKit
 import LocalAuthentication
 import Foundation
+import AdSupport
+import AppTrackingTransparency
 
 extension SettingsView {
     // MARK: - Секция: Система и данные (Haptics, Face ID, Cache, Backup)
@@ -307,6 +309,77 @@ extension SettingsView {
                     .foregroundColor(.secondary)
             }
             .font(.system(size: 14))
+            
+            // ─── Идентификатор устройства для рекламы (IDFA) ─────────────
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text({
+                        switch selectedLanguage {
+                        case .armenian: return "IDFA (Գովազդային ID)"
+                        case .russian:  return "IDFA (Рекламный ID)"
+                        case .english:  return "IDFA (Advertising ID)"
+                        }
+                    }())
+                    .font(.system(size: 14))
+                    .foregroundColor(primaryTextColor)
+                    
+                    Text({
+                        switch selectedLanguage {
+                        case .armenian: return "Meta-ում թեստային սարք ավելացնելու համար"
+                        case .russian:  return "Для добавления тестового устройства в Meta"
+                        case .english:  return "For adding test device in Meta"
+                        }
+                    }())
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Button {
+                    let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+                    UIPasteboard.general.string = idfa
+                    let g = UINotificationFeedbackGenerator()
+                    g.prepare()
+                    g.notificationOccurred(.success)
+                    
+                    devToastIcon = "doc.on.doc.fill"
+                    if idfa.contains("00000000-0000") {
+                        devToastMessage = "IDFA: 0000-... (включите Отслеживание)"
+                        devToastSubtitle = "Настройки iOS → Конфиденциальность → Отслеживание"
+                        devToastColor = [Color(hex: "F59E0B"), Color(hex: "D97706")]
+                    } else {
+                        devToastMessage = "IDFA скопирован в буфер!"
+                        devToastSubtitle = idfa
+                        devToastColor = [Color(hex: "3B82F6"), Color(hex: "1D4ED8")]
+                    }
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                        showDevToast = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { showDevToast = false }
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text({
+                            switch selectedLanguage {
+                            case .armenian: return "Պատճենել"
+                            case .russian:  return "Скопировать"
+                            case .english:  return "Copy"
+                            }
+                        }())
+                        .font(.system(size: 12, weight: .semibold))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
             
             Divider().opacity(0.4)
             

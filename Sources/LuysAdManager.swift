@@ -105,14 +105,15 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
     
     // MARK: - Гео-маршрутизация (Geo-Routing)
-    /// Для стран СНГ (Армения, Россия, Беларусь, Казахстан и др.) приоритетно используется VK Реклама.
+    /// При наличии настроенных плейсментов Meta Audience Network используется как приоритетная сеть
+    /// в Армении и по всему миру (за исключением РФ и Беларуси, где работает VK Реклама).
     public func determineActiveNetworkByGeo() {
         let region = Locale.current.region?.identifier.uppercased() ?? "AM"
         self.detectedRegionCode = region
         
         #if canImport(FBAudienceNetwork)
-        let cisRegions: Set<String> = ["AM", "RU", "BY", "KZ", "UZ", "KG", "TJ", "AZ", "MD", "GE"]
-        if cisRegions.contains(region) || !AdConfig.hasMetaPlacements {
+        let vkOnlyRegions: Set<String> = ["RU", "BY"]
+        if vkOnlyRegions.contains(region) || !AdConfig.hasMetaPlacements {
             self.activeProviderType = .vk
         } else {
             self.activeProviderType = .meta
@@ -153,6 +154,11 @@ public final class LuysAdManager: NSObject, ObservableObject {
         MTRGManager.setDebugMode(isTestMode) // Боевой режим когда isTestMode = false
         preloadVkRewarded()
         startPeriodicAdCheck()
+        #endif
+        
+        #if canImport(FBAudienceNetwork)
+        preloadInterstitial()
+        preloadMetaRewarded()
         #endif
         
         #if !targetEnvironment(simulator)
@@ -331,37 +337,62 @@ public final class LuysAdManager: NSObject, ObservableObject {
         
         let rootVC = viewController ?? getTopViewController()
         
-        // 1. Приоритетный показ VK Рекламы (myTarget)
-        #if canImport(MyTargetSDK)
-        if isRewardedReady, let vkAd = self.vkRewardedAd, let presenter = rootVC {
-            self.onRewardCompletion = onReward
-            // Фиксируем сильную ссылку для защиты от ARC
-            self.currentlyShowingRewardedAd = vkAd
-            self.vkRewardedAd = nil
-            self.isRewardedReady = false
-            #if DEBUG
-            print("🎬 [VK Rewarded] Запуск показа полноэкранного видео...")
+        // Гибридный показ с учетом активного провайдера
+        if activeProviderType == .meta {
+            #if canImport(FBAudienceNetwork)
+            if let metaRewarded = self.currentRewarded, metaRewarded.isAdValid, let presenter = rootVC {
+                self.onRewardCompletion = onReward
+                metaRewarded.show(fromRootViewController: presenter)
+                self.isRewardedReady = false
+                return true
+            }
             #endif
-            vkAd.show(with: presenter)
-            return true
+            
+            #if canImport(MyTargetSDK)
+            if isRewardedReady, let vkAd = self.vkRewardedAd, let presenter = rootVC {
+                self.onRewardCompletion = onReward
+                self.currentlyShowingRewardedAd = vkAd
+                self.vkRewardedAd = nil
+                self.isRewardedReady = false
+                #if DEBUG
+                print("🎬 [VK Rewarded Fallback] Запуск показа VK видео...")
+                #endif
+                vkAd.show(with: presenter)
+                return true
+            }
+            #endif
+        } else {
+            #if canImport(MyTargetSDK)
+            if isRewardedReady, let vkAd = self.vkRewardedAd, let presenter = rootVC {
+                self.onRewardCompletion = onReward
+                self.currentlyShowingRewardedAd = vkAd
+                self.vkRewardedAd = nil
+                self.isRewardedReady = false
+                #if DEBUG
+                print("🎬 [VK Rewarded] Запуск показа полноэкранного видео...")
+                #endif
+                vkAd.show(with: presenter)
+                return true
+            }
+            #endif
+            
+            #if canImport(FBAudienceNetwork)
+            if let metaRewarded = self.currentRewarded, metaRewarded.isAdValid, let presenter = rootVC {
+                self.onRewardCompletion = onReward
+                metaRewarded.show(fromRootViewController: presenter)
+                self.isRewardedReady = false
+                return true
+            }
+            #endif
         }
-        #endif
-        
-        // 2. Резервный показ Meta Audience Network
-        #if canImport(FBAudienceNetwork)
-        if let metaRewarded = self.currentRewarded, metaRewarded.isAdValid, let presenter = rootVC {
-            self.onRewardCompletion = onReward
-            metaRewarded.show(fromRootViewController: presenter)
-            self.isRewardedReady = false
-            return true
-        }
-        #endif
         
         // 3. Если реклама еще не готова — запускаем подгрузку и возвращаем false
-        #if DEBUG
-        print("⏳ [VK Rewarded] Видео еще загружается с серверов VK... Запущена подгрузка.")
+        #if canImport(FBAudienceNetwork)
+        preloadMetaRewarded()
         #endif
+        #if canImport(MyTargetSDK)
         preloadVkRewarded()
+        #endif
         return false
     }
     

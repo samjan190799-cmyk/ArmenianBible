@@ -5,6 +5,9 @@ packages:
   MyTargetSDK:
     url: https://github.com/myTargetSDK/mytarget-ios-spm
     from: 5.46.0
+  FBAudienceNetwork:
+    url: https://github.com/facebook/FBAudienceNetwork
+    from: 6.22.0
 
 
 targets:
@@ -39,6 +42,8 @@ targets:
           - SKAdNetworkIdentifier: tl5878mr92.skadnetwork
           - SKAdNetworkIdentifier: v9wttpbfk9.skadnetwork
           - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
+        FacebookAppID: "965349189941367"
+        FacebookDisplayName: Armenian Bible
         UIBackgroundModes:
           - audio
         UIRequiresFullScreen: false
@@ -78,6 +83,8 @@ targets:
     dependencies:
       - package: MyTargetSDK
         product: MyTargetSDK
+      - package: FBAudienceNetwork
+        product: FBAudienceNetwork
       - sdk: AppTrackingTransparency.framework
       - sdk: AdSupport.framework
       - target: BibleWidget

@@ -159,6 +159,28 @@ public struct LuysHybridBannerView: View {
             let creative = sponsorCreatives[currentCreativeIndex]
             
             VStack(spacing: 6) {
+                // Живой баннер Meta Audience Network
+                if adManager.activeProviderType == .meta && !AdConfig.bannerPlacementID.isEmpty {
+                    MetaBannerContainerView(
+                        placementID: AdConfig.bannerPlacementID,
+                        onAdLoaded: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                liveBannerHeight = 50
+                                isLiveAdLoaded = true
+                            }
+                        },
+                        onAdFailed: { _ in
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                isLiveAdLoaded = false
+                            }
+                        }
+                    )
+                    .frame(height: isLiveAdLoaded ? liveBannerHeight : 0)
+                    .frame(maxWidth: .infinity)
+                    .opacity(isLiveAdLoaded ? 1 : 0)
+                    .clipped()
+                }
+                
                 // Живой адаптивный баннер VK Рекламы (myTarget)
                 #if canImport(MyTargetSDK)
                 if adManager.activeProviderType == .vk && slotId > 0 {
