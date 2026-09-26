@@ -121,7 +121,8 @@ struct PrayerSanctuaryView: View {
                             } else {
                                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 14) {
                                     ForEach(candleManager.activeCandles) { candle in
-                                        CandleStandCellView(candle: candle, language: manager.appLanguage) {
+                                        let isSelected = candleManager.selectedWidgetCandleId == candle.id.uuidString
+                                        CandleStandCellView(candle: candle, language: manager.appLanguage, isSelectedForWidget: isSelected) {
                                             triggerHaptic(.light)
                                             selectedCandleForPrayer = candle
                                         }
@@ -251,6 +252,7 @@ struct PrayerSanctuaryView: View {
 struct CandleStandCellView: View {
     let candle: PrayerCandle
     let language: AppLanguage
+    var isSelectedForWidget: Bool = false
     let onTap: () -> Void
     
     var body: some View {
@@ -260,7 +262,7 @@ struct CandleStandCellView: View {
             ZStack(alignment: .top) {
                 // Мягкое свечение пламени на верхнюю часть карточки подсвечника
                 RadialGradient(
-                    colors: [Color(hex: "F59E0B").opacity(0.18), Color.clear],
+                    colors: [Color(hex: "F59E0B").opacity(isSelectedForWidget ? 0.28 : 0.18), Color.clear],
                     center: .top,
                     startRadius: 10,
                     endRadius: 85
@@ -291,6 +293,21 @@ struct CandleStandCellView: View {
                     .foregroundColor(Color(hex: "F59E0B"))
                     .lineLimit(1)
                     
+                    // Бейдж «На виджете» (если выбрана)
+                    if isSelectedForWidget {
+                        HStack(spacing: 3) {
+                            Image(systemName: "apps.iphone")
+                                .font(.system(size: 8, weight: .bold))
+                            Text(language == .armenian ? "ՎԻՋԵԹՈՒՄ" : (language == .russian ? "НА ВИДЖЕТЕ" : "ON WIDGET"))
+                                .font(.system(size: 8, weight: .heavy, design: .rounded))
+                        }
+                        .foregroundColor(Color(hex: "FDE68A"))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2.5)
+                        .background(Color(hex: "F59E0B").opacity(0.35))
+                        .clipShape(Capsule())
+                    }
+                    
                     // Оставшееся время горения и бейдж
                     HStack(spacing: 4) {
                         if candle.tier == .rewarded {
@@ -309,15 +326,15 @@ struct CandleStandCellView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .background(Color.white.opacity(0.04))
+            .background(Color.white.opacity(isSelectedForWidget ? 0.07 : 0.04))
             .cornerRadius(18)
             .overlay(
                 RoundedRectangle(cornerRadius: 18)
                     .stroke(
-                        candle.tier == .generous
-                            ? Color(hex: "F59E0B").opacity(0.35)
-                            : Color.white.opacity(0.08),
-                        lineWidth: 1
+                        isSelectedForWidget
+                            ? Color(hex: "F59E0B")
+                            : (candle.tier == .generous ? Color(hex: "F59E0B").opacity(0.35) : Color.white.opacity(0.08)),
+                        lineWidth: isSelectedForWidget ? 1.5 : 1
                     )
             )
         }
@@ -823,6 +840,7 @@ struct CandleDetailPrayerSheetView: View {
     let candle: PrayerCandle
     let language: AppLanguage
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var candleManager = CandleManager.shared
     
     var body: some View {
         NavigationStack {
@@ -830,7 +848,7 @@ struct CandleDetailPrayerSheetView: View {
                 Color(hex: "090A0F").ignoresSafeArea()
                 DivineBreathingGlow(color: Color(hex: "F59E0B")).offset(y: -50)
                 
-                VStack(spacing: 20) {
+                VStack(spacing: 18) {
                     RealisticArmenianCandleView(
                         tier: candle.tier,
                         candleHeight: 64,
@@ -838,7 +856,7 @@ struct CandleDetailPrayerSheetView: View {
                         flameSize: 32,
                         randomSeed: Double(abs(candle.id.hashValue))
                     )
-                    .padding(.top, 24)
+                    .padding(.top, 20)
                     
                     Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
                         .font(.system(size: 22, weight: .bold, design: .serif))
@@ -857,7 +875,7 @@ struct CandleDetailPrayerSheetView: View {
                             .foregroundColor(.white.opacity(0.9))
                             .multilineTextAlignment(.center)
                             .lineSpacing(6)
-                            .padding(20)
+                            .padding(18)
                             .background(Color.white.opacity(0.04))
                             .cornerRadius(16)
                             .padding(.horizontal, 24)
@@ -866,6 +884,44 @@ struct CandleDetailPrayerSheetView: View {
                     Text(burningTimeRemainingText)
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundColor(.white.opacity(0.6))
+                    
+                    // Кнопка: установить эту свечу на виджет Lock Screen и Home Screen
+                    let isCurrentWidgetCandle = candleManager.selectedWidgetCandleId == candle.id.uuidString
+                    Button {
+                        if isCurrentWidgetCandle {
+                            candleManager.setSelectedWidgetCandle(id: nil) // Сброс в авторежим (последняя свеча)
+                        } else {
+                            candleManager.setSelectedWidgetCandle(id: candle.id.uuidString)
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: isCurrentWidgetCandle ? "checkmark.circle.fill" : "apps.iphone")
+                                .font(.system(size: 15, weight: .bold))
+                            Text(isCurrentWidgetCandle
+                                 ? (language == .armenian ? "✓ Ցուցադրվում է վիջեթում" : (language == .russian ? "✓ Выбрана для виджета" : "✓ Active on Widget"))
+                                 : (language == .armenian ? "Տեղադրել վիջեթում" : (language == .russian ? "Поставить на виджет" : "Set for Widget")))
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundColor(isCurrentWidgetCandle ? Color(hex: "FDE68A") : .white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(
+                            isCurrentWidgetCandle
+                                ? Color(hex: "F59E0B").opacity(0.25)
+                                : Color.white.opacity(0.08)
+                        )
+                        .cornerRadius(14)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(
+                                    isCurrentWidgetCandle
+                                        ? Color(hex: "F59E0B")
+                                        : Color.white.opacity(0.12),
+                                    lineWidth: 1.2
+                                )
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
                     
                     Spacer()
                     

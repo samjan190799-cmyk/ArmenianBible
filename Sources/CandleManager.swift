@@ -11,12 +11,14 @@ final class CandleManager: ObservableObject {
     @Published private(set) var activeCandles: [PrayerCandle] = []
     @Published private(set) var isPurchasing: Bool = false
     @Published private(set) var hasUsedDailyFreeCandle: Bool = false
+    @Published private(set) var selectedWidgetCandleId: String? = nil
     @Published var errorMessage: String? = nil
     
     private let kCandlesStorageKey = CandleConstants.candlesStorageKey
     private let kLastFreeCandleDateKey = "luys_last_free_candle_date"
     
     private init() {
+        self.selectedWidgetCandleId = AppGroupConstants.sharedString(forKey: CandleConstants.selectedWidgetCandleKey)
         loadSavedCandles()
         checkDailyFreeStatus()
     }
@@ -138,12 +140,39 @@ final class CandleManager: ObservableObject {
         }
     }
     
+    // MARK: - Выбор свечи для отображения в виджете
+    func setSelectedWidgetCandle(id: String?) {
+        let cleanedId = (id == nil || id == "latest" || id?.isEmpty == true) ? nil : id
+        self.selectedWidgetCandleId = cleanedId
+        
+        if let cid = cleanedId {
+            UserDefaults.standard.set(cid, forKey: CandleConstants.selectedWidgetCandleKey)
+            AppGroupConstants.syncToAll { defaults in
+                defaults.set(cid, forKey: CandleConstants.selectedWidgetCandleKey)
+            }
+        } else {
+            UserDefaults.standard.removeObject(forKey: CandleConstants.selectedWidgetCandleKey)
+            AppGroupConstants.syncToAll { defaults in
+                defaults.removeObject(forKey: CandleConstants.selectedWidgetCandleKey)
+            }
+        }
+        
+        WidgetCenter.shared.reloadAllTimelines()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+    
     // MARK: - Автоматическая очистка угасших свечей
     func cleanExpiredCandles() {
         let initialCount = activeCandles.count
         activeCandles.removeAll { !$0.isLit }
         if activeCandles.count != initialCount {
             saveCandles()
+        }
+        
+        // Если выбранная для виджета свеча угасла, сбрасываем на автовыбор
+        if let selectedId = selectedWidgetCandleId,
+           !activeCandles.contains(where: { $0.id.uuidString == selectedId }) {
+            setSelectedWidgetCandle(id: nil)
         }
     }
     

@@ -240,4 +240,5 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
 // MARK: - Константы хранилища свечей
 enum CandleConstants {
     public static let candlesStorageKey = "luys_saved_prayer_candles_v1"
+    public static let selectedWidgetCandleKey = "luys_selected_widget_candle_id_v1"
 }

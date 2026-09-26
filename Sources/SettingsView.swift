@@ -8,6 +8,7 @@ struct SettingsView: View {
     @ObservedObject var manager = BibleManager.shared
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
     @ObservedObject var appIconManager = AppIconManager.shared
+    @ObservedObject var candleManager = CandleManager.shared
     
     @State var isShowingPaywall = false
     @State var isShowingSanctuarySheet = false
@@ -536,7 +537,90 @@ struct SettingsView: View {
             }
             .buttonStyle(ScaleButtonStyle())
             
-            // Подсказка по виджету и долгому нажатию
+            // Выбор свечи для отображения в виджете (Lock Screen и Home Screen)
+            if !candleManager.activeCandles.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "apps.iphone")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                        Text(selectedLanguage == .armenian ? "Վիջեթի մոմը" : (selectedLanguage == .russian ? "Свеча на виджете" : "Candle on Widget"))
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Spacer()
+                        
+                        Text(candleManager.selectedWidgetCandleId == nil ? (selectedLanguage == .armenian ? "Ավտոմատ" : (selectedLanguage == .russian ? "Автовыбор" : "Auto")) : (selectedLanguage == .armenian ? "Ընտրված" : (selectedLanguage == .russian ? "Выбрана" : "Fixed")))
+                            .font(.system(size: 10, weight: .heavy, design: .rounded))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: "F59E0B").opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            // Опция 1: Автоматически (последняя зажженная)
+                            let isAutoSelected = candleManager.selectedWidgetCandleId == nil || candleManager.selectedWidgetCandleId == "latest"
+                            Button {
+                                candleManager.setSelectedWidgetCandle(id: nil)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: isAutoSelected ? "checkmark.circle.fill" : "sparkles")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text(selectedLanguage == .armenian ? "🔥 Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "🔥 Последняя (Авто)" : "🔥 Latest (Auto)"))
+                                        .font(.system(size: 12, weight: isAutoSelected ? .bold : .medium))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(isAutoSelected ? Color(hex: "F59E0B").opacity(0.25) : cardBackgroundColor)
+                                .foregroundColor(isAutoSelected ? Color(hex: "FDE68A") : .secondary)
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(isAutoSelected ? Color(hex: "F59E0B") : cardBorderColor, lineWidth: 1.2)
+                                )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
+                            // Каждая активная зажженная свеча
+                            ForEach(candleManager.activeCandles) { candle in
+                                let isSelected = candleManager.selectedWidgetCandleId == candle.id.uuidString
+                                let name = candle.personName.isEmpty ? candle.intention.title(for: selectedLanguage) : candle.personName
+                                Button {
+                                    candleManager.setSelectedWidgetCandle(id: candle.id.uuidString)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: isSelected ? "checkmark.circle.fill" : candle.intention.icon)
+                                            .font(.system(size: 11, weight: .bold))
+                                        Text(name)
+                                            .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                            .lineLimit(1)
+                                        Text(candle.remainingTimeText(for: selectedLanguage))
+                                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                            .opacity(0.7)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(isSelected ? Color(hex: "F59E0B").opacity(0.25) : cardBackgroundColor)
+                                    .foregroundColor(isSelected ? Color(hex: "FDE68A") : primaryTextColor)
+                                    .cornerRadius(10)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(isSelected ? Color(hex: "F59E0B") : cardBorderColor, lineWidth: 1.2)
+                                    )
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                .padding(.top, 4)
+            }
+            
+            // Подсказка по виджету
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "hand.tap.fill")
                     .font(.system(size: 12))
@@ -544,10 +628,10 @@ struct SettingsView: View {
                     .padding(.top, 2)
                 
                 Text(selectedLanguage == .armenian
-                     ? "Հուշում. տեղադրեք մոմի վիջեթը Lock Screen-ում և երկար սեղմեք վրան՝ կոնկրետ մոմ ընտրելու համար:"
+                     ? "Հուշում. ընտրեք մոմը վերևում կամ երկար սեղմեք հենց վիջեթի վրա Lock Screen-ում՝ ցանկացած մոմ տեղադրելու համար:"
                      : (selectedLanguage == .russian
-                        ? "Подсказка: добавьте виджет свечи на экран блокировки и удерживайте его долгим нажатием для выбора нужной свечи."
-                        : "Tip: Add candle widget to Lock Screen and long-press to select a specific prayer candle."))
+                        ? "Подсказка: выберите свечу прямо в списке выше или нажмите «Поставить на виджет» при просмотре свечи в притворе."
+                        : "Tip: Select a candle above or tap 'Set for Widget' in the sanctuary view to display it on your widget."))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .lineSpacing(2)

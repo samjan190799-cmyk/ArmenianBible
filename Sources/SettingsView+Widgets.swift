@@ -642,6 +642,76 @@ extension SettingsView {
                     }
                 }
                 
+                // Свеча для виджета «Молитвенная свеча» (если есть зажженные свечи)
+                if !candleManager.activeCandles.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(Color(hex: "F59E0B"))
+                            Text(selectedLanguage == .armenian ? "«Աղոթքի մոմ» վիջեթի ընտրություն" : (selectedLanguage == .russian ? "Свеча для виджета «Молитвенная свеча»" : "Candle for 'Prayer Candle' Widget"))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(primaryTextColor)
+                        }
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                let isAutoSelected = candleManager.selectedWidgetCandleId == nil || candleManager.selectedWidgetCandleId == "latest"
+                                Button {
+                                    candleManager.setSelectedWidgetCandle(id: nil)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: isAutoSelected ? "checkmark.circle.fill" : "sparkles")
+                                            .font(.system(size: 11, weight: .bold))
+                                        Text(selectedLanguage == .armenian ? "🔥 Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "🔥 Последняя (Авто)" : "🔥 Latest (Auto)"))
+                                            .font(.system(size: 12, weight: isAutoSelected ? .bold : .medium))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(isAutoSelected ? Color(hex: "F59E0B").opacity(0.25) : inputFieldBgColor)
+                                    .foregroundColor(isAutoSelected ? Color(hex: "FDE68A") : .secondary)
+                                    .cornerRadius(10)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(isAutoSelected ? Color(hex: "F59E0B") : inputFieldBorderColor, lineWidth: 1.2)
+                                    )
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                                
+                                ForEach(candleManager.activeCandles) { candle in
+                                    let isSelected = candleManager.selectedWidgetCandleId == candle.id.uuidString
+                                    let name = candle.personName.isEmpty ? candle.intention.title(for: selectedLanguage) : candle.personName
+                                    Button {
+                                        candleManager.setSelectedWidgetCandle(id: candle.id.uuidString)
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: isSelected ? "checkmark.circle.fill" : candle.intention.icon)
+                                                .font(.system(size: 11, weight: .bold))
+                                            Text(name)
+                                                .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                                .lineLimit(1)
+                                            Text(candle.remainingTimeText(for: selectedLanguage))
+                                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                                .opacity(0.7)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(isSelected ? Color(hex: "F59E0B").opacity(0.25) : inputFieldBgColor)
+                                        .foregroundColor(isSelected ? Color(hex: "FDE68A") : primaryTextColor)
+                                        .cornerRadius(10)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(isSelected ? Color(hex: "F59E0B") : inputFieldBorderColor, lineWidth: 1.2)
+                                        )
+                                    }
+                                    .buttonStyle(ScaleButtonStyle())
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                }
+                
                 // Кнопка «Применить и обновить все виджеты» с обратной связью
                 Button {
                     let generator = UINotificationFeedbackGenerator()

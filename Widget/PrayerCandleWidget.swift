@@ -32,7 +32,12 @@ struct CandleAppEntityQuery: EntityQuery {
     }
     
     func defaultResult() async -> CandleAppEntity? {
-        return loadActiveCandleEntities().first
+        let all = loadActiveCandleEntities()
+        if let savedId = AppGroupConstants.sharedString(forKey: CandleConstants.selectedWidgetCandleKey),
+           let found = all.first(where: { $0.id == savedId }) {
+            return found
+        }
+        return all.first
     }
     
     private func loadActiveCandleEntities() -> [CandleAppEntity] {
@@ -164,15 +169,24 @@ struct PrayerCandleAppIntentProvider: AppIntentTimelineProvider {
         
         let now = Date()
         let litCandles = list.filter { $0.litDate.addingTimeInterval($0.duration) > now }
+        guard !litCandles.isEmpty else { return nil }
         
-        guard let selectedId = configuration.selectedCandle?.id, selectedId != "latest" else {
-            return litCandles.first
+        // 1. Если свеча выбрана в системной конфигурации конкретного виджета (через долгое нажатие)
+        if let intentId = configuration.selectedCandle?.id, intentId != "latest" {
+            if let match = litCandles.first(where: { $0.id.uuidString == intentId }) {
+                return match
+            }
         }
         
-        if let match = litCandles.first(where: { $0.id.uuidString == selectedId }) {
-            return match
+        // 2. Если свеча выбрана пользователем в самом приложении (в Настройках или в Притворе)
+        if let appSelectedId = AppGroupConstants.sharedString(forKey: CandleConstants.selectedWidgetCandleKey),
+           appSelectedId != "latest" {
+            if let match = litCandles.first(where: { $0.id.uuidString == appSelectedId }) {
+                return match
+            }
         }
         
+        // 3. По умолчанию — последняя зажженная активная свеча
         return litCandles.first
     }
     
