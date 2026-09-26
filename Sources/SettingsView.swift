@@ -574,12 +574,12 @@ struct SettingsView: View {
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(isAutoSelected ? Color(hex: "F59E0B").opacity(0.25) : cardBackgroundColor)
+                                .background(isAutoSelected ? Color(hex: "F59E0B").opacity(0.25) : inputFieldBgColor)
                                 .foregroundColor(isAutoSelected ? Color(hex: "FDE68A") : .secondary)
                                 .cornerRadius(10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .stroke(isAutoSelected ? Color(hex: "F59E0B") : cardBorderColor, lineWidth: 1.2)
+                                        .stroke(isAutoSelected ? Color(hex: "F59E0B") : inputFieldBorderColor, lineWidth: 1.2)
                                 )
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -603,12 +603,12 @@ struct SettingsView: View {
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .background(isSelected ? Color(hex: "F59E0B").opacity(0.25) : cardBackgroundColor)
+                                    .background(isSelected ? Color(hex: "F59E0B").opacity(0.25) : inputFieldBgColor)
                                     .foregroundColor(isSelected ? Color(hex: "FDE68A") : primaryTextColor)
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(isSelected ? Color(hex: "F59E0B") : cardBorderColor, lineWidth: 1.2)
+                                            .stroke(isSelected ? Color(hex: "F59E0B") : inputFieldBorderColor, lineWidth: 1.2)
                                     )
                                 }
                                 .buttonStyle(ScaleButtonStyle())
