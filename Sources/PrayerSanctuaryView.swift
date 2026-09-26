@@ -863,11 +863,11 @@ struct CandleDetailPrayerSheetView: View {
                         // Интерактивная свеча с живым пламенем и физическим таянием
                         RealisticArmenianCandleView(
                             tier: candle.tier,
-                            burnProgress: currentBurnProgress,
-                            isLit: currentBurnProgress < 0.99,
                             candleHeight: 68,
                             candleWidth: 22,
                             flameSize: 32,
+                            burnProgress: currentBurnProgress,
+                            isLit: currentBurnProgress < 0.99,
                             randomSeed: Double(abs(candle.id.hashValue))
                         )
                         .padding(.top, 16)
@@ -1092,7 +1092,7 @@ struct CandleDetailPrayerSheetView: View {
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + selectedDuration + 0.15) {
-            triggerHaptic(.success)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             isSimulatingMelting = false
         }
     }
