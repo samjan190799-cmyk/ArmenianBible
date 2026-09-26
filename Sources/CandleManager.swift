@@ -1,10 +1,9 @@
 import Foundation
 import SwiftUI
-import StoreKit
 import WidgetKit
 
-// MARK: - Центральный менеджер виртуальных свечей и пожертвований (CandleManager)
-/// Управляет зажженными свечами, бесплатной ежедневной молитвой и разовыми покупками StoreKit 2.
+// MARK: - Центральный менеджер виртуальных свечей (CandleManager)
+/// Управляет зажженными свечами, бесплатной ежедневной молитвой и свечами за просмотр видеорекламы.
 @MainActor
 final class CandleManager: ObservableObject {
     static let shared = CandleManager()
@@ -12,7 +11,6 @@ final class CandleManager: ObservableObject {
     @Published private(set) var activeCandles: [PrayerCandle] = []
     @Published private(set) var isPurchasing: Bool = false
     @Published private(set) var hasUsedDailyFreeCandle: Bool = false
-    @Published private(set) var candleProducts: [Product] = []
     @Published var errorMessage: String? = nil
     
     private let kCandlesStorageKey = CandleConstants.candlesStorageKey
@@ -21,28 +19,6 @@ final class CandleManager: ObservableObject {
     private init() {
         loadSavedCandles()
         checkDailyFreeStatus()
-        
-        #if !targetEnvironment(simulator)
-        Task {
-            await fetchStoreProducts()
-        }
-        #endif
-    }
-    
-    // MARK: - Загрузка продуктов из App Store (StoreKit 2)
-    func fetchStoreProducts() async {
-        let consumableIds = [
-            CandleTier.small.rawValue,
-            CandleTier.temple.rawValue,
-            CandleTier.generous.rawValue
-        ]
-        
-        do {
-            let products = try await Product.products(for: Set(consumableIds))
-            self.candleProducts = products.sorted { $0.price < $1.price }
-        } catch {
-            print("Failed to fetch candle products: \(error)")
-        }
     }
     
     // MARK: - Проверка доступности бесплатной свечи дня
@@ -77,7 +53,7 @@ final class CandleManager: ObservableObject {
         return true
     }
     
-    // MARK: - Покупка и зажжение свечи (Consumable In-App Purchase или Rewarded Video)
+    // MARK: - Зажжение свечи (Бесплатная ежедневная или Rewarded Video)
     func purchaseAndLightCandle(
         tier: CandleTier,
         name: String,
@@ -88,88 +64,8 @@ final class CandleManager: ObservableObject {
             return lightFreeDailyCandle(name: name, intention: intention, customPrayer: customPrayer)
         }
         
-        if tier.isRewarded {
-            return await lightRewardedCandle(name: name, intention: intention, customPrayer: customPrayer)
-        }
-        
-        isPurchasing = true
-        errorMessage = nil
-        
-        #if targetEnvironment(simulator)
-        // В симуляторе симулируем успешную транзакцию для тестов верстки
-        try? await Task.sleep(nanoseconds: 1_200_000_000)
-        let candle = PrayerCandle(
-            personName: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            intention: intention,
-            customPrayer: customPrayer,
-            tier: tier,
-            litDate: Date()
-        )
-        activeCandles.insert(candle, at: 0)
-        saveCandles()
-        isPurchasing = false
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        return true
-        #else
-        do {
-            var targetProduct = candleProducts.first(where: { $0.id == tier.rawValue })
-            if targetProduct == nil {
-                let fetched = try await Product.products(for: [tier.rawValue])
-                targetProduct = fetched.first
-            }
-            
-            guard let product = targetProduct else {
-                errorMessage = "Продукт временно недоступен в App Store."
-                isPurchasing = false
-                return false
-            }
-            
-            let purchaseResult = try await product.purchase()
-            switch purchaseResult {
-            case .success(let verification):
-                switch verification {
-                case .verified(let transaction):
-                    await transaction.finish()
-                    
-                    let candle = PrayerCandle(
-                        personName: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                        intention: intention,
-                        customPrayer: customPrayer,
-                        tier: tier,
-                        litDate: Date()
-                    )
-                    activeCandles.insert(candle, at: 0)
-                    saveCandles()
-                    
-                    isPurchasing = false
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    return true
-                    
-                case .unverified(_, let error):
-                    errorMessage = "Не удалось подтвердить покупку: \(error.localizedDescription)"
-                    isPurchasing = false
-                    return false
-                }
-                
-            case .userCancelled:
-                isPurchasing = false
-                return false
-                
-            case .pending:
-                errorMessage = "Транзакция ожидает подтверждения родительского контроля."
-                isPurchasing = false
-                return false
-                
-            @unknown default:
-                isPurchasing = false
-                return false
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-            isPurchasing = false
-            return false
-        }
-        #endif
+        // Все остальные свечи зажигаются за видеорекламу (или мгновенно для PRO)
+        return await lightRewardedCandle(name: name, intention: intention, customPrayer: customPrayer)
     }
     
     // MARK: - Зажжение свечи за просмотр видеорекламы (Meta Rewarded Video)

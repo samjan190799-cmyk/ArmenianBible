@@ -334,7 +334,7 @@ struct LightCandleFormSheetView: View {
     
     @State private var personName: String = ""
     @State private var selectedIntention: CandleIntention = .health
-    @State private var selectedTier: CandleTier = .small
+    @State private var selectedTier: CandleTier = .rewarded
     @State private var customPrayer: String = ""
     @State private var isShowingSuccessAnimation: Bool = false
     
@@ -402,7 +402,7 @@ struct LightCandleFormSheetView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        // 3. Выбор свечи / пожертвования
+                        // 3. Выбор свечи
                         VStack(alignment: .leading, spacing: 10) {
                             Text(tierSectionTitle)
                                 .font(.system(size: 13, weight: .bold, design: .serif))
@@ -415,10 +415,6 @@ struct LightCandleFormSheetView: View {
                                 }
                                 // Свеча за просмотр видео
                                 candleTierRow(tier: .rewarded, badge: rewardedBadgeText)
-                                
-                                candleTierRow(tier: .small, badge: smallBadgeText)
-                                candleTierRow(tier: .temple, badge: templeBadgeText)
-                                candleTierRow(tier: .generous, badge: generousBadgeText)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -498,7 +494,7 @@ struct LightCandleFormSheetView: View {
                                 Spacer()
                                 
                                 Text("\(customPrayer.count)/500")
-                                    .font(.system(size: 10, weight: .monospaced))
+                                    .font(.system(size: 10, weight: .medium, design: .monospaced))
                                     .foregroundColor(customPrayer.count > 500 ? .red : .secondary.opacity(0.6))
                             }
                         }
@@ -623,7 +619,13 @@ struct LightCandleFormSheetView: View {
             }
             .onAppear {
                 if let initialTier {
-                    selectedTier = initialTier
+                    if initialTier == .freeDaily && candleManager.hasUsedDailyFreeCandle {
+                        selectedTier = .rewarded
+                    } else if initialTier == .small || initialTier == .temple || initialTier == .generous {
+                        selectedTier = .rewarded
+                    } else {
+                        selectedTier = initialTier
+                    }
                 } else if !candleManager.hasUsedDailyFreeCandle {
                     selectedTier = .freeDaily
                 } else {
@@ -715,9 +717,9 @@ struct LightCandleFormSheetView: View {
     }
     private var tierSectionTitle: String {
         switch language {
-        case .armenian: return "3. ԸՆՏՐԵՔ ՄՈՄԻ ՏԵՍԱԿԸ"
-        case .russian: return "3. ВЫБЕРИТЕ РАЗМЕР СВЕЧИ И ПОДДЕРЖКУ"
-        case .english: return "3. SELECT CANDLE SIZE & SUPPORT"
+        case .armenian: return "3. ԸՆՏՐԵՔ ՄՈՄԸ"
+        case .russian: return "3. ВЫБЕРИТЕ СВЕЧУ"
+        case .english: return "3. SELECT CANDLE"
         }
     }
     private var prayerSectionTitle: String {
@@ -739,27 +741,6 @@ struct LightCandleFormSheetView: View {
         case .armenian: return "🎬 1 ՏԵՍԱՆՅՈՒԹ • 24 ԺԱՄ"
         case .russian: return "🎬 1 ВИДЕО • 24 ЧАСА"
         case .english: return "🎬 1 VIDEO • 24 HOURS"
-        }
-    }
-    private var smallBadgeText: String {
-        switch language {
-        case .armenian: return "24 ԺԱՄ"
-        case .russian: return "24 ЧАСА"
-        case .english: return "24 HOURS"
-        }
-    }
-    private var templeBadgeText: String {
-        switch language {
-        case .armenian: return "48 ԺԱՄ • ՏԱՃԱՐԱՅԻՆ"
-        case .russian: return "48 ЧАСОВ • ХРАМОВАЯ"
-        case .english: return "48 HOURS • TEMPLE"
-        }
-    }
-    private var generousBadgeText: String {
-        switch language {
-        case .armenian: return "7 ՕՐ • ՄԵԾԱՀՈԳԻ"
-        case .russian: return "7 ДНЕЙ • БОЛЬШАЯ"
-        case .english: return "7 DAYS • GENEROUS"
         }
     }
     private var loadingText: String {
@@ -784,17 +765,11 @@ struct LightCandleFormSheetView: View {
                 case .english: return "🎬 Watch Video & Light Candle"
                 }
             }
-        } else if selectedTier == .freeDaily {
-            switch language {
-            case .armenian: return "Վառել նվեր մոմը"
-            case .russian: return "Зажечь свечу дара"
-            case .english: return "Light Gift Candle"
-            }
         } else {
             switch language {
-            case .armenian: return "Վառել մոմը տաճարում"
-            case .russian: return "Зажечь свечу в притворе"
-            case .english: return "Light Candle in Sanctuary"
+            case .armenian: return "Վառել օրվա մոմը"
+            case .russian: return "Зажечь ежедневную свечу"
+            case .english: return "Light Daily Candle"
             }
         }
     }

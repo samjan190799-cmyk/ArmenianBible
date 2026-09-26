@@ -474,14 +474,14 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Text(selectedLanguage == .armenian ? "Տարբերակներ՝ 1 անվճար և տաճարային լամպադներ" : (selectedLanguage == .russian ? "Варианты: бесплатная ежедневная и храмовые лампады" : "Options: 1 free daily & sacred temple lamps"))
+                    Text(selectedLanguage == .armenian ? "Օրական անվճար մոմ և մոմավառություն տեսանյութով" : (selectedLanguage == .russian ? "Бесплатная ежедневная свеча и молитва за просмотр видео" : "Free daily candle & prayer candle with video"))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
             }
             
-            // Список вариантов свечей (1 бесплатный + платные)
+            // Список вариантов свечей (бесплатный + за видео)
             VStack(spacing: 8) {
                 // 1. Бесплатная ежедневная свеча
                 settingsCandleTierCard(
@@ -503,36 +503,6 @@ struct SettingsView: View {
                     badge: selectedLanguage == .armenian ? "🎬 ՏԵՍԱՆՅՈՒԹ" : (selectedLanguage == .russian ? "🎬 1 ВИДЕО" : "🎬 1 VIDEO"),
                     badgeColor: Color(hex: "3B82F6"),
                     icon: "play.circle.fill"
-                )
-                
-                // 3. Малая храмовая свеча (Платная)
-                settingsCandleTierCard(
-                    tier: .small,
-                    title: selectedLanguage == .armenian ? "Փոքրիկ Մոմ" : (selectedLanguage == .russian ? "Малая свеча" : "Small Candle"),
-                    subtitle: selectedLanguage == .armenian ? "24 ժամ • Տաճարի աջակցության համար" : (selectedLanguage == .russian ? "24 часа • В поддержку служения" : "24 hrs • Support sanctuary"),
-                    badge: "$0.99",
-                    badgeColor: Color(hex: "F59E0B"),
-                    icon: "flame.fill"
-                )
-                
-                // 4. Храмовая лампада (Платная)
-                settingsCandleTierCard(
-                    tier: .temple,
-                    title: selectedLanguage == .armenian ? "Տաճարային Կանթեղ" : (selectedLanguage == .russian ? "Храмовая лампада" : "Temple Vigil Lamp"),
-                    subtitle: selectedLanguage == .armenian ? "48 ժամ (2 օր) • Խաղաղության և առողջության" : (selectedLanguage == .russian ? "48 часов (2 дня) • О здравии и защите" : "48 hrs (2 days) • For health & peace"),
-                    badge: "$1.99",
-                    badgeColor: Color(hex: "F59E0B"),
-                    icon: "sparkles"
-                )
-                
-                // 5. Большая свеча святилища (Платная)
-                settingsCandleTierCard(
-                    tier: .generous,
-                    title: selectedLanguage == .armenian ? "Մեծ Տաճարային Մոմ" : (selectedLanguage == .russian ? "Большая свеча святилища" : "Large Temple Candle"),
-                    subtitle: selectedLanguage == .armenian ? "7 օր • Անմար աղոթք ողջ շաբաթվա ընթացքում" : (selectedLanguage == .russian ? "7 дней • Неугасимая молитва на всю седмицу" : "7 days • Continuous prayer for full week"),
-                    badge: "$4.99",
-                    badgeColor: Color(hex: "D97706"),
-                    icon: "cross.fill"
                 )
             }
             

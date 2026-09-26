@@ -78,10 +78,11 @@ enum CandleIntention: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
-// MARK: - Типы и размеры свечей (In-App Purchases & Rewarded Video)
+// MARK: - Типы свечей (Ежедневный дар и просмотр видеорекламы)
 enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
     case freeDaily = "free_daily"
     case rewarded = "rewarded_candle"
+    // Архивные идентификаторы (сохранены для совместимости сохраненных в UserDefaults/AppGroup свечей)
     case small = "com.samvel.armenianbible.candle.small"
     case temple = "com.samvel.armenianbible.candle.temple"
     case generous = "com.samvel.armenianbible.candle.generous"
