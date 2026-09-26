@@ -3,18 +3,23 @@ import SwiftUI
 
 // MARK: - Централизованное управление App Group хранилищем
 enum AppGroupConstants {
-    static let activeSuiteName = "group.com.rileytestut.AltStore.V7J345DY58"
-    static let legacySuiteName = "group.com.samvel.ArmenianBible"
+    // Основная официальная группа Apple Developer Portal (TestFlight / App Store)
+    static let appleAppGroupSuiteName = "group.com.samvel.ArmenianBible"
+    static let altStoreSuiteName = "group.com.rileytestut.AltStore.V7J345DY58"
+    
+    // Для обратной совместимости
+    static var activeSuiteName: String { appleAppGroupSuiteName }
+    static var legacySuiteName: String { altStoreSuiteName }
     
     static var allSuites: [String] {
-        [activeSuiteName, legacySuiteName]
+        [appleAppGroupSuiteName, altStoreSuiteName]
     }
     
     static var sharedDefaults: UserDefaults {
-        if let d = UserDefaults(suiteName: activeSuiteName) {
+        if let d = UserDefaults(suiteName: appleAppGroupSuiteName) {
             return d
         }
-        if let d = UserDefaults(suiteName: legacySuiteName) {
+        if let d = UserDefaults(suiteName: altStoreSuiteName) {
             return d
         }
         return UserDefaults.standard
@@ -41,6 +46,46 @@ enum AppGroupConstants {
             }
         }
         return UserDefaults.standard.bool(forKey: key)
+    }
+    
+    /// Отказоустойчивое чтение двоичных данных (Data) из файлового моста и UserDefaults
+    static func sharedData(forKey key: String) -> Data? {
+        // 1. Проверяем файл в общем контейнере App Group на диске (самый надежный способ синхронизации процесса приложения и виджета)
+        for suite in allSuites {
+            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: suite) {
+                let fileURL = container.appendingPathComponent("\(key).json")
+                if let data = try? Data(contentsOf: fileURL), !data.isEmpty {
+                    return data
+                }
+            }
+        }
+        // 2. Проверяем UserDefaults всех доступных App Group
+        for suite in allSuites {
+            if let d = UserDefaults(suiteName: suite), let data = d.data(forKey: key), !data.isEmpty {
+                return data
+            }
+        }
+        // 3. Локальный UserDefaults
+        if let stdData = UserDefaults.standard.data(forKey: key), !stdData.isEmpty {
+            return stdData
+        }
+        return nil
+    }
+    
+    /// Сохранение двоичных данных (Data) во все доступные хранилища и общий дисковый контейнер
+    static func syncDataToAll(_ data: Data, forKey key: String) {
+        for suite in allSuites {
+            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: suite) {
+                let fileURL = container.appendingPathComponent("\(key).json")
+                try? data.write(to: fileURL, options: .atomic)
+            }
+            if let defs = UserDefaults(suiteName: suite) {
+                defs.set(data, forKey: key)
+                defs.synchronize()
+            }
+        }
+        UserDefaults.standard.set(data, forKey: key)
+        UserDefaults.standard.synchronize()
     }
     
     /// Отказоустойчивое чтение выбранного стиля виджета

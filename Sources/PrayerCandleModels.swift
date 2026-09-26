@@ -200,11 +200,16 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
         return max(0, Int(ceil(remaining / 3600.0)))
     }
     
-    /// Процент сгорания свечи от 0.0 (только зажжена) до 1.0 (полностью сгорела)
-    var burnProgress: Double {
+    /// Процент сгорания свечи на указанную дату (от 0.0 до 1.0)
+    func burnProgress(at date: Date = Date()) -> Double {
         guard duration > 0 else { return 1.0 }
-        let elapsed = Date().timeIntervalSince(litDate)
+        let elapsed = date.timeIntervalSince(litDate)
         return min(1.0, max(0.0, elapsed / duration))
+    }
+    
+    /// Текущий процент сгорания свечи от 0.0 (только зажжена) до 1.0 (полностью сгорела)
+    var burnProgress: Double {
+        burnProgress(at: Date())
     }
     
     /// Человекочитаемое форматирование оставшегося времени (с минутами, если < 1 часа)

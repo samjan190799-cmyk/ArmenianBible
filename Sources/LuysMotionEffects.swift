@@ -209,17 +209,23 @@ struct RealisticArmenianCandleView: View {
     let candleWidth: CGFloat?
     let flameSize: CGFloat
     let randomSeed: Double
+    let burnProgress: Double
+    let isLit: Bool
     
     init(
         tier: CandleTier,
         candleHeight: CGFloat? = nil,
         candleWidth: CGFloat? = nil,
         flameSize: CGFloat? = nil,
+        burnProgress: Double = 0.0,
+        isLit: Bool = true,
         randomSeed: Double = 0.0
     ) {
         self.tier = tier
         self.candleHeight = candleHeight
         self.candleWidth = candleWidth
+        self.burnProgress = max(0.0, min(1.0, burnProgress))
+        self.isLit = isLit
         self.randomSeed = randomSeed
         
         if let flameSize {
@@ -246,7 +252,7 @@ struct RealisticArmenianCandleView: View {
         }
     }
     
-    private var resolvedHeight: CGFloat {
+    private var baseHeight: CGFloat {
         if let candleHeight { return candleHeight }
         switch tier {
         case .generous: return 52
@@ -257,18 +263,34 @@ struct RealisticArmenianCandleView: View {
         }
     }
     
+    /// Реалистичная высота свечи с учетом таяния (от 100% до 22% огарка)
+    private var meltedHeight: CGFloat {
+        let minHeight: CGFloat = max(9.0, baseHeight * 0.22)
+        return max(minHeight, baseHeight - (CGFloat(burnProgress) * (baseHeight - minHeight)))
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
-            // 1. Живой огонь с естественным разбросом фазы дыхания
-            FlickeringCandleFlame(
-                baseColor: Color(hex: "F59E0B"),
-                iconSize: flameSize,
-                randomDelay: randomSeed.truncatingRemainder(dividingBy: 0.8)
-            )
-            .offset(y: 4)
-            .zIndex(2)
+            // 1. Живой огонь с естественным разбросом фазы и уменьшением при догорании
+            if isLit && burnProgress < 1.0 {
+                let flameScale: CGFloat = burnProgress > 0.88 ? max(0.6, 1.0 - (CGFloat(burnProgress - 0.88) * 2.5)) : 1.0
+                FlickeringCandleFlame(
+                    baseColor: Color(hex: "F59E0B"),
+                    iconSize: flameSize * flameScale,
+                    randomDelay: randomSeed.truncatingRemainder(dividingBy: 0.8)
+                )
+                .offset(y: 4)
+                .zIndex(2)
+            } else {
+                // Остывший обугленный фитилек
+                Capsule()
+                    .fill(Color(hex: "4B5563"))
+                    .frame(width: 1.5, height: 5)
+                    .offset(y: 2)
+                    .zIndex(2)
+            }
             
-            // 2. Восковой столбик свечи
+            // 2. Восковой столбик свечи (тает по мере сгорания)
             ZStack(alignment: .top) {
                 // Чаша расплавленного полупрозрачного воска у вершины
                 Capsule()
@@ -291,7 +313,7 @@ struct RealisticArmenianCandleView: View {
                             endPoint: .bottom
                         )
                     )
-                    .frame(width: resolvedWidth, height: resolvedHeight)
+                    .frame(width: resolvedWidth, height: meltedHeight)
                     .overlay(
                         HStack {
                             LinearGradient(
@@ -310,8 +332,20 @@ struct RealisticArmenianCandleView: View {
                             .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
                     )
                 
-                // Восковая капля / потек воска (для больших и наградных свечей)
-                if tier == .generous || tier == .temple || tier == .rewarded {
+                // Восковые потеки (увеличиваются по мере таяния)
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "FEF3C7"), Color(hex: "FDE68A")],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 2.2, height: max(4.0, meltedHeight * (0.35 + CGFloat(burnProgress) * 0.45)))
+                    .offset(x: (resolvedWidth / 2) - 1.2, y: 3)
+                    .shadow(color: Color.black.opacity(0.18), radius: 0.8, x: -0.5, y: 0.5)
+                
+                if burnProgress > 0.15 {
                     Capsule()
                         .fill(
                             LinearGradient(
@@ -320,15 +354,30 @@ struct RealisticArmenianCandleView: View {
                                 endPoint: .bottom
                             )
                         )
-                        .frame(width: 2.2, height: resolvedHeight * 0.42)
-                        .offset(x: (resolvedWidth / 2) - 1.2, y: 4)
-                        .shadow(color: Color.black.opacity(0.18), radius: 0.8, x: -0.5, y: 0.5)
+                        .frame(width: 1.8, height: max(3.0, meltedHeight * (0.2 + CGFloat(burnProgress) * 0.35)))
+                        .offset(x: -(resolvedWidth / 2) + 1.0, y: 4)
+                        .shadow(color: Color.black.opacity(0.15), radius: 0.6, x: 0.5, y: 0.5)
                 }
             }
             .zIndex(1)
             
-            // 3. Латунный подсвечник
+            // 3. Лужица расплавленного воска и латунный подсвечник
             VStack(spacing: 0) {
+                // Растущая лужица оплавленного воска у основания свечи
+                let poolWidth = resolvedWidth + 2 + (CGFloat(burnProgress) * 12)
+                let poolHeight = 2.5 + (CGFloat(burnProgress) * 2.0)
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(hex: "FEF9C3"), Color(hex: "FDE047"), Color(hex: "D97706")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: poolWidth, height: poolHeight)
+                    .shadow(color: Color(hex: "F59E0B").opacity(0.25 * burnProgress), radius: 2)
+                    .zIndex(1)
+                
                 // Кольцо-воскоуловитель (латунь)
                 Capsule()
                     .fill(

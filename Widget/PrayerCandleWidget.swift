@@ -50,7 +50,7 @@ struct CandleAppEntityQuery: EntityQuery {
             )
         ]
         
-        guard let data = AppGroupConstants.sharedDefaults.data(forKey: CandleConstants.candlesStorageKey)
+        guard let data = AppGroupConstants.sharedData(forKey: CandleConstants.candlesStorageKey)
                 ?? UserDefaults.standard.data(forKey: CandleConstants.candlesStorageKey),
               let list = try? JSONDecoder().decode([PrayerCandle].self, from: data) else {
             return result
@@ -100,6 +100,7 @@ struct PrayerCandleEntry: TimelineEntry {
     let date: Date
     let candle: PrayerCandle?
     let language: AppLanguage
+    var burnProgress: Double = 0.0
 }
 
 // MARK: - Провайдер временной шкалы с поддержкой конфигурации (AppIntentTimelineProvider)
@@ -116,12 +117,13 @@ struct PrayerCandleAppIntentProvider: AppIntentTimelineProvider {
             tier: .rewarded,
             litDate: Date()
         )
-        return PrayerCandleEntry(date: Date(), candle: sample, language: getSharedLanguage())
+        return PrayerCandleEntry(date: Date(), candle: sample, language: getSharedLanguage(), burnProgress: 0.15)
     }
     
     func snapshot(for configuration: SelectPrayerCandleIntent, in context: Context) async -> PrayerCandleEntry {
         let candle = resolveCandle(for: configuration) ?? placeholder(in: context).candle
-        return PrayerCandleEntry(date: Date(), candle: candle, language: getSharedLanguage())
+        let progress = candle?.burnProgress(at: Date()) ?? 0.0
+        return PrayerCandleEntry(date: Date(), candle: candle, language: getSharedLanguage(), burnProgress: progress)
     }
     
     func timeline(for configuration: SelectPrayerCandleIntent, in context: Context) async -> Timeline<PrayerCandleEntry> {
@@ -134,34 +136,52 @@ struct PrayerCandleAppIntentProvider: AppIntentTimelineProvider {
         if let candle = currentCandle {
             let expirationDate = candle.litDate.addingTimeInterval(candle.duration)
             if expirationDate > now {
-                // Текущая запись
-                entries.append(PrayerCandleEntry(date: now, candle: candle, language: language))
+                // Текущая запись со свежим расчетом таяния
+                entries.append(PrayerCandleEntry(
+                    date: now,
+                    candle: candle,
+                    language: language,
+                    burnProgress: candle.burnProgress(at: now)
+                ))
                 
-                // Промежуточные записи каждые 30 минут
-                var intermediate = now.addingTimeInterval(1800)
-                while intermediate < expirationDate {
-                    entries.append(PrayerCandleEntry(date: intermediate, candle: candle, language: language))
-                    intermediate = intermediate.addingTimeInterval(1800)
+                // Промежуточные срезы каждые 15 минут для постепенного таяния свечи на экране
+                let stepSeconds: TimeInterval = 900 // 15 минут
+                var intermediate = now.addingTimeInterval(stepSeconds)
+                var count = 0
+                while intermediate < expirationDate && count < 40 {
+                    entries.append(PrayerCandleEntry(
+                        date: intermediate,
+                        candle: candle,
+                        language: language,
+                        burnProgress: candle.burnProgress(at: intermediate)
+                    ))
+                    intermediate = intermediate.addingTimeInterval(stepSeconds)
+                    count += 1
                 }
                 
-                // Запись в момент угасания свечи
-                entries.append(PrayerCandleEntry(date: expirationDate, candle: nil, language: language))
+                // Запись в момент угасания свечи (полностью растаяла)
+                entries.append(PrayerCandleEntry(
+                    date: expirationDate,
+                    candle: nil,
+                    language: language,
+                    burnProgress: 1.0
+                ))
             } else {
-                entries.append(PrayerCandleEntry(date: now, candle: nil, language: language))
+                entries.append(PrayerCandleEntry(date: now, candle: nil, language: language, burnProgress: 1.0))
             }
         } else {
-            entries.append(PrayerCandleEntry(date: now, candle: nil, language: language))
+            entries.append(PrayerCandleEntry(date: now, candle: nil, language: language, burnProgress: 0.0))
         }
         
         let nextUpdate = currentCandle != nil
-            ? min(now.addingTimeInterval(1800), currentCandle!.litDate.addingTimeInterval(currentCandle!.duration))
-            : now.addingTimeInterval(1800)
+            ? min(now.addingTimeInterval(900), currentCandle!.litDate.addingTimeInterval(currentCandle!.duration))
+            : now.addingTimeInterval(900)
         
         return Timeline(entries: entries, policy: .after(nextUpdate))
     }
     
     private func resolveCandle(for configuration: SelectPrayerCandleIntent) -> PrayerCandle? {
-        guard let data = AppGroupConstants.sharedDefaults.data(forKey: CandleConstants.candlesStorageKey)
+        guard let data = AppGroupConstants.sharedData(forKey: CandleConstants.candlesStorageKey)
                 ?? UserDefaults.standard.data(forKey: CandleConstants.candlesStorageKey),
               let list = try? JSONDecoder().decode([PrayerCandle].self, from: data) else {
             return nil
@@ -232,10 +252,7 @@ struct CandleAccessoryCircularView: View {
     
     var body: some View {
         if let candle = entry.candle, candle.isLit {
-            let total = candle.duration
-            let elapsed = Date().timeIntervalSince(candle.litDate)
-            let progress = max(0.0, min(1.0, 1.0 - (elapsed / total)))
-            
+            let progress = max(0.0, min(1.0, 1.0 - entry.burnProgress))
             let remaining = candle.expirationDate.timeIntervalSince(Date())
             Gauge(value: progress, in: 0...1) {
                 Image(systemName: "flame.fill")
@@ -288,6 +305,20 @@ struct CandleAccessoryRectangularView: View {
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                 }
                 .opacity(0.85)
+                
+                // Тонкий индикатор остатка воска свечи
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.18))
+                            .frame(height: 2)
+                        Capsule()
+                            .fill(Color(hex: "F59E0B"))
+                            .frame(width: max(2, geo.size.width * CGFloat(1.0 - entry.burnProgress)), height: 2)
+                    }
+                }
+                .frame(height: 2)
+                .padding(.vertical, 1)
                 
                 Text(prayerSummary(for: candle, language: entry.language))
                     .font(.system(size: 9))
@@ -351,7 +382,7 @@ struct CandleSystemSmallView: View {
             
             if let candle = entry.candle, candle.isLit {
                 VStack(spacing: 5) {
-                    WidgetWaxCandleView(tier: candle.tier, isLit: true)
+                    WidgetWaxCandleView(tier: candle.tier, isLit: true, burnProgress: entry.burnProgress)
                         .padding(.top, 4)
                     
                     Text(candle.personName.isEmpty ? candle.intention.title(for: entry.language) : candle.personName)
@@ -445,7 +476,7 @@ struct CandleSystemMediumView: View {
                     
                     VStack(spacing: 5) {
                         if let candle = entry.candle, candle.isLit {
-                            WidgetWaxCandleView(tier: candle.tier, isLit: true)
+                            WidgetWaxCandleView(tier: candle.tier, isLit: true, burnProgress: entry.burnProgress)
                                 .padding(.top, 2)
                             
                             HStack(spacing: 3) {
@@ -570,21 +601,32 @@ struct CandleSystemMediumView: View {
 struct WidgetWaxCandleView: View {
     let tier: CandleTier
     let isLit: Bool
+    var burnProgress: Double = 0.0
     
     var body: some View {
+        let progress = max(0.0, min(1.0, burnProgress))
+        let baseHeight: CGFloat = 36
+        let minHeight: CGFloat = 10
+        let currentHeight: CGFloat = max(minHeight, baseHeight - (CGFloat(progress) * (baseHeight - minHeight)))
+        let totalContainerHeight: CGFloat = 66
+        
         VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            
+            // Огонь и фитиль (опускаются по мере таяния воска)
             if isLit {
+                let flameScale = progress > 0.95 ? max(0.4, (1.0 - progress) / 0.05) : 1.0
                 ZStack(alignment: .bottom) {
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color(hex: "F59E0B").opacity(0.6), Color.clear],
+                                colors: [Color(hex: "F59E0B").opacity(0.6 * flameScale), Color.clear],
                                 center: .center,
                                 startRadius: 1,
-                                endRadius: 14
+                                endRadius: 14 * flameScale
                             )
                         )
-                        .frame(width: 26, height: 26)
+                        .frame(width: 26 * flameScale, height: 26 * flameScale)
                         .offset(y: -4)
                     
                     Capsule()
@@ -594,11 +636,11 @@ struct WidgetWaxCandleView: View {
                     
                     Capsule()
                         .fill(Color(hex: "60A5FA").opacity(0.85))
-                        .frame(width: 4, height: 4)
+                        .frame(width: 4 * flameScale, height: 4 * flameScale)
                         .offset(y: -1)
                     
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 18 * flameScale, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [Color(hex: "FFFBEB"), Color(hex: "FEF08A"), Color(hex: "F59E0B"), Color(hex: "EA580C")],
@@ -606,10 +648,10 @@ struct WidgetWaxCandleView: View {
                                 endPoint: .bottom
                             )
                         )
-                        .shadow(color: Color(hex: "F59E0B").opacity(0.6), radius: 4)
+                        .shadow(color: Color(hex: "F59E0B").opacity(0.6 * flameScale), radius: 4)
                     
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 9, weight: .black))
+                        .font(.system(size: 9 * flameScale, weight: .black))
                         .foregroundStyle(Color.white)
                         .offset(y: -1)
                 }
@@ -623,12 +665,15 @@ struct WidgetWaxCandleView: View {
                     .offset(y: 3)
             }
             
+            // Восковой столбик свечи с наплывами
             ZStack(alignment: .top) {
+                // Восковой мениск
                 Capsule()
                     .fill(Color(hex: "FEF9C3"))
                     .frame(width: 14, height: 3)
-                    .zIndex(1)
+                    .zIndex(2)
                 
+                // Тело восковой свечи с динамической высотой таяния
                 RoundedRectangle(cornerRadius: 2)
                     .fill(
                         LinearGradient(
@@ -643,7 +688,7 @@ struct WidgetWaxCandleView: View {
                             endPoint: .bottom
                         )
                     )
-                    .frame(width: 14, height: 34)
+                    .frame(width: 14, height: currentHeight)
                     .overlay(
                         HStack {
                             LinearGradient(
@@ -656,31 +701,68 @@ struct WidgetWaxCandleView: View {
                             Spacer()
                         }
                     )
+                
+                // Капля воска слева
+                if progress > 0.18 {
+                    let dripLength = min(currentHeight * 0.7, 12.0 * CGFloat(progress))
+                    Capsule()
+                        .fill(Color(hex: "FEF08A"))
+                        .frame(width: 2.2, height: dripLength)
+                        .offset(x: -7, y: 3)
+                }
+                
+                // Капля воска справа
+                if progress > 0.42 {
+                    let dripLength = min(currentHeight * 0.5, 9.0 * CGFloat(progress))
+                    Capsule()
+                        .fill(Color(hex: "FDE047"))
+                        .frame(width: 2.0, height: dripLength)
+                        .offset(x: 7, y: 5)
+                }
             }
             .zIndex(1)
             
-            VStack(spacing: 0) {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "FDE68A"), Color(hex: "D97706"), Color(hex: "78350F")],
-                            startPoint: .leading,
-                            endPoint: .trailing
+            // Основание подсвечника и расширяющаяся лужица расплавленного воска
+            ZStack {
+                if progress > 0.10 {
+                    let poolWidth = 14 + (CGFloat(progress) * 16)
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "FEF08A").opacity(0.85), Color(hex: "F59E0B").opacity(0.9)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
-                    .frame(width: 22, height: 2.5)
+                        .frame(width: poolWidth, height: 3.5)
+                        .offset(y: -1)
+                        .zIndex(2)
+                }
                 
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "D97706"), Color(hex: "92400E"), Color(hex: "451A03")],
-                            startPoint: .top,
-                            endPoint: .bottom
+                VStack(spacing: 0) {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "FDE68A"), Color(hex: "D97706"), Color(hex: "78350F")],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
                         )
-                    )
-                    .frame(width: 32, height: 3.5)
+                        .frame(width: 22, height: 2.5)
+                    
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "D97706"), Color(hex: "92400E"), Color(hex: "451A03")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 32, height: 3.5)
+                }
             }
         }
+        .frame(height: totalContainerHeight, alignment: .bottom)
     }
 }
 

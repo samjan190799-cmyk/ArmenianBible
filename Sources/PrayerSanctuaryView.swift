@@ -269,9 +269,11 @@ struct CandleStandCellView: View {
                 )
                 
                 VStack(spacing: 8) {
-                    // Реалистичная армянская восковая свеча с живым пламенем
+                    // Реалистичная армянская восковая свеча с живым пламенем и физическим таянием воска
                     RealisticArmenianCandleView(
                         tier: candle.tier,
+                        burnProgress: candle.burnProgress(),
+                        isLit: candle.isLit,
                         randomSeed: Double(abs(candle.id.hashValue))
                     )
                     .padding(.top, 8)
@@ -835,12 +837,20 @@ struct LightCandleFormSheetView: View {
     }
 }
 
-// MARK: - Карточка деталей молитвы отдельной свечи
+// MARK: - Карточка деталей молитвы отдельной свечи с симуляцией таяния
 struct CandleDetailPrayerSheetView: View {
     let candle: PrayerCandle
     let language: AppLanguage
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var candleManager = CandleManager.shared
+    
+    @State private var previewBurnProgress: Double? = nil
+    @State private var isSimulatingMelting: Bool = false
+    @State private var selectedDuration: Double = 4.0 // 4 секунды по умолчанию
+    
+    private var currentBurnProgress: Double {
+        previewBurnProgress ?? candle.burnProgress()
+    }
     
     var body: some View {
         NavigationStack {
@@ -848,104 +858,213 @@ struct CandleDetailPrayerSheetView: View {
                 Color(hex: "090A0F").ignoresSafeArea()
                 DivineBreathingGlow(color: Color(hex: "F59E0B")).offset(y: -50)
                 
-                VStack(spacing: 18) {
-                    RealisticArmenianCandleView(
-                        tier: candle.tier,
-                        candleHeight: 64,
-                        candleWidth: 22,
-                        flameSize: 32,
-                        randomSeed: Double(abs(candle.id.hashValue))
-                    )
-                    .padding(.top, 20)
-                    
-                    Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
-                        .font(.system(size: 22, weight: .bold, design: .serif))
-                        .foregroundColor(.white)
-                    
-                    HStack(spacing: 6) {
-                        Image(systemName: candle.intention.icon)
-                        Text(candle.intention.title(for: language))
-                    }
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(hex: "F59E0B"))
-                    
-                    if let prayer = candle.customPrayer, !prayer.isEmpty {
-                        Text(prayer)
-                            .font(.system(size: 15, weight: .medium, design: .serif))
-                            .foregroundColor(.white.opacity(0.9))
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(6)
-                            .padding(18)
-                            .background(Color.white.opacity(0.04))
-                            .cornerRadius(16)
-                            .padding(.horizontal, 24)
-                    }
-                    
-                    Text(burningTimeRemainingText)
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.6))
-                    
-                    // Кнопка: установить эту свечу на виджет Lock Screen и Home Screen
-                    let isCurrentWidgetCandle = candleManager.selectedWidgetCandleId == candle.id.uuidString
-                    Button {
-                        if isCurrentWidgetCandle {
-                            candleManager.setSelectedWidgetCandle(id: nil) // Сброс в авторежим (последняя свеча)
-                        } else {
-                            candleManager.setSelectedWidgetCandle(id: candle.id.uuidString)
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: isCurrentWidgetCandle ? "checkmark.circle.fill" : "apps.iphone")
-                                .font(.system(size: 15, weight: .bold))
-                            Text(isCurrentWidgetCandle
-                                 ? (language == .armenian ? "✓ Ցուցադրվում է վիջեթում" : (language == .russian ? "✓ Выбрана для виджета" : "✓ Active on Widget"))
-                                 : (language == .armenian ? "Տեղադրել վիջեթում" : (language == .russian ? "Поставить на виджет" : "Set for Widget")))
-                                .font(.system(size: 14, weight: .bold))
-                        }
-                        .foregroundColor(isCurrentWidgetCandle ? Color(hex: "FDE68A") : .white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(
-                            isCurrentWidgetCandle
-                                ? Color(hex: "F59E0B").opacity(0.25)
-                                : Color.white.opacity(0.08)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        // Интерактивная свеча с живым пламенем и физическим таянием
+                        RealisticArmenianCandleView(
+                            tier: candle.tier,
+                            burnProgress: currentBurnProgress,
+                            isLit: currentBurnProgress < 0.99,
+                            candleHeight: 68,
+                            candleWidth: 22,
+                            flameSize: 32,
+                            randomSeed: Double(abs(candle.id.hashValue))
                         )
+                        .padding(.top, 16)
+                        .animation(.easeInOut(duration: isSimulatingMelting ? selectedDuration : 0.25), value: currentBurnProgress)
+                        
+                        Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
+                            .font(.system(size: 22, weight: .bold, design: .serif))
+                            .foregroundColor(.white)
+                        
+                        HStack(spacing: 6) {
+                            Image(systemName: candle.intention.icon)
+                            Text(candle.intention.title(for: language))
+                        }
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                        
+                        // Панель таяния свечи
+                        VStack(spacing: 10) {
+                            HStack {
+                                Label(meltingTitleText, systemImage: "flame.circle.fill")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Color(hex: "F59E0B"))
+                                
+                                Spacer()
+                                
+                                let remainingPercent = Int(round((1.0 - currentBurnProgress) * 100))
+                                Text("\(remainingPercent)% \(waxRemainingText)")
+                                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+                            
+                            // Шкала расхода воска
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(Color.white.opacity(0.12))
+                                        .frame(height: 5)
+                                    
+                                    Capsule()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B"), Color(hex: "EA580C")],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .frame(width: max(5, geo.size.width * CGFloat(1.0 - currentBurnProgress)), height: 5)
+                                }
+                            }
+                            .frame(height: 5)
+                            
+                            // Кнопки управления анимацией таяния
+                            HStack(spacing: 8) {
+                                Button {
+                                    startMeltingSimulation()
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: isSimulatingMelting ? "sparkles" : "play.fill")
+                                            .font(.system(size: 10, weight: .bold))
+                                        Text(watchMeltingText)
+                                            .font(.system(size: 11, weight: .bold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(Color(hex: "F59E0B").opacity(0.35))
+                                    .cornerRadius(10)
+                                }
+                                .disabled(isSimulatingMelting)
+                                
+                                if previewBurnProgress != nil {
+                                    Button {
+                                        triggerHaptic(.light)
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            previewBurnProgress = nil
+                                            isSimulatingMelting = false
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.counterclockwise")
+                                                .font(.system(size: 10, weight: .bold))
+                                            Text(resetText)
+                                                .font(.system(size: 11, weight: .bold))
+                                        }
+                                        .foregroundColor(Color(hex: "9CA3AF"))
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 7)
+                                        .background(Color.white.opacity(0.08))
+                                        .cornerRadius(10)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                // Меню выбора длительности: 3с, 4с, 8с
+                                Menu {
+                                    Button("3 \(secondsUnitText)") { selectedDuration = 3.0 }
+                                    Button("4 \(secondsUnitText)") { selectedDuration = 4.0 }
+                                    Button("8 \(secondsUnitText)") { selectedDuration = 8.0 }
+                                } label: {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "timer")
+                                            .font(.system(size: 10))
+                                        Text("\(Int(selectedDuration))\(secondsUnitText)")
+                                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                                    }
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white.opacity(0.06))
+                                    .cornerRadius(8)
+                                }
+                            }
+                            .padding(.top, 2)
+                        }
+                        .padding(14)
+                        .background(Color.white.opacity(0.05))
                         .cornerRadius(14)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(
-                                    isCurrentWidgetCandle
-                                        ? Color(hex: "F59E0B")
-                                        : Color.white.opacity(0.12),
-                                    lineWidth: 1.2
-                                )
-                        )
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    
-                    Spacer()
-                    
-                    Button {
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        dismiss()
-                    } label: {
-                        Text("Ամէն • Аминь")
-                            .font(.system(size: 16, weight: .bold, design: .serif))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                        .padding(.horizontal, 24)
+                        
+                        if let prayer = candle.customPrayer, !prayer.isEmpty {
+                            Text(prayer)
+                                .font(.system(size: 15, weight: .medium, design: .serif))
+                                .foregroundColor(.white.opacity(0.9))
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(6)
+                                .padding(18)
+                                .background(Color.white.opacity(0.04))
+                                .cornerRadius(16)
+                                .padding(.horizontal, 24)
+                        }
+                        
+                        Text(burningTimeRemainingText)
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.6))
+                        
+                        // Кнопка: установить эту свечу на виджет Lock Screen и Home Screen
+                        let isCurrentWidgetCandle = candleManager.selectedWidgetCandleId == candle.id.uuidString
+                        Button {
+                            if isCurrentWidgetCandle {
+                                candleManager.setSelectedWidgetCandle(id: nil) // Сброс в авторежим (последняя свеча)
+                            } else {
+                                candleManager.setSelectedWidgetCandle(id: candle.id.uuidString)
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: isCurrentWidgetCandle ? "checkmark.circle.fill" : "apps.iphone")
+                                    .font(.system(size: 15, weight: .bold))
+                                Text(isCurrentWidgetCandle
+                                     ? (language == .armenian ? "✓ Ցուցադրվում է վիջեթում" : (language == .russian ? "✓ Выбрана для виджета" : "✓ Active on Widget"))
+                                     : (language == .armenian ? "Տեղադրել վիջեթում" : (language == .russian ? "Поставить на виджет" : "Set for Widget")))
+                                    .font(.system(size: 14, weight: .bold))
+                            }
+                            .foregroundColor(isCurrentWidgetCandle ? Color(hex: "FDE68A") : .white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
                             .background(
-                                LinearGradient(
-                                    colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                                isCurrentWidgetCandle
+                                    ? Color(hex: "F59E0B").opacity(0.25)
+                                    : Color.white.opacity(0.08)
                             )
                             .cornerRadius(14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        isCurrentWidgetCandle
+                                            ? Color(hex: "F59E0B")
+                                            : Color.white.opacity(0.12),
+                                        lineWidth: 1.2
+                                    )
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        
+                        Button {
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            dismiss()
+                        } label: {
+                            Text("Ամէն • Аминь")
+                                .font(.system(size: 16, weight: .bold, design: .serif))
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B")],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .cornerRadius(14)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        .padding(.horizontal, 24)
+                        .padding(.top, 6)
+                        .padding(.bottom, 24)
                     }
-                    .buttonStyle(ScaleButtonStyle())
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -958,6 +1077,69 @@ struct CandleDetailPrayerSheetView: View {
                     }
                 }
             }
+        }
+    }
+    
+    private func startMeltingSimulation() {
+        triggerHaptic(.medium)
+        isSimulatingMelting = true
+        previewBurnProgress = 0.0
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation(.easeInOut(duration: selectedDuration)) {
+                previewBurnProgress = 1.0
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + selectedDuration + 0.15) {
+            triggerHaptic(.success)
+            isSimulatingMelting = false
+        }
+    }
+    
+    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
+    
+    private var meltingTitleText: String {
+        switch language {
+        case .armenian: return "Մոմի հալվելը"
+        case .russian: return "Таяние свечи"
+        case .english: return "Wax Melting"
+        }
+    }
+    
+    private var waxRemainingText: String {
+        switch language {
+        case .armenian: return "մոմ"
+        case .russian: return "воска"
+        case .english: return "wax"
+        }
+    }
+    
+    private var watchMeltingText: String {
+        switch language {
+        case .armenian: return "Դիտել հալվելը (\(Int(selectedDuration))վ)"
+        case .russian: return "Таяние за \(Int(selectedDuration)) сек"
+        case .english: return "Melt in \(Int(selectedDuration))s"
+        }
+    }
+    
+    private var resetText: String {
+        switch language {
+        case .armenian: return "Իրական"
+        case .russian: return "Реальное"
+        case .english: return "Real time"
+        }
+    }
+    
+    private var secondsUnitText: String {
+        switch language {
+        case .armenian: return "վ"
+        case .russian: return "с"
+        case .english: return "s"
         }
     }
     

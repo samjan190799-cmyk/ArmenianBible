@@ -179,17 +179,13 @@ final class CandleManager: ObservableObject {
     // MARK: - Хранилище свечей
     private func saveCandles() {
         if let data = try? JSONEncoder().encode(activeCandles) {
-            UserDefaults.standard.set(data, forKey: kCandlesStorageKey)
-            AppGroupConstants.syncToAll { defaults in
-                defaults.set(data, forKey: self.kCandlesStorageKey)
-            }
+            AppGroupConstants.syncDataToAll(data, forKey: kCandlesStorageKey)
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
     
     private func loadSavedCandles() {
-        let savedData = AppGroupConstants.sharedDefaults.data(forKey: kCandlesStorageKey)
-            ?? UserDefaults.standard.data(forKey: kCandlesStorageKey)
+        let savedData = AppGroupConstants.sharedData(forKey: kCandlesStorageKey)
         guard let data = savedData,
               let list = try? JSONDecoder().decode([PrayerCandle].self, from: data) else {
             // Если сохраненных нет — добавляем 1 благоговейную свечу по умолчанию за мир
