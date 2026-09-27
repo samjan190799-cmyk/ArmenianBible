@@ -150,7 +150,7 @@ struct PomegranateSanctuarySheetView: View {
                     .presentationDragIndicator(.visible)
             }
             .sheet(item: $shareItem) { item in
-                ShareSheet(activityItems: [item.image])
+                ActivityView(activityItems: [item.image])
             }
         }
     }
