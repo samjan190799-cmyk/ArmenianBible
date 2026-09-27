@@ -177,12 +177,21 @@ struct BibleQuizCardView: View {
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(cardBorderColor, lineWidth: 1.2)
+            .gleamingEdge(cornerRadius: 20)
+            .livingBorder(
+                colors: [
+                    Color(hex: "F59E0B"),
+                    Color(hex: "10B981"),
+                    Color(hex: "FBBF24"),
+                    Color(hex: "F59E0B")
+                ],
+                cornerRadius: 20,
+                lineWidth: 1.3,
+                glowRadius: 5,
+                duration: 6.5
             )
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
         .padding(.horizontal, 20)
     }
 }
@@ -639,13 +648,22 @@ struct ReadingPlanBannerCardView: View {
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(cardBorderColor, lineWidth: 1.2)
+            .gleamingEdge(cornerRadius: 20)
+            .livingBorder(
+                colors: [
+                    Color(hex: "EF4444"),
+                    Color(hex: "F59E0B"),
+                    Color(hex: "FBBF24"),
+                    Color(hex: "EF4444")
+                ],
+                cornerRadius: 20,
+                lineWidth: 1.3,
+                glowRadius: 5,
+                duration: 5.5
             )
             .padding(.horizontal, 20)
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
     }
 }
 

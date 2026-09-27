@@ -591,7 +591,8 @@ struct NarekHeroPlayerCard: View {
                         }
                     }
                 }
-                .buttonStyle(ScaleButtonStyle())
+                .pulsingAura(color: accentColor.opacity(audioPlayer.isPlaying ? 0.35 : 0.0), duration: 2.2)
+                .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.90))
                 
                 // Перемотка вперед на 15 сек
                 Button {
@@ -732,10 +733,23 @@ struct NarekHeroPlayerCard: View {
         }
         .padding(18)
         .background(cardBgColor)
-        .cornerRadius(20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(cardBorderColor, lineWidth: 1)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .gleamingEdge(cornerRadius: 20)
+        .livingBorder(
+            colors: audioPlayer.isPlaying ? [
+                accentColor,
+                Color(hex: "F59E0B"),
+                Color(hex: "FBBF24"),
+                accentColor
+            ] : [
+                accentColor.opacity(0.35),
+                secondaryAccentColor.opacity(0.25),
+                accentColor.opacity(0.35)
+            ],
+            cornerRadius: 20,
+            lineWidth: audioPlayer.isPlaying ? 1.4 : 1.0,
+            glowRadius: audioPlayer.isPlaying ? 6 : 2,
+            duration: 6.0
         )
         .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
     }

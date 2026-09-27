@@ -283,11 +283,25 @@ struct ChapterSelectionCell: View {
                     .foregroundColor(textColor)
                     .frame(width: 55, height: 55)
                     .background(backgroundColor)
-                    .cornerRadius(12)
+                    .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
                             .stroke(borderColor, lineWidth: 1.0)
                     )
+                    .applyIf(isCurrent) { view in
+                        view.livingBorder(
+                            colors: [
+                                accentColor,
+                                Color(hex: "FDE047"),
+                                Color(hex: "F59E0B"),
+                                accentColor
+                            ],
+                            cornerRadius: 13,
+                            lineWidth: 1.5,
+                            glowRadius: 4,
+                            duration: 4.5
+                        )
+                    }
                 
                 if isRead && !isCurrent {
                     Circle()
@@ -297,7 +311,7 @@ struct ChapterSelectionCell: View {
                 }
             }
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.92))
     }
 }
 

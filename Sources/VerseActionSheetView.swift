@@ -45,11 +45,24 @@ struct VerseActionSheetView: View {
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(cardBackgroundColor)
-                    .cornerRadius(14)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(selectedColorHex != nil ? Color(hex: selectedColorHex!).opacity(0.6) : Color.primary.opacity(0.08), lineWidth: 1.5)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.primary.opacity(0.08), lineWidth: 1.0)
                     )
+                    .applyIf(selectedColorHex != nil) { view in
+                        view.livingBorder(
+                            colors: [
+                                Color(hex: selectedColorHex ?? "FACC15"),
+                                Color.white,
+                                Color(hex: selectedColorHex ?? "FACC15")
+                            ],
+                            cornerRadius: 14,
+                            lineWidth: 1.5,
+                            glowRadius: 5,
+                            duration: 4.0
+                        )
+                    }
                     
                     // Выбор цвета маркера
                     VStack(alignment: .leading, spacing: 12) {
@@ -104,7 +117,7 @@ struct VerseActionSheetView: View {
                                         .scaleEffect(selectedColorHex == c.hex ? 1.15 : 1.0)
                                         .shadow(color: Color(hex: c.hex).opacity(selectedColorHex == c.hex ? 0.4 : 0.15), radius: 3, y: 1.5)
                                 }
-                                .buttonStyle(ScaleButtonStyle())
+                                .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
                             }
                             
                             Spacer()
@@ -208,9 +221,20 @@ struct VerseActionSheetView: View {
                             }
                             .padding(14)
                             .background(accentColor.opacity(0.12))
-                            .cornerRadius(14)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .livingBorder(
+                                colors: [
+                                    accentColor,
+                                    Color(hex: "FDE047"),
+                                    accentColor
+                                ],
+                                cornerRadius: 14,
+                                lineWidth: 1.2,
+                                glowRadius: 3,
+                                duration: 5.0
+                            )
                         }
-                        .buttonStyle(ScaleButtonStyle())
+                        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
                         
                         HStack(spacing: 10) {
                             Button {
@@ -230,7 +254,7 @@ struct VerseActionSheetView: View {
                                 .cornerRadius(12)
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
                             }
-                            .buttonStyle(ScaleButtonStyle())
+                            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                             
                             Button {
                                 onCopy()
@@ -248,7 +272,7 @@ struct VerseActionSheetView: View {
                                 .cornerRadius(12)
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
                             }
-                            .buttonStyle(ScaleButtonStyle())
+                            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                             
                             Button {
                                 onShare()
@@ -266,7 +290,7 @@ struct VerseActionSheetView: View {
                                 .cornerRadius(12)
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
                             }
-                            .buttonStyle(ScaleButtonStyle())
+                            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                         }
                     }
                 }

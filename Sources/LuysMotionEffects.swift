@@ -553,3 +553,448 @@ struct AudioWaveformIndicator: View {
         }
     }
 }
+
+// MARK: - 7. Живая переливающаяся градиентная обводка (Living Gradient Border)
+/// Непрерывно плавно вращающийся по контуру градиентный световой луч с внешним неоновым/золотым сиянием.
+struct LivingBorderModifier: ViewModifier {
+    let colors: [Color]
+    let cornerRadius: CGFloat
+    let lineWidth: CGFloat
+    let glowRadius: CGFloat
+    let duration: Double
+    
+    @State private var rotationAngle: Double = 0.0
+    
+    init(
+        colors: [Color] = [
+            Color(hex: "F59E0B"),
+            Color(hex: "EF4444"),
+            Color(hex: "F59E0B")
+        ],
+        cornerRadius: CGFloat = 20,
+        lineWidth: CGFloat = 1.4,
+        glowRadius: CGFloat = 6,
+        duration: Double = 5.0
+    ) {
+        self.colors = colors
+        self.cornerRadius = cornerRadius
+        self.lineWidth = lineWidth
+        self.glowRadius = glowRadius
+        self.duration = duration
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(
+                        AngularGradient(
+                            colors: colors + [colors.first ?? Color(hex: "F59E0B")],
+                            center: .center,
+                            startAngle: .degrees(rotationAngle),
+                            endAngle: .degrees(rotationAngle + 360)
+                        ),
+                        lineWidth: lineWidth
+                    )
+                    .shadow(color: (colors.first ?? Color(hex: "F59E0B")).opacity(0.4), radius: glowRadius)
+            )
+            .onAppear {
+                withAnimation(
+                    .linear(duration: duration)
+                    .repeatForever(autoreverses: false)
+                ) {
+                    rotationAngle = 360.0
+                }
+            }
+    }
+}
+
+extension View {
+    /// Добавляет непрерывно переливающуюся живую градиентную обводку
+    func livingBorder(
+        colors: [Color] = [
+            Color(hex: "F59E0B"),
+            Color(hex: "EF4444"),
+            Color(hex: "FBBF24"),
+            Color(hex: "F59E0B")
+        ],
+        cornerRadius: CGFloat = 20,
+        lineWidth: CGFloat = 1.4,
+        glowRadius: CGFloat = 5,
+        duration: Double = 6.0
+    ) -> some View {
+        modifier(
+            LivingBorderModifier(
+                colors: colors,
+                cornerRadius: cornerRadius,
+                lineWidth: lineWidth,
+                glowRadius: glowRadius,
+                duration: duration
+            )
+        )
+    }
+}
+
+// MARK: - 8. Дышащая аура (Pulsing Aura Modifier)
+/// Плавное органическое дыхание элемента (масштаб 1.0 -> 1.014 с мягкой пульсирующей тенью).
+struct PulsingAuraModifier: ViewModifier {
+    let color: Color
+    let duration: Double
+    @State private var isPulsing: Bool = false
+    
+    init(color: Color = Color(hex: "F59E0B"), duration: Double = 3.2) {
+        self.color = color
+        self.duration = duration
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPulsing ? 1.014 : 1.0)
+            .shadow(color: color.opacity(isPulsing ? 0.35 : 0.12), radius: isPulsing ? 16 : 8, y: isPulsing ? 4 : 2)
+            .onAppear {
+                withAnimation(
+                    .easeInOut(duration: duration)
+                    .repeatForever(autoreverses: true)
+                ) {
+                    isPulsing = true
+                }
+            }
+    }
+}
+
+extension View {
+    /// Добавляет мягкую пульсирующую световую ауру
+    func pulsingAura(color: Color = Color(hex: "F59E0B"), duration: Double = 3.2) -> some View {
+        modifier(PulsingAuraModifier(color: color, duration: duration))
+    }
+}
+
+// MARK: - 9. Расходящаяся рябь росы (Dew Ripple Effect)
+/// Тонкие расходящиеся концентрические волны при омовении росой или молитве.
+struct DewRippleView: View {
+    let isTriggered: Bool
+    let color: Color
+    
+    @State private var rippleScale: CGFloat = 0.3
+    @State private var rippleOpacity: Double = 0.9
+    
+    init(isTriggered: Bool, color: Color = Color(hex: "38BDF8")) {
+        self.isTriggered = isTriggered
+        self.color = color
+    }
+    
+    var body: some View {
+        ZStack {
+            if isTriggered {
+                ForEach(0..<3, id: \.self) { idx in
+                    Circle()
+                        .stroke(color.opacity(rippleOpacity), lineWidth: 1.6)
+                        .scaleEffect(rippleScale + CGFloat(idx) * 0.28)
+                        .opacity(max(0, rippleOpacity - Double(idx) * 0.2))
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .onChange(of: isTriggered) { triggered in
+            if triggered {
+                rippleScale = 0.3
+                rippleOpacity = 0.9
+                withAnimation(.easeOut(duration: 1.2)) {
+                    rippleScale = 2.6
+                    rippleOpacity = 0.0
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 10. Салют рубиновых и золотых искорок (Ruby & Gold Sparkle Burst)
+struct RubySparkleBurstView: View {
+    let isTriggered: Bool
+    
+    var body: some View {
+        ZStack {
+            if isTriggered {
+                ForEach(0..<16, id: \.self) { idx in
+                    let angle = Double(idx) * (360.0 / 16.0) * (.pi / 180.0)
+                    let colors: [Color] = [
+                        Color(hex: "EF4444"),
+                        Color(hex: "F59E0B"),
+                        Color(hex: "FCD34D"),
+                        Color(hex: "DC2626")
+                    ]
+                    Circle()
+                        .fill(colors[idx % colors.count])
+                        .frame(width: (idx % 2 == 0) ? 5 : 3.2, height: (idx % 2 == 0) ? 5 : 3.2)
+                        .offset(
+                            x: cos(angle) * (isTriggered ? 38 : 2),
+                            y: sin(angle) * (isTriggered ? 38 : 2)
+                        )
+                        .scaleEffect(isTriggered ? 0.1 : 1.3)
+                        .opacity(isTriggered ? 0.0 : 1.0)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - 11. Премиум упругий тактильный отклик (Fluid Spring Button Style)
+struct FluidSpringButtonStyle: ButtonStyle {
+    let scaleDown: CGFloat
+    
+    init(scaleDown: CGFloat = 0.96) {
+        self.scaleDown = scaleDown
+    }
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scaleDown : 1.0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.62), value: configuration.isPressed)
+    }
+}
+
+// MARK: - 12. Парящие частицы священного света (Floating Divine Motes)
+/// Медленно восходящие и мягко колышущиеся золотистые микро-пылинки света,
+/// создающие благоговейную атмосферу храмового покоя и присутствия благодати.
+struct FloatingDivineMotesView: View {
+    let count: Int
+    let baseColor: Color
+    
+    @State private var animatePhase: Bool = false
+    
+    init(count: Int = 14, baseColor: Color = Color(hex: "FDE047")) {
+        self.count = count
+        self.baseColor = baseColor
+    }
+    
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let height = proxy.size.height
+            
+            ZStack {
+                ForEach(0..<count, id: \.self) { i in
+                    let seed = Double(i)
+                    let initialX = (seed * 73.0).truncatingRemainder(dividingBy: max(20.0, Double(width - 20.0))) + 10.0
+                    let initialY = (seed * 137.0).truncatingRemainder(dividingBy: max(20.0, Double(height - 20.0))) + 10.0
+                    let size: CGFloat = (i % 3 == 0) ? 3.5 : ((i % 2 == 0) ? 2.5 : 1.8)
+                    let speed = 4.0 + (seed.truncatingRemainder(dividingBy: 3.5))
+                    let sway = 12.0 + (seed.truncatingRemainder(dividingBy: 16.0))
+                    
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Color.white,
+                                    baseColor.opacity(0.9),
+                                    baseColor.opacity(0.0)
+                                ],
+                                center: .center,
+                                startRadius: 0.2,
+                                endRadius: size * 1.5
+                            )
+                        )
+                        .frame(width: size * 2.2, height: size * 2.2)
+                        .position(
+                            x: initialX + (animatePhase ? cos(seed + 1.2) * sway : -cos(seed) * (sway * 0.5)),
+                            y: initialY + (animatePhase ? -sin(seed * 0.7) * (sway * 1.4) : sin(seed) * (sway * 0.7))
+                        )
+                        .opacity(animatePhase ? (0.35 + (seed.truncatingRemainder(dividingBy: 0.55))) : (0.15 + (seed.truncatingRemainder(dividingBy: 0.35))))
+                        .blur(radius: size > 3.0 ? 0.6 : 0.2)
+                        .animation(
+                            .easeInOut(duration: speed)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(i) * 0.22),
+                            value: animatePhase
+                        )
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .onAppear {
+            animatePhase = true
+        }
+    }
+}
+
+// MARK: - 13. Мерцающая скользящая световая волна по контуру (Shimmering Specular Border)
+/// Скользящий по периметру контура зеркальный блик света (как луч солнца на золотом окладе).
+struct ShimmeringSpecularBorderModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    let lineWidth: CGFloat
+    let duration: Double
+    let baseColor: Color
+    let highlightColor: Color
+    
+    @State private var shimmerOffset: CGFloat = -1.0
+    
+    init(
+        cornerRadius: CGFloat = 20,
+        lineWidth: CGFloat = 1.3,
+        duration: Double = 4.5,
+        baseColor: Color = Color.white.opacity(0.12),
+        highlightColor: Color = Color(hex: "FDE047")
+    ) {
+        self.cornerRadius = cornerRadius
+        self.lineWidth = lineWidth
+        self.duration = duration
+        self.baseColor = baseColor
+        self.highlightColor = highlightColor
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            stops: [
+                                .init(color: baseColor, location: 0.0),
+                                .init(color: baseColor, location: max(0.0, shimmerOffset - 0.25)),
+                                .init(color: highlightColor.opacity(0.95), location: max(0.0, min(1.0, shimmerOffset))),
+                                .init(color: Color.white, location: max(0.0, min(1.0, shimmerOffset + 0.05))),
+                                .init(color: highlightColor.opacity(0.95), location: max(0.0, min(1.0, shimmerOffset + 0.1))),
+                                .init(color: baseColor, location: min(1.0, shimmerOffset + 0.35)),
+                                .init(color: baseColor, location: 1.0)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: lineWidth
+                    )
+            )
+            .onAppear {
+                withAnimation(
+                    .easeInOut(duration: duration)
+                    .repeatForever(autoreverses: false)
+                ) {
+                    shimmerOffset = 1.4
+                }
+            }
+    }
+}
+
+// MARK: - 14. Священный двойной контур (Sacred Dual Contour)
+/// Тонкая внутренняя золотая линия (0.7 pt) + внешний переливающийся градиентный контур (1.4 pt).
+/// Создает эффект благородного старинного оклада святого Евангелия.
+struct SacredDualBorderModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    let outerColors: [Color]
+    let innerColor: Color
+    let glowRadius: CGFloat
+    
+    init(
+        cornerRadius: CGFloat = 22,
+        outerColors: [Color] = [Color(hex: "F59E0B"), Color(hex: "EF4444"), Color(hex: "FBBF24"), Color(hex: "F59E0B")],
+        innerColor: Color = Color.white.opacity(0.18),
+        glowRadius: CGFloat = 6
+    ) {
+        self.cornerRadius = cornerRadius
+        self.outerColors = outerColors
+        self.innerColor = innerColor
+        self.glowRadius = glowRadius
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                // Внутренний тонкий светлый контур
+                RoundedRectangle(cornerRadius: max(2, cornerRadius - 2), style: .continuous)
+                    .stroke(innerColor, lineWidth: 0.8)
+                    .padding(2.5)
+            )
+            .livingBorder(
+                colors: outerColors,
+                cornerRadius: cornerRadius,
+                lineWidth: 1.4,
+                glowRadius: glowRadius,
+                duration: 6.5
+            )
+    }
+}
+
+// MARK: - 15. Скошенный верхний световой блик полированного стекла (Gleaming Edge)
+/// Тончайшая (1.0 pt) световая грань на верхнем ребре карточки, подчеркивающая глубину Glassmorphism.
+struct GleamingEdgeModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    let highlightColor: Color
+    
+    init(cornerRadius: CGFloat = 20, highlightColor: Color = Color.white.opacity(0.35)) {
+        self.cornerRadius = cornerRadius
+        self.highlightColor = highlightColor
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                highlightColor,
+                                highlightColor.opacity(0.1),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1.0
+                    )
+            )
+    }
+}
+
+extension View {
+    /// Добавляет бегущий зеркальный блик света по периметру
+    func shimmeringBorder(
+        cornerRadius: CGFloat = 20,
+        lineWidth: CGFloat = 1.3,
+        duration: Double = 4.5,
+        baseColor: Color = Color.white.opacity(0.12),
+        highlightColor: Color = Color(hex: "FDE047")
+    ) -> some View {
+        modifier(
+            ShimmeringSpecularBorderModifier(
+                cornerRadius: cornerRadius,
+                lineWidth: lineWidth,
+                duration: duration,
+                baseColor: baseColor,
+                highlightColor: highlightColor
+            )
+        )
+    }
+    
+    /// Добавляет роскошную священную двойную окантовку
+    func sacredDualBorder(
+        cornerRadius: CGFloat = 22,
+        outerColors: [Color] = [Color(hex: "F59E0B"), Color(hex: "EF4444"), Color(hex: "FBBF24"), Color(hex: "F59E0B")],
+        innerColor: Color = Color.white.opacity(0.18),
+        glowRadius: CGFloat = 6
+    ) -> some View {
+        modifier(
+            SacredDualBorderModifier(
+                cornerRadius: cornerRadius,
+                outerColors: outerColors,
+                innerColor: innerColor,
+                glowRadius: glowRadius
+            )
+        )
+    }
+    
+    /// Добавляет верхнюю световую грань полированного стекла
+    func gleamingEdge(cornerRadius: CGFloat = 20, highlightColor: Color = Color.white.opacity(0.35)) -> some View {
+        modifier(GleamingEdgeModifier(cornerRadius: cornerRadius, highlightColor: highlightColor))
+    }
+    
+    /// Условное применение модификатора к представлению
+    @ViewBuilder
+    func applyIf<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+

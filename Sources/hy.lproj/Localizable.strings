@@ -473,3 +473,20 @@
 "narek_playback_rate_125" = "1.25x";
 "narek_autoplay_next_title" = "Ավտոմատ անցում հաջորդ գլխին";
 "narek_autoplay_next_desc" = "Գլխի ավարտից հետո ինքնաբերաբար սկսել հաջորդը";
+
+/* Pomegranate Sanctuary & Tree of Spiritual Growth */
+"pomegranate_sanctuary_title" = "Հավատքի Նռնենի";
+"pomegranate_sanctuary_badge" = "ՀՈԳԵՎՈՐ ԱՃԻ ՆՌՆԵՆԻ";
+"pomegranate_open_sanctuary_hint" = "Հպվեք՝ հավատքի պարտեզ մտնելու համար";
+"pomegranate_tap_fruit_hint" = "Հպվեք նռանը՝ պտուղը բացելու համար";
+"pomegranate_dew_watered" = "Օրհնված է երկնային ցողով";
+"pomegranate_dew_waiting" = "Սպասում է առավոտյան ցողի";
+"pomegranate_water_button" = "Ցողել";
+"pomegranate_fruits_count_format" = "%d / 9 Հոգու պտուղ";
+"pomegranate_stage_format" = "Փուլ՝ %@";
+"pomegranate_days_in_word" = "օր Խոսքի մեջ";
+"pomegranate_vine_verse" = "«Ես եմ որթատունկը, և դուք՝ ճյուղերը: Ով մնում է իմ մեջ, և ես՝ նրա մեջ, նա շատ պտուղ է բերում...»";
+"pomegranate_vine_reference" = "Յովհաննու 15:5";
+"pomegranate_share_garden" = "Կիսվել";
+"pomegranate_accept_blessing" = "Ընդունել օրհնությունը";
+

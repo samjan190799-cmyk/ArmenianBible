@@ -81,8 +81,7 @@ struct PrayerSanctuaryView: View {
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(.black.opacity(0.7))
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
+                            .padding(16)
                             .background(
                                 LinearGradient(
                                     colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B"), Color(hex: "D97706")],
@@ -90,11 +89,24 @@ struct PrayerSanctuaryView: View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .cornerRadius(18)
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .gleamingEdge(cornerRadius: 18, highlightColor: Color.white.opacity(0.8))
+                            .livingBorder(
+                                colors: [
+                                    Color(hex: "FFFBEB"),
+                                    Color(hex: "F59E0B"),
+                                    Color(hex: "D97706"),
+                                    Color(hex: "F59E0B")
+                                ],
+                                cornerRadius: 18,
+                                lineWidth: 1.5,
+                                glowRadius: 6,
+                                duration: 4.8
+                            )
                             .shadow(color: Color(hex: "F59E0B").opacity(0.35), radius: 12, y: 5)
                             .luysShimmer(duration: 2.8)
                         }
-                        .buttonStyle(ScaleButtonStyle())
+                        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
                         .padding(.horizontal, 20)
                         
                         // MARK: - Подсвечник (Храмовые свечи)
@@ -329,18 +341,32 @@ struct CandleStandCellView: View {
             }
             .frame(maxWidth: .infinity)
             .background(Color.white.opacity(isSelectedForWidget ? 0.07 : 0.04))
-            .cornerRadius(18)
-            .overlay(
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(
-                        isSelectedForWidget
-                            ? Color(hex: "F59E0B")
-                            : (candle.tier == .generous ? Color(hex: "F59E0B").opacity(0.35) : Color.white.opacity(0.08)),
-                        lineWidth: isSelectedForWidget ? 1.5 : 1
-                    )
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .gleamingEdge(cornerRadius: 18)
+            .applyIf(isSelectedForWidget) { view in
+                view.livingBorder(
+                    colors: [
+                        Color(hex: "F59E0B"),
+                        Color(hex: "FDE68A"),
+                        Color(hex: "F59E0B")
+                    ],
+                    cornerRadius: 18,
+                    lineWidth: 1.4,
+                    glowRadius: 4,
+                    duration: 4.0
+                )
+            }
+            .applyIf(!isSelectedForWidget) { view in
+                view.overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(
+                            candle.tier == .generous ? Color(hex: "F59E0B").opacity(0.35) : Color.white.opacity(0.08),
+                            lineWidth: 1.0
+                        )
+                )
+            }
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
     }
 }
 

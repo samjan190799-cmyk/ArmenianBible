@@ -473,3 +473,20 @@
 "narek_playback_rate_125" = "1.25x";
 "narek_autoplay_next_title" = "Auto-play Next Chapter";
 "narek_autoplay_next_desc" = "Automatically start next chapter when current one finishes";
+
+/* Pomegranate Sanctuary & Tree of Spiritual Growth */
+"pomegranate_sanctuary_title" = "Pomegranate Tree of Faith";
+"pomegranate_sanctuary_badge" = "TREE OF SPIRITUAL GROWTH";
+"pomegranate_open_sanctuary_hint" = "Tap to enter the sanctuary garden";
+"pomegranate_tap_fruit_hint" = "Tap a pomegranate to reveal blessing";
+"pomegranate_dew_watered" = "Blessed with Heavenly Dew";
+"pomegranate_dew_waiting" = "Awaiting Morning Dew";
+"pomegranate_water_button" = "Water with Dew";
+"pomegranate_fruits_count_format" = "%d of 9 Fruits of the Spirit";
+"pomegranate_stage_format" = "Stage: %@";
+"pomegranate_days_in_word" = "days in Word";
+"pomegranate_vine_verse" = "«I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit...»";
+"pomegranate_vine_reference" = "John 15:5";
+"pomegranate_share_garden" = "Share Garden";
+"pomegranate_accept_blessing" = "Accept Blessing";
+

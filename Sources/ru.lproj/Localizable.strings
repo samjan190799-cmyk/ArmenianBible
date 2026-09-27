@@ -473,3 +473,20 @@
 "narek_playback_rate_125" = "1.25x";
 "narek_autoplay_next_title" = "Автопереход к следующей главе";
 "narek_autoplay_next_desc" = "Автоматически начинать следующую главу после окончания";
+
+/* Pomegranate Sanctuary & Tree of Spiritual Growth */
+"pomegranate_sanctuary_title" = "Гранатовое Древо Веры";
+"pomegranate_sanctuary_badge" = "ДРЕВО ДУХОВНОГО РОСТА";
+"pomegranate_open_sanctuary_hint" = "Коснитесь, чтобы войти в сад веры";
+"pomegranate_tap_fruit_hint" = "Коснитесь плода, чтобы открыть благословение";
+"pomegranate_dew_watered" = "Омыто небесной росой";
+"pomegranate_dew_waiting" = "Жаждет утренней росы";
+"pomegranate_water_button" = "Омыть росой";
+"pomegranate_fruits_count_format" = "%d из 9 плодов духа";
+"pomegranate_stage_format" = "Ступень: %@";
+"pomegranate_days_in_word" = "дн. в Слове";
+"pomegranate_vine_verse" = "«Я есмь Лоза, а вы ветви; кто пребывает во Мне, и Я в нем, тот приносит много плода»";
+"pomegranate_vine_reference" = "От Иоанна 15:5";
+"pomegranate_share_garden" = "Поделиться садом";
+"pomegranate_accept_blessing" = "Принять благословение";
+

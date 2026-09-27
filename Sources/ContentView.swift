@@ -197,6 +197,7 @@ struct HomeView: View {
     @State private var isShowingQuiz = false
     @State private var isShowingCalendar = false
     @State private var isShowingSanctuary = false
+    @State private var isShowingPomegranateSanctuary = false
     @State private var isShowingPaywall = false
     
     // Переменные для обработки ошибок ИИ
@@ -321,8 +322,20 @@ struct HomeView: View {
                                 .overlay(
                                     Circle().stroke(settingsButtonBorderColor, lineWidth: 1)
                                 )
+                                .livingBorder(
+                                    colors: [
+                                        accentColor.opacity(0.6),
+                                        secondaryAccentColor.opacity(0.3),
+                                        Color(hex: "FDE047").opacity(0.5),
+                                        accentColor.opacity(0.6)
+                                    ],
+                                    cornerRadius: 24,
+                                    lineWidth: 1.0,
+                                    glowRadius: 3,
+                                    duration: 8.0
+                                )
                         }
-                        .buttonStyle(ScaleButtonStyle())
+                        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.90))
                         .padding(.trailing, 20)
                         .padding(.top, 10)
                     }
@@ -398,8 +411,11 @@ struct HomeView: View {
                                 .padding(11)
                                 .background(primaryTextColor.opacity(0.05))
                                 .clipShape(Circle())
+                                .overlay(
+                                    Circle().stroke(primaryTextColor.opacity(0.08), lineWidth: 0.8)
+                                )
                             }
-                            .buttonStyle(ScaleButtonStyle())
+                            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
                             
                             // 2. Кнопка Генератора Обоев для LockScreen
                             Button {
@@ -412,8 +428,11 @@ struct HomeView: View {
                                     .padding(11)
                                     .background(primaryTextColor.opacity(0.05))
                                     .clipShape(Circle())
+                                    .overlay(
+                                        Circle().stroke(primaryTextColor.opacity(0.08), lineWidth: 0.8)
+                                    )
                             }
-                            .buttonStyle(ScaleButtonStyle())
+                            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
                             
                             // 3. Кнопка Поделиться открыткой
                             Button {
@@ -426,8 +445,11 @@ struct HomeView: View {
                                     .padding(11)
                                     .background(primaryTextColor.opacity(0.05))
                                     .clipShape(Circle())
+                                    .overlay(
+                                        Circle().stroke(primaryTextColor.opacity(0.08), lineWidth: 0.8)
+                                    )
                             }
-                            .buttonStyle(ScaleButtonStyle())
+                            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
                         }
                         .padding(.top, 8)
                         .opacity(animateVerse ? 1 : 0)
@@ -439,13 +461,35 @@ struct HomeView: View {
                                 .fill(.ultraThinMaterial)
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
                                 .fill(cardBackgroundColor)
+                            
+                            // Живые плавающие золотые частички святого света
+                            FloatingDivineMotesView(count: 14, baseColor: Color(hex: "FDE047"))
+                                .opacity(colorScheme == .dark ? 0.85 : 0.5)
                         }
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(cardBorderColor, lineWidth: 1.2)
+                    .gleamingEdge(cornerRadius: 24, highlightColor: Color.white.opacity(colorScheme == .dark ? 0.35 : 0.65))
+                    .livingBorder(
+                        colors: [
+                            accentColor,
+                            secondaryAccentColor,
+                            Color(hex: "FDE047"),
+                            Color(hex: "EF4444"),
+                            accentColor
+                        ],
+                        cornerRadius: 24,
+                        lineWidth: 1.5,
+                        glowRadius: 7,
+                        duration: 7.0
                     )
+                    .shimmeringBorder(
+                        cornerRadius: 24,
+                        lineWidth: 1.2,
+                        duration: 5.5,
+                        baseColor: Color.clear,
+                        highlightColor: Color.white.opacity(0.85)
+                    )
+                    .pulsingAura(color: accentColor.opacity(0.28), duration: 4.2)
                     .padding(.horizontal, 20)
                     .rotation3DEffect(
                         .degrees(cardFlipAngle),
@@ -510,6 +554,21 @@ struct HomeView: View {
                     )
                     .staggeredEntrance(index: 3)
                     
+                    // MARK: - Карточка Гранатового Древа Веры (Հոգևոր Աճի Նռնենի)
+                    PomegranateTreeBannerCardView(
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        cardBackgroundColor: cardBackgroundColor,
+                        cardBorderColor: cardBorderColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpenSanctuary: {
+                            triggerHaptic(.medium)
+                            isShowingPomegranateSanctuary = true
+                        }
+                    )
+                    .staggeredEntrance(index: 4)
+                    
                     // MARK: - Карточка Плана Чтения Библии и Стрика (Reading Plans & Daily Streak)
                     ReadingPlanBannerCardView(
                         language: manager.appLanguage,
@@ -523,7 +582,7 @@ struct HomeView: View {
                             isShowingReadingPlans = true
                         }
                     )
-                    .staggeredEntrance(index: 4)
+                    .staggeredEntrance(index: 5)
                     
                     // MARK: - Карточка Библейской Викторины
                     BibleQuizCardView(
@@ -539,7 +598,7 @@ struct HomeView: View {
                             isShowingQuiz = true
                         }
                     )
-                    .staggeredEntrance(index: 5)
+                    .staggeredEntrance(index: 6)
                     
                     // MARK: - Карточка Церковных праздников и Календаря
                     ChurchFeastsBannerCardView(
@@ -554,7 +613,7 @@ struct HomeView: View {
                             isShowingCalendar = true
                         }
                     )
-                    .staggeredEntrance(index: 6)
+                    .staggeredEntrance(index: 7)
                     
                     // MARK: - Карточка Armenian Bible Premium
                     PremiumPromoBannerCardView(
@@ -570,7 +629,7 @@ struct HomeView: View {
                             isShowingPaywall = true
                         }
                     )
-                    .staggeredEntrance(index: 7)
+                    .staggeredEntrance(index: 8)
                 }
                 .padding(.bottom, 30)
                 .frame(maxWidth: 680)
@@ -624,6 +683,9 @@ struct HomeView: View {
         .sheet(isPresented: $isShowingSanctuary) {
             PrayerSanctuaryView()
         }
+        .sheet(isPresented: $isShowingPomegranateSanctuary) {
+            PomegranateSanctuarySheetView()
+        }
         .sheet(isPresented: $isShowingWallpaperMaker) {
             BibleWallpaperMakerView(verse: manager.currentVerse)
         }
@@ -632,6 +694,12 @@ struct HomeView: View {
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
+        }
+        .onReceive(PomegranateTreeManager.shared.$isShowingSanctuarySheet) { show in
+            if show {
+                isShowingPomegranateSanctuary = true
+                PomegranateTreeManager.shared.isShowingSanctuarySheet = false
+            }
         }
         .alert("alert_empty_key_title".localized(for: manager.appLanguage), isPresented: $showingNoKeyAlert) {
             Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {
@@ -651,6 +719,10 @@ struct HomeView: View {
                     triggerHaptic(.medium)
                     manager.activeTabSelection = 0
                     isShowingSanctuary = true
+                } else if url.host == "tree" || url.host == "pomegranate" {
+                    triggerHaptic(.medium)
+                    manager.activeTabSelection = 0
+                    isShowingPomegranateSanctuary = true
                 } else if url.host == "next-verse" {
                     triggerHaptic(.medium)
                     manager.activeTabSelection = 0
@@ -828,13 +900,22 @@ struct NarekatsiBannerCardView: View {
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(cardBorderColor, lineWidth: 1)
+            .gleamingEdge(cornerRadius: 18)
+            .livingBorder(
+                colors: [
+                    accentColor,
+                    secondaryAccentColor,
+                    Color(hex: "FDE047"),
+                    accentColor
+                ],
+                cornerRadius: 18,
+                lineWidth: 1.3,
+                glowRadius: 5,
+                duration: 6.0
             )
             .padding(.horizontal, 20)
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
     }
 }
 
@@ -909,20 +990,21 @@ struct PrayerSanctuaryBannerCardView: View {
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color(hex: "F59E0B").opacity(0.4), Color.clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.2
-                    )
+            .livingBorder(
+                colors: [
+                    Color(hex: "F59E0B"),
+                    Color(hex: "D97706"),
+                    Color(hex: "FEF3C7"),
+                    Color(hex: "F59E0B")
+                ],
+                cornerRadius: 18,
+                lineWidth: 1.3,
+                glowRadius: 5,
+                duration: 5.5
             )
             .padding(.horizontal, 20)
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
     }
 }
 
@@ -1029,13 +1111,22 @@ struct ChurchFeastsBannerCardView: View {
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(cardBorderColor, lineWidth: 1)
+            .gleamingEdge(cornerRadius: 18)
+            .livingBorder(
+                colors: [
+                    Color(hex: "F59E0B"),
+                    Color(hex: "DC2626"),
+                    Color(hex: "FBBF24"),
+                    Color(hex: "F59E0B")
+                ],
+                cornerRadius: 18,
+                lineWidth: 1.3,
+                glowRadius: 5,
+                duration: 6.0
             )
             .padding(.horizontal, 20)
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
     }
 }
 
@@ -1112,20 +1203,22 @@ struct PremiumPromoBannerCardView: View {
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color(hex: "F59E0B").opacity(0.4), Color.clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.2
-                    )
+            .gleamingEdge(cornerRadius: 18)
+            .livingBorder(
+                colors: [
+                    Color(hex: "F59E0B"),
+                    Color(hex: "FEF08A"),
+                    Color(hex: "D97706"),
+                    Color(hex: "F59E0B")
+                ],
+                cornerRadius: 18,
+                lineWidth: 1.3,
+                glowRadius: 6,
+                duration: 5.0
             )
             .padding(.horizontal, 20)
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
     }
 }
 

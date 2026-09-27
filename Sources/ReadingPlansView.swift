@@ -9,6 +9,7 @@ struct ReadingPlansCatalogView: View {
     
     @State private var selectedCategory: PlanCategory? = nil
     @State private var selectedPlanForDetail: ReadingPlan? = nil
+    @State private var isShowingPomegranateSanctuary: Bool = false
     
     private var language: AppLanguage {
         bibleManager.appLanguage
@@ -88,75 +89,88 @@ struct ReadingPlansCatalogView: View {
                     planManager.openReadingInBible(target: target)
                 })
             }
+            .sheet(isPresented: $isShowingPomegranateSanctuary) {
+                PomegranateSanctuarySheetView()
+            }
         }
     }
     
-    // MARK: - Плашка Стрика (Дни подряд)
+    // MARK: - Плашка Стрика и Древа Веры (Дни подряд)
     private var streakHeaderView: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "EF4444"), Color(hex: "F59E0B")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+        Button {
+            bibleManager.triggerHapticImpact(.medium)
+            isShowingPomegranateSanctuary = true
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "EF4444"), Color(hex: "F59E0B")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .frame(width: 52, height: 52)
-                    .shadow(color: Color(hex: "EF4444").opacity(0.3), radius: 8, y: 3)
-                
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(.white)
-            }
-            
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text("\(planManager.currentStreak)")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(primaryTextColor)
+                        .frame(width: 52, height: 52)
+                        .shadow(color: Color(hex: "EF4444").opacity(0.3), radius: 8, y: 3)
                     
-                    Text("streak_days_suffix".localized(for: language))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(primaryTextColor)
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(.white)
                 }
                 
-                Text(planManager.currentStreak > 0 ?
-                     "streak_active_message".localized(for: language) :
-                     "streak_start_message".localized(for: language))
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("streak_record_label".localized(for: language))
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "trophy.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "F59E0B"))
-                    Text("\(planManager.bestStreak)")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(primaryTextColor)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text("\(planManager.currentStreak)")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("streak_days_suffix".localized(for: language))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(primaryTextColor)
+                    }
+                    
+                    Text(planManager.currentStreak > 0 ?
+                         "streak_active_message".localized(for: language) :
+                         "streak_start_message".localized(for: language))
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
                 }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("streak_record_label".localized(for: language))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "F59E0B"))
+                        Text("\(planManager.bestStreak)")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(primaryTextColor)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                .cornerRadius(10)
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.secondary.opacity(0.6))
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
-            .cornerRadius(10)
+            .padding(16)
+            .background(cardBackgroundColor)
+            .cornerRadius(18)
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(cardBorderColor, lineWidth: 1)
+            )
         }
-        .padding(16)
-        .background(cardBackgroundColor)
-        .cornerRadius(18)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(cardBorderColor, lineWidth: 1)
-        )
+        .buttonStyle(ScaleButtonStyle())
     }
     
     // MARK: - Карточка Активного Плана

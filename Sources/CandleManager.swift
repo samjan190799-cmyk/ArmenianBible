@@ -51,6 +51,9 @@ final class CandleManager: ObservableObject {
         UserDefaults.standard.set(Date(), forKey: kLastFreeCandleDateKey)
         hasUsedDailyFreeCandle = true
         
+        // Омовение Гранатового Древа Веры утренней росой за молитву
+        PomegranateTreeManager.shared.nourishWithDew(amount: 1)
+        
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         return true
     }
@@ -87,6 +90,7 @@ final class CandleManager: ObservableObject {
             )
             activeCandles.insert(candle, at: 0)
             saveCandles()
+            PomegranateTreeManager.shared.nourishWithDew(amount: 1)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             return true
         }
@@ -118,6 +122,7 @@ final class CandleManager: ObservableObject {
                     self.activeCandles.insert(candle, at: 0)
                     self.saveCandles()
                     self.isPurchasing = false
+                    PomegranateTreeManager.shared.nourishWithDew(amount: 1)
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     resumeOnce(true)
                 },
