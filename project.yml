@@ -28,7 +28,7 @@ targets:
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
         ITSAppUsesNonExemptEncryption: "NO"
-        GADApplicationIdentifier: "ca-app-pub-7337461475140259~5925803538"
+        GADApplicationIdentifier: "ca-app-pub-2894315025786699~1008604498"
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSFaceIDUsageDescription: "Protect your personal bookmarks, prayer journal, and notes with Face ID."

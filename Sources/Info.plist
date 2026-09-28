@@ -69,7 +69,7 @@
     <key>NSUserTrackingUsageDescription</key>
     <string>Разрешите отслеживание для персонализации рекомендаций и полезных предложений</string>
     <key>GADApplicationIdentifier</key>
-    <string>ca-app-pub-7337461475140259~5925803538</string>
+    <string>ca-app-pub-2894315025786699~1008604498</string>
     <key>SKAdNetworkItems</key>
     <array>
         <dict>

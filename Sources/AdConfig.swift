@@ -6,8 +6,8 @@ public enum AdConfig {
     
     // MARK: - Идентификаторы Google AdMob
     /// AdMob Publisher ID: pub-2894315025786699
-    /// Официальный App ID для iOS: ca-app-pub-7337461475140259~5925803538
-    public static var admobAppID: String = "ca-app-pub-7337461475140259~5925803538"
+    /// Официальный App ID для iOS: ca-app-pub-2894315025786699~1008604498
+    public static var admobAppID: String = "ca-app-pub-2894315025786699~1008604498"
     
     // MARK: - Режим тестирования
     public static var isTestMode: Bool = false
@@ -18,9 +18,9 @@ public enum AdConfig {
     public static let googleTestRewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
     
     // MARK: - Рабочие Placement ID Google AdMob
-    public static var productionAdmobBannerUnitID: String = "ca-app-pub-7337461475140259/4949607095"
-    public static var productionAdmobInterstitialUnitID: String = "ca-app-pub-7337461475140259/9555066517"
-    public static var productionAdmobRewardedUnitID: String = "ca-app-pub-7337461475140259/5455864399"
+    public static var productionAdmobBannerUnitID: String = "ca-app-pub-2894315025786699/5035479415"
+    public static var productionAdmobInterstitialUnitID: String = "ca-app-pub-2894315025786699/4860219591"
+    public static var productionAdmobRewardedUnitID: String = "ca-app-pub-2894315025786699/7566273984"
     
     // MARK: - Активные Ad Unit ID Google AdMob
     public static var admobBannerUnitID: String {
