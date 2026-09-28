@@ -374,7 +374,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
             #if DEBUG
             print("🎬 [AdMob Interstitial] Показ полноэкранного объявления Google...")
             #endif
-            interstitial.present(from: presenter)
+            interstitial.present(fromRootViewController: presenter)
             return true
         }
         #endif
@@ -412,7 +412,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
             #if DEBUG
             print("🎬 [AdMob Rewarded] Запуск показа Google видео...")
             #endif
-            admobAd.present(from: presenter) { [weak self] in
+            admobAd.present(fromRootViewController: presenter) { [weak self] in
                 Task { @MainActor in
                     self?.completeRewardedAdAndGrantReward()
                 }

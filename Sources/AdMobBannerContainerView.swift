@@ -23,7 +23,7 @@ struct AdMobBannerContainerView: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        Coordinator(onAdLoaded: onAdLoaded, onAdFailed: onAdFailed)
     }
     
     func makeUIView(context: Context) -> UIView {
@@ -54,41 +54,52 @@ struct AdMobBannerContainerView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onAdLoaded = onAdLoaded
+        context.coordinator.onAdFailed = onAdFailed
         if context.coordinator.bannerView?.rootViewController == nil {
             context.coordinator.bannerView?.rootViewController = LuysAdManager.shared.getTopViewController()
         }
     }
     
-    // MARK: - Делегат AdMob Banner
-    @MainActor
+    // MARK: - Делегат AdMob Banner (Swift 6 Strict Concurrency)
     final class Coordinator: NSObject, GADBannerViewDelegate {
-        var parent: AdMobBannerContainerView
+        var onAdLoaded: ((CGFloat) -> Void)?
+        var onAdFailed: ((Error) -> Void)?
         weak var bannerView: GADBannerView?
         
-        init(_ parent: AdMobBannerContainerView) {
-            self.parent = parent
+        init(onAdLoaded: ((CGFloat) -> Void)?, onAdFailed: ((Error) -> Void)?) {
+            self.onAdLoaded = onAdLoaded
+            self.onAdFailed = onAdFailed
         }
         
-        func bannerViewDidReceiveAd(_ bannerView: GADBannerView) {
-            #if DEBUG
-            print("✅ [AdMob Banner] Баннер успешно загружен!")
-            #endif
-            parent.onAdLoaded?(50)
+        nonisolated func bannerViewDidReceiveAd(_ bannerView: GADBannerView) {
+            Task { @MainActor [weak self] in
+                #if DEBUG
+                print("✅ [AdMob Banner] Баннер успешно загружен!")
+                #endif
+                self?.onAdLoaded?(50)
+            }
         }
         
-        func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
-            #if DEBUG
-            print("⚠️ [AdMob Banner] Ошибка загрузки баннера: \(error.localizedDescription)")
-            #endif
-            parent.onAdFailed?(error)
+        nonisolated func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
+            Task { @MainActor [weak self] in
+                #if DEBUG
+                print("⚠️ [AdMob Banner] Ошибка загрузки баннера: \(error.localizedDescription)")
+                #endif
+                self?.onAdFailed?(error)
+            }
         }
         
-        func bannerViewDidRecordImpression(_ bannerView: GADBannerView) {
-            LuysAdManager.shared.logImpression()
+        nonisolated func bannerViewDidRecordImpression(_ bannerView: GADBannerView) {
+            Task { @MainActor in
+                LuysAdManager.shared.logImpression()
+            }
         }
         
-        func bannerViewDidRecordClick(_ bannerView: GADBannerView) {
-            LuysAdManager.shared.logClick()
+        nonisolated func bannerViewDidRecordClick(_ bannerView: GADBannerView) {
+            Task { @MainActor in
+                LuysAdManager.shared.logClick()
+            }
         }
     }
 }
