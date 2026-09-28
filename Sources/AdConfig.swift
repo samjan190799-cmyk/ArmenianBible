@@ -5,7 +5,7 @@ import Foundation
 public enum AdConfig {
     
     // MARK: - Идентификаторы Google AdMob
-    /// AdMob Publisher ID: pub-7337461475140259
+    /// AdMob Publisher ID: pub-2894315025786699
     /// Официальный App ID для iOS: ca-app-pub-7337461475140259~5925803538
     public static var admobAppID: String = "ca-app-pub-7337461475140259~5925803538"
     
