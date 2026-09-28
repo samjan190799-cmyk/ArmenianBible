@@ -60,6 +60,7 @@ struct AdMobBannerContainerView: UIViewRepresentable {
     }
     
     // MARK: - Делегат AdMob Banner
+    @MainActor
     final class Coordinator: NSObject, GADBannerViewDelegate {
         var parent: AdMobBannerContainerView
         weak var bannerView: GADBannerView?
