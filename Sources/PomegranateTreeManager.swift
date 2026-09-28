@@ -3,13 +3,15 @@ import SwiftUI
 import Combine
 
 // MARK: - Стадии Роста Гранатового Древа (Pomegranate Growth Stage)
-enum PomegranateStage: Int, CaseIterable, Codable, Comparable {
+enum PomegranateStage: Int, CaseIterable, Codable, Comparable, Identifiable {
     case seed = 1         // 1-2 дня: Семя веры
     case sprout = 2       // 3-6 дней: Нежный росток
     case youngTree = 3    // 7-13 дней: Крепнущее деревце
     case bloomingTree = 4 // 14-29 дней: Цветущий гранат (алые цветы)
     case fruitfulTree = 5 // 30-59 дней: Плодоносящее древо (спелые плоды)
     case treeOfLife = 6   // 60+ дней: Величественное Древо Жизни
+
+    var id: Int { rawValue }
 
     static func < (lhs: PomegranateStage, rhs: PomegranateStage) -> Bool {
         lhs.rawValue < rhs.rawValue

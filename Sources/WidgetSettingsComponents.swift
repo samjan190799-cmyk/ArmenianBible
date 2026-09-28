@@ -54,6 +54,7 @@ struct StaticDotGridView: View {
             }
             context.fill(path, with: .color(dotColor))
         }
+        .drawingGroup()
         .allowsHitTesting(false)
     }
 }

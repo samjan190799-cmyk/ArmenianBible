@@ -322,18 +322,6 @@ struct HomeView: View {
                                 .overlay(
                                     Circle().stroke(settingsButtonBorderColor, lineWidth: 1)
                                 )
-                                .livingBorder(
-                                    colors: [
-                                        accentColor.opacity(0.6),
-                                        secondaryAccentColor.opacity(0.3),
-                                        Color(hex: "FDE047").opacity(0.5),
-                                        accentColor.opacity(0.6)
-                                    ],
-                                    cornerRadius: 24,
-                                    lineWidth: 1.0,
-                                    glowRadius: 3,
-                                    duration: 8.0
-                                )
                         }
                         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.90))
                         .padding(.trailing, 20)
@@ -461,35 +449,14 @@ struct HomeView: View {
                                 .fill(.ultraThinMaterial)
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
                                 .fill(cardBackgroundColor)
-                            
-                            // Живые плавающие золотые частички святого света
-                            FloatingDivineMotesView(count: 14, baseColor: Color(hex: "FDE047"))
-                                .opacity(colorScheme == .dark ? 0.85 : 0.5)
                         }
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .gleamingEdge(cornerRadius: 24, highlightColor: Color.white.opacity(colorScheme == .dark ? 0.35 : 0.65))
-                    .livingBorder(
-                        colors: [
-                            accentColor,
-                            secondaryAccentColor,
-                            Color(hex: "FDE047"),
-                            Color(hex: "EF4444"),
-                            accentColor
-                        ],
-                        cornerRadius: 24,
-                        lineWidth: 1.5,
-                        glowRadius: 7,
-                        duration: 7.0
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(accentColor, lineWidth: 1.5)
                     )
-                    .shimmeringBorder(
-                        cornerRadius: 24,
-                        lineWidth: 1.2,
-                        duration: 5.5,
-                        baseColor: Color.clear,
-                        highlightColor: Color.white.opacity(0.85)
-                    )
-                    .pulsingAura(color: accentColor.opacity(0.28), duration: 4.2)
+                    .shadow(color: accentColor.opacity(colorScheme == .dark ? 0.32 : 0.16), radius: 8, y: 3)
                     .padding(.horizontal, 20)
                     .rotation3DEffect(
                         .degrees(cardFlipAngle),
@@ -901,17 +868,9 @@ struct NarekatsiBannerCardView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .gleamingEdge(cornerRadius: 18)
-            .livingBorder(
-                colors: [
-                    accentColor,
-                    secondaryAccentColor,
-                    Color(hex: "FDE047"),
-                    accentColor
-                ],
-                cornerRadius: 18,
-                lineWidth: 1.3,
-                glowRadius: 5,
-                duration: 6.0
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accentColor.opacity(0.35), lineWidth: 1.2)
             )
             .padding(.horizontal, 20)
         }
@@ -990,17 +949,9 @@ struct PrayerSanctuaryBannerCardView: View {
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .livingBorder(
-                colors: [
-                    Color(hex: "F59E0B"),
-                    Color(hex: "D97706"),
-                    Color(hex: "FEF3C7"),
-                    Color(hex: "F59E0B")
-                ],
-                cornerRadius: 18,
-                lineWidth: 1.3,
-                glowRadius: 5,
-                duration: 5.5
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accentColor.opacity(0.35), lineWidth: 1.2)
             )
             .padding(.horizontal, 20)
         }
@@ -1112,17 +1063,9 @@ struct ChurchFeastsBannerCardView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .gleamingEdge(cornerRadius: 18)
-            .livingBorder(
-                colors: [
-                    Color(hex: "F59E0B"),
-                    Color(hex: "DC2626"),
-                    Color(hex: "FBBF24"),
-                    Color(hex: "F59E0B")
-                ],
-                cornerRadius: 18,
-                lineWidth: 1.3,
-                glowRadius: 5,
-                duration: 6.0
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accentColor.opacity(0.35), lineWidth: 1.2)
             )
             .padding(.horizontal, 20)
         }
@@ -1204,17 +1147,9 @@ struct PremiumPromoBannerCardView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .gleamingEdge(cornerRadius: 18)
-            .livingBorder(
-                colors: [
-                    Color(hex: "F59E0B"),
-                    Color(hex: "FEF08A"),
-                    Color(hex: "D97706"),
-                    Color(hex: "F59E0B")
-                ],
-                cornerRadius: 18,
-                lineWidth: 1.3,
-                glowRadius: 6,
-                duration: 5.0
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color(hex: "F59E0B").opacity(0.4), lineWidth: 1.2)
             )
             .padding(.horizontal, 20)
         }

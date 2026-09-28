@@ -116,18 +116,9 @@ struct PomegranateTreeBannerCardView: View {
                 }
             )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .livingBorder(
-                colors: [
-                    Color(hex: "EF4444"),
-                    Color(hex: "F59E0B"),
-                    Color(hex: "B91C1C"),
-                    Color(hex: "FDE047"),
-                    Color(hex: "EF4444")
-                ],
-                cornerRadius: 18,
-                lineWidth: 1.4,
-                glowRadius: 7,
-                duration: 5.5
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(accentColor.opacity(0.35), lineWidth: 1.2)
             )
             .padding(.horizontal, 20)
         }

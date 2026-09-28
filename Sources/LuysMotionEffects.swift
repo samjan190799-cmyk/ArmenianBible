@@ -13,9 +13,10 @@ struct DivineBreathingGlow: View {
     var body: some View {
         Circle()
             .fill(color)
-            .frame(width: isExpanded ? 380 : 320, height: isExpanded ? 380 : 320)
-            .opacity(isExpanded ? 0.65 : 0.38)
-            .blur(radius: isExpanded ? 95 : 75)
+            .frame(width: 320, height: 320)
+            .scaleEffect(isExpanded ? 1.15 : 0.92)
+            .opacity(isExpanded ? 0.55 : 0.30)
+            .blur(radius: 75)
             .onAppear {
                 withAnimation(
                     .easeInOut(duration: 4.2)
@@ -584,32 +585,56 @@ struct LivingBorderModifier: ViewModifier {
     }
     
     func body(content: Content) -> some View {
-        content
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(
-                        AngularGradient(
-                            colors: colors + [colors.first ?? Color(hex: "F59E0B")],
-                            center: .center,
-                            startAngle: .degrees(rotationAngle),
-                            endAngle: .degrees(rotationAngle + 360)
-                        ),
-                        lineWidth: lineWidth
-                    )
-                    .shadow(color: (colors.first ?? Color(hex: "F59E0B")).opacity(0.4), radius: glowRadius)
-            )
-            .onAppear {
-                withAnimation(
-                    .linear(duration: duration)
-                    .repeatForever(autoreverses: false)
-                ) {
-                    rotationAngle = 360.0
+        if colors.count <= 1 {
+            let solidColor = colors.first ?? Color(hex: "F59E0B")
+            content
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(solidColor, lineWidth: lineWidth)
+                        .shadow(color: glowRadius > 0 ? solidColor.opacity(0.25) : Color.clear, radius: glowRadius)
+                )
+        } else {
+            content
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(
+                            AngularGradient(
+                                colors: colors + [colors.first ?? Color(hex: "F59E0B")],
+                                center: .center,
+                                startAngle: .degrees(rotationAngle),
+                                endAngle: .degrees(rotationAngle + 360)
+                            ),
+                            lineWidth: lineWidth
+                        )
+                        .shadow(color: (colors.first ?? Color(hex: "F59E0B")).opacity(0.3), radius: glowRadius)
+                )
+                .onAppear {
+                    withAnimation(
+                        .linear(duration: duration)
+                        .repeatForever(autoreverses: false)
+                    ) {
+                        rotationAngle = 360.0
+                    }
                 }
-            }
+        }
     }
 }
 
 extension View {
+    /// Добавляет благородную чистую одноцветную обводку в тон выбранной темы из настроек
+    func solidThemeBorder(
+        color: Color,
+        cornerRadius: CGFloat = 20,
+        lineWidth: CGFloat = 1.3,
+        glowRadius: CGFloat = 0
+    ) -> some View {
+        self.overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(color, lineWidth: lineWidth)
+                .shadow(color: glowRadius > 0 ? color.opacity(0.25) : Color.clear, radius: glowRadius)
+        )
+    }
+
     /// Добавляет непрерывно переливающуюся живую градиентную обводку
     func livingBorder(
         colors: [Color] = [

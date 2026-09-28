@@ -193,31 +193,120 @@ struct PomegranateSeedView: View {
     @State private var seedGlow: Bool = false
     
     var body: some View {
-        let seedSize: CGFloat = style.isCompact ? 14 : 32
+        let seedSize: CGFloat = style.isCompact ? 14 : 34
         
-        VStack(spacing: 2) {
-            // Семя с исходящим золотым лучом
-            ZStack {
-                // Рубиновое семечко граната в форме капли
-                Image(systemName: "drop.fill")
-                    .font(.system(size: seedSize, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color(hex: "F87171"), Color(hex: "B91C1C"), Color(hex: "7F1D1D")],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .rotationEffect(.degrees(180))
-                    .shadow(color: Color(hex: "EF4444").opacity(seedGlow ? 0.8 : 0.35), radius: seedGlow ? 12 : 5)
+        ZStack(alignment: .bottom) {
+            // Если экран полноразмерный — показываем духовное видение будущего дерева и лучи света
+            if !style.isCompact {
+                // 1. Небесный луч света, нисходящий на семя
+                LinearGradient(
+                    colors: [
+                        Color(hex: "FDE047").opacity(0.28),
+                        Color(hex: "F59E0B").opacity(0.12),
+                        Color.clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(width: 90, height: 210)
+                .clipShape(Capsule())
+                .blur(radius: 6)
+                .offset(y: -40)
                 
-                // Золотой внутренний зародыш жизни
-                Circle()
-                    .fill(Color(hex: "FDE047"))
-                    .frame(width: seedSize * 0.35, height: seedSize * 0.35)
-                    .blur(radius: 0.5)
+                // 2. Полупрозрачный силуэт будущего цветущего древа (образ плодов)
+                VStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color(hex: "F59E0B").opacity(seedGlow ? 0.6 : 0.3))
+                    
+                    Image(systemName: "tree.fill")
+                        .font(.system(size: 130))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "10B981").opacity(0.16),
+                                    Color(hex: "059669").opacity(0.08),
+                                    Color.clear
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .blur(radius: 1.0)
+                }
+                .offset(y: -50)
+                
+                // 3. Бейдж: Семя укореняется
+                HStack(spacing: 5) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 9))
+                    Text(BibleManager.shared.appLanguage == .armenian ? "Սերմը արմատավորվում է" : (BibleManager.shared.appLanguage == .russian ? "Семя пускает корни" : "Seed taking root"))
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundColor(Color(hex: "EF4444"))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.85))
+                        .shadow(color: Color.black.opacity(0.08), radius: 4)
+                )
+                .overlay(Capsule().stroke(Color(hex: "EF4444").opacity(0.3), lineWidth: 1))
+                .offset(y: -seedSize - 20)
             }
-            .offset(y: -seedSize * 0.2)
+            
+            // 4. Тонкие светящиеся корешки веры в почве
+            if !style.isCompact {
+                Path { path in
+                    path.move(to: CGPoint(x: 10, y: 0))
+                    path.addQuadCurve(to: CGPoint(x: -18, y: 12), control: CGPoint(x: -8, y: 8))
+                    path.move(to: CGPoint(x: 10, y: 0))
+                    path.addQuadCurve(to: CGPoint(x: 38, y: 12), control: CGPoint(x: 28, y: 8))
+                    path.move(to: CGPoint(x: 10, y: 0))
+                    path.addLine(to: CGPoint(x: 10, y: 14))
+                }
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(hex: "FDE047").opacity(0.7), Color(hex: "D97706").opacity(0.2)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1.2
+                )
+                .frame(width: 20, height: 14)
+                .offset(y: 4)
+            }
+            
+            // 5. Сияющее рубиновое семечко веры
+            VStack(spacing: 2) {
+                ZStack {
+                    // Внешнее свечение
+                    Circle()
+                        .fill(Color(hex: "EF4444").opacity(seedGlow ? 0.35 : 0.15))
+                        .frame(width: seedSize * 1.6, height: seedSize * 1.6)
+                        .blur(radius: 6)
+                    
+                    // Рубиновое семечко граната в форме капли
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: seedSize, weight: .bold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color(hex: "F87171"), Color(hex: "DC2626"), Color(hex: "7F1D1D")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .rotationEffect(.degrees(180))
+                        .shadow(color: Color(hex: "EF4444").opacity(seedGlow ? 0.8 : 0.35), radius: seedGlow ? 12 : 5)
+                    
+                    // Золотой внутренний зародыш жизни
+                    Circle()
+                        .fill(Color(hex: "FDE047"))
+                        .frame(width: seedSize * 0.35, height: seedSize * 0.35)
+                        .blur(radius: 0.5)
+                }
+                .offset(y: -seedSize * 0.2)
+            }
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
