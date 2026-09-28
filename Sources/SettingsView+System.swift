@@ -518,7 +518,7 @@ extension SettingsView {
             } else {
                 devToastIcon = "hammer.fill"
                 devToastMessage = "🧪 Free-режим включен!"
-                devToastSubtitle = "Реклама Meta включена, лимиты активны для теста."
+                devToastSubtitle = "Реклама Luys включена, лимиты активны для теста."
                 devToastColor = [Color(hex: "3B82F6"), Color(hex: "1D4ED8")]
             }
             

@@ -73,7 +73,7 @@ final class CandleManager: ObservableObject {
         return await lightRewardedCandle(name: name, intention: intention, customPrayer: customPrayer)
     }
     
-    // MARK: - Зажжение свечи за просмотр видеорекламы (Meta Rewarded Video)
+    // MARK: - Зажжение свечи за просмотр видеорекламы (Rewarded Video)
     func lightRewardedCandle(
         name: String,
         intention: CandleIntention,

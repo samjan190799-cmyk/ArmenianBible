@@ -1,33 +1,52 @@
 import Foundation
 
-// MARK: - Конфигурация Рекламы Meta Audience Network
+// MARK: - Конфигурация Рекламы Google AdMob & VK
 /// Централизованное хранилище идентификаторов рекламных блоков и настроек показа.
 public enum AdConfig {
     
-    // MARK: - Идентификатор приложения в Meta (Новый зарубежный аккаунт)
-    /// Новый Facebook App ID
-    public static let facebookAppID: String = "965349189941367"
+    // MARK: - Идентификаторы Google AdMob
+    /// AdMob Publisher ID: pub-7337461475140259
+    /// Официальный App ID для iOS: ca-app-pub-7337461475140259~5925803538
+    public static var admobAppID: String = "ca-app-pub-7337461475140259~5925803538"
     
     // MARK: - Режим тестирования
-    /// Если false — показывается реальная реклама Meta Audience Network.
-    /// В Debug-сборках SDK Meta также автоматически регистрирует тестовый хеш устройства,
-    /// защищая вас от случайных кликов.
     public static var isTestMode: Bool = false
     
-    // MARK: - Рабочие Placement ID Meta (Новый зарубежный аккаунт)
-    /// Рабочий Placement ID для Баннера (320x50 / адаптивный)
-    public static let productionBannerPlacementID: String = "965349189941367_965349289941357"
+    // MARK: - Тестовые идентификаторы Google AdMob (Официальные от Google)
+    public static let googleTestBannerUnitID: String = "ca-app-pub-3940256099942544/2934735716"
+    public static let googleTestInterstitialUnitID: String = "ca-app-pub-3940256099942544/4411468910"
+    public static let googleTestRewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
     
-    /// Рабочий Placement ID для Межстраничной рекламы (Interstitial)
-    public static let productionInterstitialPlacementID: String = "965349189941367_965349296608023"
+    // MARK: - Рабочие Placement ID Google AdMob
+    public static var productionAdmobBannerUnitID: String = "ca-app-pub-7337461475140259/4949607095"
+    public static var productionAdmobInterstitialUnitID: String = "ca-app-pub-7337461475140259/9555066517"
+    public static var productionAdmobRewardedUnitID: String = "ca-app-pub-7337461475140259/5455864399"
     
-    /// Рабочий Placement ID для Рекламы с вознаграждением (Rewarded Video)
-    public static let productionRewardedPlacementID: String = "965349189941367_965349299941356"
+    // MARK: - Активные Ad Unit ID Google AdMob
+    public static var admobBannerUnitID: String {
+        if isTestMode || productionAdmobBannerUnitID.isEmpty {
+            return googleTestBannerUnitID
+        }
+        return productionAdmobBannerUnitID
+    }
     
-    // MARK: - Тестовые Placement ID от Meta (Новый зарубежный аккаунт)
-    public static let testBannerPlacementID: String = ""
-    public static let testInterstitialPlacementID: String = ""
-    public static let testRewardedPlacementID: String = ""
+    public static var admobInterstitialUnitID: String {
+        if isTestMode || productionAdmobInterstitialUnitID.isEmpty {
+            return googleTestInterstitialUnitID
+        }
+        return productionAdmobInterstitialUnitID
+    }
+    
+    public static var admobRewardedUnitID: String {
+        if isTestMode || productionAdmobRewardedUnitID.isEmpty {
+            return googleTestRewardedUnitID
+        }
+        return productionAdmobRewardedUnitID
+    }
+    
+    public static var hasAdMobPlacements: Bool {
+        !admobAppID.isEmpty
+    }
     
     // MARK: - Идентификаторы VK Рекламы / myTarget (ads.vk.com)
     /// Официальные стабильные демо/тестовые Slot ID для MyTarget SDK
@@ -45,29 +64,8 @@ public enum AdConfig {
     public static let vkBannerSettingsSlotId: UInt = 2071440
     
     // MARK: - Тайминги авторотации и безопасности UX
-    /// Безопасный интервал автообновления баннера (по правилам РСЯ: 30-60 сек)
+    /// Безопасный интервал автообновления баннера (по правилам: 30-60 сек)
     public static let bannerAutoRefreshInterval: TimeInterval = 45.0
-    
-    // MARK: - Активные Placement ID Meta
-    public static var bannerPlacementID: String {
-        let id = isTestMode ? testBannerPlacementID : productionBannerPlacementID
-        return id.isEmpty ? productionBannerPlacementID : id
-    }
-    
-    public static var interstitialPlacementID: String {
-        let id = isTestMode ? testInterstitialPlacementID : productionInterstitialPlacementID
-        return id.isEmpty ? productionInterstitialPlacementID : id
-    }
-    
-    public static var rewardedPlacementID: String {
-        let id = isTestMode ? testRewardedPlacementID : productionRewardedPlacementID
-        return id.isEmpty ? productionRewardedPlacementID : id
-    }
-    
-    /// Флаг готовности рекламных блоков Meta нового аккаунта
-    public static var hasMetaPlacements: Bool {
-        !facebookAppID.isEmpty && (!bannerPlacementID.isEmpty || !interstitialPlacementID.isEmpty || !rewardedPlacementID.isEmpty)
-    }
     
     // MARK: - Настройки частоты показа (Кулдауны для бережного UX)
     /// Минимальный интервал между показами полноэкранной межстраничной рекламы (в секундах).

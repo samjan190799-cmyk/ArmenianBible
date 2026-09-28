@@ -68,12 +68,42 @@
     <string>Protect your personal bookmarks, prayer journal, and notes with Face ID.</string>
     <key>NSUserTrackingUsageDescription</key>
     <string>Разрешите отслеживание для персонализации рекомендаций и полезных предложений</string>
-    <key>FacebookAppID</key>
-    <string>965349189941367</string>
-    <key>FacebookDisplayName</key>
-    <string>Armenian Bible</string>
+    <key>GADApplicationIdentifier</key>
+    <string>ca-app-pub-7337461475140259~5925803538</string>
     <key>SKAdNetworkItems</key>
     <array>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>cstr6suwn9.skadnetwork</string>
+        </dict>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>4fzdc2evr5.skadnetwork</string>
+        </dict>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>2fnua5tdw4.skadnetwork</string>
+        </dict>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>ydx93a7ass.skadnetwork</string>
+        </dict>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>5a6flpkh64.skadnetwork</string>
+        </dict>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>p78axxw29g.skadnetwork</string>
+        </dict>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>v72qych544.skadnetwork</string>
+        </dict>
+        <dict>
+            <key>SKAdNetworkIdentifier</key>
+            <string>c6kgnbxtmg.skadnetwork</string>
+        </dict>
         <dict>
             <key>SKAdNetworkIdentifier</key>
             <string>zq492l623r.skadnetwork</string>

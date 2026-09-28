@@ -8,8 +8,8 @@ import AdSupport
 import MyTargetSDK
 #endif
 
-#if canImport(FBAudienceNetwork)
-import FBAudienceNetwork
+#if canImport(GoogleMobileAds)
+import GoogleMobileAds
 #endif
 
 // MARK: - Плейсменты баннерных блоков Luys
@@ -36,7 +36,7 @@ public enum LuysBannerPlacement: String, CaseIterable, Identifiable, Sendable {
 // MARK: - Доступные рекламные провайдеры
 public enum LuysAdNetworkType: String, CaseIterable, Identifiable, Sendable {
     case vk = "VK Реклама"
-    case meta = "Meta Audience Network"
+    case admob = "Google AdMob"
     case houseAd = "Luys House Ad"
     
     public var id: String { rawValue }
@@ -44,13 +44,13 @@ public enum LuysAdNetworkType: String, CaseIterable, Identifiable, Sendable {
     public var icon: String {
         switch self {
         case .vk: return "v.circle.fill"
-        case .meta: return "m.circle.fill"
+        case .admob: return "g.circle.fill"
         case .houseAd: return "cross.fill"
         }
     }
 }
 
-// MARK: - Центральный менеджер рекламы Luys (VK Ads / MyTargetSDK + Meta Fallback)
+// MARK: - Центральный менеджер рекламы Luys (Google AdMob + VK Ads)
 /// Построен строго по архитектурным стандартам 2026 года: Swift 6 Strict Concurrency,
 /// изоляция `@MainActor`, гео-роутинг и безопасное управление жизненным циклом памяти.
 @MainActor
@@ -79,7 +79,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     @Published public private(set) var isRewardedReady: Bool = false
     @Published public private(set) var isInterstitialReady: Bool = false
     @Published public private(set) var isTrackingAuthorized: Bool = false
-    @Published public private(set) var activeProviderType: LuysAdNetworkType = .vk
+    @Published public private(set) var activeProviderType: LuysAdNetworkType = .admob
     @Published public private(set) var detectedRegionCode: String = "AM"
     
     // MARK: - Внутренние свойства
@@ -88,16 +88,20 @@ public final class LuysAdManager: NSObject, ObservableObject {
     private var onRewardCompletion: (() -> Void)? = nil
     private var onDismissWithoutReward: (() -> Void)? = nil
     
+    #if canImport(GoogleMobileAds)
+    private var admobRewardedAd: GADRewardedAd?
+    private var admobInterstitialAd: GADInterstitialAd?
+    private var currentlyShowingAdMobRewarded: GADRewardedAd?
+    private var currentlyShowingAdMobInterstitial: GADInterstitialAd?
+    private var isAdMobRewardedLoading: Bool = false
+    private var isAdMobInterstitialLoading: Bool = false
+    #endif
+    
     #if canImport(MyTargetSDK)
     private var vkRewardedAd: MTRGRewardedAd?
     /// КРИТИЧЕСКИЙ SWIFT 6 БАГФИКС: Сохраняем сильную ссылку на показываемое объявление,
     /// иначе ARC очищает объект из памяти до завершения воспроизведения и коллбэка награды.
     private var currentlyShowingRewardedAd: MTRGRewardedAd?
-    #endif
-    
-    #if canImport(FBAudienceNetwork)
-    private var currentInterstitial: FBInterstitialAd?
-    private var currentRewarded: FBRewardedVideoAd?
     #endif
     
     private override init() {
@@ -106,23 +110,18 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
     
     // MARK: - Гео-маршрутизация (Geo-Routing)
-    /// При наличии настроенных плейсментов Meta Audience Network используется как приоритетная сеть
-    /// в Армении и по всему миру (за исключением РФ и Беларуси, где работает VK Реклама).
+    /// В РФ и Беларуси используется VK Реклама (myTarget).
+    /// В Армении и по всему миру используется Google AdMob.
     public func determineActiveNetworkByGeo() {
         let region = Locale.current.region?.identifier.uppercased() ?? "AM"
         self.detectedRegionCode = region
         
-        #if canImport(FBAudienceNetwork)
         let vkOnlyRegions: Set<String> = ["RU", "BY"]
-        if vkOnlyRegions.contains(region) || !AdConfig.hasMetaPlacements {
+        if vkOnlyRegions.contains(region) {
             self.activeProviderType = .vk
         } else {
-            self.activeProviderType = .meta
+            self.activeProviderType = .admob
         }
-        #else
-        // В проекте подключен прямой SDK VK Рекламы (myTarget)
-        self.activeProviderType = .vk
-        #endif
     }
     
     /// Получение индивидуального Slot ID для экрана для избежания No-Fill при параллельных запросах
@@ -151,16 +150,20 @@ public final class LuysAdManager: NSObject, ObservableObject {
         isInitialized = true
         determineActiveNetworkByGeo()
         
-        #if canImport(MyTargetSDK)
-        MTRGManager.setDebugMode(isTestMode) // Боевой режим когда isTestMode = false
-        preloadVkRewarded()
-        startPeriodicAdCheck()
+        #if canImport(GoogleMobileAds)
+        GADMobileAds.sharedInstance().start { status in
+            #if DEBUG
+            print("✅ [AdMob] Google Mobile Ads инициализирован: \(status.adapterStatusesByClassName)")
+            #endif
+        }
         #endif
         
-        #if canImport(FBAudienceNetwork)
-        preloadInterstitial()
-        preloadMetaRewarded()
+        #if canImport(MyTargetSDK)
+        MTRGManager.setDebugMode(isTestMode)
         #endif
+        
+        preloadAds()
+        startPeriodicAdCheck()
         
         #if !targetEnvironment(simulator)
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
@@ -183,12 +186,6 @@ public final class LuysAdManager: NSObject, ObservableObject {
                 Task { @MainActor in
                     let authorized = (status == .authorized)
                     self?.isTrackingAuthorized = authorized
-                    
-                    #if canImport(FBAudienceNetwork)
-                    if AdConfig.hasMetaPlacements {
-                        FBAdSettings.setAdvertiserTrackingEnabled(authorized)
-                    }
-                    #endif
                 }
             }
         }
@@ -206,10 +203,16 @@ public final class LuysAdManager: NSObject, ObservableObject {
                 guard let self = self else { return }
                 guard !SubscriptionManager.shared.isPremium, self.isAdsEnabled else { return }
                 
+                #if canImport(GoogleMobileAds)
+                if self.activeProviderType == .admob && !self.isRewardedReady {
+                    self.preloadAdMobRewarded()
+                }
+                #endif
+                
                 #if canImport(MyTargetSDK)
-                if !self.isRewardedReady {
+                if self.activeProviderType == .vk && !self.isRewardedReady {
                     #if DEBUG
-                    print("🔄 [LuysAds] Периодический цикл (каждые \(interval)с): Запрос новой VK RewardedAd")
+                    print("🔄 [LuysAds] Периодический цикл: Запрос новой VK RewardedAd")
                     #endif
                     self.preloadVkRewarded()
                 }
@@ -229,17 +232,88 @@ public final class LuysAdManager: NSObject, ObservableObject {
     public func preloadAds() {
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
         
-        #if canImport(MyTargetSDK)
-        preloadVkRewarded()
-        startPeriodicAdCheck()
+        #if canImport(GoogleMobileAds)
+        preloadAdMobRewarded()
+        preloadAdMobInterstitial()
         #endif
         
-        #if canImport(FBAudienceNetwork)
-        preloadInterstitial()
-        preloadMetaRewarded()
+        #if canImport(MyTargetSDK)
+        preloadVkRewarded()
         #endif
     }
     
+    // MARK: - Предзагрузка Google AdMob
+    public func preloadAdMobRewarded() {
+        #if canImport(GoogleMobileAds)
+        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
+        guard admobRewardedAd == nil, !isAdMobRewardedLoading else { return }
+        isAdMobRewardedLoading = true
+        
+        let request = GADRequest()
+        let unitId = AdConfig.admobRewardedUnitID
+        GADRewardedAd.load(withAdUnitID: unitId, request: request) { [weak self] ad, error in
+            Task { @MainActor in
+                guard let self = self else { return }
+                self.isAdMobRewardedLoading = false
+                if let error = error {
+                    #if DEBUG
+                    print("⚠️ [AdMob Rewarded] Ошибка предзагрузки: \(error.localizedDescription)")
+                    #endif
+                    self.admobRewardedAd = nil
+                    if self.activeProviderType == .admob {
+                        self.isRewardedReady = false
+                    }
+                    return
+                }
+                self.admobRewardedAd = ad
+                ad?.fullScreenContentDelegate = self
+                if self.activeProviderType == .admob {
+                    self.isRewardedReady = true
+                }
+                #if DEBUG
+                print("✅ [AdMob Rewarded] Видео успешно загружено и готово к показу!")
+                #endif
+            }
+        }
+        #endif
+    }
+    
+    public func preloadAdMobInterstitial() {
+        #if canImport(GoogleMobileAds)
+        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
+        guard admobInterstitialAd == nil, !isAdMobInterstitialLoading else { return }
+        isAdMobInterstitialLoading = true
+        
+        let request = GADRequest()
+        let unitId = AdConfig.admobInterstitialUnitID
+        GADInterstitialAd.load(withAdUnitID: unitId, request: request) { [weak self] ad, error in
+            Task { @MainActor in
+                guard let self = self else { return }
+                self.isAdMobInterstitialLoading = false
+                if let error = error {
+                    #if DEBUG
+                    print("⚠️ [AdMob Interstitial] Ошибка предзагрузки: \(error.localizedDescription)")
+                    #endif
+                    self.admobInterstitialAd = nil
+                    if self.activeProviderType == .admob {
+                        self.isInterstitialReady = false
+                    }
+                    return
+                }
+                self.admobInterstitialAd = ad
+                ad?.fullScreenContentDelegate = self
+                if self.activeProviderType == .admob {
+                    self.isInterstitialReady = true
+                }
+                #if DEBUG
+                print("✅ [AdMob Interstitial] Межстраничная реклама готова к показу!")
+                #endif
+            }
+        }
+        #endif
+    }
+    
+    // MARK: - Предзагрузка VK Рекламы
     public func preloadVkRewarded() {
         #if canImport(MyTargetSDK)
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
@@ -255,30 +329,6 @@ public final class LuysAdManager: NSObject, ObservableObject {
         #endif
     }
     
-    public func preloadInterstitial() {
-        #if canImport(FBAudienceNetwork)
-        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
-        let placementID = AdConfig.interstitialPlacementID
-        guard !placementID.isEmpty else { return }
-        let interstitial = FBInterstitialAd(placementID: placementID)
-        interstitial.delegate = self
-        self.currentInterstitial = interstitial
-        interstitial.load()
-        #endif
-    }
-    
-    public func preloadMetaRewarded() {
-        #if canImport(FBAudienceNetwork)
-        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
-        let placementID = AdConfig.rewardedPlacementID
-        guard !placementID.isEmpty else { return }
-        let rewarded = FBRewardedVideoAd(placementID: placementID)
-        rewarded.delegate = self
-        self.currentRewarded = rewarded
-        rewarded.load()
-        #endif
-    }
-    
     // MARK: - Межстраничная реклама (Interstitial)
     public func canShowInterstitial() -> Bool {
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return false }
@@ -290,8 +340,8 @@ public final class LuysAdManager: NSObject, ObservableObject {
             }
         }
         
-        #if canImport(FBAudienceNetwork)
-        if let interstitial = currentInterstitial, interstitial.isAdValid {
+        #if canImport(GoogleMobileAds)
+        if activeProviderType == .admob && admobInterstitialAd != nil {
             return true
         }
         #endif
@@ -311,16 +361,20 @@ public final class LuysAdManager: NSObject, ObservableObject {
     @discardableResult
     public func showInterstitialIfReady(from viewController: UIViewController? = nil) -> Bool {
         guard canShowInterstitial() else { return false }
-        
         let rootVC = viewController ?? getTopViewController()
         guard let presenter = rootVC else { return false }
         
-        #if canImport(FBAudienceNetwork)
-        if let interstitial = currentInterstitial, interstitial.isAdValid {
-            interstitial.show(fromRootViewController: presenter)
-            lastInterstitialTime = Date()
-            actionCounter = 0
-            isInterstitialReady = false
+        #if canImport(GoogleMobileAds)
+        if activeProviderType == .admob, let interstitial = self.admobInterstitialAd {
+            self.currentlyShowingAdMobInterstitial = interstitial
+            self.admobInterstitialAd = nil
+            self.isInterstitialReady = false
+            self.lastInterstitialTime = Date()
+            self.actionCounter = 0
+            #if DEBUG
+            print("🎬 [AdMob Interstitial] Показ полноэкранного объявления Google...")
+            #endif
+            interstitial.present(from: presenter)
             return true
         }
         #endif
@@ -349,62 +403,39 @@ public final class LuysAdManager: NSObject, ObservableObject {
         let rootVC = viewController ?? getTopViewController()
         self.onDismissWithoutReward = onDismissWithoutReward
         
-        // Гибридный показ с учетом активного провайдера
-        if activeProviderType == .meta {
-            #if canImport(FBAudienceNetwork)
-            if let metaRewarded = self.currentRewarded, metaRewarded.isAdValid, let presenter = rootVC {
-                self.onRewardCompletion = onReward
-                metaRewarded.show(fromRootViewController: presenter)
-                self.isRewardedReady = false
-                return true
-            }
+        #if canImport(GoogleMobileAds)
+        if activeProviderType == .admob, let admobAd = self.admobRewardedAd, let presenter = rootVC {
+            self.onRewardCompletion = onReward
+            self.currentlyShowingAdMobRewarded = admobAd
+            self.admobRewardedAd = nil
+            self.isRewardedReady = false
+            #if DEBUG
+            print("🎬 [AdMob Rewarded] Запуск показа Google видео...")
             #endif
-            
-            #if canImport(MyTargetSDK)
-            if isRewardedReady, let vkAd = self.vkRewardedAd, let presenter = rootVC {
-                self.onRewardCompletion = onReward
-                self.currentlyShowingRewardedAd = vkAd
-                self.vkRewardedAd = nil
-                self.isRewardedReady = false
-                #if DEBUG
-                print("🎬 [VK Rewarded Fallback] Запуск показа VK видео...")
-                #endif
-                vkAd.show(with: presenter)
-                return true
+            admobAd.present(from: presenter) { [weak self] in
+                Task { @MainActor in
+                    self?.completeRewardedAdAndGrantReward()
+                }
             }
-            #endif
-        } else {
-            #if canImport(MyTargetSDK)
-            if isRewardedReady, let vkAd = self.vkRewardedAd, let presenter = rootVC {
-                self.onRewardCompletion = onReward
-                self.currentlyShowingRewardedAd = vkAd
-                self.vkRewardedAd = nil
-                self.isRewardedReady = false
-                #if DEBUG
-                print("🎬 [VK Rewarded] Запуск показа полноэкранного видео...")
-                #endif
-                vkAd.show(with: presenter)
-                return true
-            }
-            #endif
-            
-            #if canImport(FBAudienceNetwork)
-            if let metaRewarded = self.currentRewarded, metaRewarded.isAdValid, let presenter = rootVC {
-                self.onRewardCompletion = onReward
-                metaRewarded.show(fromRootViewController: presenter)
-                self.isRewardedReady = false
-                return true
-            }
-            #endif
+            return true
         }
+        #endif
         
-        // 3. Если реклама еще не готова — запускаем подгрузку и возвращаем false
-        #if canImport(FBAudienceNetwork)
-        preloadMetaRewarded()
-        #endif
         #if canImport(MyTargetSDK)
-        preloadVkRewarded()
+        if isRewardedReady, let vkAd = self.vkRewardedAd, let presenter = rootVC {
+            self.onRewardCompletion = onReward
+            self.currentlyShowingRewardedAd = vkAd
+            self.vkRewardedAd = nil
+            self.isRewardedReady = false
+            #if DEBUG
+            print("🎬 [VK Rewarded] Запуск показа полноэкранного видео...")
+            #endif
+            vkAd.show(with: presenter)
+            return true
+        }
         #endif
+        
+        preloadAds()
         return false
     }
     
@@ -418,7 +449,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         onDismissWithoutReward = nil
         callback?()
         
-        preloadVkRewarded()
+        preloadAds()
     }
     
     // MARK: - Аналитика
@@ -452,6 +483,50 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
 }
 
+// MARK: - Делегаты Google AdMob (FullScreen Content)
+#if canImport(GoogleMobileAds)
+extension LuysAdManager: GADFullScreenContentDelegate {
+    nonisolated public func adDidRecordImpression(_ ad: GADFullScreenPresentingAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.logImpression()
+        }
+    }
+    
+    nonisolated public func adDidRecordClick(_ ad: GADFullScreenPresentingAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.logClick()
+        }
+    }
+    
+    nonisolated public func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.currentlyShowingAdMobRewarded = nil
+            LuysAdManager.shared.currentlyShowingAdMobInterstitial = nil
+            if LuysAdManager.shared.onRewardCompletion != nil {
+                LuysAdManager.shared.onDismissWithoutReward?()
+                LuysAdManager.shared.onRewardCompletion = nil
+                LuysAdManager.shared.onDismissWithoutReward = nil
+            }
+            LuysAdManager.shared.preloadAds()
+        }
+    }
+    
+    nonisolated public func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
+        Task { @MainActor in
+            #if DEBUG
+            print("⚠️ [AdMob] Ошибка показа полноэкранной рекламы: \(error.localizedDescription)")
+            #endif
+            LuysAdManager.shared.currentlyShowingAdMobRewarded = nil
+            LuysAdManager.shared.currentlyShowingAdMobInterstitial = nil
+            LuysAdManager.shared.onDismissWithoutReward?()
+            LuysAdManager.shared.onRewardCompletion = nil
+            LuysAdManager.shared.onDismissWithoutReward = nil
+            LuysAdManager.shared.preloadAds()
+        }
+    }
+}
+#endif
+
 // MARK: - Делегаты VK Рекламы / myTarget (Rewarded Video)
 #if canImport(MyTargetSDK)
 extension LuysAdManager: MTRGRewardedAdDelegate {
@@ -460,7 +535,9 @@ extension LuysAdManager: MTRGRewardedAdDelegate {
             #if DEBUG
             print("✅ [VK Rewarded] Видео успешно загружено и готово к показу!")
             #endif
-            LuysAdManager.shared.isRewardedReady = true
+            if LuysAdManager.shared.activeProviderType == .vk {
+                LuysAdManager.shared.isRewardedReady = true
+            }
         }
     }
     
@@ -469,7 +546,9 @@ extension LuysAdManager: MTRGRewardedAdDelegate {
             #if DEBUG
             print("⚠️ [VK Rewarded] Ошибка загрузки видео: \(error.localizedDescription)")
             #endif
-            LuysAdManager.shared.isRewardedReady = false
+            if LuysAdManager.shared.activeProviderType == .vk {
+                LuysAdManager.shared.isRewardedReady = false
+            }
         }
     }
     
@@ -500,62 +579,6 @@ extension LuysAdManager: MTRGRewardedAdDelegate {
                 LuysAdManager.shared.onDismissWithoutReward = nil
             }
             LuysAdManager.shared.preloadVkRewarded()
-        }
-    }
-}
-#endif
-
-// MARK: - Делегаты Meta Audience Network
-#if canImport(FBAudienceNetwork)
-extension LuysAdManager: FBInterstitialAdDelegate {
-    nonisolated public func interstitialAdDidLoad(_ interstitialAd: FBInterstitialAd) {
-        Task { @MainActor in
-            LuysAdManager.shared.isInterstitialReady = true
-        }
-    }
-    
-    nonisolated public func interstitialAd(_ interstitialAd: FBInterstitialAd, didFailWithError error: Error) {
-        Task { @MainActor in
-            LuysAdManager.shared.isInterstitialReady = false
-        }
-    }
-    
-    nonisolated public func interstitialAdDidClose(_ interstitialAd: FBInterstitialAd) {
-        Task { @MainActor in
-            LuysAdManager.shared.isInterstitialReady = false
-            LuysAdManager.shared.preloadInterstitial()
-        }
-    }
-}
-
-extension LuysAdManager: FBRewardedVideoAdDelegate {
-    nonisolated public func rewardedVideoAdDidLoad(_ rewardedVideoAd: FBRewardedVideoAd) {
-        Task { @MainActor in
-            LuysAdManager.shared.isRewardedReady = true
-        }
-    }
-    
-    nonisolated public func rewardedVideoAd(_ rewardedVideoAd: FBRewardedVideoAd, didFailWithError error: Error) {
-        Task { @MainActor in
-            LuysAdManager.shared.isRewardedReady = false
-        }
-    }
-    
-    nonisolated public func rewardedVideoAdVideoComplete(_ rewardedVideoAd: FBRewardedVideoAd) {
-        Task { @MainActor in
-            LuysAdManager.shared.completeRewardedAdAndGrantReward()
-        }
-    }
-    
-    nonisolated public func rewardedVideoAdDidClose(_ rewardedVideoAd: FBRewardedVideoAd) {
-        Task { @MainActor in
-            LuysAdManager.shared.isRewardedReady = false
-            if LuysAdManager.shared.onRewardCompletion != nil {
-                LuysAdManager.shared.onDismissWithoutReward?()
-                LuysAdManager.shared.onRewardCompletion = nil
-                LuysAdManager.shared.onDismissWithoutReward = nil
-            }
-            LuysAdManager.shared.preloadMetaRewarded()
         }
     }
 }

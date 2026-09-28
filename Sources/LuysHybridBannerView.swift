@@ -159,14 +159,15 @@ public struct LuysHybridBannerView: View {
             let creative = sponsorCreatives[currentCreativeIndex]
             
             VStack(spacing: 6) {
-                // Живой баннер Meta Audience Network
-                if adManager.activeProviderType == .meta && !AdConfig.bannerPlacementID.isEmpty {
-                    ZStack {
-                        MetaBannerContainerView(
-                            placementID: AdConfig.bannerPlacementID,
-                            onAdLoaded: {
+                // Живой баннер (VK / Google AdMob) с мягким фолбеком на спонсорскую карточку Luys
+                ZStack {
+                    if adManager.activeProviderType == .vk {
+                        VKBannerContainerView(
+                            slotId: slotId,
+                            isVisible: isVisibleOnScreen,
+                            onAdLoaded: { height in
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    liveBannerHeight = 50
+                                    liveBannerHeight = height
                                     isLiveAdLoaded = true
                                 }
                             },
@@ -176,21 +177,33 @@ public struct LuysHybridBannerView: View {
                                 }
                             }
                         )
-                        .frame(height: 50)
-                        .frame(maxWidth: .infinity)
+                        .frame(height: liveBannerHeight)
                         .opacity(isLiveAdLoaded ? 1 : 0)
                         .allowsHitTesting(isLiveAdLoaded)
-                        
-                        // Пока баннер загружается или при No-Fill — показываем спонсорскую карточку
-                        if !isLiveAdLoaded {
-                            fallbackSponsorCard(creative: creative)
-                                .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                        }
+                    } else if adManager.activeProviderType == .admob {
+                        AdMobBannerContainerView(
+                            adUnitID: AdConfig.admobBannerUnitID,
+                            onAdLoaded: { height in
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    liveBannerHeight = height
+                                    isLiveAdLoaded = true
+                                }
+                            },
+                            onAdFailed: { _ in
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    isLiveAdLoaded = false
+                                }
+                            }
+                        )
+                        .frame(height: liveBannerHeight)
+                        .opacity(isLiveAdLoaded ? 1 : 0)
+                        .allowsHitTesting(isLiveAdLoaded)
                     }
-                } else {
-                    // Резервный спонсорский баннер в эстетике Apple HIG
-                    fallbackSponsorCard(creative: creative)
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    
+                    if !isLiveAdLoaded {
+                        fallbackSponsorCard(creative: creative)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    }
                 }
                 
                 // Компактная полоса с кнопкой «Отключить рекламу в PRO»
