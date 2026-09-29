@@ -17,7 +17,7 @@ extension SettingsView {
                 } icon: {
                     Image(systemName: "apps.iphone")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        .foregroundColor(selectedTheme.color)
                 }
                 
                 // Бейдж STANDBY
@@ -47,7 +47,7 @@ extension SettingsView {
                         Text("widget_instruction_title".localized(for: selectedLanguage))
                             .font(PaperFont.font(size: 12, weight: .semibold))
                     }
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .foregroundColor(selectedTheme.color)
                 }
                 .buttonStyle(ScaleButtonStyle())
             }
@@ -62,7 +62,7 @@ extension SettingsView {
                 HStack(spacing: 6) {
                     Image(systemName: "globe")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        .foregroundColor(selectedTheme.color)
                     Text("widget_language_title".localized(for: selectedLanguage))
                         .font(PaperFont.font(size: 13.5, weight: .semibold))
                         .foregroundColor(primaryTextColor)
@@ -88,7 +88,7 @@ extension SettingsView {
                 HStack(spacing: 6) {
                     Image(systemName: "paintpalette.fill")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        .foregroundColor(selectedTheme.color)
                     Text("widget_style_section_title".localized(for: selectedLanguage))
                         .font(PaperFont.font(size: 13.5, weight: .semibold))
                         .foregroundColor(primaryTextColor)
@@ -127,7 +127,7 @@ extension SettingsView {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        .foregroundColor(selectedTheme.color)
                     Text("standby_preview_title".localized(for: selectedLanguage))
                         .font(PaperFont.font(size: 14, weight: .semibold))
                         .foregroundColor(primaryTextColor)
@@ -162,12 +162,12 @@ extension SettingsView {
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                                 .fill(
                                                     LinearGradient(
-                                                        colors: [Color(hex: selectedTheme.colorHex), Color(hex: selectedTheme.secondaryColorHex)],
+                                                        colors: [selectedTheme.color, Color(hex: selectedTheme.secondaryColorHex)],
                                                         startPoint: .topLeading,
                                                         endPoint: .bottomTrailing
                                                     )
                                                 )
-                                                .shadow(color: Color(hex: selectedTheme.colorHex).opacity(0.35), radius: 6, y: 2)
+                                                .shadow(color: selectedTheme.color.opacity(0.35), radius: 6, y: 2)
                                         } else {
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                                 .fill(inputFieldBgColor)
@@ -178,7 +178,7 @@ extension SettingsView {
                                         }
                                     }
                                 )
-                                .foregroundColor(isSelected ? .white : primaryTextColor)
+                                .foregroundColor(isSelected ? Paper.onAccent : primaryTextColor)
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }
@@ -191,7 +191,7 @@ extension SettingsView {
                 HStack {
                     HStack(spacing: 5) {
                         Circle()
-                            .fill(Color(hex: selectedTheme.colorHex))
+                            .fill(selectedTheme.color)
                             .frame(width: 6, height: 6)
                         Text(previewWidgetSize == .small ? (selectedLanguage == .armenian ? "Գլխավոր էկրան (Փոքր 2×2)" : selectedLanguage == .russian ? "Рабочий стол (Малый 2×2)" : "Home Screen (Small 2×2)") :
                              previewWidgetSize == .medium ? (selectedLanguage == .armenian ? "Գլխավոր էկրան (Միջին 4×2)" : selectedLanguage == .russian ? "Рабочий стол (Средний 4×2)" : "Home Screen (Medium 4×2)") :
@@ -215,10 +215,10 @@ extension SettingsView {
                             Text("button_random_verse".localized(for: selectedLanguage))
                                 .font(PaperFont.font(size: 11.5, weight: .semibold))
                         }
-                        .foregroundColor(Color(hex: selectedTheme.colorHex))
+                        .foregroundColor(selectedTheme.color)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4.5)
-                        .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                        .background(selectedTheme.color.opacity(0.12))
                         .cornerRadius(8)
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -352,7 +352,7 @@ extension SettingsView {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 6)
                                 .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
-                                .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                .foregroundColor(selectedTheme.color)
                                 .cornerRadius(9)
                             }
                         }
@@ -426,7 +426,7 @@ extension SettingsView {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 8)
                                 .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
-                                .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                .foregroundColor(selectedTheme.color)
                                 .cornerRadius(10)
                             }
                         }
@@ -540,21 +540,21 @@ extension SettingsView {
                                         VStack(spacing: 3) {
                                             Text(design.previewText)
                                                 .font(.system(size: 13, weight: .semibold, design: design.fontDesign))
-                                                .foregroundColor(isSelected ? Color(hex: selectedTheme.colorHex) : primaryTextColor)
+                                                .foregroundColor(isSelected ? selectedTheme.color : primaryTextColor)
                                             Text(design.title(for: selectedLanguage))
                                                 .font(PaperFont.font(size: 9, weight: .medium))
-                                                .foregroundColor(isSelected ? Color(hex: selectedTheme.colorHex) : .secondary)
+                                                .foregroundColor(isSelected ? selectedTheme.color : .secondary)
                                         }
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 7)
                                         .background(
                                             RoundedRectangle(cornerRadius: 10)
                                                 .fill(isSelected
-                                                    ? Color(hex: selectedTheme.colorHex).opacity(0.15)
+                                                    ? selectedTheme.color.opacity(0.15)
                                                     : inputFieldBgColor)
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 10)
-                                                        .stroke(isSelected ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: isSelected ? 1.5 : 1)
+                                                        .stroke(isSelected ? selectedTheme.color : inputFieldBorderColor, lineWidth: isSelected ? 1.5 : 1)
                                                 )
                                         )
                                     }
@@ -748,22 +748,17 @@ extension SettingsView {
                     .background(
                         isWidgetsUpdatedSuccess ?
                             LinearGradient(colors: [Paper.moss, Paper.moss], startPoint: .leading, endPoint: .trailing) :
-                            LinearGradient(colors: [Color(hex: selectedTheme.colorHex), Color(hex: selectedTheme.secondaryColorHex)], startPoint: .leading, endPoint: .trailing)
+                            LinearGradient(colors: [selectedTheme.color, Color(hex: selectedTheme.secondaryColorHex)], startPoint: .leading, endPoint: .trailing)
                     )
                     .cornerRadius(13)
-                    .shadow(color: (isWidgetsUpdatedSuccess ? Paper.moss : Color(hex: selectedTheme.colorHex)).opacity(0.35), radius: 8, y: 3)
+                    .shadow(color: (isWidgetsUpdatedSuccess ? Paper.moss : selectedTheme.color).opacity(0.35), radius: 8, y: 3)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.top, 4)
             }
         }
         .padding(16)
-        .background(cardBackgroundColor)
-        .cornerRadius(18)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(cardBorderColor, lineWidth: 1)
-        )
+        .paperField(cornerRadius: 18)
         .padding(.horizontal, 4)
     }
     
@@ -837,12 +832,7 @@ extension SettingsView {
             .buttonStyle(ScaleButtonStyle())
         }
         .padding(16)
-        .background(cardBackgroundColor)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(cardBorderColor, lineWidth: 1)
-        )
+        .paperField(cornerRadius: 18)
         .padding(.horizontal, 4)
     }
     

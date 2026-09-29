@@ -44,12 +44,7 @@ struct VerseActionSheetView: View {
                     }
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(cardBackgroundColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Paper.ink.opacity(0.08), lineWidth: 1.0)
-                    )
+                    .paperField(cornerRadius: 14)
                     .applyIf(selectedColorHex != nil) { view in
                         view.livingBorder(
                             colors: [
@@ -150,14 +145,9 @@ struct VerseActionSheetView: View {
                         
                         TextField("add_note_placeholder".localized(for: language), text: $noteText, axis: .vertical)
                             .lineLimit(3...6)
-                            .font(.system(size: 14))
+                            .font(PaperFont.font(size: 14))
                             .padding(12)
-                            .background(cardBackgroundColor)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
-                            )
+                            .paperField(cornerRadius: 12)
                             .keyboardDismissToolbar()
                             .onChange(of: noteText) { _ in
                                 saveChanges()
@@ -189,12 +179,12 @@ struct VerseActionSheetView: View {
                                     }
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
-                                    .background(isSelected ? Color(hex: tag.colorHex).opacity(0.25) : cardBackgroundColor)
-                                    .foregroundColor(isSelected ? Color(hex: tag.colorHex) : primaryTextColor.opacity(0.8))
+                                    .background(isSelected ? tag.color.opacity(0.25) : cardBackgroundColor)
+                                    .foregroundColor(isSelected ? tag.color : primaryTextColor.opacity(0.8))
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(isSelected ? Color(hex: tag.colorHex) : Paper.ink.opacity(0.1), lineWidth: 1)
+                                            .stroke(isSelected ? tag.color : Paper.ink.opacity(0.1), lineWidth: 1)
                                     )
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -250,9 +240,7 @@ struct VerseActionSheetView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(12)
-                                .background(cardBackgroundColor)
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.ink.opacity(0.08), lineWidth: 1))
+                                .paperField(cornerRadius: 12)
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                             
@@ -268,9 +256,7 @@ struct VerseActionSheetView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(12)
-                                .background(cardBackgroundColor)
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.ink.opacity(0.08), lineWidth: 1))
+                                .paperField(cornerRadius: 12)
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                             
@@ -286,9 +272,7 @@ struct VerseActionSheetView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(12)
-                                .background(cardBackgroundColor)
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.ink.opacity(0.08), lineWidth: 1))
+                                .paperField(cornerRadius: 12)
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                         }

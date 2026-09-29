@@ -105,7 +105,7 @@ struct QuizStartView: View {
                                 Text("quiz_mode_ai".localized(for: language))
                                     .font(PaperFont.font(size: 13, weight: isAIGenerationEnabled ? .semibold : .medium))
                             }
-                            .foregroundColor(isAIGenerationEnabled ? .white : primaryTextColor)
+                            .foregroundColor(isAIGenerationEnabled ? Paper.onAccent : primaryTextColor)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 11)
                             .background(isAIGenerationEnabled ? accentColor : cardBackgroundColor)
@@ -127,9 +127,9 @@ struct QuizStartView: View {
                                 Image(systemName: "book.closed.fill")
                                     .font(.system(size: 12, weight: .semibold))
                                 Text("quiz_mode_classic".localized(for: language))
-                                    .font(.system(size: 13, weight: !isAIGenerationEnabled ? .bold : .medium))
+                                    .font(PaperFont.font(size: 13, weight: !isAIGenerationEnabled ? .semibold : .medium))
                             }
-                            .foregroundColor(!isAIGenerationEnabled ? .white : primaryTextColor)
+                            .foregroundColor(!isAIGenerationEnabled ? Paper.onAccent : primaryTextColor)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 11)
                             .background(!isAIGenerationEnabled ? accentColor : cardBackgroundColor)
@@ -171,8 +171,8 @@ struct QuizStartView: View {
                                 selectedQuestionCount = count
                             } label: {
                                 Text("\(count) " + "quiz_count_suffix".localized(for: language))
-                                    .font(.system(size: 13, weight: selectedQuestionCount == count ? .bold : .medium))
-                                    .foregroundColor(selectedQuestionCount == count ? .white : primaryTextColor)
+                                    .font(PaperFont.font(size: 13, weight: selectedQuestionCount == count ? .semibold : .medium))
+                                    .foregroundColor(selectedQuestionCount == count ? Paper.onAccent : primaryTextColor)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
                                     .background(selectedQuestionCount == count ? accentColor : cardBackgroundColor)
@@ -207,7 +207,7 @@ struct QuizStartView: View {
                                         .frame(width: 24)
                                     
                                     Text(cat.title(for: language))
-                                        .font(.system(size: 14, weight: selectedCategory == cat ? .bold : .medium))
+                                        .font(PaperFont.font(size: 14, weight: selectedCategory == cat ? .semibold : .medium))
                                         .foregroundColor(primaryTextColor)
                                     
                                     Spacer()
@@ -241,12 +241,12 @@ struct QuizStartView: View {
                 } label: {
                     Text("quiz_button_start".localized(for: language))
                         .font(PaperFont.font(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)
                         .background(accentColor)
                         .cornerRadius(16)
-                        .shadow(color: accentColor.opacity(0.3), radius: 8, y: 4)
+                        .shadow(color: Paper.shadow, radius: 8, y: 4)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, 20)

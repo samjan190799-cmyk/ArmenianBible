@@ -25,10 +25,10 @@ struct AIGuideView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     private var secondaryAccentColor: Color {
-        Color(hex: manager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
     private var backgroundColor: Color {
         Paper.page
@@ -37,19 +37,7 @@ struct AIGuideView: View {
         Paper.sheet
     }
     private var cardBorderColor: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        LinearGradient(colors: [Paper.hairline, Paper.hairline], startPoint: .top, endPoint: .bottom)
     }
     private var primaryTextColor: Color {
         Paper.ink
@@ -71,16 +59,7 @@ struct AIGuideView: View {
     
     var body: some View {
         ZStack {
-            backgroundColor.ignoresSafeArea()
-            
-            // Фоновое мягкое свечение
-            RadialGradient(
-                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.07 : 0.04), Color.clear]),
-                center: .top,
-                startRadius: 50,
-                endRadius: 350
-            )
-            .ignoresSafeArea()
+            PaperBackground()
             
             VStack(spacing: 0) {
                 // 1. Верхняя панель чата (Header)
@@ -166,11 +145,11 @@ struct AIGuideView: View {
                             .foregroundColor(Paper.moss)
                         Text(toastMessage)
                             .font(PaperFont.font(size: 14, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.page)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(Color.black.opacity(0.85))
+                    .background(Paper.ink.opacity(0.92))
                     .cornerRadius(25)
                     .shadow(radius: 10)
                     .padding(.bottom, 80)
@@ -268,7 +247,7 @@ extension AIGuideView {
                     } label: {
                         HStack(spacing: 5) {
                             Circle()
-                                .fill(Color(hex: manager.activeProvider.accentColorHex))
+                                .fill(manager.activeProvider.color)
                                 .frame(width: 6, height: 6)
                             Text(manager.activeProvider.displayName)
                                 .font(PaperFont.font(size: 11, weight: .semibold))
@@ -279,7 +258,7 @@ extension AIGuideView {
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color(hex: manager.activeProvider.accentColorHex).opacity(0.12))
+                        .background(manager.activeProvider.color.opacity(0.12))
                         .cornerRadius(8)
                     }
                 }
@@ -332,18 +311,12 @@ extension AIGuideView {
                                 Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
                                     .font(PaperFont.font(size: 9, weight: .semibold))
                             }
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.onAccent)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 1.5)
-                            .background(
-                                LinearGradient(
-                                    colors: [Paper.gold, Paper.gold],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .background(Paper.gold)
                             .cornerRadius(4)
-                            .shadow(color: Paper.gold.opacity(0.3), radius: 2, x: 0, y: 1)
+                            .shadow(color: Paper.shadow, radius: 2, x: 0, y: 1)
                         }
                     }
                 }
@@ -415,12 +388,12 @@ extension AIGuideView {
                             Text(provider.displayName)
                                 .font(PaperFont.font(size: 12, weight: .semibold))
                         }
-                        .foregroundColor(manager.activeProvider == provider ? .white : primaryTextColor.opacity(0.7))
+                        .foregroundColor(manager.activeProvider == provider ? Paper.onAccent : primaryTextColor.opacity(0.7))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
                         .background(
                             manager.activeProvider == provider ?
-                            Color(hex: provider.accentColorHex) :
+                            provider.color :
                             cardBackgroundColor
                         )
                         .cornerRadius(20)
@@ -472,16 +445,11 @@ extension AIGuideView {
                             
                             Image(systemName: "arrow.up.right")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.secondary.opacity(0.5))
+                                .foregroundColor(Paper.inkSecondary.opacity(0.5))
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(cardBackgroundColor)
-                        .cornerRadius(14)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Paper.ink.opacity(0.06), lineWidth: 1)
-                        )
+                        .paperField(cornerRadius: 14)
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
@@ -520,16 +488,10 @@ extension AIGuideView {
                             Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
                                 .font(PaperFont.font(size: 11, weight: .semibold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3.5)
-                        .background(
-                            LinearGradient(
-                                colors: [Paper.gold, Paper.gold],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .background(Paper.gold)
                         .cornerRadius(6)
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -545,7 +507,7 @@ extension AIGuideView {
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("ai_placeholder_prompt".localized(for: manager.appLanguage), text: $questionText, axis: .vertical)
                     .lineLimit(1...5)
-                    .font(.system(size: 15))
+                    .font(PaperFont.font(size: 15))
                     .foregroundColor(primaryTextColor)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
@@ -566,7 +528,7 @@ extension AIGuideView {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(canSubmit ? accentColor : Color.gray.opacity(0.3))
+                            .fill(canSubmit ? accentColor : Paper.fillMuted)
                             .frame(width: 42, height: 42)
                         
                         Image(systemName: "paperplane.fill")
@@ -580,7 +542,7 @@ extension AIGuideView {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(.ultraThinMaterial)
+            .background(Paper.page)
         }
     }
     
@@ -681,7 +643,7 @@ extension AIGuideView {
                                 Text("\(subscriptionManager.accumulatedBonusAiQuestions)")
                                     .font(PaperFont.font(size: 9, weight: .semibold))
                             }
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.onAccent)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1.5)
                             .background(Paper.moss)
@@ -689,7 +651,7 @@ extension AIGuideView {
                         } else {
                             Text("REWARD")
                                 .font(PaperFont.font(size: 8, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.onAccent)
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 1.5)
                                 .background(Paper.gold)
@@ -712,18 +674,12 @@ extension AIGuideView {
                     Image(systemName: "play.fill")
                         .font(.system(size: 8, weight: .bold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(Paper.onAccent)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(
-                    LinearGradient(
-                        colors: [Paper.gold, Paper.gold],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background(Paper.gold)
                 .cornerRadius(10)
-                .shadow(color: Paper.gold.opacity(0.35), radius: 3, x: 0, y: 1.5)
+                .shadow(color: Paper.shadow, radius: 3, x: 0, y: 1.5)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)

@@ -52,7 +52,7 @@ struct BibleLibrarySheetView: View {
     ]
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     var body: some View {
@@ -146,7 +146,7 @@ struct BibleLibrarySheetView: View {
                         .background(
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(accentColor)
-                                .shadow(color: accentColor.opacity(0.3), radius: 6, x: 0, y: 3)
+                                .shadow(color: Paper.shadow, radius: 6, x: 0, y: 3)
                         )
                     }
                     .buttonStyle(ScaleButtonStyle())

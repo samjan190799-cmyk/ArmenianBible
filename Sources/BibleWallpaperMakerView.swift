@@ -255,7 +255,7 @@ struct BibleWallpaperMakerView: View {
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 10)
-                                .background(.ultraThinMaterial)
+                                .background(Paper.page)
                                 .background(Color.black.opacity(0.6))
                                 .clipShape(Capsule())
                                 .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
@@ -343,7 +343,7 @@ struct BibleWallpaperMakerView: View {
                                                 }
                                                 
                                                 Text(theme.title(for: manager.appLanguage))
-                                                    .font(.system(size: 10, weight: selectedTheme == theme ? .bold : .medium))
+                                                    .font(PaperFont.font(size: 10, weight: selectedTheme == theme ? .semibold : .medium))
                                                     .foregroundColor(selectedTheme == theme ? .white : .white.opacity(0.6))
                                             }
                                         }

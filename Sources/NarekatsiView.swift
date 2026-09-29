@@ -16,11 +16,11 @@ struct NarekatsiView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     private var secondaryAccentColor: Color {
-        Color(hex: manager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
     
     private var backgroundColor: Color {
@@ -131,7 +131,7 @@ struct NarekatsiView: View {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(Paper.inkSecondary)
                             TextField("Поиск по 95 главам (напр. Բան Ժ или Глава 10)...", text: $searchText)
-                                .font(.system(size: 14))
+                                .font(PaperFont.font(size: 14))
                                 .foregroundColor(primaryTextColor)
                                 .keyboardDismissToolbar()
                             if !searchText.isEmpty {
@@ -145,12 +145,7 @@ struct NarekatsiView: View {
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(cardBackgroundColor)
-                        .cornerRadius(14)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(cardBorderColor, lineWidth: 1)
-                        )
+                        .paperField(cornerRadius: 14)
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
                         
@@ -867,11 +862,6 @@ struct NarekCardView: View {
             .padding(.top, 6)
         }
         .padding(18)
-        .background(cardBackgroundColor)
-        .cornerRadius(18)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(cardBorderColor, lineWidth: 1)
-        )
+        .paperField(cornerRadius: 18)
     }
 }

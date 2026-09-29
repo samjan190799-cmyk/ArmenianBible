@@ -112,7 +112,7 @@ struct ReadingPlansCatalogView: View {
                             )
                         )
                         .frame(width: 52, height: 52)
-                        .shadow(color: Paper.cinnabar.opacity(0.3), radius: 8, y: 3)
+                        .shadow(color: Paper.shadow, radius: 8, y: 3)
                     
                     Image(systemName: "flame.fill")
                         .font(.system(size: 26, weight: .bold))
@@ -160,15 +160,10 @@ struct ReadingPlansCatalogView: View {
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.secondary.opacity(0.6))
+                    .foregroundColor(Paper.inkSecondary.opacity(0.6))
             }
             .padding(16)
-            .background(cardBackgroundColor)
-            .cornerRadius(18)
-            .overlay(
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(cardBorderColor, lineWidth: 1)
-            )
+            .paperField(cornerRadius: 18)
         }
         .buttonStyle(ScaleButtonStyle())
     }
@@ -377,7 +372,7 @@ struct ReadingPlansCatalogView: View {
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary.opacity(0.5))
+                    .foregroundColor(Paper.inkSecondary.opacity(0.5))
             }
             .padding(14)
             .background(cardBackgroundColor)
@@ -529,12 +524,7 @@ struct ReadingPlanDetailView: View {
             .padding(.top, 4)
         }
         .padding(18)
-        .background(cardBackgroundColor)
-        .cornerRadius(18)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(cardBorderColor, lineWidth: 1)
-        )
+        .paperField(cornerRadius: 18)
     }
     
     // MARK: - Кнопка выбора активного плана

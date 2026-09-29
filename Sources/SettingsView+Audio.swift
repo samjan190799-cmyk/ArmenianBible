@@ -12,7 +12,7 @@ extension SettingsView {
             HStack(spacing: 8) {
                 Image(systemName: "headphones")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .foregroundColor(selectedTheme.color)
                 
                 Text("narek_audio_settings_title".localized(for: selectedLanguage))
                     .font(PaperFont.font(size: 15, weight: .semibold))
@@ -48,7 +48,7 @@ extension SettingsView {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "speedometer")
-                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .foregroundColor(selectedTheme.color)
                             .font(.system(size: 14))
                         Text("narek_playback_rate_title".localized(for: selectedLanguage))
                             .font(PaperFont.font(size: 13, weight: .semibold))
@@ -79,12 +79,12 @@ extension SettingsView {
                             } label: {
                                 Text(option.1)
                                     .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
-                                    .foregroundColor(isSelected ? .white : primaryTextColor)
+                                    .foregroundColor(isSelected ? Paper.onAccent : primaryTextColor)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(isSelected ? Color(hex: selectedTheme.colorHex) : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                            .fill(isSelected ? selectedTheme.color : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
                                     )
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -147,7 +147,7 @@ extension SettingsView {
                                 } label: {
                                     Text(option.title(for: selectedLanguage))
                                         .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
-                                        .foregroundColor(isSelected ? .white : primaryTextColor)
+                                        .foregroundColor(isSelected ? Paper.onAccent : primaryTextColor)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(
@@ -179,11 +179,11 @@ extension SettingsView {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                            .fill(selectedTheme.color.opacity(0.12))
                             .frame(width: 32, height: 32)
                         Image(systemName: "repeat")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .foregroundColor(selectedTheme.color)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -207,7 +207,7 @@ extension SettingsView {
                         }
                     ))
                     .labelsHidden()
-                    .tint(Color(hex: selectedTheme.colorHex))
+                    .tint(selectedTheme.color)
                 }
                 .padding(12)
                 .background(

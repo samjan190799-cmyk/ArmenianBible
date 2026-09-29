@@ -103,19 +103,7 @@ struct QuizResultView: View {
                 }
                 .padding(22)
                 .frame(maxWidth: .infinity)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(cardBackgroundColor)
-                    }
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(cardBorderColor, lineWidth: 1.2)
-                )
+                .paperSheet(cornerRadius: 24)
                 .padding(.horizontal, 20)
                 
                 // Кнопка просмотра всех наград
@@ -132,12 +120,7 @@ struct QuizResultView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(cardBackgroundColor)
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
-                    )
+                    .paperField(cornerRadius: 16)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, 20)
@@ -154,12 +137,7 @@ struct QuizResultView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(cardBackgroundColor)
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
-                    )
+                    .paperField(cornerRadius: 16)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, 20)
@@ -170,12 +148,12 @@ struct QuizResultView: View {
                 } label: {
                     Text("quiz_button_play_again".localized(for: language))
                         .font(PaperFont.font(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(accentColor)
                         .cornerRadius(16)
-                        .shadow(color: accentColor.opacity(0.3), radius: 8, y: 4)
+                        .shadow(color: Paper.shadow, radius: 8, y: 4)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, 20)

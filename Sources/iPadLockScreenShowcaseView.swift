@@ -69,7 +69,7 @@ struct iPadLockScreenShowcaseView: View {
                         .padding(.vertical, 12)
                     }
                     .frame(width: 270, height: 100)
-                    .background(.ultraThinMaterial)
+                    .background(Paper.page)
                     .background(Color.white.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     .overlay(
@@ -123,7 +123,7 @@ struct iPadLockScreenShowcaseView: View {
                         .padding(.vertical, 12)
                     }
                     .frame(width: 270, height: 100)
-                    .background(.ultraThinMaterial)
+                    .background(Paper.page)
                     .background(Color.white.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     .overlay(
@@ -161,7 +161,7 @@ struct iPadLockScreenShowcaseView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
                 .frame(maxWidth: 580)
-                .background(.ultraThinMaterial)
+                .background(Paper.page)
                 .background(Color.white.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                 .overlay(

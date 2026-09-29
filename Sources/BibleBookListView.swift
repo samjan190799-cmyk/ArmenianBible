@@ -50,7 +50,7 @@ struct BibleBookListView: View {
                             Spacer(minLength: 40)
                             Image(systemName: "book.closed")
                                 .font(.system(size: 40))
-                                .foregroundColor(.secondary.opacity(0.4))
+                                .foregroundColor(Paper.inkSecondary.opacity(0.4))
                             Button {
                                 books = BibleDatabase.shared.getBooks()
                             } label: {

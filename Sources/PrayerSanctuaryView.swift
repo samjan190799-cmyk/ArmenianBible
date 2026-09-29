@@ -13,7 +13,7 @@ struct PrayerSanctuaryView: View {
     @State private var selectedCandleForPrayer: PrayerCandle? = nil
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     init() {}
@@ -102,7 +102,7 @@ struct PrayerSanctuaryView: View {
                                 glowRadius: 6,
                                 duration: 4.8
                             )
-                            .shadow(color: Paper.gold.opacity(0.35), radius: 12, y: 5)
+                            .shadow(color: Paper.shadow, radius: 12, y: 5)
                         }
                         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
                         .padding(.horizontal, 20)
@@ -432,7 +432,7 @@ struct LightCandleFormSheetView: View {
                                 .foregroundColor(Paper.gold)
                             
                             TextField(namePlaceholder, text: $personName)
-                                .font(.system(size: 15))
+                                .font(PaperFont.font(size: 15))
                                 .foregroundColor(.white)
                                 .padding(14)
                                 .background(Color.white.opacity(0.06))
@@ -513,7 +513,7 @@ struct LightCandleFormSheetView: View {
                                 }
                                 
                                 TextEditor(text: $customPrayer)
-                                    .font(.system(size: 14, weight: .medium, design: .serif))
+                                    .font(PaperFont.font(size: 14, weight: .medium))
                                     .foregroundColor(.white.opacity(0.95))
                                     .lineSpacing(4)
                                     .scrollContentBackground(.hidden)
@@ -537,7 +537,7 @@ struct LightCandleFormSheetView: View {
                                 
                                 Text("\(customPrayer.count)/500")
                                     .font(PaperFont.font(size: 10, weight: .medium).monospacedDigit())
-                                    .foregroundColor(customPrayer.count > 500 ? .red : .secondary.opacity(0.6))
+                                    .foregroundColor(customPrayer.count > 500 ? .red : Paper.inkSecondary.opacity(0.6))
                             }
                         }
                         .padding(.horizontal, 20)
@@ -600,7 +600,7 @@ struct LightCandleFormSheetView: View {
                                     )
                                 )
                                 .cornerRadius(16)
-                                .shadow(color: Paper.gold.opacity(0.35), radius: 10, y: 4)
+                                .shadow(color: Paper.shadow, radius: 10, y: 4)
                             }
                             .disabled(candleManager.isPurchasing)
                             .buttonStyle(ScaleButtonStyle())

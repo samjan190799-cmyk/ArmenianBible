@@ -20,7 +20,7 @@ struct PomegranateSanctuarySheetView: View {
     }
     
     private var accentColor: Color {
-        Color(hex: bibleManager.accentTheme.colorHex)
+        bibleManager.accentTheme.color
     }
     
     var body: some View {
@@ -307,7 +307,7 @@ struct PomegranateSanctuarySheetView: View {
                         )
                     )
                     .clipShape(Capsule())
-                    .shadow(color: Color(hex: "0284C7").opacity(0.4), radius: 5, y: 2)
+                    .shadow(color: Paper.shadow, radius: 5, y: 2)
                     .overlay(
                         Capsule().stroke(Color(hex: "7DD3FC").opacity(0.6), lineWidth: 1.2)
                     )
@@ -439,7 +439,7 @@ struct PomegranateSanctuarySheetView: View {
                                     
                                     Text("\(stage.requiredDays)+ " + (language == .armenian ? "օր" : (language == .russian ? "дн" : "d")))
                                         .font(PaperFont.font(size: 10, weight: isCurrent ? .semibold : .regular))
-                                        .foregroundColor(isCurrent ? Paper.cinnabar : .secondary.opacity(0.7))
+                                        .foregroundColor(isCurrent ? Paper.cinnabar : Paper.inkSecondary.opacity(0.7))
                                 }
                                 .padding(.vertical, 8)
                                 .padding(.horizontal, 10)
@@ -520,7 +520,7 @@ struct PomegranateSanctuarySheetView: View {
                                             endPoint: .bottomTrailing
                                         ) :
                                         LinearGradient(
-                                            colors: [Color.gray.opacity(0.3), Color.gray.opacity(0.15)],
+                                            colors: [Paper.fillMuted, Paper.fillMuted],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
@@ -668,7 +668,7 @@ struct SpiritualFruitDetailSheetView: View {
                         )
                     )
                     .frame(width: 80, height: 80)
-                    .shadow(color: Paper.cinnabar.opacity(0.4), radius: 10, y: 4)
+                    .shadow(color: Paper.shadow, radius: 10, y: 4)
                 
                 Image(systemName: fruit.icon)
                     .font(.system(size: 34, weight: .bold))
@@ -722,18 +722,12 @@ struct SpiritualFruitDetailSheetView: View {
             } label: {
                 Text(language == .armenian ? "Փակել" : (language == .russian ? "Принять благословение" : "Accept Blessing"))
                     .font(PaperFont.font(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(
-                        LinearGradient(
-                            colors: [Paper.cinnabar, Paper.cinnabar],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .background(Paper.cinnabar)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .shadow(color: Paper.cinnabar.opacity(0.35), radius: 8, y: 3)
+                    .shadow(color: Paper.shadow, radius: 8, y: 3)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
@@ -971,7 +965,7 @@ struct PomegranateStageDetailSheetView: View {
                 Circle()
                     .fill(
                         isCurrent ? Paper.cinnabar.opacity(0.15) :
-                        (isCompleted ? Paper.moss.opacity(0.15) : Color.gray.opacity(0.1))
+                        (isCompleted ? Paper.moss.opacity(0.15) : Paper.fillMuted)
                     )
                     .frame(width: 76, height: 76)
                 
@@ -1061,16 +1055,10 @@ struct PomegranateStageDetailSheetView: View {
             } label: {
                 Text(language == .armenian ? "Լավ" : (language == .russian ? "Понятно" : "Close"))
                     .font(PaperFont.font(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
-                    .background(
-                        LinearGradient(
-                            colors: [Paper.cinnabar, Paper.cinnabar],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .background(Paper.cinnabar)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .padding(.horizontal, 20)

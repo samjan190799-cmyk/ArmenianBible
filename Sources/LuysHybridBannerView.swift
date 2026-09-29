@@ -210,7 +210,7 @@ public struct LuysHybridBannerView: View {
                 HStack {
                     Text(adBadgeTitle)
                         .font(PaperFont.font(size: 9, weight: .semibold))
-                        .foregroundColor(.secondary.opacity(0.8))
+                        .foregroundColor(Paper.inkSecondary.opacity(0.8))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Paper.ink.opacity(0.06))

@@ -11,10 +11,10 @@ struct BibleAchievementsView: View {
     @State private var selectedBadge: AchievementBadge? = nil
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     private var secondaryAccentColor: Color {
-        Color(hex: manager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
     private var backgroundColor: Color {
         Paper.page
@@ -33,16 +33,7 @@ struct BibleAchievementsView: View {
     
     var body: some View {
         ZStack {
-            backgroundColor.ignoresSafeArea()
-            
-            // Фоновое неоновое свечение
-            RadialGradient(
-                gradient: Gradient(colors: [Color.yellow.opacity(colorScheme == .dark ? 0.08 : 0.05), Color.clear]),
-                center: .top,
-                startRadius: 50,
-                endRadius: 400
-            )
-            .ignoresSafeArea()
+            PaperBackground()
             
             VStack(spacing: 0) {
                 // MARK: - Верхняя панель
@@ -89,7 +80,7 @@ struct BibleAchievementsView: View {
                                             )
                                         )
                                         .frame(width: 56, height: 56)
-                                        .shadow(color: Paper.gold.opacity(0.35), radius: 8, y: 3)
+                                        .shadow(color: Paper.shadow, radius: 8, y: 3)
                                     
                                     Image(systemName: "trophy.fill")
                                         .font(.system(size: 26))
@@ -143,19 +134,7 @@ struct BibleAchievementsView: View {
                             .frame(height: 8)
                         }
                         .padding(18)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(.ultraThinMaterial)
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(cardBackgroundColor)
-                            }
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
-                        )
+                        .paperSheet(cornerRadius: 20)
                         .padding(.horizontal, 20)
                         
                         // MARK: - Сетка Значков
@@ -238,7 +217,7 @@ struct BadgeCardView: View {
                         
                         Image(systemName: "lock.fill")
                             .font(.system(size: 22))
-                            .foregroundColor(.secondary.opacity(0.6))
+                            .foregroundColor(Paper.inkSecondary.opacity(0.6))
                     }
                 }
                 .padding(.top, 6)

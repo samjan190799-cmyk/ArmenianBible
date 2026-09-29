@@ -297,7 +297,7 @@ struct PomegranateSeedView: View {
                             )
                         )
                         .rotationEffect(.degrees(180))
-                        .shadow(color: Paper.cinnabar.opacity(seedGlow ? 0.8 : 0.35), radius: seedGlow ? 12 : 5)
+                        .shadow(color: Paper.shadow, radius: seedGlow ? 12 : 5)
                     
                     // Золотой внутренний зародыш жизни
                     Circle()
@@ -350,13 +350,7 @@ struct PomegranateSproutView: View {
             HStack(spacing: style.isCompact ? 2 : 6) {
                 // Левый лист
                 PomegranateLeafShape()
-                    .fill(
-                        LinearGradient(
-                            colors: [Paper.moss, Paper.moss],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(Paper.moss)
                     .frame(width: sproutWidth * 0.38, height: sproutHeight * 0.32)
                     .rotationEffect(.degrees(-35 - Double(swayPhase * 6)), anchor: .bottomTrailing)
                 
@@ -781,7 +775,7 @@ struct PomegranateBlossomView: View {
             Circle()
                 .fill(Paper.gold)
                 .frame(width: size * 0.35, height: size * 0.35)
-                .shadow(color: Paper.gold.opacity(0.8), radius: 2)
+                .shadow(color: Paper.shadow, radius: 2)
         }
     }
 }
@@ -792,13 +786,7 @@ struct PomegranateFlowerBudView: View {
     
     var body: some View {
         Capsule()
-            .fill(
-                LinearGradient(
-                    colors: [Paper.cinnabar, Paper.cinnabar],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
+            .fill(Paper.cinnabar)
             .frame(width: size * 0.5, height: size)
             .rotationEffect(.degrees(25))
     }

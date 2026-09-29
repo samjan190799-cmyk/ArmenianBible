@@ -17,6 +17,12 @@ enum Paper {
     static let uiHairline = dynamic(light: 0x2B241D, lightAlpha: 0.10, dark: 0xECE3D2, darkAlpha: 0.09)
     static let uiShadow = dynamic(light: 0x4A3517, lightAlpha: 0.08, dark: 0x000000, darkAlpha: 0.35)
     static let uiMoss = dynamic(light: 0x4F6B45, dark: 0x9DBB8E)
+    static let uiOnAccent = dynamic(light: 0xFCF9F3, dark: 0x17130F)
+    static let uiLapis = dynamic(light: 0x3D5A8C, dark: 0x8FA9D6)
+    static let uiPlum = dynamic(light: 0x6E4B73, dark: 0xC1A0C6)
+    static let uiOchre = dynamic(light: 0xA4622A, dark: 0xE0A26B)
+    static let uiUmber = dynamic(light: 0x6B5238, dark: 0xC8AC8B)
+    static let uiTeal = dynamic(light: 0x2F6F6B, dark: 0x8EC8C2)
     static let uiFillSubtle = dynamic(light: 0x2B241D, lightAlpha: 0.045, dark: 0xECE3D2, darkAlpha: 0.06)
     static let uiFillMuted = dynamic(light: 0x2B241D, lightAlpha: 0.08, dark: 0xECE3D2, darkAlpha: 0.11)
 
@@ -39,6 +45,14 @@ enum Paper {
     static let hairline = Color(uiColor: uiHairline)
     /// Мягкая тень листа
     static let shadow = Color(uiColor: uiShadow)
+    /// Текст на залитой акцентной плашке (светлый на светлой теме, тёмный на ночной)
+    static let onAccent = Color(uiColor: uiOnAccent)
+    // Пигменты рукописи: приглушённые цвета для категорий (теги, праздники, ИИ)
+    static let lapis = Color(uiColor: uiLapis)
+    static let plum = Color(uiColor: uiPlum)
+    static let ochre = Color(uiColor: uiOchre)
+    static let umber = Color(uiColor: uiUmber)
+    static let teal = Color(uiColor: uiTeal)
     /// Мох — «успех», «прочитано», «выполнено» (вместо ярко-зелёного)
     static let moss = Color(uiColor: uiMoss)
     /// Едва заметная подложка (чипы, поля ввода, неактивные кнопки)
@@ -124,9 +138,31 @@ struct PaperSheetModifier: ViewModifier {
     }
 }
 
+// MARK: - Поле / чип / строка: лист без тени, только тонкая линия
+struct PaperFieldModifier: ViewModifier {
+    var cornerRadius: CGFloat
+    var stroke: Color
+    
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Paper.sheet)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(stroke, lineWidth: 1)
+            )
+    }
+}
+
 extension View {
     func paperSheet(cornerRadius: CGFloat = 18) -> some View {
         modifier(PaperSheetModifier(cornerRadius: cornerRadius))
+    }
+    
+    func paperField(cornerRadius: CGFloat = 12, stroke: Color = Paper.hairline) -> some View {
+        modifier(PaperFieldModifier(cornerRadius: cornerRadius, stroke: stroke))
     }
 }
 
@@ -245,5 +281,52 @@ enum PaperAppearance {
             .font: PaperFont.uiFont(size: 14, weight: .semibold),
             .foregroundColor: Paper.uiInk
         ], for: .selected)
+    }
+}
+
+// MARK: - Цвета категорий в палитре рукописи
+extension VerseTag {
+    var color: Color {
+        switch self {
+        case .faith: return Paper.lapis
+        case .hope: return Paper.moss
+        case .love: return Paper.cinnabar
+        case .grief: return Paper.plum
+        case .gratitude: return Paper.gold
+        case .wisdom: return Paper.teal
+        case .prayer: return Paper.umber
+        }
+    }
+}
+
+extension FeastType {
+    var color: Color {
+        switch self {
+        case .daghavar: return Paper.gold
+        case .dominical: return Paper.lapis
+        case .fasting: return Paper.plum
+        case .saints: return Paper.moss
+        }
+    }
+}
+
+extension AIProvider {
+    var color: Color {
+        switch self {
+        case .gemini: return Paper.lapis
+        case .chatgpt: return Paper.teal
+        case .claude: return Paper.ochre
+        }
+    }
+}
+
+extension AITheologicalTone {
+    var color: Color {
+        switch self {
+        case .patristic: return Paper.gold
+        case .pastoral: return Paper.cinnabar
+        case .historical: return Paper.lapis
+        case .simple: return Paper.moss
+        }
     }
 }

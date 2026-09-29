@@ -110,7 +110,7 @@ public struct ReviewPromptSheetView: View {
     }
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     private var titleText: String {
@@ -232,18 +232,12 @@ public struct ReviewPromptSheetView: View {
                             Text(rateButtonText)
                                 .font(PaperFont.font(size: 16, weight: .semibold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [Paper.gold, Paper.gold],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(Paper.gold)
                         .cornerRadius(16)
-                        .shadow(color: Paper.gold.opacity(0.35), radius: 10, y: 5)
+                        .shadow(color: Paper.shadow, radius: 10, y: 5)
                     }
                     
                     Button {

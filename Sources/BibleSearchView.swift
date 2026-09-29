@@ -14,7 +14,7 @@ struct BibleSearchView: View {
     @FocusState private var isSearchFieldFocused: Bool
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     private var backgroundColor: Color {

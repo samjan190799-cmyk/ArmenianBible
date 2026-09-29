@@ -21,11 +21,11 @@ struct PaywallView: View {
     }
     
     private var accentColor: Color {
-        Color(hex: bibleManager.accentTheme.colorHex)
+        bibleManager.accentTheme.color
     }
     
     private var secondaryAccentColor: Color {
-        Color(hex: bibleManager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
     
     init() {}
@@ -78,7 +78,7 @@ struct PaywallView: View {
                                         endPoint: .bottom
                                     )
                                 )
-                                .shadow(color: Paper.gold.opacity(0.5), radius: 10, y: 3)
+                                .shadow(color: Paper.shadow, radius: 10, y: 3)
                         }
                         
                         Text(headerTitle)
@@ -191,7 +191,7 @@ struct PaywallView: View {
                                 )
                             )
                             .cornerRadius(18)
-                            .shadow(color: Paper.gold.opacity(0.35), radius: 12, y: 4)
+                            .shadow(color: Paper.shadow, radius: 12, y: 4)
                         }
                         .disabled(isPurchasing)
                         .buttonStyle(ScaleButtonStyle())

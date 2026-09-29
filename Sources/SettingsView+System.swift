@@ -14,7 +14,7 @@ extension SettingsView {
             HStack(spacing: 8) {
                 Image(systemName: "gearshape.2.fill")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .foregroundColor(selectedTheme.color)
                 
                 Text("system_storage_section_title".localized(for: selectedLanguage))
                     .font(PaperFont.font(size: 16, weight: .semibold))
@@ -54,7 +54,7 @@ extension SettingsView {
                     
                     Toggle("", isOn: $isHapticsEnabled)
                         .labelsHidden()
-                        .tint(Color(hex: selectedTheme.colorHex))
+                        .tint(selectedTheme.color)
                         .onChange(of: isHapticsEnabled) { newVal in
                             manager.setHapticsEnabled(newVal)
                             if newVal {
@@ -94,7 +94,7 @@ extension SettingsView {
                     
                     Toggle("", isOn: $isBiometricLockEnabled)
                         .labelsHidden()
-                        .tint(Color(hex: selectedTheme.colorHex))
+                        .tint(selectedTheme.color)
                         .onChange(of: isBiometricLockEnabled) { newVal in
                             manager.setBiometricLockEnabled(newVal) { success in
                                 if !success {
@@ -224,9 +224,9 @@ extension SettingsView {
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .foregroundColor(selectedTheme.color)
                             .padding(8)
-                            .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                            .background(selectedTheme.color.opacity(0.12))
                             .clipShape(Circle())
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -241,12 +241,7 @@ extension SettingsView {
             )
         }
         .padding(16)
-        .background(cardBackgroundColor)
-        .cornerRadius(18)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(cardBorderColor, lineWidth: 1)
-        )
+        .paperField(cornerRadius: 18)
         .padding(.horizontal, 4)
     }
     
@@ -348,7 +343,7 @@ extension SettingsView {
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .foregroundColor(selectedTheme.color)
                     .padding(4)
             }
             .buttonStyle(ScaleButtonStyle())
@@ -437,12 +432,12 @@ extension SettingsView {
                 Text(restorePurchasesButtonTitle)
                     .font(PaperFont.font(size: 13, weight: .medium))
             }
-            .foregroundColor(Color(hex: selectedTheme.colorHex))
+            .foregroundColor(selectedTheme.color)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .background(Color(hex: selectedTheme.colorHex).opacity(0.07))
+            .background(selectedTheme.color.opacity(0.07))
             .cornerRadius(10)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: selectedTheme.colorHex).opacity(0.2), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(selectedTheme.color.opacity(0.2), lineWidth: 1))
         }
         .buttonStyle(ScaleButtonStyle())
         .disabled(subscriptionManager.isPurchasing)

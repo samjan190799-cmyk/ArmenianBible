@@ -235,7 +235,7 @@ struct SettingsView: View {
             .sheet(isPresented: $isShowingWidgetInstruction) {
                 WidgetInstructionSheetView(
                     language: selectedLanguage,
-                    accentColor: Color(hex: selectedTheme.colorHex),
+                    accentColor: selectedTheme.color,
                     cardBackgroundColor: cardBackgroundColor,
                     cardBorderColor: cardBorderColor,
                     primaryTextColor: primaryTextColor
@@ -376,16 +376,10 @@ struct SettingsView: View {
                              (selectedLanguage == .armenian ? "Ստանալ Premium" : "Оформить Premium"))
                             .font(.system(size: 13, weight: .bold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(
-                        LinearGradient(
-                            colors: [Paper.gold, Paper.gold],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .background(Paper.gold)
                     .cornerRadius(12)
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -402,12 +396,7 @@ struct SettingsView: View {
                         .foregroundColor(primaryTextColor)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(cardBackgroundColor)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Paper.ink.opacity(0.1), lineWidth: 1)
-                        )
+                        .paperField(cornerRadius: 12)
                 }
                 .buttonStyle(ScaleButtonStyle())
             }
@@ -709,7 +698,7 @@ struct SettingsView: View {
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary.opacity(0.6))
+                    .foregroundColor(Paper.inkSecondary.opacity(0.6))
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -752,7 +741,7 @@ struct SettingsView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "book.pages")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .foregroundColor(selectedTheme.color)
                         Text("cards_translation_title".localized(for: selectedLanguage))
                             .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
@@ -771,7 +760,7 @@ struct SettingsView: View {
                             .tag(ArmenianBibleEdition.echmiadzin)
                     }
                     .pickerStyle(.segmented)
-                    .tint(Color(hex: selectedTheme.colorHex))
+                    .tint(selectedTheme.color)
                     .onChange(of: selectedArmenianEdition) { newEd in
                         let generator = UIImpactFeedbackGenerator(style: .medium)
                         generator.impactOccurred()
@@ -893,7 +882,7 @@ struct SettingsView: View {
                         appIconManager.clearError()
                     }
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .foregroundColor(selectedTheme.color)
                 }
                 .padding(10)
                 .background(Paper.gold.opacity(0.12))
@@ -926,14 +915,14 @@ struct SettingsView: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .stroke(isSelected ? Color(hex: selectedTheme.colorHex) : Color.white.opacity(0.15), lineWidth: isSelected ? 2.5 : 1)
+                                                .stroke(isSelected ? selectedTheme.color : Color.white.opacity(0.15), lineWidth: isSelected ? 2.5 : 1)
                                         )
-                                        .shadow(color: isSelected ? Color(hex: selectedTheme.colorHex).opacity(0.4) : Color.black.opacity(0.15), radius: isSelected ? 8 : 4, y: 3)
+                                        .shadow(color: isSelected ? selectedTheme.color.opacity(0.4) : Color.black.opacity(0.15), radius: isSelected ? 8 : 4, y: 3)
                                     
                                     if isSelected {
                                         ZStack {
                                             Circle()
-                                                .fill(Color(hex: selectedTheme.colorHex))
+                                                .fill(selectedTheme.color)
                                                 .frame(width: 22, height: 22)
                                             Image(systemName: "checkmark")
                                                 .font(.system(size: 11, weight: .black))
@@ -944,13 +933,7 @@ struct SettingsView: View {
                                     } else if isLocked {
                                         ZStack {
                                             Circle()
-                                                .fill(
-                                                    LinearGradient(
-                                                        colors: [Paper.gold, Paper.gold],
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
+                                                .fill(Paper.gold)
                                                 .frame(width: 22, height: 22)
                                             Image(systemName: "lock.fill")
                                                 .font(.system(size: 10, weight: .bold))
@@ -984,7 +967,7 @@ struct SettingsView: View {
                             .padding(.horizontal, 6)
                             .background(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(isSelected ? Color(hex: selectedTheme.colorHex).opacity(0.08) : Color.clear)
+                                    .fill(isSelected ? selectedTheme.color.opacity(0.08) : Color.clear)
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())

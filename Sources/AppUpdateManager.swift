@@ -260,7 +260,7 @@ struct ForceUpdateOverlayView: View {
                             )
                         )
                         .frame(width: 76, height: 76)
-                        .shadow(color: Color(hex: "3B82F6").opacity(0.5), radius: 16, y: 6)
+                        .shadow(color: Paper.shadow, radius: 16, y: 6)
                     
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: 34, weight: .bold))
@@ -347,7 +347,7 @@ struct ForceUpdateOverlayView: View {
                         )
                     )
                     .cornerRadius(16)
-                    .shadow(color: Color(hex: "2563EB").opacity(0.45), radius: 12, y: 5)
+                    .shadow(color: Paper.shadow, radius: 12, y: 5)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.top, 4)

@@ -44,11 +44,11 @@ struct ChurchCalendarView: View {
     @State private var toastMessage = ""
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     private var secondaryAccentColor: Color {
-        Color(hex: manager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
     
     private var backgroundColor: Color {
@@ -60,19 +60,7 @@ struct ChurchCalendarView: View {
     }
     
     private var cardBorderColor: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [Color.white.opacity(0.14), Color.white.opacity(0.03)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        LinearGradient(colors: [Paper.hairline, Paper.hairline], startPoint: .top, endPoint: .bottom)
     }
     
     private var primaryTextColor: Color {
@@ -98,16 +86,7 @@ struct ChurchCalendarView: View {
         NavigationStack {
             ZStack {
                 // Фон
-                backgroundColor.ignoresSafeArea()
-                
-                // Мягкое неоновое свечение
-                RadialGradient(
-                    gradient: Gradient(colors: [Paper.gold.opacity(colorScheme == .dark ? 0.09 : 0.05), Color.clear]),
-                    center: .top,
-                    startRadius: 40,
-                    endRadius: 380
-                )
-                .ignoresSafeArea()
+                PaperBackground()
                 
                 VStack(spacing: 0) {
                     // MARK: - Шапка: Селектор года + Сортировка + Кнопка экспорта
@@ -131,12 +110,7 @@ struct ChurchCalendarView: View {
                                 .foregroundColor(primaryTextColor)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
-                                .background(cardBackgroundColor)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(primaryTextColor.opacity(0.12), lineWidth: 1)
-                                )
+                                .paperField(cornerRadius: 12)
                             }
                             
                             // Переключатель режима сортировки (Ближайшие / По календарю)
@@ -170,12 +144,7 @@ struct ChurchCalendarView: View {
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 7)
-                                .background(cardBackgroundColor)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Paper.gold.opacity(0.3), lineWidth: 1)
-                                )
+                                .paperField(cornerRadius: 12)
                             }
                             
                             Spacer()
@@ -191,18 +160,12 @@ struct ChurchCalendarView: View {
                                     Text("export_calendar_btn".localized(for: manager.appLanguage))
                                         .font(PaperFont.font(size: 12, weight: .semibold))
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.onAccent)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Paper.gold, Paper.gold],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .background(Paper.gold)
                                 .cornerRadius(12)
-                                .shadow(color: Paper.gold.opacity(0.3), radius: 6, y: 3)
+                                .shadow(color: Paper.shadow, radius: 6, y: 3)
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }
@@ -218,11 +181,11 @@ struct ChurchCalendarView: View {
                                     selectedCategory = nil
                                 } label: {
                                     Text("all_tags_filter".localized(for: manager.appLanguage))
-                                        .font(.system(size: 12, weight: selectedCategory == nil ? .bold : .medium))
+                                        .font(PaperFont.font(size: 12, weight: selectedCategory == nil ? .semibold : .medium))
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
                                         .background(selectedCategory == nil ? Paper.gold : cardBackgroundColor)
-                                        .foregroundColor(selectedCategory == nil ? .white : primaryTextColor)
+                                        .foregroundColor(selectedCategory == nil ? Paper.onAccent : primaryTextColor)
                                         .cornerRadius(16)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 16)
@@ -245,12 +208,12 @@ struct ChurchCalendarView: View {
                                         }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(isSelected ? Color(hex: cat.colorHex).opacity(0.25) : cardBackgroundColor)
-                                        .foregroundColor(isSelected ? Color(hex: cat.colorHex) : primaryTextColor)
+                                        .background(isSelected ? cat.color.opacity(0.25) : cardBackgroundColor)
+                                        .foregroundColor(isSelected ? cat.color : primaryTextColor)
                                         .cornerRadius(16)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 16)
-                                                .stroke(isSelected ? Color(hex: cat.colorHex) : Paper.ink.opacity(0.1), lineWidth: 1)
+                                                .stroke(isSelected ? cat.color : Paper.ink.opacity(0.1), lineWidth: 1)
                                         )
                                     }
                                     .buttonStyle(ScaleButtonStyle())
@@ -313,11 +276,11 @@ struct ChurchCalendarView: View {
                                 .foregroundColor(Paper.moss)
                             Text(toastMessage)
                                 .font(PaperFont.font(size: 14, weight: .medium))
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.page)
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(Color.black.opacity(0.85))
+                        .background(Paper.ink.opacity(0.92))
                         .cornerRadius(25)
                         .shadow(radius: 10)
                         .padding(.bottom, 30)
@@ -479,10 +442,10 @@ struct ChurchFeastCardView: View {
                     Text(feast.type.localizedTitle(for: language))
                         .font(PaperFont.font(size: 11, weight: .semibold))
                 }
-                .foregroundColor(Color(hex: feast.type.colorHex))
+                .foregroundColor(feast.type.color)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color(hex: feast.type.colorHex).opacity(0.15))
+                .background(feast.type.color.opacity(0.15))
                 .cornerRadius(8)
                 
                 // Бейдж приближения даты (Сегодня, Завтра, Через N дней)
@@ -493,7 +456,7 @@ struct ChurchFeastCardView: View {
                         Text(countdown.text)
                             .font(PaperFont.font(size: 10.5, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3.5)
                     .background(Paper.cinnabar)
@@ -681,19 +644,7 @@ struct ChurchFeastCardView: View {
             .padding(.top, 2)
         }
         .padding(16)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(cardBackgroundColor)
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(countdown.isToday ? LinearGradient(colors: [Paper.gold, Paper.cinnabar], startPoint: .topLeading, endPoint: .bottomTrailing) : cardBorderColor, lineWidth: countdown.isToday ? 1.8 : 1.2)
-        )
+        .paperSheet(cornerRadius: 18)
     }
 }
 
@@ -724,7 +675,7 @@ struct FeastMeaningSheetView: View {
                     VStack(spacing: 8) {
                         Image(systemName: feast.type.icon)
                             .font(.system(size: 34, weight: .semibold))
-                            .foregroundColor(Color(hex: feast.type.colorHex))
+                            .foregroundColor(feast.type.color)
                             .padding(.bottom, 2)
                         
                         Text(feast.title(for: language))
@@ -736,10 +687,10 @@ struct FeastMeaningSheetView: View {
                         HStack(spacing: 8) {
                             Text(feast.type.localizedTitle(for: language))
                                 .font(PaperFont.font(size: 12, weight: .semibold))
-                                .foregroundColor(Color(hex: feast.type.colorHex))
+                                .foregroundColor(feast.type.color)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(Color(hex: feast.type.colorHex).opacity(0.15))
+                                .background(feast.type.color.opacity(0.15))
                                 .cornerRadius(8)
                             
                             Text(feast.formattedDate(for: language))
@@ -749,7 +700,7 @@ struct FeastMeaningSheetView: View {
                             if countdown.isToday {
                                 Text(countdown.text)
                                     .font(PaperFont.font(size: 11, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Paper.onAccent)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 3.5)
                                     .background(Paper.cinnabar)
@@ -787,12 +738,7 @@ struct FeastMeaningSheetView: View {
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(cardBackgroundColor)
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color(hex: "0284C7").opacity(0.2), lineWidth: 1)
-                        )
+                        .paperField(cornerRadius: 16)
                     }
                     
                     // MARK: - Раздел 2: Духовный смысл для верующего
@@ -814,12 +760,7 @@ struct FeastMeaningSheetView: View {
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(cardBackgroundColor)
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color(hex: "8B5CF6").opacity(0.2), lineWidth: 1)
-                        )
+                        .paperField(cornerRadius: 16)
                     }
                     
                     // MARK: - Раздел 3: Церковные традиции и обычаи
@@ -841,12 +782,7 @@ struct FeastMeaningSheetView: View {
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(cardBackgroundColor)
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Paper.gold.opacity(0.2), lineWidth: 1)
-                        )
+                        .paperField(cornerRadius: 16)
                     }
                     
                     // MARK: - Раздел 4: Чтения дня
@@ -907,12 +843,7 @@ struct FeastMeaningSheetView: View {
                             .foregroundColor(primaryTextColor)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(cardBackgroundColor)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Paper.ink.opacity(0.1), lineWidth: 1)
-                            )
+                            .paperField(cornerRadius: 12)
                         }
                         .buttonStyle(ScaleButtonStyle())
                         
@@ -927,12 +858,7 @@ struct FeastMeaningSheetView: View {
                             .foregroundColor(primaryTextColor)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(cardBackgroundColor)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Paper.ink.opacity(0.1), lineWidth: 1)
-                            )
+                            .paperField(cornerRadius: 12)
                         }
                         .buttonStyle(ScaleButtonStyle())
                         
@@ -944,16 +870,10 @@ struct FeastMeaningSheetView: View {
                                 Text("export_calendar_btn".localized(for: language))
                             }
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(
-                                LinearGradient(
-                                    colors: [Paper.gold, Paper.gold],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .background(Paper.gold)
                             .cornerRadius(12)
                         }
                         .buttonStyle(ScaleButtonStyle())

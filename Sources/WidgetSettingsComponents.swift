@@ -249,7 +249,7 @@ struct WidgetInstructionSheetView: View {
                 } label: {
                     Text("alert_ok_button".localized(for: language))
                         .font(PaperFont.font(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(accentColor)
@@ -623,7 +623,7 @@ struct VisibleApiKeyField: View {
         HStack(spacing: 0) {
             if isRevealed {
                 TextField(placeholder, text: $text)
-                    .font(.system(size: 14, design: .monospaced))
+                    .font(PaperFont.font(size: 14).monospacedDigit())
                     .foregroundColor(Paper.ink)
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
@@ -631,7 +631,7 @@ struct VisibleApiKeyField: View {
                     .padding(.vertical, 13)
             } else {
                 SecureField(placeholder, text: $text)
-                    .font(.system(size: 14, design: .monospaced))
+                    .font(PaperFont.font(size: 14).monospacedDigit())
                     .foregroundColor(Paper.ink)
                     .autocapitalization(.none)
                     .autocorrectionDisabled()

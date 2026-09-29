@@ -97,7 +97,7 @@ extension SettingsView {
                         Text(provider.displayName)
                             .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                     }
-                    .foregroundColor(isSelected ? .white : primaryTextColor.opacity(0.7))
+                    .foregroundColor(isSelected ? Paper.onAccent : primaryTextColor.opacity(0.7))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                     .background(aiPillBackground(for: provider, isSelected: isSelected))
@@ -156,7 +156,7 @@ extension SettingsView {
             HStack(spacing: 6) {
                 Image(systemName: "cross.fill")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .foregroundColor(selectedTheme.color)
                 Text("ai_theological_tone_title".localized(for: selectedLanguage))
                     .font(PaperFont.font(size: 14, weight: .semibold))
                     .foregroundColor(primaryTextColor)
@@ -179,7 +179,7 @@ extension SettingsView {
     @ViewBuilder
     func aiTheologicalToneCard(for tone: AITheologicalTone) -> some View {
         let isSelected = selectedTheologicalTone == tone
-        let tColor = Color(hex: tone.colorHex)
+        let tColor = tone.color
         let strokeColor = isSelected ? tColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
         
         Button {
@@ -199,7 +199,7 @@ extension SettingsView {
                             .frame(width: 26, height: 26)
                         Image(systemName: tone.icon)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(isSelected ? .white : tColor)
+                            .foregroundColor(isSelected ? Paper.onAccent : tColor)
                     }
                     
                     Spacer()
@@ -248,10 +248,10 @@ extension SettingsView {
                         
                         Text("\(manager.aiChatMessages.count) " + "ai_chat_messages_count".localized(for: selectedLanguage))
                             .font(PaperFont.font(size: 10, weight: .semibold))
-                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .foregroundColor(selectedTheme.color)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color(hex: selectedTheme.colorHex).opacity(0.12))
+                            .background(selectedTheme.color.opacity(0.12))
                             .cornerRadius(6)
                     }
                     
@@ -389,10 +389,10 @@ extension SettingsView {
                 } else {
                     Image(systemName: "info.circle")
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary.opacity(0.7))
+                        .foregroundColor(Paper.inkSecondary.opacity(0.7))
                     Text(apiKeyRequiredText)
                         .font(PaperFont.font(size: 11))
-                        .foregroundColor(.secondary.opacity(0.7))
+                        .foregroundColor(Paper.inkSecondary.opacity(0.7))
                 }
                 
                 Spacer()

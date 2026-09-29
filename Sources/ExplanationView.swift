@@ -15,10 +15,10 @@ struct ExplanationView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     private var secondaryAccentColor: Color {
-        Color(hex: manager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
     private var backgroundColor: Color {
         Paper.page
@@ -27,19 +27,7 @@ struct ExplanationView: View {
         Paper.sheet
     }
     private var cardBorderColor: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        LinearGradient(colors: [Paper.hairline, Paper.hairline], startPoint: .top, endPoint: .bottom)
     }
     private var primaryTextColor: Color {
         Paper.ink
@@ -47,15 +35,7 @@ struct ExplanationView: View {
     
     var body: some View {
         ZStack {
-            backgroundColor.ignoresSafeArea()
-            
-            RadialGradient(
-                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.05 : 0.03), Color.clear]),
-                center: .top,
-                startRadius: 50,
-                endRadius: 300
-            )
-            .ignoresSafeArea()
+            PaperBackground()
             
             ScrollView {
                 VStack(spacing: 24) {
@@ -90,12 +70,7 @@ struct ExplanationView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(20)
-                    .background(cardBackgroundColor)
-                    .cornerRadius(18)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(cardBorderColor, lineWidth: 1.2)
-                    )
+                    .paperField(cornerRadius: 18)
                     .padding(.horizontal, 20)
                     
                     // Выбор глубины погружения
@@ -126,12 +101,12 @@ struct ExplanationView: View {
                             }
                         }
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(accentColor)
                         .cornerRadius(14)
-                        .shadow(color: accentColor.opacity(colorScheme == .dark ? 0.3 : 0.2), radius: 8, y: 4)
+                        .shadow(color: Paper.shadow, radius: 8, y: 4)
                     }
                     .disabled(manager.isGeneratingText)
                     .buttonStyle(ScaleButtonStyle())
@@ -166,12 +141,7 @@ struct ExplanationView: View {
                         }
                         .padding(24)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(cardBackgroundColor)
-                        .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(cardBorderColor, lineWidth: 1.2)
-                        )
+                        .paperField(cornerRadius: 20)
                         .padding(.horizontal, 20)
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
                     } else {

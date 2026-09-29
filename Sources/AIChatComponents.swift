@@ -25,18 +25,11 @@ struct AIChatBubbleRow: View {
                 
                 Text(message.text)
                     .font(PaperFont.font(size: 15))
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(
-                        LinearGradient(
-                            colors: [accentColor, accentColor.opacity(0.85)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .background(accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .shadow(color: accentColor.opacity(0.25), radius: 6, y: 3)
             }
         } else {
             // Ответ Духовного Помощника (слева)
@@ -73,15 +66,7 @@ struct AIChatBubbleRow: View {
                     // Если есть цитируемый стих
                     if let verse = message.verse {
                         VStack(spacing: 12) {
-                            HStack {
-                                Image(systemName: "laurel.leading")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(secondaryAccentColor.opacity(0.7))
-                                Spacer()
-                                Image(systemName: "laurel.trailing")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(secondaryAccentColor.opacity(0.7))
-                            }
+                            PaperOrnament(width: 28)
                             
                             Text(verse.text)
                                 .font(PaperFont.font(size: 15, weight: .medium))
@@ -118,7 +103,7 @@ struct AIChatBubbleRow: View {
                                 } label: {
                                     Image(systemName: manager.isFavorite(verse) ? "heart.fill" : "heart")
                                         .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(manager.isFavorite(verse) ? .red : primaryTextColor.opacity(0.5))
+                                        .foregroundColor(manager.isFavorite(verse) ? accentColor : primaryTextColor.opacity(0.5))
                                         .scaleEffect(isHeartBouncing ? 1.3 : 1.0)
                                         .padding(8)
                                         .background(primaryTextColor.opacity(0.04))
@@ -155,28 +140,12 @@ struct AIChatBubbleRow: View {
                         }
                         .padding(14)
                         .frame(maxWidth: .infinity)
-                        .background(cardBackgroundColor.opacity(0.6))
-                        .cornerRadius(14)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Paper.ink.opacity(0.06), lineWidth: 1)
-                        )
+                        .background(Paper.fillSubtle)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
                 .padding(16)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(cardBackgroundColor)
-                    }
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(cardBorderColor, lineWidth: 1.2)
-                )
+                .paperSheet(cornerRadius: 20)
                 
                 Spacer(minLength: 32)
             }
@@ -206,19 +175,7 @@ struct AIChatThinkingRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(cardBorderColor, lineWidth: 1)
-            )
+            .paperSheet(cornerRadius: 18)
             .transition(.scale(scale: 0.92).combined(with: .opacity))
             
             Spacer(minLength: 40)

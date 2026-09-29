@@ -11,7 +11,7 @@ extension SettingsView {
             HStack(spacing: 8) {
                 Image(systemName: "bell.badge.fill")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                    .foregroundColor(selectedTheme.color)
                 
                 Text("notification_section_title".localized(for: selectedLanguage))
                     .font(PaperFont.font(size: 16, weight: .semibold))
@@ -134,12 +134,7 @@ extension SettingsView {
             )
         }
         .padding(16)
-        .background(cardBackgroundColor)
-        .cornerRadius(18)
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(cardBorderColor, lineWidth: 1)
-        )
+        .paperField(cornerRadius: 18)
         .padding(.horizontal, 4)
     }
     
@@ -180,7 +175,7 @@ extension SettingsView {
                 
                 Toggle("", isOn: isOn)
                     .labelsHidden()
-                    .tint(Color(hex: selectedTheme.colorHex))
+                    .tint(selectedTheme.color)
                     .onChange(of: isOn.wrappedValue) { val in
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.prepare()
@@ -287,10 +282,10 @@ extension SettingsView {
                     HStack(spacing: 4) {
                         Image(systemName: "questionmark.circle.fill")
                             .font(.system(size: 16))
-                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .foregroundColor(selectedTheme.color)
                         Text("widget_instruction_title".localized(for: selectedLanguage))
                             .font(PaperFont.font(size: 12, weight: .semibold))
-                            .foregroundColor(Color(hex: selectedTheme.colorHex))
+                            .foregroundColor(selectedTheme.color)
                     }
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -348,28 +343,28 @@ extension SettingsView {
                         HStack(spacing: 12) {
                             Image(systemName: scope.icon)
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(selectedScope == scope ? Color(hex: selectedTheme.colorHex) : .secondary)
+                                .foregroundColor(selectedScope == scope ? selectedTheme.color : .secondary)
                                 .frame(width: 24)
                             
                             Text(scope.title(for: selectedLanguage))
-                                .font(.system(size: 14, weight: selectedScope == scope ? .bold : .medium))
+                                .font(PaperFont.font(size: 14, weight: selectedScope == scope ? .semibold : .medium))
                                 .foregroundColor(primaryTextColor)
                             
                             Spacer()
                             
                             if selectedScope == scope {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(Color(hex: selectedTheme.colorHex))
+                                    .foregroundColor(selectedTheme.color)
                             }
                         }
                         .padding(12)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(selectedScope == scope ? Color(hex: selectedTheme.colorHex).opacity(0.12) : inputFieldBgColor)
+                                .fill(selectedScope == scope ? selectedTheme.color.opacity(0.12) : inputFieldBgColor)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(selectedScope == scope ? Color(hex: selectedTheme.colorHex) : inputFieldBorderColor, lineWidth: 1)
+                                .stroke(selectedScope == scope ? selectedTheme.color : inputFieldBorderColor, lineWidth: 1)
                         )
                     }
                     .buttonStyle(ScaleButtonStyle())

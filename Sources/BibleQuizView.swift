@@ -45,10 +45,10 @@ struct BibleQuizView: View {
     @State private var questionCountdownTimer: Timer? = nil
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     private var secondaryAccentColor: Color {
-        Color(hex: manager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
     private var backgroundColor: Color {
         Paper.page
@@ -57,19 +57,7 @@ struct BibleQuizView: View {
         Paper.sheet
     }
     private var cardBorderColor: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        LinearGradient(colors: [Paper.hairline, Paper.hairline], startPoint: .top, endPoint: .bottom)
     }
     private var primaryTextColor: Color {
         Paper.ink
@@ -77,16 +65,7 @@ struct BibleQuizView: View {
     
     var body: some View {
         ZStack {
-            backgroundColor.ignoresSafeArea()
-            
-            // Фоновое неоновое свечение
-            RadialGradient(
-                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.08 : 0.05), Color.clear]),
-                center: .top,
-                startRadius: 50,
-                endRadius: 400
-            )
-            .ignoresSafeArea()
+            PaperBackground()
             
             VStack(spacing: 0) {
                 // MARK: - Верхний Бар Навигации
@@ -292,19 +271,7 @@ struct BibleQuizView: View {
                                 }
                                 .padding(24)
                                 .frame(maxWidth: .infinity)
-                                .background(
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                            .fill(.ultraThinMaterial)
-                                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                            .fill(cardBackgroundColor)
-                                    }
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                        .stroke(cardBorderColor, lineWidth: 1.2)
-                                )
+                                .paperSheet(cornerRadius: 22)
                                 .padding(.horizontal, 20)
                                 .id("questionTop")
                                 
@@ -406,30 +373,18 @@ struct BibleQuizView: View {
                                         } label: {
                                             Text("quiz_next_question".localized(for: manager.appLanguage))
                                                 .font(PaperFont.font(size: 15, weight: .semibold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(Paper.onAccent)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
                                                 .background(accentColor)
                                                 .cornerRadius(14)
-                                                .shadow(color: accentColor.opacity(0.3), radius: 6, y: 3)
+                                                .shadow(color: Paper.shadow, radius: 6, y: 3)
                                         }
                                         .buttonStyle(ScaleButtonStyle())
                                         .padding(.top, 4)
                                     }
                                     .padding(18)
-                                    .background(
-                                        ZStack {
-                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                                .fill(.ultraThinMaterial)
-                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                                .fill(cardBackgroundColor)
-                                        }
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                            .stroke(cardBorderColor, lineWidth: 1.2)
-                                    )
+                                    .paperSheet(cornerRadius: 18)
                                     .padding(.horizontal, 20)
                                     .id("answerDetailsAnchor")
                                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -507,19 +462,7 @@ struct BibleQuizView: View {
                         .padding(.top, 2)
                 }
                 .padding(24)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(cardBackgroundColor)
-                    }
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(cardBorderColor, lineWidth: 1.2)
-                )
+                .paperSheet(cornerRadius: 24)
                 .shadow(color: Color.black.opacity(0.25), radius: 25, y: 10)
                 .padding(28)
                 .transition(.scale.combined(with: .opacity))

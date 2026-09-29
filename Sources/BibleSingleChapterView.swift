@@ -241,11 +241,11 @@ struct BibleSingleChapterView: View {
                             .foregroundColor(Paper.moss)
                         Text(msg)
                             .font(PaperFont.font(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.page)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(Color.black.opacity(0.85))
+                    .background(Paper.ink.opacity(0.92))
                     .cornerRadius(20)
                     .shadow(radius: 6)
                     .padding(.top, 10)

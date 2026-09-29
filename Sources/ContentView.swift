@@ -93,7 +93,7 @@ struct BiometricLockOverlayView: View {
     @State private var isPulsing = false
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     var body: some View {
@@ -169,13 +169,13 @@ struct BiometricLockOverlayView: View {
                     .frame(height: 52)
                     .background(
                         LinearGradient(
-                            colors: [accentColor, Color(hex: manager.accentTheme.secondaryColorHex)],
+                            colors: [accentColor, Paper.inkSecondary],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .cornerRadius(16)
-                    .shadow(color: accentColor.opacity(0.35), radius: 10, y: 4)
+                    .shadow(color: Paper.shadow, radius: 10, y: 4)
                 }
                 .padding(.horizontal, 36)
                 .padding(.bottom, 40)

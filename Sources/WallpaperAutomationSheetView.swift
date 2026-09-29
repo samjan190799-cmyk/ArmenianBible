@@ -49,7 +49,7 @@ struct WallpaperAutomationSheetView: View {
     }
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     var body: some View {
@@ -120,15 +120,9 @@ struct WallpaperAutomationSheetView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Paper.gold, Paper.gold],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(Paper.gold)
                     .frame(width: 72, height: 72)
-                    .shadow(color: Paper.gold.opacity(0.4), radius: 16, y: 6)
+                    .shadow(color: Paper.shadow, radius: 16, y: 6)
                 
                 Image(systemName: selectedMode == .photoShuffle ? "sparkles.rectangle.stack.fill" : "photo.stack.fill")
                     .font(.system(size: 32, weight: .bold))
@@ -173,7 +167,7 @@ struct WallpaperAutomationSheetView: View {
                             selectedBatchCount = count
                         } label: {
                             Text("\(count) \(wallpapersSuffix)")
-                                .font(.system(size: 13, weight: selectedBatchCount == count ? .bold : .medium))
+                                .font(PaperFont.font(size: 13, weight: selectedBatchCount == count ? .semibold : .medium))
                                 .foregroundColor(selectedBatchCount == count ? .black : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
@@ -237,15 +231,9 @@ struct WallpaperAutomationSheetView: View {
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [Paper.gold, Paper.gold],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background(Paper.gold)
                 .cornerRadius(16)
-                .shadow(color: Paper.gold.opacity(0.35), radius: 12, y: 4)
+                .shadow(color: Paper.shadow, radius: 12, y: 4)
             }
             .disabled(isGeneratingBatch)
             .buttonStyle(ScaleButtonStyle())
@@ -366,15 +354,9 @@ struct WallpaperAutomationSheetView: View {
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [Paper.gold, Paper.gold],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background(Paper.gold)
                 .cornerRadius(16)
-                .shadow(color: Paper.gold.opacity(0.35), radius: 12, y: 4)
+                .shadow(color: Paper.shadow, radius: 12, y: 4)
             }
             .buttonStyle(ScaleButtonStyle())
             
@@ -414,11 +396,11 @@ struct WallpaperAutomationSheetView: View {
                         .foregroundColor(Paper.moss)
                     Text(sampleSavedText)
                         .font(PaperFont.font(size: 13, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.page)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Color.black.opacity(0.85))
+                .background(Paper.ink.opacity(0.92))
                 .cornerRadius(20)
                 .overlay(Capsule().stroke(Paper.moss.opacity(0.5), lineWidth: 1))
                 .transition(.move(edge: .top).combined(with: .opacity))

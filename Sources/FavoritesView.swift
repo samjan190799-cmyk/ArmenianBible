@@ -23,11 +23,11 @@ struct FavoritesView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     private var secondaryAccentColor: Color {
-        Color(hex: manager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
     
     private var backgroundColor: Color {
@@ -39,19 +39,7 @@ struct FavoritesView: View {
     }
     
     private var cardBorderColor: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        LinearGradient(colors: [Paper.hairline, Paper.hairline], startPoint: .top, endPoint: .bottom)
     }
     
     private var primaryTextColor: Color {
@@ -123,16 +111,7 @@ struct FavoritesView: View {
     var body: some View {
         ZStack {
             // MARK: - Фон
-            backgroundColor.ignoresSafeArea()
-            
-            // Мягкое фоновое неоновое свечение
-            RadialGradient(
-                gradient: Gradient(colors: [accentColor.opacity(colorScheme == .dark ? 0.07 : 0.04), Color.clear]),
-                center: .top,
-                startRadius: 50,
-                endRadius: 350
-            )
-            .ignoresSafeArea()
+            PaperBackground()
             
             VStack(spacing: 0) {
                 // MARK: - Заголовок экрана
@@ -177,11 +156,11 @@ struct FavoritesView: View {
                                 }
                             } label: {
                                 Text("all_tags_filter".localized(for: manager.appLanguage))
-                                    .font(.system(size: 12, weight: selectedTagFilter == nil ? .bold : .medium))
+                                    .font(PaperFont.font(size: 12, weight: selectedTagFilter == nil ? .semibold : .medium))
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(selectedTagFilter == nil ? accentColor : cardBackgroundColor)
-                                    .foregroundColor(selectedTagFilter == nil ? .white : primaryTextColor)
+                                    .foregroundColor(selectedTagFilter == nil ? Paper.onAccent : primaryTextColor)
                                     .cornerRadius(20)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 20)
@@ -209,12 +188,12 @@ struct FavoritesView: View {
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(isSelected ? Color(hex: tag.colorHex).opacity(0.3) : cardBackgroundColor)
-                                    .foregroundColor(isSelected ? Color(hex: tag.colorHex) : primaryTextColor)
+                                    .background(isSelected ? tag.color.opacity(0.3) : cardBackgroundColor)
+                                    .foregroundColor(isSelected ? tag.color : primaryTextColor)
                                     .cornerRadius(20)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 20)
-                                            .stroke(isSelected ? Color(hex: tag.colorHex) : Paper.ink.opacity(0.1), lineWidth: 1)
+                                            .stroke(isSelected ? tag.color : Paper.ink.opacity(0.1), lineWidth: 1)
                                     )
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -231,7 +210,7 @@ struct FavoritesView: View {
                             .foregroundColor(primaryTextColor.opacity(0.4))
                         
                         TextField("favorites_search_placeholder".localized(for: manager.appLanguage), text: $searchText)
-                            .font(.system(size: 15))
+                            .font(PaperFont.font(size: 15))
                             .foregroundColor(primaryTextColor)
                             .keyboardDismissToolbar()
                         
@@ -246,12 +225,7 @@ struct FavoritesView: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(cardBackgroundColor)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(primaryTextColor.opacity(0.08), lineWidth: 1)
-                    )
+                    .paperSheet(cornerRadius: 12)
                     .padding(.horizontal, 20)
                 }
                 .padding(.bottom, 6)
@@ -374,13 +348,13 @@ struct FavoritesView: View {
                             .foregroundColor(Paper.moss)
                         Text(toastMessage)
                             .font(PaperFont.font(size: 14, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.page)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(Color.black.opacity(0.85))
+                    .background(Paper.ink.opacity(0.92))
                     .cornerRadius(25)
-                    .shadow(radius: 10)
+                    .shadow(color: Paper.shadow, radius: 10)
                     .padding(.bottom, 30)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -634,7 +608,7 @@ struct AnnotationCardView: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.red.opacity(0.8))
+                        .foregroundColor(Paper.cinnabar.opacity(0.8))
                         .padding(6)
                         .background(Paper.cinnabar.opacity(0.08))
                         .clipShape(Circle())
@@ -687,8 +661,8 @@ struct AnnotationCardView: View {
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color(hex: tag.colorHex).opacity(0.16))
-                        .foregroundColor(Color(hex: tag.colorHex))
+                        .background(tag.color.opacity(0.16))
+                        .foregroundColor(tag.color)
                         .cornerRadius(8)
                     }
                 }
@@ -744,19 +718,7 @@ struct AnnotationCardView: View {
             .padding(.top, 4)
         }
         .padding(18)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(cardBackgroundColor)
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(cardBorderColor, lineWidth: 1.2)
-        )
+        .paperSheet(cornerRadius: 18)
     }
 }
 
@@ -881,19 +843,7 @@ struct FavoriteCardView: View {
             }
         }
         .padding(20)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(cardBackgroundColor)
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(cardBorderColor, lineWidth: 1.2)
-        )
+        .paperSheet(cornerRadius: 20)
     }
 }
 
@@ -906,12 +856,12 @@ struct EmptyFavoritesView: View {
         VStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Paper.cinnabar.opacity(0.08))
+                    .fill(Paper.fillSubtle)
                     .frame(width: 90, height: 90)
                 
                 Image(systemName: hasSearchText ? "magnifyingglass" : "note.text.badge.plus")
-                    .font(.system(size: 38, weight: .light))
-                    .foregroundColor(.red.opacity(0.7))
+                    .font(.system(size: 36, weight: .ultraLight))
+                    .foregroundColor(Paper.inkTertiary)
             }
             
             Text(hasSearchText ? "search_no_results".localized(for: language) : "no_notes_found".localized(for: language))
