@@ -20,9 +20,7 @@ struct QuizStartView: View {
     private let counts = [5, 10, 15, 20]
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
     
     var body: some View {

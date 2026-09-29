@@ -89,7 +89,7 @@ extension SettingsView {
                         selectedProvider = provider
                         manager.setActiveProvider(provider)
                     }
-                    UISelectionFeedbackGenerator().selectionChanged()
+                    Haptics.selection()
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: providerIconName(for: provider))
@@ -126,7 +126,7 @@ extension SettingsView {
         .frame(height: 255)
         .onChange(of: selectedProvider) { newProvider in
             manager.setActiveProvider(newProvider)
-            UISelectionFeedbackGenerator().selectionChanged()
+            Haptics.selection()
         }
     }
     
@@ -183,9 +183,7 @@ extension SettingsView {
         let strokeColor = isSelected ? tColor : (Paper.fillMuted)
         
         Button {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.prepare()
-            generator.impactOccurred()
+            Haptics.impact(.light)
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 selectedTheologicalTone = tone
                 manager.setAITheologicalTone(tone)
@@ -263,9 +261,7 @@ extension SettingsView {
                 Spacer()
                 
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.prepare()
-                    generator.impactOccurred()
+                    Haptics.impact(.soft)
                     isShowingClearAIChatAlert = true
                 } label: {
                     HStack(spacing: 4) {
@@ -399,9 +395,9 @@ extension SettingsView {
                 
                 // Кнопка автообновления моделей (доступна для всех: Gemini, ChatGPT, Claude)
                 Button {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    Haptics.impact(.soft)
                     if !isKeySaved(for: provider) {
-                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                        Haptics.notify(.warning)
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             activeKeyCheckToast = "enter_api_key_to_check".localized(for: selectedLanguage)
                         }
@@ -417,12 +413,12 @@ extension SettingsView {
                         await MainActor.run {
                             isCheckingModels = false
                             if res.success {
-                                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                Haptics.notify(.success)
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                     activeKeyCheckToast = res.message.localized(for: selectedLanguage)
                                 }
                             } else {
-                                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                                Haptics.notify(.warning)
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                     activeKeyCheckToast = res.message.localized(for: selectedLanguage)
                                 }

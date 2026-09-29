@@ -143,7 +143,7 @@ struct QuizResultView: View {
                 .padding(.horizontal, 20)
                 
                 Button {
-                    triggerHaptic(.medium)
+                    triggerHaptic(.soft)
                     onRestart()
                 } label: {
                     Text("quiz_button_play_again".localized(for: language))
@@ -171,9 +171,7 @@ struct QuizResultView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
 }
 

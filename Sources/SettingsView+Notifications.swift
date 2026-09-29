@@ -177,9 +177,7 @@ extension SettingsView {
                     .labelsHidden()
                     .tint(selectedTheme.color)
                     .onChange(of: isOn.wrappedValue) { val in
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.prepare()
-                        generator.impactOccurred()
+                        Haptics.impact(.light)
                         onToggle(val)
                     }
             }
@@ -274,9 +272,7 @@ extension SettingsView {
                 Spacer()
                 
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.prepare()
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     isShowingWidgetInstruction = true
                 } label: {
                     HStack(spacing: 4) {
@@ -334,9 +330,7 @@ extension SettingsView {
             VStack(spacing: 8) {
                 ForEach(VerseSourceScope.allCases) { scope in
                     Button {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.prepare()
-                        generator.impactOccurred()
+                        Haptics.impact(.light)
                         selectedScope = scope
                         manager.updateVerseSourceScope(scope)
                     } label: {

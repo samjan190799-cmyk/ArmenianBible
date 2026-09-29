@@ -91,7 +91,7 @@ struct BibleSingleChapterView: View {
                                     }
                                 },
                                 onRemoveHighlight: { verseNum in
-                                    triggerHaptic(.medium)
+                                    triggerHaptic(.soft)
                                     manager.setHighlight(
                                         bookId: book.id,
                                         chapter: chapter,
@@ -276,7 +276,7 @@ struct BibleSingleChapterView: View {
             refEn: refEn
         )
         
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         showToast(message: "toast_pinned_to_widget".localized(for: manager.appLanguage))
     }
     
@@ -293,7 +293,10 @@ struct BibleSingleChapterView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             let data = BibleDatabase.shared.getChapterText(bookId: book.id, chapter: chapter)
             DispatchQueue.main.async {
-                self.chapterText = data
+                // Глава проступает на странице плавно, а не появляется рывком
+                withAnimation(PaperMotion.animation(PaperMotion.swap)) {
+                    self.chapterText = data
+                }
             }
         }
     }
@@ -323,7 +326,7 @@ struct BibleSingleChapterView: View {
     }
     
     private func toggleFavorite(verse: BibleVerseText) {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         if manager.isFavorite(verseText: verse) {
             manager.removeFromFavorites(verseText: verse)
         } else {
@@ -390,9 +393,7 @@ struct BibleSingleChapterView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
 }
 

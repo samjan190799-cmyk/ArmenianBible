@@ -64,8 +64,8 @@ struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .animation(.spring(response: 0.15, dampingFraction: 0.65), value: configuration.isPressed)
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .animation(PaperMotion.animation(PaperMotion.press), value: configuration.isPressed)
     }
 }
 
@@ -631,7 +631,7 @@ struct VisibleApiKeyField: View {
 
             Button {
                 isRevealed.toggle()
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             } label: {
                 Image(systemName: isRevealed ? "eye.slash.fill" : "eye.fill")
                     .font(.system(size: 16))

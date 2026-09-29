@@ -174,9 +174,7 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("close_button".localized(for: selectedLanguage)) {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.prepare()
-                        generator.impactOccurred()
+                        Haptics.impact(.light)
                         isPresented = false
                     }
                     .foregroundColor(primaryTextColor)
@@ -261,9 +259,7 @@ struct SettingsView: View {
             .alert("ai_clear_chat_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingClearAIChatAlert) {
                 Button("ai_clear_chat_btn".localized(for: selectedLanguage), role: .destructive) {
                     manager.clearAIChat()
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.prepare()
-                    generator.notificationOccurred(.success)
+                    Haptics.notify(.success)
                     withAnimation {
                         showAIChatClearedToast = true
                     }
@@ -280,9 +276,7 @@ struct SettingsView: View {
             .alert("quiz_reset_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingResetQuizAlert) {
                 Button("quiz_reset_stats_btn".localized(for: selectedLanguage), role: .destructive) {
                     manager.resetQuizFullStats()
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.prepare()
-                    generator.notificationOccurred(.success)
+                    Haptics.notify(.success)
                     withAnimation {
                         showQuizResetToast = true
                     }
@@ -350,8 +344,7 @@ struct SettingsView: View {
             
             HStack(spacing: 10) {
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
+                    Haptics.impact(.soft)
                     isShowingPaywall = true
                 } label: {
                     HStack(spacing: 6) {
@@ -371,8 +364,7 @@ struct SettingsView: View {
                 .buttonStyle(ScaleButtonStyle())
                 
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     Task {
                         _ = await subscriptionManager.restorePurchases()
                     }
@@ -465,8 +457,7 @@ struct SettingsView: View {
             
             // Кнопка перехода в общий притвор храма
             Button {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
+                Haptics.impact(.soft)
                 isShowingSanctuarySheet = true
             } label: {
                 HStack(spacing: 8) {
@@ -602,8 +593,7 @@ struct SettingsView: View {
         icon: String
     ) -> some View {
         Button {
-            let g = UIImpactFeedbackGenerator(style: .light)
-            g.impactOccurred()
+            Haptics.impact(.light)
             selectedCandleTierForDirectLight = tier
         } label: {
             HStack(spacing: 12) {
@@ -704,8 +694,7 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                     .tint(selectedTheme.color)
                     .onChange(of: selectedArmenianEdition) { newEd in
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
+                        Haptics.impact(.soft)
                         manager.setArmenianEdition(newEd)
                         manager.forceRefreshUI()
                     }
@@ -742,9 +731,7 @@ struct SettingsView: View {
             .tint(Paper.ink)
             .padding(.vertical, 4)
             .onChange(of: selectedAppearanceMode) { newMode in
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.prepare()
-                generator.impactOccurred()
+                Haptics.impact(.light)
                 manager.setAppearanceMode(newMode)
             }
         }
@@ -777,9 +764,7 @@ struct SettingsView: View {
                     }
                     .contentShape(Circle())
                     .onTapGesture {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.prepare()
-                        generator.impactOccurred()
+                        Haptics.impact(.light)
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             selectedTheme = theme
                             manager.setAccentTheme(theme)
@@ -838,8 +823,7 @@ struct SettingsView: View {
                         let isLocked = option.isPremium && !subscriptionManager.isPremium
                         
                         Button {
-                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                            generator.impactOccurred()
+                            Haptics.impact(.soft)
                             
                             _ = withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
                                 appIconManager.selectIcon(option) {

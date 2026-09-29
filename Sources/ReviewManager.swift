@@ -168,7 +168,7 @@ public struct ReviewPromptSheetView: View {
                         .fill(Paper.gold.opacity(0.15))
                         .frame(width: 96, height: 96)
                         .scaleEffect(isPulsing ? 1.08 : 1.0)
-                        .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: isPulsing)
+                        .animation(.easeInOut(duration: 2.0).loops(autoreverses: true), value: isPulsing)
                     
                     Image(systemName: "star.circle.fill")
                         .font(.system(size: 64, weight: .semibold))

@@ -61,7 +61,7 @@ struct VerseActionSheetView: View {
                             // Явная кнопка "Убрать цвет" / "Մաքրել գույնը"
                             if selectedColorHex != nil {
                                 Button {
-                                    triggerHaptic(.medium)
+                                    triggerHaptic(.soft)
                                     selectedColorHex = nil
                                     saveChanges()
                                 } label: {
@@ -109,7 +109,7 @@ struct VerseActionSheetView: View {
                             
                             // Кнопка сброса цвета
                             Button {
-                                triggerHaptic(.medium)
+                                triggerHaptic(.soft)
                                 selectedColorHex = nil
                                 saveChanges()
                             } label: {
@@ -321,9 +321,7 @@ struct VerseActionSheetView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
 }
 

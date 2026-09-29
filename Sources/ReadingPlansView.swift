@@ -76,8 +76,7 @@ struct ReadingPlansCatalogView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("close_button".localized(for: language)) {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                        Haptics.impact(.light)
                         dismiss()
                     }
                     .foregroundColor(primaryTextColor)
@@ -256,8 +255,7 @@ struct ReadingPlansCatalogView: View {
                 }
                 
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     selectedPlanForDetail = plan
                 } label: {
                     Text("view_plan_button".localized(for: language))
@@ -299,8 +297,7 @@ struct ReadingPlansCatalogView: View {
     
     private func categoryPill(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            Haptics.impact(.light)
             withAnimation(.spring(response: 0.32, dampingFraction: 0.75)) {
                 action()
             }
@@ -323,8 +320,7 @@ struct ReadingPlansCatalogView: View {
         let completed = planManager.completedDaysCount(for: plan.id)
         
         return Button {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            Haptics.impact(.light)
             selectedPlanForDetail = plan
         } label: {
             HStack(spacing: 14) {
@@ -530,8 +526,7 @@ struct ReadingPlanDetailView: View {
     // MARK: - Кнопка выбора активного плана
     private var actionButton: some View {
         Button {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
+            Haptics.impact(.soft)
             
             withAnimation(.spring(response: 0.32, dampingFraction: 0.75)) {
                 if isCurrentPlan {
@@ -577,8 +572,7 @@ struct ReadingPlanDetailView: View {
                 HStack(spacing: 12) {
                     // Чекбокс отметки дня с пружинящей микро-анимацией
                     Button {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
+                        Haptics.impact(.soft)
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                             planManager.toggleDayCompletion(planId: plan.id, dayNumber: day.dayNumber)
                         }

@@ -90,8 +90,7 @@ final class ReadingPlanManager: ObservableObject {
         self.activePlanId = id
         defaults.set(id, forKey: activePlanKey)
         
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
+        Haptics.impact(.soft)
     }
     
     func stopActivePlan() {
@@ -111,8 +110,7 @@ final class ReadingPlanManager: ObservableObject {
             completedDays[planId] = days
             saveCompletedDays()
             
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            Haptics.impact(.light)
         } else {
             days.append(dayNumber)
             completedDays[planId] = days
@@ -121,8 +119,7 @@ final class ReadingPlanManager: ObservableObject {
             // Начисляем стрик за чтение
             recordStreakForToday()
             
-            let notification = UINotificationFeedbackGenerator()
-            notification.notificationOccurred(.success)
+            Haptics.notify(.success)
         }
     }
     
@@ -192,7 +189,6 @@ final class ReadingPlanManager: ObservableObject {
         manager.deepLinkChapter = target.chapter
         manager.openBibleReader()
         
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
+        Haptics.impact(.soft)
     }
 }

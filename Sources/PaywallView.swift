@@ -214,7 +214,7 @@ struct PaywallView: View {
             .zIndex(999)
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 3).loops(autoreverses: true)) {
                 animateGlow = true
             }
             Task {
@@ -379,15 +379,15 @@ struct PaywallView: View {
     }
     
     private func triggerHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        UINotificationFeedbackGenerator().notificationOccurred(type)
+        Haptics.notify(type)
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
+        Haptics.impact(style)
     }
     
     private func triggerHaptic(_ type: SelectionHapticTag) {
-        UISelectionFeedbackGenerator().selectionChanged()
+        Haptics.selection()
     }
     
     private enum SelectionHapticTag {

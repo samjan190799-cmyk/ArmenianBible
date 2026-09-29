@@ -421,9 +421,7 @@ struct FavoritesView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
     
     private func showToast(_ message: String) {
@@ -457,7 +455,7 @@ struct FavoritesView: View {
     
     private func openInBible(_ item: FavoriteItem) {
         guard let bookId = item.bookId, let chapter = item.chapter else { return }
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         manager.deepLinkBookId = bookId
         manager.deepLinkChapter = chapter
         if let verse = item.verseNumber {
@@ -467,7 +465,7 @@ struct FavoritesView: View {
     }
     
     private func openAnnotationInBible(_ ann: VerseAnnotation) {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         manager.deepLinkBookId = ann.bookId
         manager.deepLinkChapter = ann.chapter
         manager.deepLinkVerse = ann.verseNumber
@@ -475,7 +473,7 @@ struct FavoritesView: View {
     }
     
     private func pinFavoriteToWidget(_ item: FavoriteItem) {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         manager.pinVerseToWidget(
             textHy: item.textHy,
             textRu: item.textRu,
@@ -489,7 +487,7 @@ struct FavoritesView: View {
     
     @MainActor
     private func shareFavorite(_ item: FavoriteItem) {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         let verse = BibleVerse(
             id: item.id,
             textHy: item.textHy,
@@ -522,7 +520,7 @@ struct FavoritesView: View {
     
     @MainActor
     private func shareAnnotation(_ ann: VerseAnnotation) {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         let verse = BibleVerse(
             id: ann.id,
             textHy: ann.textHy,
@@ -588,8 +586,7 @@ struct AnnotationCardView: View {
                 
                 // Кнопка редактирования
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     onEdit()
                 } label: {
                     Image(systemName: "pencil")
@@ -603,8 +600,7 @@ struct AnnotationCardView: View {
                 
                 // Кнопка удаления
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     onDelete()
                 } label: {
                     Image(systemName: "trash")
@@ -750,8 +746,7 @@ struct FavoriteCardView: View {
                 
                 // Кнопка сердечка (Удаление из Избранного)
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     onRemove()
                 } label: {
                     Image(systemName: "heart.fill")

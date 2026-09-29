@@ -442,7 +442,7 @@ struct BibleWallpaperMakerView: View {
                         
                         // 3. Главная кнопка "Сохранить в Фотопленку"
                         Button {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             saveWallpaperToPhotos()
                         } label: {
                             HStack(spacing: 10) {
@@ -521,7 +521,7 @@ struct BibleWallpaperMakerView: View {
     private func saveWallpaperToPhotos() {
         let isProTheme = selectedTheme.isPro
         if isProTheme && !subscriptionManager.isPremium {
-            triggerHaptic(.medium)
+            triggerHaptic(.soft)
             isShowingPaywall = true
             return
         }
@@ -538,7 +538,7 @@ struct BibleWallpaperMakerView: View {
         } else if status == .authorized || status == .limited {
             executeSaveWallpaper()
         } else {
-            triggerHaptic(.medium)
+            triggerHaptic(.soft)
         }
     }
     
@@ -572,9 +572,7 @@ struct BibleWallpaperMakerView: View {
             DispatchQueue.main.async {
                 self.isExporting = false
                 if success {
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.prepare()
-                    generator.notificationOccurred(.success)
+                    Haptics.notify(.success)
                     
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                         self.showSaveSuccessToast = true
@@ -597,9 +595,7 @@ struct BibleWallpaperMakerView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
 }
 

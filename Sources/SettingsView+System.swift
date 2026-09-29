@@ -58,9 +58,7 @@ extension SettingsView {
                         .onChange(of: isHapticsEnabled) { newVal in
                             manager.setHapticsEnabled(newVal)
                             if newVal {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.prepare()
-                                generator.impactOccurred()
+                                Haptics.impact(.light)
                             }
                         }
                 }
@@ -144,9 +142,7 @@ extension SettingsView {
                     
                     Button {
                         isClearingCache = true
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.prepare()
-                        generator.impactOccurred()
+                        Haptics.impact(.soft)
                         
                         _ = manager.clearAppCache()
                         cacheSizeDisplay = manager.calculateCacheSize()
@@ -213,9 +209,7 @@ extension SettingsView {
                     Spacer()
                     
                     Button {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.prepare()
-                        generator.impactOccurred()
+                        Haptics.impact(.soft)
                         
                         if let url = manager.generateBackupArchive() {
                             self.backupShareUrl = url
@@ -321,9 +315,7 @@ extension SettingsView {
             secretLastTap = now
             secretTapCount += 1
             
-            let g = UIImpactFeedbackGenerator(style: secretTapCount >= 5 ? .heavy : .light)
-            g.prepare()
-            g.impactOccurred()
+            Haptics.impact(secretTapCount >= 5 ? .heavy : .light)
             
             if secretTapCount >= 5 {
                 secretTapCount = 0
@@ -423,8 +415,7 @@ extension SettingsView {
             Task {
                 let restored = await subscriptionManager.restorePurchases()
                 if restored {
-                    let s = UINotificationFeedbackGenerator()
-                    s.notificationOccurred(.success)
+                    Haptics.notify(.success)
                 }
             }
         } label: {
@@ -503,8 +494,7 @@ extension SettingsView {
     func handleDevToggle(enablePremium: Bool) {
         if SubscriptionManager.devToolsAvailable {
             subscriptionManager.toggleDeveloperPremium(to: enablePremium)
-            let n = UINotificationFeedbackGenerator()
-            n.notificationOccurred(.success)
+            Haptics.notify(.success)
             
             if enablePremium {
                 devToastIcon = "crown.fill"
@@ -525,8 +515,7 @@ extension SettingsView {
                 withAnimation { showDevToast = false }
             }
         } else {
-            let n = UINotificationFeedbackGenerator()
-            n.notificationOccurred(.error)
+            Haptics.notify(.error)
         }
         devPasscodeInput = ""
     }

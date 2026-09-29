@@ -59,7 +59,7 @@ struct PrayerSanctuaryView: View {
                         
                         // MARK: - Большая кнопка «Зажечь свечу»
                         Button {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             isShowingLightSheet = true
                         } label: {
                             HStack(spacing: 12) {
@@ -229,9 +229,7 @@ struct PrayerSanctuaryView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
 }
 
@@ -512,7 +510,7 @@ struct LightCandleFormSheetView: View {
                         // 5. Кнопка совершения молитвы и возжжения
                         VStack(spacing: 8) {
                             Button {
-                                triggerHaptic(.medium)
+                                triggerHaptic(.soft)
                                 Task {
                                     let name = personName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                                         ? selectedIntention.title(for: language)
@@ -815,9 +813,7 @@ struct LightCandleFormSheetView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
 }
 
@@ -1021,7 +1017,7 @@ struct CandleDetailPrayerSheetView: View {
                         .buttonStyle(ScaleButtonStyle())
                         
                         Button {
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            Haptics.notify(.success)
                             dismiss()
                         } label: {
                             Text("Ամէն • Аминь")
@@ -1055,7 +1051,7 @@ struct CandleDetailPrayerSheetView: View {
     }
     
     private func startMeltingSimulation() {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         isSimulatingMelting = true
         previewBurnProgress = 0.0
         
@@ -1066,15 +1062,13 @@ struct CandleDetailPrayerSheetView: View {
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + selectedDuration + 0.15) {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.notify(.success)
             isSimulatingMelting = false
         }
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
     
     private var meltingTitleText: String {

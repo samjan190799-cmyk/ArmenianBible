@@ -170,10 +170,10 @@ struct NarekatsiView: View {
                                     primaryTextColor: primaryTextColor,
                                     onToggleAudio: {
                                         if isLocked {
-                                            triggerHaptic(.medium)
+                                            triggerHaptic(.soft)
                                             isShowingPaywall = true
                                         } else {
-                                            triggerHaptic(.medium)
+                                            triggerHaptic(.soft)
                                             audioPlayer.togglePlay(prayer: prayer, language: manager.appLanguage)
                                         }
                                     },
@@ -303,6 +303,8 @@ struct NarekatsiView: View {
                                                 .foregroundColor(Paper.gold)
                                         } else {
                                             Image(systemName: isThisPlaying ? "pause.circle.fill" : (isCurrent ? "play.circle.fill" : "play.circle"))
+                                                .symbolReplace()
+                                                .animation(PaperMotion.animation(PaperMotion.press), value: isThisPlaying)
                                                 .font(.system(size: 24))
                                                 .foregroundColor(isCurrent ? accentColor : Paper.inkSecondary.opacity(0.5))
                                         }
@@ -376,7 +378,7 @@ struct NarekatsiView: View {
     // MARK: - Хелперы
     
     private func pinPrayerToWidget(_ prayer: NarekPrayer) {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         manager.pinVerseToWidget(
             textHy: prayer.textHy,
             textRu: prayer.textRu,
@@ -409,7 +411,7 @@ struct NarekatsiView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
+        Haptics.impact(style)
     }
 }
 
@@ -575,9 +577,11 @@ struct NarekHeroPlayerCard: View {
                                 .foregroundColor(Paper.onAccent)
                         } else {
                             Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
+                                .symbolReplace()
                                 .font(.system(size: 22, weight: .semibold))
                                 .foregroundColor(Paper.onAccent)
                                 .offset(x: audioPlayer.isPlaying ? 0 : 2)
+                                .animation(PaperMotion.animation(PaperMotion.press), value: audioPlayer.isPlaying)
                         }
                     }
                 }
@@ -611,9 +615,7 @@ struct NarekHeroPlayerCard: View {
                 Menu {
                     ForEach([0.8, 1.0, 1.25], id: \.self) { rate in
                         Button {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.prepare()
-                            generator.impactOccurred()
+                            Haptics.impact(.light)
                             audioPlayer.setPlaybackRate(rate)
                         } label: {
                             HStack {
@@ -644,9 +646,7 @@ struct NarekHeroPlayerCard: View {
                 Menu {
                     ForEach(NarekSleepTimerOption.allCases) { opt in
                         Button {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.prepare()
-                            generator.impactOccurred()
+                            Haptics.impact(.light)
                             audioPlayer.setSleepTimer(opt)
                         } label: {
                             HStack {
@@ -685,9 +685,7 @@ struct NarekHeroPlayerCard: View {
                 
                 // Тумблер автоперехода к следующей главе
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.prepare()
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     audioPlayer.setAutoPlayNextChapter(!audioPlayer.autoPlayNextChapter)
                 } label: {
                     HStack(spacing: 4) {

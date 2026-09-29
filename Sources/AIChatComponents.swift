@@ -82,9 +82,7 @@ struct AIChatBubbleRow: View {
                             HStack(spacing: 18) {
                                 // Добавить в Избранное
                                 Button {
-                                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                                    generator.prepare()
-                                    generator.impactOccurred()
+                                    Haptics.impact(.soft)
                                     withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) {
                                         if manager.isFavorite(verse) {
                                             manager.removeFromFavorites(verse)

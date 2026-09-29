@@ -199,24 +199,21 @@ final class AppIconManager: ObservableObject {
     func selectIcon(_ option: AppIconOption, onRequirePaywall: () -> Void) -> Bool {
         // Проверка Premium прав
         if option.isPremium && !SubscriptionManager.shared.isPremium {
-            let haptic = UINotificationFeedbackGenerator()
-            haptic.notificationOccurred(.warning)
+            Haptics.notify(.warning)
             onRequirePaywall()
             return false
         }
         
         // Если иконка уже выбрана
         if currentOption == option {
-            let haptic = UIImpactFeedbackGenerator(style: .light)
-            haptic.impactOccurred()
+            Haptics.impact(.light)
             return true
         }
         
         guard UIApplication.shared.supportsAlternateIcons else {
             print("⚠️ Device does not support alternate app icons")
             self.errorMessage = "Alternate icons not supported on this device"
-            let haptic = UINotificationFeedbackGenerator()
-            haptic.notificationOccurred(.error)
+            Haptics.notify(.error)
             return false
         }
         
@@ -227,13 +224,11 @@ final class AppIconManager: ObservableObject {
                 if let error = error {
                     print("❌ Error setting alternate app icon: \(error.localizedDescription)")
                     self?.errorMessage = error.localizedDescription
-                    let haptic = UINotificationFeedbackGenerator()
-                    haptic.notificationOccurred(.error)
+                    Haptics.notify(.error)
                 } else {
                     self?.currentOption = option
                     UserDefaults.standard.set(option.rawValue, forKey: self?.storageKey ?? "selected_app_icon_option_v1")
-                    let haptic = UINotificationFeedbackGenerator()
-                    haptic.notificationOccurred(.success)
+                    Haptics.notify(.success)
                 }
             }
         }

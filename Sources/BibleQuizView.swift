@@ -333,7 +333,7 @@ struct BibleQuizView: View {
                                         // Интерактивная плашка стиха
                                         HStack {
                                             Button {
-                                                triggerHaptic(.medium)
+                                                triggerHaptic(.soft)
                                                 dismiss()
                                                 manager.openBibleReader()
                                             } label: {
@@ -362,7 +362,7 @@ struct BibleQuizView: View {
                                             .lineSpacing(5)
                                         
                                         Button {
-                                            triggerHaptic(.medium)
+                                            triggerHaptic(.soft)
                                             nextQuestion(proxy: proxy)
                                         } label: {
                                             Text("quiz_next_question".localized(for: manager.appLanguage))
@@ -608,7 +608,7 @@ struct BibleQuizView: View {
     }
     
     private func startQuiz() {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         
         if isAIGenerationEnabled {
             guard QuizAIEngine.shared.isAIAvailable else {

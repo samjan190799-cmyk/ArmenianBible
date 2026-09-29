@@ -190,9 +190,7 @@ final class AppUpdateManager: ObservableObject {
     
     // MARK: - Переход в App Store для обновления
     func openAppStore() {
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(.success)
+        Haptics.notify(.success)
         
         if UIApplication.shared.canOpenURL(appStoreURL) {
             UIApplication.shared.open(appStoreURL, options: [:], completionHandler: nil)
@@ -368,7 +366,7 @@ struct ForceUpdateOverlayView: View {
             .padding(.horizontal, 24)
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 1.8).loops(autoreverses: true)) {
                 isPulsing = true
             }
         }

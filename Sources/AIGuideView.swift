@@ -170,7 +170,7 @@ struct AIGuideView: View {
             titleVisibility: .visible
         ) {
             Button(limitDialogWatchAdTitle) {
-                triggerHaptic(.medium)
+                triggerHaptic(.soft)
                 AdManager.shared.showRewardedAd {
                     let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
                     showToastMessage(msg)
@@ -206,7 +206,7 @@ struct AIGuideView: View {
                 "ai_clear_chat_btn".localized(for: manager.appLanguage),
                 role: .destructive
             ) {
-                triggerHaptic(.medium)
+                triggerHaptic(.soft)
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     manager.clearAIChat()
                 }
@@ -231,7 +231,7 @@ extension AIGuideView {
                     Menu {
                         ForEach(AIProvider.allCases) { provider in
                             Button {
-                                triggerHaptic(.medium)
+                                triggerHaptic(.soft)
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                     manager.activeProvider = provider
                                 }
@@ -289,7 +289,7 @@ extension AIGuideView {
                         
                         // Кнопка пополнения копилки за просмотр видео (+1 несгораемый вопрос)
                         Button {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             let isShown = AdManager.shared.showRewardedAd {
                                 let total = subscriptionManager.remainingFreeAiQuestions
                                 let banked = subscriptionManager.accumulatedBonusAiQuestions
@@ -426,7 +426,7 @@ extension AIGuideView {
                 
                 ForEach(suggestedQuestions) { sq in
                     Button {
-                        triggerHaptic(.medium)
+                        triggerHaptic(.soft)
                         let q = sq.key.localized(for: manager.appLanguage)
                         submitQuestion(q)
                     } label: {
@@ -475,7 +475,7 @@ extension AIGuideView {
                     Spacer()
                     
                     Button {
-                        triggerHaptic(.medium)
+                        triggerHaptic(.soft)
                         AdManager.shared.showRewardedAd {
                             let total = subscriptionManager.remainingFreeAiQuestions
                             let msg = manager.appLanguage == .armenian ? "+1 հարց կուտակվեց: Ընդհանուր՝ \(total)" : (manager.appLanguage == .russian ? "+1 вопрос накоплен! Всего: \(total)" : "+1 question banked! Total: \(total)")
@@ -520,7 +520,7 @@ extension AIGuideView {
                     .keyboardDismissToolbar()
                 
                 Button {
-                    triggerHaptic(.medium)
+                    triggerHaptic(.soft)
                     let textToSend = questionText
                     questionText = ""
                     hideKeyboard()
@@ -556,7 +556,7 @@ extension AIGuideView {
         guard !trimmed.isEmpty else { return }
         
         if !subscriptionManager.canAskAI() {
-            triggerHaptic(.heavy)
+            triggerHaptic(.medium)
             isShowingRewardedOffer = true
             return
         }
@@ -569,7 +569,7 @@ extension AIGuideView {
         }
         
         if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            triggerHaptic(.heavy)
+            triggerHaptic(.medium)
             showingNoKeyAlert = true
             return
         }
@@ -607,7 +607,7 @@ extension AIGuideView {
     // MARK: - Карточка вознаграждения за просмотр рекламы (+1 вопрос к ИИ)
     private var rewardedBonusCard: some View {
         Button {
-            triggerHaptic(.medium)
+            triggerHaptic(.soft)
             AdManager.shared.showRewardedAd {
                 let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
                 showToastMessage(msg)
@@ -730,7 +730,7 @@ extension AIGuideView {
     }
     
     private func showToastMessage(_ text: String) {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         toastMessage = text
         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
             showCopiedToast = true

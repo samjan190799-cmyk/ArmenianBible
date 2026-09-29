@@ -36,9 +36,7 @@ extension SettingsView {
                 Spacer()
                 
                 Button {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.prepare()
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     isShowingWidgetInstruction = true
                 } label: {
                     HStack(spacing: 4) {
@@ -76,9 +74,7 @@ extension SettingsView {
                 .pickerStyle(.segmented)
                 .tint(Paper.ink)
                 .onChange(of: selectedWidgetLanguage) { newLang in
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.prepare()
-                    generator.impactOccurred()
+                    Haptics.impact(.light)
                     manager.setWidgetLanguage(newLang)
                 }
             }
@@ -105,9 +101,7 @@ extension SettingsView {
                                 themeColorHex: selectedTheme.colorHex,
                                 colorScheme: colorScheme
                             ) {
-                                let generator = UIImpactFeedbackGenerator(style: .medium)
-                                generator.prepare()
-                                generator.impactOccurred()
+                                Haptics.impact(.soft)
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                     selectedWidgetStyle = style
                                 }
@@ -139,9 +133,7 @@ extension SettingsView {
                         ForEach(PreviewWidgetSize.allCases) { size in
                             let isSelected = previewWidgetSize == size
                             Button {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.prepare()
-                                generator.impactOccurred()
+                                Haptics.impact(.light)
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                     previewWidgetSize = size
                                 }
@@ -204,9 +196,7 @@ extension SettingsView {
                     Spacer()
                     
                     Button {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.prepare()
-                        generator.impactOccurred()
+                        Haptics.impact(.light)
                         pickVerseForCurrentSize(previewWidgetSize)
                     } label: {
                         HStack(spacing: 4) {
@@ -465,14 +455,10 @@ extension SettingsView {
                                         primaryTextColor: primaryTextColor
                                     ) {
                                         if isLocked {
-                                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                                            generator.prepare()
-                                            generator.impactOccurred()
+                                            Haptics.impact(.soft)
                                             isShowingPaywall = true
                                         } else {
-                                            let generator = UIImpactFeedbackGenerator(style: .light)
-                                            generator.prepare()
-                                            generator.impactOccurred()
+                                            Haptics.impact(.light)
                                             selectedLockCategory = cat
                                             manager.setLockScreenCategory(cat)
                                             pickVerseForCurrentSize(previewWidgetSize)
@@ -503,14 +489,10 @@ extension SettingsView {
                                         primaryTextColor: primaryTextColor
                                     ) {
                                         if isLocked {
-                                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                                            generator.prepare()
-                                            generator.impactOccurred()
+                                            Haptics.impact(.soft)
                                             isShowingPaywall = true
                                         } else {
-                                            let generator = UIImpactFeedbackGenerator(style: .light)
-                                            generator.prepare()
-                                            generator.impactOccurred()
+                                            Haptics.impact(.light)
                                             selectedLockCategory = cat
                                             manager.setLockScreenCategory(cat)
                                             pickVerseForCurrentSize(previewWidgetSize)
@@ -531,9 +513,7 @@ extension SettingsView {
                                 ForEach(LockScreenFontDesign.allCases) { design in
                                     let isSelected = selectedLockFontDesign == design
                                     Button {
-                                        let gen = UIImpactFeedbackGenerator(style: .light)
-                                        gen.prepare()
-                                        gen.impactOccurred()
+                                        Haptics.impact(.light)
                                         selectedLockFontDesign = design
                                         manager.setLockScreenFontDesign(design)
                                     } label: {
@@ -584,14 +564,10 @@ extension SettingsView {
                                         primaryTextColor: primaryTextColor
                                     ) {
                                         if isLocked {
-                                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                                            generator.prepare()
-                                            generator.impactOccurred()
+                                            Haptics.impact(.soft)
                                             isShowingPaywall = true
                                         } else {
-                                            let generator = UIImpactFeedbackGenerator(style: .light)
-                                            generator.prepare()
-                                            generator.impactOccurred()
+                                            Haptics.impact(.light)
                                             selectedMediumCategory = cat
                                             manager.setMediumWidgetCategory(cat)
                                             pickVerseForCurrentSize(.medium)
@@ -622,14 +598,10 @@ extension SettingsView {
                                         primaryTextColor: primaryTextColor
                                     ) {
                                         if isLocked {
-                                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                                            generator.prepare()
-                                            generator.impactOccurred()
+                                            Haptics.impact(.soft)
                                             isShowingPaywall = true
                                         } else {
-                                            let generator = UIImpactFeedbackGenerator(style: .light)
-                                            generator.prepare()
-                                            generator.impactOccurred()
+                                            Haptics.impact(.light)
                                             selectedLargeCategory = cat
                                             manager.setLargeWidgetCategory(cat)
                                             pickVerseForCurrentSize(.large)
@@ -714,9 +686,7 @@ extension SettingsView {
                 
                 // Кнопка «Применить и обновить все виджеты» с обратной связью
                 Button {
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.prepare()
-                    generator.notificationOccurred(.success)
+                    Haptics.notify(.success)
                     
                     manager.setWidgetVisualStyle(selectedWidgetStyle)
                     manager.syncLockScreenWidget()
@@ -800,8 +770,7 @@ extension SettingsView {
             }
             
             Button {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
+                Haptics.impact(.soft)
                 isShowingWallpaperAutomation = true
             } label: {
                 HStack(spacing: 8) {

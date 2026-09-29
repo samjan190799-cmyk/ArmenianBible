@@ -151,7 +151,7 @@ struct ChurchCalendarView: View {
                             
                             // Главная кнопка: Закачать все праздники в календарь
                             Button {
-                                triggerHaptic(.medium)
+                                triggerHaptic(.soft)
                                 exportFullCalendar()
                             } label: {
                                 HStack(spacing: 5) {
@@ -244,7 +244,7 @@ struct ChurchCalendarView: View {
                                         }
                                     },
                                     onShowMeaning: {
-                                        triggerHaptic(.medium)
+                                        triggerHaptic(.soft)
                                         selectedFeastForMeaning = feast
                                     },
                                     onExportSingle: {
@@ -332,9 +332,7 @@ struct ChurchCalendarView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
     
     private func showToast(_ message: String) {
@@ -379,7 +377,7 @@ struct ChurchCalendarView: View {
     
     @MainActor
     private func shareFeastCard(_ feast: ArmenianChurchFeast) {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         let verse = BibleVerse(
             id: UUID(),
             textHy: feast.titleHy + "\n\n" + feast.descriptionHy,

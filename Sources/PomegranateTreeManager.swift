@@ -418,13 +418,12 @@ final class PomegranateTreeManager: ObservableObject {
         newlyWateredTrigger.toggle()
 
         // Тактильный благородный отклик
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+        Haptics.notify(.success)
     }
 
     // Открыть модальное окно Древа
     func openSanctuary() {
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        Haptics.impact(.soft)
         self.isShowingSanctuarySheet = true
     }
 }

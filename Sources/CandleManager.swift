@@ -54,7 +54,7 @@ final class CandleManager: ObservableObject {
         // Омовение Гранатового Древа Веры утренней росой за молитву
         PomegranateTreeManager.shared.nourishWithDew(amount: 1)
         
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
         return true
     }
     
@@ -91,7 +91,7 @@ final class CandleManager: ObservableObject {
             activeCandles.insert(candle, at: 0)
             saveCandles()
             PomegranateTreeManager.shared.nourishWithDew(amount: 1)
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.notify(.success)
             return true
         }
         
@@ -123,7 +123,7 @@ final class CandleManager: ObservableObject {
                     self.saveCandles()
                     self.isPurchasing = false
                     PomegranateTreeManager.shared.nourishWithDew(amount: 1)
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Haptics.notify(.success)
                     resumeOnce(true)
                 },
                 onDismissWithoutReward: { [weak self] in
@@ -163,7 +163,7 @@ final class CandleManager: ObservableObject {
         }
         
         WidgetCenter.shared.reloadAllTimelines()
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
     }
     
     // MARK: - Автоматическая очистка угасших свечей

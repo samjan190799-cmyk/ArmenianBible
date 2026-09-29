@@ -131,7 +131,7 @@ struct PomegranateTreeView: View {
             // Плавное колыхание ветвей на легком ветру
             withAnimation(
                 .easeInOut(duration: 4.2)
-                .repeatForever(autoreverses: true)
+                .loops(autoreverses: true)
             ) {
                 swayPhase = 1.0
             }
@@ -139,7 +139,7 @@ struct PomegranateTreeView: View {
             // Пульсация божественного ореола
             withAnimation(
                 .easeInOut(duration: 3.0)
-                .repeatForever(autoreverses: true)
+                .loops(autoreverses: true)
             ) {
                 pulseGlow = 1.12
             }
@@ -309,7 +309,7 @@ struct PomegranateSeedView: View {
             }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 1.8).loops(autoreverses: true)) {
                 seedGlow = true
             }
         }
@@ -743,7 +743,7 @@ struct RoyalPomegranateFruitView: View {
         .onAppear {
             withAnimation(
                 .easeInOut(duration: Double.random(in: 2.2...3.5))
-                .repeatForever(autoreverses: true)
+                .loops(autoreverses: true)
             ) {
                 isPulsing = true
             }
@@ -899,7 +899,7 @@ struct PomegranatePollenParticlesView: View {
         .onAppear {
             withAnimation(
                 .easeInOut(duration: 2.8)
-                .repeatForever(autoreverses: true)
+                .loops(autoreverses: true)
             ) {
                 animPhase = true
             }

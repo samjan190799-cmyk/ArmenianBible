@@ -161,7 +161,7 @@ struct BibleLibrarySheetView: View {
     
     // Применение выбора и закрытие шторки
     private func triggerSelection() {
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         let selectedEdition = editions[selectedBookIndex]
         
         withAnimation {
@@ -173,9 +173,7 @@ struct BibleLibrarySheetView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
 }
 

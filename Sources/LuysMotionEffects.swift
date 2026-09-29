@@ -20,7 +20,7 @@ struct DivineBreathingGlow: View {
             .onAppear {
                 withAnimation(
                     .easeInOut(duration: 4.2)
-                    .repeatForever(autoreverses: true)
+                    .loops(autoreverses: true)
                 ) {
                     isExpanded = true
                 }
@@ -173,7 +173,7 @@ struct FlickeringCandleFlame: View {
             // Плавное глубокое дыхание огня
             withAnimation(
                 .easeInOut(duration: 1.25 + offset)
-                .repeatForever(autoreverses: true)
+                .loops(autoreverses: true)
                 .delay(randomDelay)
             ) {
                 breathePhase = 1.14
@@ -182,7 +182,7 @@ struct FlickeringCandleFlame: View {
             // Живое покачивание пламени на ветру
             withAnimation(
                 .easeInOut(duration: 1.6 + offset * 1.5)
-                .repeatForever(autoreverses: true)
+                .loops(autoreverses: true)
                 .delay(randomDelay * 0.5)
             ) {
                 swayAngle = 3.4
@@ -191,7 +191,7 @@ struct FlickeringCandleFlame: View {
             // Быстрое мерцание / трепет огня (микро-фликер)
             withAnimation(
                 .easeInOut(duration: 0.3 + offset * 0.3)
-                .repeatForever(autoreverses: true)
+                .loops(autoreverses: true)
                 .delay(randomDelay * 0.2)
             ) {
                 microFlicker = 1.06
@@ -444,7 +444,7 @@ struct LuysShimmerModifier: ViewModifier {
             .onAppear {
                 withAnimation(
                     .easeInOut(duration: duration)
-                    .repeatForever(autoreverses: false)
+                    .loops(autoreverses: false)
                 ) {
                     phase = 1.2
                 }
@@ -474,13 +474,14 @@ struct StaggeredEntranceModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(isVisible ? 1.0 : 0.0)
-            .offset(y: isVisible ? 0 : 22)
-            .scaleEffect(isVisible ? 1.0 : 0.97)
+            .offset(y: isVisible ? 0 : 14)
             .onAppear {
-                withAnimation(
-                    .spring(response: 0.48, dampingFraction: 0.76)
-                    .delay(Double(index) * baseDelay)
-                ) {
+                guard !isVisible else { return }
+                if PaperMotion.reduceMotion {
+                    isVisible = true
+                    return
+                }
+                withAnimation(PaperMotion.appear.delay(Double(index) * baseDelay)) {
                     isVisible = true
                 }
             }
@@ -548,7 +549,7 @@ struct AudioWaveformIndicator: View {
     private func startAnimation() {
         withAnimation(
             .easeInOut(duration: 0.38)
-            .repeatForever(autoreverses: true)
+            .loops(autoreverses: true)
         ) {
             animPhase = true
         }
@@ -611,7 +612,7 @@ struct LivingBorderModifier: ViewModifier {
                 .onAppear {
                     withAnimation(
                         .linear(duration: duration)
-                        .repeatForever(autoreverses: false)
+                        .loops(autoreverses: false)
                     ) {
                         rotationAngle = 360.0
                     }
@@ -679,7 +680,7 @@ struct PulsingAuraModifier: ViewModifier {
             .onAppear {
                 withAnimation(
                     .easeInOut(duration: duration)
-                    .repeatForever(autoreverses: true)
+                    .loops(autoreverses: true)
                 ) {
                     isPulsing = true
                 }
@@ -775,7 +776,8 @@ struct FluidSpringButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scaleDown : 1.0)
-            .animation(.spring(response: 0.28, dampingFraction: 0.62), value: configuration.isPressed)
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .animation(PaperMotion.animation(PaperMotion.press), value: configuration.isPressed)
     }
 }
 
@@ -829,7 +831,7 @@ struct FloatingDivineMotesView: View {
                         .blur(radius: size > 3.0 ? 0.6 : 0.2)
                         .animation(
                             .easeInOut(duration: speed)
-                            .repeatForever(autoreverses: true)
+                            .loops(autoreverses: true)
                             .delay(Double(i) * 0.22),
                             value: animatePhase
                         )
@@ -892,7 +894,7 @@ struct ShimmeringSpecularBorderModifier: ViewModifier {
             .onAppear {
                 withAnimation(
                     .easeInOut(duration: duration)
-                    .repeatForever(autoreverses: false)
+                    .loops(autoreverses: false)
                 ) {
                     shimmerOffset = 1.4
                 }

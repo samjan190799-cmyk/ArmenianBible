@@ -70,9 +70,7 @@ extension SettingsView {
                         ForEach(rateOptions, id: \.0) { option in
                             let isSelected = narekPlayer.playbackRate == option.0
                             Button {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.prepare()
-                                generator.impactOccurred()
+                                Haptics.impact(.light)
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                     narekPlayer.setPlaybackRate(option.0)
                                 }
@@ -138,9 +136,7 @@ extension SettingsView {
                             ForEach(NarekSleepTimerOption.allCases) { option in
                                 let isSelected = narekPlayer.sleepTimerOption == option
                                 Button {
-                                    let generator = UIImpactFeedbackGenerator(style: .light)
-                                    generator.prepare()
-                                    generator.impactOccurred()
+                                    Haptics.impact(.light)
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                         narekPlayer.setSleepTimer(option)
                                     }
@@ -200,9 +196,7 @@ extension SettingsView {
                     Toggle("", isOn: Binding(
                         get: { narekPlayer.autoPlayNextChapter },
                         set: { newVal in
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.prepare()
-                            generator.impactOccurred()
+                            Haptics.impact(.light)
                             narekPlayer.setAutoPlayNextChapter(newVal)
                         }
                     ))

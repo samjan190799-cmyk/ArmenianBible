@@ -8,6 +8,7 @@ struct ArmenianBibleApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .paperMotionRoot()
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
                 .tint(manager.accentTheme.color)
                 .task {

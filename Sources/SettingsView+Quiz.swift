@@ -45,9 +45,7 @@ extension SettingsView {
                         ForEach([5, 10, 15, 20], id: \.self) { count in
                             let isSelected = quizDefaultCount == count
                             Button {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.prepare()
-                                generator.impactOccurred()
+                                Haptics.impact(.light)
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                     quizDefaultCount = count
                                     manager.setQuizDefaultQuestionCount(count)
@@ -103,9 +101,7 @@ extension SettingsView {
                         ForEach(timerOptions, id: \.0) { option in
                             let isSelected = quizTimerDuration == option.0
                             Button {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.prepare()
-                                generator.impactOccurred()
+                                Haptics.impact(.light)
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                     quizTimerDuration = option.0
                                     manager.setQuizTimerDuration(option.0)
@@ -165,9 +161,7 @@ extension SettingsView {
                         .labelsHidden()
                         .tint(selectedTheme.color)
                         .onChange(of: quizSoundEnabled) { newVal in
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.prepare()
-                            generator.impactOccurred()
+                            Haptics.impact(.light)
                             manager.setQuizSoundEffectsEnabled(newVal)
                         }
                 }
@@ -205,9 +199,7 @@ extension SettingsView {
                         Spacer()
                         
                         Button {
-                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                            generator.prepare()
-                            generator.impactOccurred()
+                            Haptics.impact(.soft)
                             isShowingResetQuizAlert = true
                         } label: {
                             HStack(spacing: 4) {

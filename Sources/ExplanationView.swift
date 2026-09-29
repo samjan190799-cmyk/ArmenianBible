@@ -87,7 +87,7 @@ struct ExplanationView: View {
                     
                     // Кнопка запуска
                     Button {
-                        triggerHaptic(.medium)
+                        triggerHaptic(.soft)
                         runTheologicalExplanation()
                     } label: {
                         HStack(spacing: 10) {
@@ -190,7 +190,7 @@ struct ExplanationView: View {
         }
         
         if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            triggerHaptic(.heavy)
+            triggerHaptic(.medium)
             showingNoKeyAlert = true
             return
         }

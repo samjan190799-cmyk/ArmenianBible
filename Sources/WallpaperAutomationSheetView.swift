@@ -342,7 +342,7 @@ struct WallpaperAutomationSheetView: View {
             
             // Кнопка: Открыть Команды
             Button {
-                triggerHaptic(.medium)
+                triggerHaptic(.soft)
                 openShortcutsApp()
             } label: {
                 HStack(spacing: 8) {
@@ -478,7 +478,7 @@ struct WallpaperAutomationSheetView: View {
         batchProgressCurrent = 0
         batchProgressTotal = selectedBatchCount
         
-        triggerHaptic(.medium)
+        triggerHaptic(.soft)
         
         Task { @MainActor in
             do {
@@ -496,15 +496,11 @@ struct WallpaperAutomationSheetView: View {
                 isGeneratingBatch = false
                 showBatchSuccess = true
                 
-                let notification = UINotificationFeedbackGenerator()
-                notification.prepare()
-                notification.notificationOccurred(.success)
+                Haptics.notify(.success)
             } catch {
                 isGeneratingBatch = false
                 batchErrorMessage = error.localizedDescription
-                let notification = UINotificationFeedbackGenerator()
-                notification.prepare()
-                notification.notificationOccurred(.error)
+                Haptics.notify(.error)
             }
         }
     }
@@ -531,9 +527,7 @@ struct WallpaperAutomationSheetView: View {
             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
             
             isExportingSample = false
-            let generator = UINotificationFeedbackGenerator()
-            generator.prepare()
-            generator.notificationOccurred(.success)
+            Haptics.notify(.success)
             
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 showSampleSuccessToast = true
@@ -547,9 +541,7 @@ struct WallpaperAutomationSheetView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
     
     // MARK: - Локализация текстов (Photo Shuffle)

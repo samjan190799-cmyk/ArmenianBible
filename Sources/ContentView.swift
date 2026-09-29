@@ -120,7 +120,7 @@ struct BiometricLockOverlayView: View {
                         .foregroundColor(accentColor)
                 }
                 .onAppear {
-                    withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    withAnimation(.easeInOut(duration: 1.6).loops(autoreverses: true)) {
                         isPulsing = true
                     }
                 }
@@ -287,7 +287,7 @@ struct HomeView: View {
                         HStack(spacing: 0) {
                             // 1. Кнопка Лайка (Избранное) с упругой пружинной анимацией и золотым салютом
                             Button {
-                                triggerHaptic(.medium)
+                                triggerHaptic(.soft)
                                 withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) {
                                     if manager.isFavorite(manager.currentVerse) {
                                         manager.removeFromFavorites(manager.currentVerse)
@@ -310,6 +310,7 @@ struct HomeView: View {
                             } label: {
                                 ZStack {
                                     Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
+                                        .symbolReplace()
                                         .font(.system(size: 18, weight: .regular))
                                         .foregroundColor(manager.isFavorite(manager.currentVerse) ? accentColor : Paper.inkSecondary)
                                         .scaleEffect(isHeartBouncing ? 1.35 : 1.0)
@@ -323,7 +324,7 @@ struct HomeView: View {
 
                             // 2. Кнопка Генератора Обоев для LockScreen
                             Button {
-                                triggerHaptic(.medium)
+                                triggerHaptic(.soft)
                                 isShowingWallpaperMaker = true
                             } label: {
                                 Image(systemName: "photo.artframe")
@@ -336,7 +337,7 @@ struct HomeView: View {
 
                             // 3. Кнопка Поделиться открыткой
                             Button {
-                                triggerHaptic(.medium)
+                                triggerHaptic(.soft)
                                 shareVerseAsImage()
                             } label: {
                                 Image(systemName: "square.and.arrow.up")
@@ -354,24 +355,20 @@ struct HomeView: View {
                     .padding(.bottom, 14)
                     .paperSheet(cornerRadius: 22)
                     .padding(.horizontal, 20)
-                    .rotation3DEffect(
-                        .degrees(cardFlipAngle),
-                        axis: (x: 0.0, y: 1.0, z: 0.0),
-                        perspective: 0.35
-                    )
                     .onTapGesture {
-                        triggerHaptic(.medium)
-                        
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            cardFlipAngle = 90.0
+                        triggerHaptic(.light)
+
+                        // Стих растворяется и проступает новым, как чернила на странице
+                        if PaperMotion.reduceMotion {
+                            manager.selectRandomVerse()
+                            return
+                        }
+                        withAnimation(.easeOut(duration: 0.2)) {
                             animateVerse = false
                         }
-                        
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
                             manager.selectRandomVerse()
-                            cardFlipAngle = -90.0
-                            withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) {
-                                cardFlipAngle = 0.0
+                            withAnimation(PaperMotion.appear) {
                                 animateVerse = true
                             }
                         }
@@ -396,7 +393,7 @@ struct HomeView: View {
                         cardBorderColor: cardBorderColor,
                         primaryTextColor: primaryTextColor,
                         onOpenNarek: {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             manager.openNarekatsi()
                         }
                     )
@@ -411,7 +408,7 @@ struct HomeView: View {
                         cardBorderColor: cardBorderColor,
                         primaryTextColor: primaryTextColor,
                         onOpenSanctuary: {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             isShowingSanctuary = true
                         }
                     )
@@ -426,7 +423,7 @@ struct HomeView: View {
                         cardBorderColor: cardBorderColor,
                         primaryTextColor: primaryTextColor,
                         onOpenSanctuary: {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             isShowingPomegranateSanctuary = true
                         }
                     )
@@ -441,7 +438,7 @@ struct HomeView: View {
                         cardBorderColor: cardBorderColor,
                         primaryTextColor: primaryTextColor,
                         onOpenPlans: {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             isShowingReadingPlans = true
                         }
                     )
@@ -457,7 +454,7 @@ struct HomeView: View {
                         cardBorderColor: cardBorderColor,
                         primaryTextColor: primaryTextColor,
                         onStartQuiz: {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             isShowingQuiz = true
                         }
                     )
@@ -472,7 +469,7 @@ struct HomeView: View {
                         cardBorderColor: cardBorderColor,
                         primaryTextColor: primaryTextColor,
                         onOpenCalendar: {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             isShowingCalendar = true
                         }
                     )
@@ -488,7 +485,7 @@ struct HomeView: View {
                         primaryTextColor: primaryTextColor,
                         isPremium: subscriptionManager.isPremium,
                         onOpenPaywall: {
-                            triggerHaptic(.medium)
+                            triggerHaptic(.soft)
                             isShowingPaywall = true
                         }
                     )
@@ -579,15 +576,15 @@ struct HomeView: View {
         .onOpenURL { url in
             if url.scheme == "armenianbible" {
                 if url.host == "sanctuary" || url.host == "candle" {
-                    triggerHaptic(.medium)
+                    triggerHaptic(.soft)
                     manager.activeTabSelection = 0
                     isShowingSanctuary = true
                 } else if url.host == "tree" || url.host == "pomegranate" {
-                    triggerHaptic(.medium)
+                    triggerHaptic(.soft)
                     manager.activeTabSelection = 0
                     isShowingPomegranateSanctuary = true
                 } else if url.host == "next-verse" {
-                    triggerHaptic(.medium)
+                    triggerHaptic(.soft)
                     manager.activeTabSelection = 0
                     withAnimation(.easeOut(duration: 0.18)) {
                         animateVerse = false
@@ -609,7 +606,7 @@ struct HomeView: View {
                     
                     if let bIdStr = bookIdStr, let bId = Int(bIdStr),
                        let cStr = chapterStr, let chapter = Int(cStr) {
-                        triggerHaptic(.medium)
+                        triggerHaptic(.soft)
                         
                         manager.deepLinkBookId = bId
                         manager.deepLinkChapter = chapter

@@ -52,7 +52,7 @@ struct BibleChapterReaderView: View {
                         .shadow(color: .black.opacity(0.15), radius: 2)
                 }
                 .onAppear {
-                    withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                    withAnimation(.easeInOut(duration: 1.0).loops(autoreverses: true)) {
                         animateHint = true
                     }
                     // Плавно скрываем стрелочки через 4.5 секунды
@@ -245,9 +245,7 @@ struct BibleChapterReaderView: View {
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        Haptics.impact(style)
     }
 }
 
