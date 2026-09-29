@@ -17,7 +17,11 @@ final class BibleWallpaperGenerator {
         decor: WallpaperDecor = .cross,
         language: AppLanguage? = nil
     ) -> UIImage {
-        let activeTheme = theme ?? getPreferredTheme()
+        var activeTheme = theme ?? getPreferredTheme()
+        // PRO-темы — только для Premium, каким бы путём ни был запрос (Команды, пакет, интерфейс)
+        if activeTheme.isPro && !SubscriptionManager.shared.isPremium {
+            activeTheme = allowedThemes().randomElement() ?? .ararat
+        }
         let activeLang = language ?? BibleManager.shared.appLanguage
         
         let fullResView = FullResolutionWallpaperView(
@@ -118,7 +122,7 @@ final class BibleWallpaperGenerator {
             uniqueVerses = BibleVerse.shortPearls
         }
         
-        let themes = WallpaperTheme.allCases
+        let themes = allowedThemes()
         let fonts = WallpaperFont.allCases
         let decors: [WallpaperDecor] = [.cross, .laurel, .quote, .minimal]
         
@@ -192,10 +196,15 @@ final class BibleWallpaperGenerator {
         }
     }
     
-    private func getPreferredTheme() -> WallpaperTheme {
-        // Подбираем тему дня гармонично
+    /// Темы, доступные текущему пользователю: без Premium — только бесплатные
+    private func allowedThemes() -> [WallpaperTheme] {
         let all = WallpaperTheme.allCases
-        return all.randomElement() ?? .ararat
+        return SubscriptionManager.shared.isPremium ? all : all.filter { !$0.isPro }
+    }
+
+    private func getPreferredTheme() -> WallpaperTheme {
+        // Подбираем тему дня гармонично (из доступных пользователю)
+        return allowedThemes().randomElement() ?? .ararat
     }
 }
 

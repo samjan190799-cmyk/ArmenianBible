@@ -243,9 +243,7 @@ struct SettingsView: View {
                     ActivityView(activityItems: [url])
                 }
             }
-            .alert("Панель разработчика", isPresented: $isShowingDevPasscodeAlert) {
-                SecureField("Секретный PIN-код", text: $devPasscodeInput)
-                
+            .alert("Панель разработчика (DEBUG)", isPresented: $isShowingDevPasscodeAlert) {
                 Button("Включить Free (для теста рекламы)") {
                     handleDevToggle(enablePremium: false)
                 }
@@ -258,7 +256,7 @@ struct SettingsView: View {
                     devPasscodeInput = ""
                 }
             } message: {
-                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")\n\nВведите PIN для переключения режима.")
+                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")")
             }
             .alert("ai_clear_chat_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingClearAIChatAlert) {
                 Button("ai_clear_chat_btn".localized(for: selectedLanguage), role: .destructive) {

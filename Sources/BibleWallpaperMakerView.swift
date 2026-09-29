@@ -4,6 +4,11 @@ import Photos
 
 // MARK: - Темы фонов для обоев
 enum WallpaperTheme: String, CaseIterable, Identifiable {
+    /// PRO-темы: единственный источник правды для интерфейса, Команд и пакетной генерации
+    var isPro: Bool {
+        self == .royal || self == .bethlehem || self == .khachkar
+    }
+    
     case ararat = "ararat"
     case tatev = "tatev"
     case khachkar = "khachkar"
@@ -305,7 +310,7 @@ struct BibleWallpaperMakerView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
                                     ForEach(WallpaperTheme.allCases) { theme in
-                                        let isPro = (theme == .royal || theme == .bethlehem || theme == .khachkar)
+                                        let isPro = theme.isPro
                                         Button {
                                             triggerHaptic(.light)
                                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -514,7 +519,7 @@ struct BibleWallpaperMakerView: View {
     // MARK: - Рендеринг и Сохранение в Фотопленку
     @MainActor
     private func saveWallpaperToPhotos() {
-        let isProTheme = (selectedTheme == .royal || selectedTheme == .bethlehem || selectedTheme == .khachkar)
+        let isProTheme = selectedTheme.isPro
         if isProTheme && !subscriptionManager.isPremium {
             triggerHaptic(.medium)
             isShowingPaywall = true

@@ -357,6 +357,12 @@ struct NarekatsiView: View {
         .sheet(isPresented: $isShowingPaywall) {
             PaywallView()
         }
+        .onReceive(audioPlayer.$paywallRequested) { requested in
+            if requested {
+                audioPlayer.paywallRequested = false
+                isShowingPaywall = true
+            }
+        }
         .sheet(isPresented: Binding(
             get: { shareText != nil },
             set: { if !$0 { shareText = nil } }

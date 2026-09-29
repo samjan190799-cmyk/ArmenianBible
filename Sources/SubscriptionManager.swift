@@ -84,15 +84,45 @@ final class SubscriptionManager: ObservableObject {
     private let appGroupSuite       = AppGroupConstants.activeSuiteName
     private var updateListenerTask: Task<Void, Never>? = nil
     
+    /// Потокобезопасный снимок права Premium для кода вне MainActor (аудиоплеер, Команды).
+    /// Актуализируется при каждом изменении статуса подписки.
+    nonisolated static var premiumSnapshot: Bool {
+        AppGroupConstants.sharedBool(forKey: "is_premium_active")
+    }
+
+    /// Инструменты разработчика (принудительный Premium/Free) существуют ТОЛЬКО в DEBUG-сборках.
+    /// В TestFlight и App Store их нет: код панели лежит в открытом репозитории.
+    nonisolated static var devToolsAvailable: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    /// Стирает следы панели разработчика, включённой в прежних версиях приложения.
+    private func purgeDeveloperOverrides() {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: kDebugUnlockedKey) || defaults.bool(forKey: kForceFreeModeKey) else { return }
+        defaults.removeObject(forKey: kDebugUnlockedKey)
+        defaults.removeObject(forKey: kForceFreeModeKey)
+        // Кэш права мог выставить сама панель — настоящий статус подтвердит StoreKit
+        defaults.set(false, forKey: kPremiumOverrideKey)
+    }
+
     private init() {
+        if !Self.devToolsAvailable {
+            purgeDeveloperOverrides()
+        }
+
         // Загружаем закэшированный статус (с учётом принудительного Free-режима разработчика и старых ключей)
-        let isForceFree = UserDefaults.standard.bool(forKey: kForceFreeModeKey)
+        let isForceFree = Self.devToolsAvailable && UserDefaults.standard.bool(forKey: kForceFreeModeKey)
         if isForceFree {
             self.isPremium = false
         } else {
             let cached    = UserDefaults.standard.bool(forKey: kPremiumOverrideKey)
             let legacyCached = UserDefaults.standard.bool(forKey: kLegacyPremiumKey)
-            let debugCached = UserDefaults.standard.bool(forKey: kDebugUnlockedKey)
+            let debugCached = Self.devToolsAvailable && UserDefaults.standard.bool(forKey: kDebugUnlockedKey)
             self.isPremium = cached || legacyCached || debugCached
         }
         AppGroupConstants.syncToAll { defs in
@@ -288,7 +318,7 @@ final class SubscriptionManager: ObservableObject {
         }
         
         // Если разработчик принудительно включил Free-режим для тестирования рекламы
-        if UserDefaults.standard.bool(forKey: kForceFreeModeKey) {
+        if Self.devToolsAvailable && UserDefaults.standard.bool(forKey: kForceFreeModeKey) {
             self.isPremium = false
             UserDefaults.standard.set(false, forKey: kPremiumOverrideKey)
             AppGroupConstants.syncToAll { defs in
@@ -298,7 +328,7 @@ final class SubscriptionManager: ObservableObject {
         }
         
         // Проверяем, был ли активирован отладочный/пасхальный Premium
-        if UserDefaults.standard.bool(forKey: kDebugUnlockedKey) {
+        if Self.devToolsAvailable && UserDefaults.standard.bool(forKey: kDebugUnlockedKey) {
             hasActivePremium = true
         }
         
@@ -435,6 +465,7 @@ final class SubscriptionManager: ObservableObject {
     
     /// Для внутреннего тестирования / отладки
     func setDebugPremium(_ enabled: Bool) {
+        guard Self.devToolsAvailable else { return }
         self.isPremium = enabled
         UserDefaults.standard.set(enabled, forKey: kDebugUnlockedKey)
         UserDefaults.standard.set(enabled, forKey: kPremiumOverrideKey)
@@ -445,6 +476,7 @@ final class SubscriptionManager: ObservableObject {
     
     /// Переключение режима разработчика: принудительный Free для теста рекламы или Premium
     func toggleDeveloperPremium(to enablePremium: Bool) {
+        guard Self.devToolsAvailable else { return }
         if enablePremium {
             UserDefaults.standard.set(false, forKey: kForceFreeModeKey)
             setDebugPremium(true)

@@ -69,6 +69,9 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     @Published var savedPrayerId: Int = 1
     @Published var savedTimeSeconds: Double = 0.0
 
+    /// Пользователь упёрся в бесплатный лимит — экран Нарека показывает оплату
+    @Published var paywallRequested: Bool = false
+
     private let kSavedPrayerId = "narek_last_prayer_id"
     private let kSavedTimeSeconds = "narek_last_time_seconds"
     private let kSavedVoiceLang = "narek_voice_language"
@@ -106,6 +109,34 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     /// В App Store звук работает лишь пока приложение открыто.
     private var backgroundPlaybackAllowed: Bool {
         Bundle.isTestFlightOrDebug || isAppInForeground
+    }
+
+    // MARK: - Бесплатный лимит (защита внутри плеера, а не только на кнопках)
+
+    /// Без Premium доступна только глава 1: до начала главы 2 в файле озвучки.
+    /// Ограничение по времени файла, а не по номеру главы: файл идёт подряд и сам «перетекал» бы дальше.
+    private var isPremiumUser: Bool {
+        SubscriptionManager.premiumSnapshot
+    }
+
+    private func freeLimitSeconds(for language: AppLanguage) -> Double {
+        NarekatsiDatabase.shared.prayers.first(where: { $0.id == 2 })?.audioTimestampSeconds(for: language) ?? 258.0
+    }
+
+    private func isPositionAllowed(_ seconds: Double, language: AppLanguage) -> Bool {
+        isPremiumUser || seconds < freeLimitSeconds(for: language) - 0.5
+    }
+
+    /// Дошли до конца бесплатной главы (или попытались выйти за неё): стоп, возврат к началу главы 1 и предложение оплаты.
+    private func stopAtFreeLimit() {
+        player?.pause()
+        player?.seek(to: .zero)
+        isPlaying = false
+        currentlyPlayingId = 1
+        currentTime = 0
+        savePlaybackState(refreshFromPlayer: false)
+        updateNowPlayingInfo()
+        paywallRequested = true
     }
 
     private func knownDuration(for language: AppLanguage) -> Double {
@@ -179,6 +210,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
               savedTimeSeconds > 1 else { return nil }
         // Дослушали файл до конца — начинаем главу заново
         guard savedTimeSeconds < knownDuration(for: language) - 3 else { return nil }
+        guard isPositionAllowed(savedTimeSeconds, language: language) else { return nil }
         return savedTimeSeconds
     }
 
@@ -206,6 +238,10 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         let lang = language ?? voiceLanguage
         // Позицию продолжения определяем до смены состояния
         let startTime = resumePosition(for: prayer, language: lang) ?? prayer.audioTimestampSeconds(for: lang)
+        guard isPositionAllowed(startTime, language: lang) else {
+            paywallRequested = true
+            return
+        }
 
         if let p = player, isLoadedVoice(lang) {
             voiceLanguage = lang
@@ -227,6 +263,10 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         guard backgroundPlaybackAllowed else { return }
 
         let startAt = startAtSeconds ?? prayer.audioTimestampSeconds(for: language)
+        guard isPositionAllowed(startAt, language: language) else {
+            paywallRequested = true
+            return
+        }
 
         // Останавливаем прежний плеер, не затирая сохранённую позицию промежуточным состоянием
         setSleepTimer(.off)
@@ -317,6 +357,12 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             guard let self = self, self.isPlaying, !self.isSeekPending else { return }
             let currentSec = time.seconds
             guard !currentSec.isNaN else { return }
+
+            // Бесплатный лимит (или Premium закончился прямо во время прослушивания)
+            if !self.isPositionAllowed(currentSec, language: self.voiceLanguage) {
+                self.stopAtFreeLimit()
+                return
+            }
             self.currentTime = currentSec
 
             // Сохраняем позицию на диск не чаще раза в 3 секунды: и память не потеряется,
@@ -389,6 +435,12 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         // Вне TestFlight продолжить звук из фона или с экрана блокировки нельзя
         guard backgroundPlaybackAllowed else { return }
 
+        // Без Premium дальше бесплатной главы продолжать нельзя
+        guard isPositionAllowed(currentTime, language: voiceLanguage) else {
+            paywallRequested = true
+            return
+        }
+
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playback,
@@ -413,6 +465,15 @@ class NarekAudioPlayer: NSObject, ObservableObject {
 
     func seek(to seconds: Double) {
         let bounded = max(0, seconds)
+        // Перемотка за пределы бесплатной главы
+        guard isPositionAllowed(bounded, language: voiceLanguage) else {
+            if player != nil {
+                stopAtFreeLimit()
+            } else {
+                paywallRequested = true
+            }
+            return
+        }
         currentTime = bounded
         if let p = player {
             let targetTime = CMTime(seconds: bounded, preferredTimescale: 600)
@@ -452,6 +513,10 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     private func playChapterFromStart(_ prayer: NarekPrayer) {
         guard backgroundPlaybackAllowed else { return }
         let start = prayer.audioTimestampSeconds(for: voiceLanguage)
+        guard isPositionAllowed(start, language: voiceLanguage) else {
+            paywallRequested = true
+            return
+        }
         if let p = player, isLoadedVoice(voiceLanguage) {
             currentlyPlayingId = prayer.id
             savedPrayerId = prayer.id

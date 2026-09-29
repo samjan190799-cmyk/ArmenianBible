@@ -5,11 +5,13 @@ import AudioToolbox
 // MARK: - Тип модального предупреждения викторины
 private enum QuizAlertType: Identifiable {
     case noKey
+    case limitReached
     case aiFailure(String)
-    
+
     var id: String {
         switch self {
         case .noKey: return "noKey"
+        case .limitReached: return "limitReached"
         case .aiFailure(let msg): return "aiFailure_\(msg)"
         }
     }
@@ -19,6 +21,8 @@ private enum QuizAlertType: Identifiable {
 struct BibleQuizView: View {
     @ObservedObject var manager = BibleManager.shared
     @ObservedObject var achievements = AchievementsManager.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    @State private var isShowingPaywall = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
@@ -461,8 +465,22 @@ struct BibleQuizView: View {
         .sheet(isPresented: $isShowingAchievements) {
             BibleAchievementsView()
         }
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView()
+        }
         .alert(item: $activeAlert) { alertType in
             switch alertType {
+            case .limitReached:
+                return Alert(
+                    title: Text(aiQuizLimitTitle),
+                    message: Text(aiQuizLimitMessage),
+                    primaryButton: .default(Text(aiQuizLimitPremiumButton), action: {
+                        isShowingPaywall = true
+                    }),
+                    secondaryButton: .default(Text("quiz_play_classic_button".localized(for: manager.appLanguage)), action: {
+                        startOfflineQuiz()
+                    })
+                )
             case .noKey:
                 return Alert(
                     title: Text("quiz_ai_no_key_title".localized(for: manager.appLanguage)),
@@ -597,7 +615,14 @@ struct BibleQuizView: View {
                 activeAlert = .noKey
                 return
             }
-            
+
+            // ИИ-викторина «безлимитна» только с Premium: без него тратит суточный лимит ИИ-вопросов
+            guard subscriptionManager.canAskAI() else {
+                triggerHapticNotification(.warning)
+                activeAlert = .limitReached
+                return
+            }
+
             isGeneratingAI = true
             startAITimer()
             
@@ -609,6 +634,7 @@ struct BibleQuizView: View {
                         language: manager.appLanguage
                     )
                     stopAITimer()
+                    subscriptionManager.recordAiQuestionUsed()
                     activeQuestions = questions
                     currentQuestionIndex = 0
                     score = 0
@@ -634,6 +660,30 @@ struct BibleQuizView: View {
         }
     }
     
+    private var aiQuizLimitTitle: String {
+        switch manager.appLanguage {
+        case .armenian: return "Հարցերի սահմանաչափը սպառվել է"
+        case .russian: return "Лимит ИИ-вопросов исчерпан"
+        case .english: return "Daily AI Limit Reached"
+        }
+    }
+
+    private var aiQuizLimitMessage: String {
+        switch manager.appLanguage {
+        case .armenian: return "Անսահմանափակ AI վիկտորինայի համար ակտիվացրեք Premium կամ խաղացեք օֆլայն:"
+        case .russian: return "Для безлимитной ИИ-викторины оформите Premium или сыграйте в обычную офлайн-викторину."
+        case .english: return "Get Premium for an unlimited AI quiz, or play the classic offline quiz."
+        }
+    }
+
+    private var aiQuizLimitPremiumButton: String {
+        switch manager.appLanguage {
+        case .armenian: return "Ակտիվացնել Premium"
+        case .russian: return "Оформить Premium"
+        case .english: return "Upgrade to Premium"
+        }
+    }
+
     private func startOfflineQuiz() {
         activeQuestions = BibleQuizGenerator.shared.fetchQuestions(
             category: selectedCategory,

@@ -312,6 +312,8 @@ extension SettingsView {
         }
         .contentShape(Rectangle())
         .onTapGesture {
+            // Панель разработчика есть только в DEBUG-сборках
+            guard SubscriptionManager.devToolsAvailable else { return }
             let now = Date()
             if now.timeIntervalSince(secretLastTap) > 2.5 {
                 secretTapCount = 0
@@ -499,8 +501,7 @@ extension SettingsView {
     
     // MARK: - Обработка переключения режима разработчика
     func handleDevToggle(enablePremium: Bool) {
-        let code = devPasscodeInput.trimmingCharacters(in: .whitespaces)
-        if code == "1907" || code == "7777" || code == "2026" {
+        if SubscriptionManager.devToolsAvailable {
             subscriptionManager.toggleDeveloperPremium(to: enablePremium)
             let n = UINotificationFeedbackGenerator()
             n.notificationOccurred(.success)
