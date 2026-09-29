@@ -55,7 +55,7 @@ struct WallpaperAutomationSheetView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "090A0F")
+                Paper.page
                     .ignoresSafeArea()
                 
                 // Фоновые мягкие градиенты
@@ -105,7 +105,7 @@ struct WallpaperAutomationSheetView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 22))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
             }
@@ -126,19 +126,19 @@ struct WallpaperAutomationSheetView: View {
                 
                 Image(systemName: selectedMode == .photoShuffle ? "sparkles.rectangle.stack.fill" : "photo.stack.fill")
                     .font(.system(size: 32, weight: .semibold))
-                    .foregroundColor(.black)
+                    .foregroundColor(Paper.onAccent)
             }
             .padding(.top, 8)
             
             VStack(spacing: 6) {
                 Text(selectedMode == .photoShuffle ? photoShuffleTitle : titleText)
                     .font(PaperFont.font(size: 22, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.ink)
                     .multilineTextAlignment(.center)
                 
                 Text(selectedMode == .photoShuffle ? photoShuffleSubtitle : subtitleText)
                     .font(PaperFont.font(size: 13.5))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(Paper.inkSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 10)
             }
@@ -153,7 +153,7 @@ struct WallpaperAutomationSheetView: View {
                 HStack {
                     Text(batchCountLabel)
                         .font(PaperFont.font(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.ink)
                     Spacer()
                     Text(batchCountBadge)
                         .font(PaperFont.font(size: 12, weight: .semibold))
@@ -168,12 +168,12 @@ struct WallpaperAutomationSheetView: View {
                         } label: {
                             Text("\(count) \(wallpapersSuffix)")
                                 .font(PaperFont.font(size: 13, weight: selectedBatchCount == count ? .semibold : .medium))
-                                .foregroundColor(selectedBatchCount == count ? .black : .white)
+                                .foregroundColor(selectedBatchCount == count ? Paper.onAccent : Paper.ink)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                                 .background(
                                     selectedBatchCount == count ?
-                                        Paper.gold : Color.white.opacity(0.08)
+                                        Paper.gold : Paper.fillMuted
                                 )
                                 .cornerRadius(10)
                         }
@@ -184,13 +184,13 @@ struct WallpaperAutomationSheetView: View {
                 
                 Text(batchDescriptionText)
                     .font(PaperFont.font(size: 12))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(Paper.inkSecondary)
                     .lineSpacing(2)
             }
             .padding(16)
-            .background(Color.white.opacity(0.05))
+            .background(Paper.fillSubtle)
             .cornerRadius(18)
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.08), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Paper.hairline, lineWidth: 1))
             
             // Прогресс генерации
             if isGeneratingBatch {
@@ -200,7 +200,7 @@ struct WallpaperAutomationSheetView: View {
                             .tint(Paper.gold)
                         Text("\(generatingProgressText): \(batchProgressCurrent) / \(batchProgressTotal)")
                             .font(PaperFont.font(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.ink)
                         Spacer()
                     }
                     
@@ -208,7 +208,7 @@ struct WallpaperAutomationSheetView: View {
                         .tint(Paper.gold)
                 }
                 .padding(16)
-                .background(Color.black.opacity(0.5))
+                .background(Paper.scrim)
                 .cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Paper.gold.opacity(0.3), lineWidth: 1))
             }
@@ -220,7 +220,7 @@ struct WallpaperAutomationSheetView: View {
                 HStack(spacing: 8) {
                     if isGeneratingBatch {
                         ProgressView()
-                            .tint(.black)
+                            .tint(Paper.onAccent)
                     } else {
                         Image(systemName: "photo.badge.plus.fill")
                             .font(.system(size: 17, weight: .semibold))
@@ -245,7 +245,7 @@ struct WallpaperAutomationSheetView: View {
                         .foregroundColor(Paper.cinnabar)
                     Text(err)
                         .font(PaperFont.font(size: 12))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.ink)
                     Spacer()
                 }
                 .padding(12)
@@ -262,11 +262,11 @@ struct WallpaperAutomationSheetView: View {
                             .font(.system(size: 18, weight: .semibold))
                         Text(batchSuccessMessage)
                             .font(PaperFont.font(size: 14, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.ink)
                         Spacer()
                     }
                     
-                    Divider().background(Color.white.opacity(0.1))
+                    Divider().background(Paper.fillMuted)
                     
                     // Пошаговая инструкция для экрана блокировки iOS
                     VStack(alignment: .leading, spacing: 10) {
@@ -289,10 +289,10 @@ struct WallpaperAutomationSheetView: View {
                             Text(openPhotosAppText)
                         }
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(Paper.ink)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color.white.opacity(0.1))
+                        .background(Paper.fillMuted)
                         .cornerRadius(10)
                     }
                 }
@@ -333,11 +333,11 @@ struct WallpaperAutomationSheetView: View {
                 )
             }
             .padding(16)
-            .background(Color.white.opacity(0.05))
+            .background(Paper.fillSubtle)
             .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    .stroke(Paper.hairline, lineWidth: 1)
             )
             
             // Кнопка: Открыть Команды
@@ -368,7 +368,7 @@ struct WallpaperAutomationSheetView: View {
                 HStack(spacing: 6) {
                     if isExportingSample {
                         ProgressView()
-                            .tint(.white)
+                            .tint(Paper.onAccent)
                     } else {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(size: 14, weight: .semibold))
@@ -376,14 +376,14 @@ struct WallpaperAutomationSheetView: View {
                     Text(testSampleButtonText)
                         .font(PaperFont.font(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(Paper.ink)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Color.white.opacity(0.08))
+                .background(Paper.fillSubtle)
                 .cornerRadius(14)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                        .stroke(Paper.hairline, lineWidth: 1)
                 )
             }
             .disabled(isExportingSample)
@@ -421,7 +421,7 @@ struct WallpaperAutomationSheetView: View {
             
             Text(text)
                 .font(PaperFont.font(size: 12.5))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(Paper.ink)
                 .lineSpacing(2)
         }
     }
@@ -448,12 +448,12 @@ struct WallpaperAutomationSheetView: View {
                     
                     Text(title)
                         .font(PaperFont.font(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.ink)
                 }
                 
                 Text(subtitle)
                     .font(PaperFont.font(size: 12.5))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(Paper.inkSecondary)
                     .lineSpacing(2)
             }
             

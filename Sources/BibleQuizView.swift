@@ -192,7 +192,7 @@ struct BibleQuizView: View {
                                     HStack(spacing: 8) {
                                         Image(systemName: "timer")
                                             .font(.system(size: 13, weight: .semibold))
-                                            .foregroundColor(timeRemaining <= 5 ? .red : secondaryAccentColor)
+                                            .foregroundColor(timeRemaining <= 5 ? Paper.cinnabar : secondaryAccentColor)
                                         
                                         GeometryReader { geo in
                                             ZStack(alignment: .leading) {
@@ -202,7 +202,7 @@ struct BibleQuizView: View {
                                                 Capsule()
                                                     .fill(
                                                         timeRemaining <= 5 ?
-                                                        LinearGradient(colors: [.red, .orange], startPoint: .leading, endPoint: .trailing) :
+                                                        LinearGradient(colors: [Paper.cinnabar, Paper.gold], startPoint: .leading, endPoint: .trailing) :
                                                         LinearGradient(colors: [accentColor, secondaryAccentColor], startPoint: .leading, endPoint: .trailing)
                                                     )
                                                     .frame(width: max(0, geo.size.width * (Double(timeRemaining) / Double(max(1, manager.quizTimerDuration)))))
@@ -212,7 +212,7 @@ struct BibleQuizView: View {
                                         
                                         Text("\(timeRemaining)s")
                                             .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
-                                            .foregroundColor(timeRemaining <= 5 ? .red : primaryTextColor)
+                                            .foregroundColor(timeRemaining <= 5 ? Paper.cinnabar : primaryTextColor)
                                             .scaleEffect(timeRemaining <= 5 ? 1.08 : 1.0)
                                             .animation(.easeInOut(duration: 0.2), value: timeRemaining)
                                     }

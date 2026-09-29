@@ -22,7 +22,7 @@ struct PrayerSanctuaryView: View {
         NavigationStack {
             ZStack {
                 // Глубокий благоговейный фон храма
-                Color(hex: "090A0F")
+                Paper.page
                     .ignoresSafeArea()
                 
                 // Теплое фоновое свечение лампады
@@ -40,24 +40,18 @@ struct PrayerSanctuaryView: View {
                                 
                                 Image(systemName: "cross.fill")
                                     .font(.system(size: 32, weight: .semibold))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [Paper.gold.opacity(0.18), Paper.gold, Paper.gold],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
+                                    .foregroundColor(Paper.gold)
                             }
                             .padding(.top, 10)
                             
                             Text(titleText)
                                 .font(PaperFont.font(size: 22, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.ink)
                                 .multilineTextAlignment(.center)
                             
                             Text(subtitleText)
                                 .font(PaperFont.font(size: 13, weight: .medium))
-                                .foregroundColor(Color(hex: "D1D5DB"))
+                                .foregroundColor(Paper.inkSecondary)
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(4)
                                 .padding(.horizontal, 24)
@@ -73,35 +67,18 @@ struct PrayerSanctuaryView: View {
                                 
                                 Text(lightCandleButtonText)
                                     .font(PaperFont.font(size: 16, weight: .semibold))
-                                    .foregroundColor(.black)
+                                    .foregroundColor(Paper.onAccent)
                                 
                                 Spacer()
                                 
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.black.opacity(0.7))
+                                    .foregroundColor(Paper.onAccent.opacity(0.7))
                             }
                             .padding(16)
-                            .background(
-                                LinearGradient(
-                                    colors: [Paper.gold.opacity(0.18), Paper.gold, Paper.gold],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .background(Paper.gold)
                             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .livingBorder(
-                                colors: [
-                                    Paper.gold.opacity(0.18),
-                                    Paper.gold,
-                                    Paper.gold,
-                                    Paper.gold
-                                ],
-                                cornerRadius: 18,
-                                lineWidth: 1.5,
-                                glowRadius: 6,
-                                duration: 4.8
-                            )
+                            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Paper.gold.opacity(0.55), lineWidth: 1))
                             .shadow(color: Paper.shadow, radius: 12, y: 5)
                         }
                         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
@@ -118,10 +95,10 @@ struct PrayerSanctuaryView: View {
                                 
                                 Text("\(candleManager.activeCandles.count)")
                                     .font(PaperFont.font(size: 12, weight: .semibold).monospacedDigit())
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Paper.ink)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 3)
-                                    .background(Color.white.opacity(0.12))
+                                    .background(Paper.fillMuted)
                                     .clipShape(Capsule())
                             }
                             .padding(.horizontal, 24)
@@ -146,7 +123,7 @@ struct PrayerSanctuaryView: View {
                         // Духовная записка
                         Text(spiritualNoteText)
                             .font(PaperFont.font(size: 11, weight: .medium))
-                            .foregroundColor(Color(hex: "9CA3AF"))
+                            .foregroundColor(Paper.inkSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 30)
                             .padding(.bottom, 24)
@@ -162,7 +139,7 @@ struct PrayerSanctuaryView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 22))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
             }
@@ -191,13 +168,13 @@ struct PrayerSanctuaryView: View {
             
             Text(emptyCandlesText)
                 .font(PaperFont.font(size: 13, weight: .medium))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(Paper.inkSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
                 .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white.opacity(0.04))
+        .background(Paper.fillSubtle)
         .cornerRadius(18)
         .padding(.horizontal, 20)
     }
@@ -291,7 +268,7 @@ struct CandleStandCellView: View {
                     // Имя близкого или название намерения
                     Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
                         .font(PaperFont.font(size: 13, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.ink)
                         .lineLimit(1)
                         .padding(.horizontal, 6)
                     
@@ -329,35 +306,25 @@ struct CandleStandCellView: View {
                         Text(candle.remainingTimeText(for: language))
                             .font(PaperFont.font(size: 9, weight: .semibold).monospacedDigit())
                     }
-                    .foregroundColor(.white.opacity(0.65))
+                    .foregroundColor(Paper.inkSecondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Color.white.opacity(0.06))
+                    .background(Paper.fillSubtle)
                     .clipShape(Capsule())
                     .padding(.bottom, 8)
                 }
             }
             .frame(maxWidth: .infinity)
-            .background(Color.white.opacity(isSelectedForWidget ? 0.07 : 0.04))
+            .background(isSelectedForWidget ? Paper.fillMuted : Paper.fillSubtle)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .applyIf(isSelectedForWidget) { view in
-                view.livingBorder(
-                    colors: [
-                        Paper.gold,
-                        Paper.gold.opacity(0.18),
-                        Paper.gold
-                    ],
-                    cornerRadius: 18,
-                    lineWidth: 1.4,
-                    glowRadius: 4,
-                    duration: 4.0
-                )
+                view.overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Paper.gold.opacity(0.55), lineWidth: 1))
             }
             .applyIf(!isSelectedForWidget) { view in
                 view.overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(
-                            candle.tier == .generous ? Paper.gold.opacity(0.35) : Color.white.opacity(0.08),
+                            candle.tier == .generous ? Paper.gold.opacity(0.35) : Paper.fillMuted,
                             lineWidth: 1.0
                         )
                 )
@@ -383,7 +350,7 @@ struct LightCandleFormSheetView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "090A0F").ignoresSafeArea()
+                Paper.page.ignoresSafeArea()
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 22) {
@@ -410,12 +377,12 @@ struct LightCandleFormSheetView: View {
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 12)
                                         .padding(.horizontal, 8)
-                                        .background(selectedIntention == intent ? Paper.gold.opacity(0.2) : Color.white.opacity(0.05))
-                                        .foregroundColor(selectedIntention == intent ? Paper.gold : .white)
+                                        .background(selectedIntention == intent ? Paper.gold.opacity(0.2) : Paper.fillMuted)
+                                        .foregroundColor(selectedIntention == intent ? Paper.gold : Paper.ink)
                                         .cornerRadius(12)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .stroke(selectedIntention == intent ? Paper.gold : Color.white.opacity(0.08), lineWidth: 1.2)
+                                                .stroke(selectedIntention == intent ? Paper.gold : Paper.fillMuted, lineWidth: 1.2)
                                         )
                                     }
                                     .buttonStyle(ScaleButtonStyle())
@@ -433,13 +400,13 @@ struct LightCandleFormSheetView: View {
                             
                             TextField(namePlaceholder, text: $personName)
                                 .font(PaperFont.font(size: 15))
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.ink)
                                 .padding(14)
-                                .background(Color.white.opacity(0.06))
+                                .background(Paper.fillSubtle)
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                        .stroke(Paper.hairline, lineWidth: 1)
                                 )
                         }
                         .padding(.horizontal, 20)
@@ -496,7 +463,7 @@ struct LightCandleFormSheetView: View {
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
                                             .font(.system(size: 14))
-                                            .foregroundColor(.white.opacity(0.4))
+                                            .foregroundColor(Paper.inkTertiary)
                                     }
                                 }
                             }
@@ -506,7 +473,7 @@ struct LightCandleFormSheetView: View {
                                 if customPrayer.isEmpty {
                                     Text(prayerPlaceholderText)
                                         .font(PaperFont.font(size: 14))
-                                        .foregroundColor(.white.opacity(0.35))
+                                        .foregroundColor(Paper.inkTertiary)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 14)
                                         .allowsHitTesting(false)
@@ -514,18 +481,18 @@ struct LightCandleFormSheetView: View {
                                 
                                 TextEditor(text: $customPrayer)
                                     .font(PaperFont.font(size: 14, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.95))
+                                    .foregroundColor(Paper.ink)
                                     .lineSpacing(4)
                                     .scrollContentBackground(.hidden)
                                     .background(Color.clear)
                                     .frame(minHeight: 100, maxHeight: 150)
                                     .padding(8)
                             }
-                            .background(Color.white.opacity(0.04))
+                            .background(Paper.fillSubtle)
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                    .stroke(Paper.hairline, lineWidth: 1)
                             )
                             
                             HStack {
@@ -537,7 +504,7 @@ struct LightCandleFormSheetView: View {
                                 
                                 Text("\(customPrayer.count)/500")
                                     .font(PaperFont.font(size: 10, weight: .medium).monospacedDigit())
-                                    .foregroundColor(customPrayer.count > 500 ? .red : Paper.inkSecondary.opacity(0.6))
+                                    .foregroundColor(customPrayer.count > 500 ? Paper.cinnabar : Paper.inkSecondary.opacity(0.6))
                             }
                         }
                         .padding(.horizontal, 20)
@@ -573,32 +540,26 @@ struct LightCandleFormSheetView: View {
                                 HStack(spacing: 10) {
                                     if candleManager.isPurchasing {
                                         ProgressView()
-                                            .tint(.black)
+                                            .tint(Paper.onAccent)
                                         Text(loadingText)
                                             .font(PaperFont.font(size: 15, weight: .semibold))
-                                            .foregroundColor(.black)
+                                            .foregroundColor(Paper.onAccent)
                                     } else {
                                         if selectedTier == .rewarded && !SubscriptionManager.shared.isPremium {
                                             Image(systemName: "play.rectangle.fill")
                                                 .font(.system(size: 18, weight: .semibold))
-                                                .foregroundColor(.black)
+                                                .foregroundColor(Paper.onAccent)
                                         } else {
                                             FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
                                         }
                                         Text(submitButtonText)
                                             .font(PaperFont.font(size: 16, weight: .semibold))
-                                            .foregroundColor(.black)
+                                            .foregroundColor(Paper.onAccent)
                                     }
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Paper.gold.opacity(0.18), Paper.gold, Paper.gold],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .background(Paper.gold)
                                 .cornerRadius(16)
                                 .shadow(color: Paper.shadow, radius: 10, y: 4)
                             }
@@ -628,16 +589,16 @@ struct LightCandleFormSheetView: View {
                 // Оверлей благословения при успешном зажжении
                 if isShowingSuccessAnimation {
                     ZStack {
-                        Color.black.opacity(0.75).ignoresSafeArea()
+                        Paper.scrim.ignoresSafeArea()
                         VStack(spacing: 18) {
                             FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 48)
                             GoldenSparkBurstView(isTriggered: true)
                             Text(successTitle)
                                 .font(PaperFont.font(size: 20, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.ink)
                             Text(successSubtitle)
                                 .font(PaperFont.font(size: 14))
-                                .foregroundColor(Color(hex: "D1D5DB"))
+                                .foregroundColor(Paper.inkSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 30)
                         }
@@ -655,7 +616,7 @@ struct LightCandleFormSheetView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
             }
@@ -688,13 +649,13 @@ struct LightCandleFormSheetView: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: selectedTier == tier ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(selectedTier == tier ? Paper.gold : .white.opacity(0.3))
+                    .foregroundColor(selectedTier == tier ? Paper.gold : Paper.inkTertiary)
                     .font(.system(size: 18, weight: .semibold))
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(tier.title(for: language))
                         .font(PaperFont.font(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.ink)
                     
                     if tier == .rewarded && SubscriptionManager.shared.isPremium {
                         Text(language == .armenian ? "PRO • ԱՌԱՆՑ ԳՈՎԱԶԴԻ" : (language == .russian ? "PRO • БЕЗ РЕКЛАМЫ" : "PRO • NO ADS"))
@@ -711,18 +672,18 @@ struct LightCandleFormSheetView: View {
                 
                 Text(tier.priceDisplay(for: language))
                     .font(PaperFont.font(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.ink)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.08))
+                    .background(Paper.fillSubtle)
                     .cornerRadius(8)
             }
             .padding(14)
-            .background(selectedTier == tier ? Paper.gold.opacity(0.12) : Color.white.opacity(0.04))
+            .background(selectedTier == tier ? Paper.gold.opacity(0.12) : Paper.fillMuted)
             .cornerRadius(14)
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .stroke(selectedTier == tier ? Paper.gold : Color.white.opacity(0.06), lineWidth: 1.2)
+                    .stroke(selectedTier == tier ? Paper.gold : Paper.fillMuted, lineWidth: 1.2)
             )
         }
         .buttonStyle(ScaleButtonStyle())
@@ -878,7 +839,7 @@ struct CandleDetailPrayerSheetView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "090A0F").ignoresSafeArea()
+                Paper.page.ignoresSafeArea()
                 DivineBreathingGlow(color: Paper.gold).offset(y: -50)
                 
                 ScrollView(showsIndicators: false) {
@@ -898,7 +859,7 @@ struct CandleDetailPrayerSheetView: View {
                         
                         Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
                             .font(PaperFont.font(size: 22, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.ink)
                         
                         HStack(spacing: 6) {
                             Image(systemName: candle.intention.icon)
@@ -919,24 +880,18 @@ struct CandleDetailPrayerSheetView: View {
                                 let remainingPercent = Int(round((1.0 - currentBurnProgress) * 100))
                                 Text("\(remainingPercent)% \(waxRemainingText)")
                                     .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
-                                    .foregroundColor(.white.opacity(0.8))
+                                    .foregroundColor(Paper.ink)
                             }
                             
                             // Шкала расхода воска
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
                                     Capsule()
-                                        .fill(Color.white.opacity(0.12))
+                                        .fill(Paper.fillMuted)
                                         .frame(height: 5)
                                     
                                     Capsule()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Paper.gold.opacity(0.18), Paper.gold, Paper.gold],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
+                                        .fill(Paper.gold)
                                         .frame(width: max(5, geo.size.width * CGFloat(1.0 - currentBurnProgress)), height: 5)
                                 }
                             }
@@ -953,7 +908,7 @@ struct CandleDetailPrayerSheetView: View {
                                         Text(watchMeltingText)
                                             .font(PaperFont.font(size: 11, weight: .semibold))
                                     }
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Paper.ink)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 7)
                                     .background(Paper.gold.opacity(0.35))
@@ -975,10 +930,10 @@ struct CandleDetailPrayerSheetView: View {
                                             Text(resetText)
                                                 .font(PaperFont.font(size: 11, weight: .semibold))
                                         }
-                                        .foregroundColor(Color(hex: "9CA3AF"))
+                                        .foregroundColor(Paper.inkSecondary)
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 7)
-                                        .background(Color.white.opacity(0.08))
+                                        .background(Paper.fillSubtle)
                                         .cornerRadius(10)
                                     }
                                 }
@@ -997,35 +952,35 @@ struct CandleDetailPrayerSheetView: View {
                                         Text("\(Int(selectedDuration))\(secondsUnitText)")
                                             .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
                                     }
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(Paper.inkSecondary)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 6)
-                                    .background(Color.white.opacity(0.06))
+                                    .background(Paper.fillSubtle)
                                     .cornerRadius(8)
                                 }
                             }
                             .padding(.top, 2)
                         }
                         .padding(14)
-                        .background(Color.white.opacity(0.05))
+                        .background(Paper.fillSubtle)
                         .cornerRadius(14)
                         .padding(.horizontal, 24)
                         
                         if let prayer = candle.customPrayer, !prayer.isEmpty {
                             Text(prayer)
                                 .font(PaperFont.font(size: 15, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(Paper.ink)
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(6)
                                 .padding(18)
-                                .background(Color.white.opacity(0.04))
+                                .background(Paper.fillSubtle)
                                 .cornerRadius(16)
                                 .padding(.horizontal, 24)
                         }
                         
                         Text(burningTimeRemainingText)
                             .font(PaperFont.font(size: 12, weight: .semibold).monospacedDigit())
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         // Кнопка: установить эту свечу на виджет Lock Screen и Home Screen
                         let isCurrentWidgetCandle = candleManager.selectedWidgetCandleId == candle.id.uuidString
@@ -1044,13 +999,13 @@ struct CandleDetailPrayerSheetView: View {
                                      : (language == .armenian ? "Տեղադրել վիջեթում" : (language == .russian ? "Поставить на виджет" : "Set for Widget")))
                                     .font(.system(size: 14, weight: .semibold))
                             }
-                            .foregroundColor(isCurrentWidgetCandle ? Paper.gold : .white)
+                            .foregroundColor(isCurrentWidgetCandle ? Paper.gold : Paper.ink)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
                             .background(
                                 isCurrentWidgetCandle
                                     ? Paper.gold.opacity(0.25)
-                                    : Color.white.opacity(0.08)
+                                    : Paper.fillMuted
                             )
                             .cornerRadius(14)
                             .overlay(
@@ -1058,7 +1013,7 @@ struct CandleDetailPrayerSheetView: View {
                                     .stroke(
                                         isCurrentWidgetCandle
                                             ? Paper.gold
-                                            : Color.white.opacity(0.12),
+                                            : Paper.fillMuted,
                                         lineWidth: 1.2
                                     )
                             )
@@ -1071,7 +1026,7 @@ struct CandleDetailPrayerSheetView: View {
                         } label: {
                             Text("Ամէն • Аминь")
                                 .font(PaperFont.font(size: 16, weight: .semibold))
-                                .foregroundColor(.black)
+                                .foregroundColor(Paper.onAccent)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(
@@ -1092,7 +1047,7 @@ struct CandleDetailPrayerSheetView: View {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
             }

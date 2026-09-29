@@ -46,17 +46,7 @@ struct VerseActionSheetView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .paperField(cornerRadius: 14)
                     .applyIf(selectedColorHex != nil) { view in
-                        view.livingBorder(
-                            colors: [
-                                Color(hex: selectedColorHex ?? "FACC15"),
-                                Color.white,
-                                Color(hex: selectedColorHex ?? "FACC15")
-                            ],
-                            cornerRadius: 14,
-                            lineWidth: 1.5,
-                            glowRadius: 5,
-                            duration: 4.0
-                        )
+                        view.overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color(hex: selectedColorHex ?? "FACC15").opacity(0.55), lineWidth: 1))
                     }
                     
                     // Выбор цвета маркера
@@ -130,7 +120,7 @@ struct VerseActionSheetView: View {
                                     
                                     Image(systemName: "slash.circle")
                                         .font(.system(size: 20, weight: .medium))
-                                        .foregroundColor(selectedColorHex == nil ? Paper.inkSecondary : .red)
+                                        .foregroundColor(selectedColorHex == nil ? Paper.inkSecondary : Paper.cinnabar)
                                 }
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -212,17 +202,7 @@ struct VerseActionSheetView: View {
                             .padding(14)
                             .background(accentColor.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .livingBorder(
-                                colors: [
-                                    accentColor,
-                                    Paper.gold,
-                                    accentColor
-                                ],
-                                cornerRadius: 14,
-                                lineWidth: 1.2,
-                                glowRadius: 3,
-                                duration: 5.0
-                            )
+                            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(accentColor.opacity(0.55), lineWidth: 1))
                         }
                         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
                         

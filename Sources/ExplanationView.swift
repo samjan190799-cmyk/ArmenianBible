@@ -93,14 +93,14 @@ struct ExplanationView: View {
                         HStack(spacing: 10) {
                             if manager.isGeneratingText {
                                 ProgressView()
-                                    .tint(.white)
+                                    .tint(Paper.onAccent)
                             } else {
                                 Image(systemName: "book.pages.fill")
                                     .font(.system(size: 15))
                                 Text("button_generate_explanation".localized(for: manager.appLanguage))
                             }
                         }
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(PaperFont.font(size: 15, weight: .semibold))
                         .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)

@@ -550,7 +550,7 @@ struct ReadingPlanDetailView: View {
                      "start_plan_button".localized(for: language))
                     .font(.system(size: 14, weight: .semibold))
             }
-            .foregroundColor(isCurrentPlan ? .red : .white)
+            .foregroundColor(isCurrentPlan ? Paper.cinnabar : .white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .background(

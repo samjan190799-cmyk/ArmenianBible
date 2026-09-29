@@ -75,7 +75,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "first_quiz",
                 icon: "flag.fill",
-                gradientColors: ["#3B82F6", "#1D4ED8"],
+                gradientColors: ["#4A6BA3", "#3D5A8C"],
                 titleHy: "Առաջին Քայլեր",
                 titleRu: "Первые шаги",
                 titleEn: "First Steps",
@@ -87,7 +87,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "perfect_round",
                 icon: "sparkles",
-                gradientColors: ["#F59E0B", "#D97706"],
+                gradientColors: ["#B8893A", "#8F6B2A"],
                 titleHy: "Անթերի Արդյունք",
                 titleRu: "Безупречный результат",
                 titleEn: "Flawless Round",
@@ -99,7 +99,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "old_testament_scholar",
                 icon: "scroll.fill",
-                gradientColors: ["#D97706", "#B45309"],
+                gradientColors: ["#B8733A", "#A4622A"],
                 titleHy: "Հին Կտակարանի Գիտակ",
                 titleRu: "Знаток Ветхого Завета",
                 titleEn: "Old Testament Scholar",
@@ -111,7 +111,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "gospels_scholar",
                 icon: "book.closed.fill",
-                gradientColors: ["#10B981", "#059669"],
+                gradientColors: ["#5F7F54", "#4F6B45"],
                 titleHy: "Ավետարանների Գիտակ",
                 titleRu: "Знаток Евангелий",
                 titleEn: "Gospels Scholar",
@@ -123,7 +123,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "apostolic_student",
                 icon: "cross.fill",
-                gradientColors: ["#8B5CF6", "#6D28D9"],
+                gradientColors: ["#84608A", "#6E4B73"],
                 titleHy: "Առաքելական Աշակերտ",
                 titleRu: "Апостольский ученик",
                 titleEn: "Apostolic Student",
@@ -135,7 +135,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "church_history_guardian",
                 icon: "building.columns.fill",
-                gradientColors: ["#EC4899", "#BE185D"],
+                gradientColors: ["#C55A48", "#B03F2F"],
                 titleHy: "Հայ Եկեղեցու Պահապան",
                 titleRu: "Хранитель Армянского Наследия",
                 titleEn: "Armenian Heritage Guardian",
@@ -147,7 +147,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "master_of_verses",
                 icon: "quote.bubble.fill",
-                gradientColors: ["#06B6D4", "#0891B2"],
+                gradientColors: ["#3F8580", "#2F6F6B"],
                 titleHy: "Ոսկե Խոսքերի Վարպետ",
                 titleRu: "Мастер Библейских Цитат",
                 titleEn: "Master of Scripture Quotes",
@@ -159,7 +159,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "bible_sage_50",
                 icon: "star.circle.fill",
-                gradientColors: ["#F97316", "#C2410C"],
+                gradientColors: ["#B36A3A", "#8F4F2A"],
                 titleHy: "Աստվածաշնչյան Իմաստուն",
                 titleRu: "Библейский Мудрец",
                 titleEn: "Bible Sage",
@@ -171,7 +171,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "theologian_100",
                 icon: "crown.fill",
-                gradientColors: ["#EAB308", "#A16207"],
+                gradientColors: ["#B8973A", "#8A6A22"],
                 titleHy: "Մեծ Աստվածաբան",
                 titleRu: "Великий Богослов",
                 titleEn: "Grand Theologian",
@@ -183,7 +183,7 @@ final class AchievementsManager: ObservableObject {
             AchievementBadge(
                 id: "quiz_veteran_10",
                 icon: "medal.fill",
-                gradientColors: ["#6366F1", "#4338CA"],
+                gradientColors: ["#5C60A3", "#4B4F8F"],
                 titleHy: "Հավատարիմ Ուսումնասիրող",
                 titleRu: "Преданный исследователь",
                 titleEn: "Faithful Student",

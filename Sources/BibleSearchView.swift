@@ -32,8 +32,8 @@ struct BibleSearchView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundColor.ignoresSafeArea()
-                
+                PaperBackground()
+
                 VStack(spacing: 0) {
                     // Строка ввода поиска
                     HStack {
@@ -62,8 +62,7 @@ struct BibleSearchView: View {
                             }
                         }
                         .padding(10)
-                        .background(Paper.fillSubtle)
-                        .cornerRadius(12)
+                        .paperField(cornerRadius: 12)
                         
                         Button {
                             isPresented = false
@@ -121,8 +120,8 @@ struct BibleSearchView: View {
                                         
                                         // Текст с подсветкой
                                         highlightedText(text: result.text, query: searchQuery)
-                                            .font(.system(size: 14, weight: .regular, design: .serif))
-                                            .foregroundColor(colorScheme == .dark ? .white.opacity(0.85) : Color(hex: "27272A"))
+                                            .font(PaperFont.font(size: 15))
+                                            .foregroundColor(Paper.ink)
                                             .lineLimit(3)
                                             .lineSpacing(4)
                                             .multilineTextAlignment(.leading)

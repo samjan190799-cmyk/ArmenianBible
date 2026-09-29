@@ -27,24 +27,7 @@ struct PomegranateSanctuarySheetView: View {
         NavigationStack {
             ZStack {
                 // MARK: - Фоновый градиент священного храмового сада
-                LinearGradient(
-                    colors: colorScheme == .dark ? [
-                        Color(hex: "090A0F"),
-                        Color(hex: "180C0E"),
-                        Color(hex: "0F172A")
-                    ] : [
-                        Paper.gold.opacity(0.18),
-                        Color(hex: "FEF2F2"),
-                        Color(hex: "F8FAFC")
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-                
-                // Тонкое фоновое сияние
-                DivineBreathingGlow(color: Paper.cinnabar.opacity(colorScheme == .dark ? 0.22 : 0.12))
-                    .offset(y: -100)
+                PaperBackground()
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
@@ -87,7 +70,7 @@ struct PomegranateSanctuarySheetView: View {
                                     .background(
                                         Capsule()
                                             .fill(.ultraThinMaterial)
-                                            .shadow(color: Color.black.opacity(0.1), radius: 4)
+                                            .shadow(color: Paper.shadow, radius: 4)
                                     )
                                     .padding(.bottom, -12)
                                 }
@@ -254,7 +237,7 @@ struct PomegranateSanctuarySheetView: View {
                 
                 Image(systemName: treeManager.isWateredToday ? "drop.fill" : "drop.triangle.fill")
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.ink)
             }
             
             VStack(alignment: .leading, spacing: 3) {
@@ -296,7 +279,7 @@ struct PomegranateSanctuarySheetView: View {
                         Text(language == .armenian ? "Ցողել" : (language == .russian ? "Омыть" : "Water"))
                             .font(PaperFont.font(size: 12, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(
@@ -425,7 +408,7 @@ struct PomegranateSanctuarySheetView: View {
                                         if isCompleted {
                                             Image(systemName: "checkmark")
                                                 .font(.system(size: 13, weight: .semibold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(Paper.ink)
                                         } else {
                                             Text(stageIcon(for: stage))
                                                 .font(PaperFont.font(size: 16))
@@ -530,19 +513,19 @@ struct PomegranateSanctuarySheetView: View {
                                 
                                 Image(systemName: fruit.icon)
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(isUnlocked ? .white : Paper.inkSecondary)
+                                    .foregroundColor(isUnlocked ? Paper.onAccent : Paper.inkSecondary)
                             }
                             
                             Text(fruit.name(for: language))
                                 .font(PaperFont.font(size: 12, weight: .semibold))
-                                .foregroundColor(isUnlocked ? (Paper.ink) : .secondary)
+                                .foregroundColor(isUnlocked ? Paper.ink : Paper.inkSecondary)
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(colorScheme == .dark ? Color.white.opacity(isUnlocked ? 0.06 : 0.02) : Color.white.opacity(isUnlocked ? 0.9 : 0.5))
+                                .fill(isUnlocked ? Paper.sheet : Paper.fillSubtle)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                                         .stroke(isUnlocked ? Paper.cinnabar.opacity(0.3) : Color.clear, lineWidth: 1)
@@ -672,7 +655,7 @@ struct SpiritualFruitDetailSheetView: View {
                 
                 Image(systemName: fruit.icon)
                     .font(.system(size: 34, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.ink)
             }
             .padding(.top, 14)
             
@@ -744,7 +727,7 @@ struct PomegranateGardenExportView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [Color(hex: "090A0F"), Color(hex: "1F1215"), Color(hex: "0B0F19")],
+                colors: [Paper.page, Paper.sheet, Paper.page],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -759,7 +742,7 @@ struct PomegranateGardenExportView: View {
                     
                     Text(treeManager.currentStage.title(for: language))
                         .font(PaperFont.font(size: 42, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.ink)
                     
                     Text("\(treeManager.daysStreak) " + (language == .armenian ? "օր Խոսքի մեջ" : (language == .russian ? "дней в Слове" : "days in Word")))
                         .font(PaperFont.font(size: 20, weight: .semibold))
@@ -782,7 +765,7 @@ struct PomegranateGardenExportView: View {
                           "«Я есмь Лоза, а вы ветви; кто пребывает во Мне, тот приносит много плода.»" :
                           "«I am the vine; you are the branches. If you remain in me you will bear much fruit.»"))
                         .font(.system(size: 24, weight: .medium, design: .serif))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.ink)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 48)
                     

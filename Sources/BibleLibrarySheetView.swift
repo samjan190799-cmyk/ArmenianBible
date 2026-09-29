@@ -58,14 +58,7 @@ struct BibleLibrarySheetView: View {
     var body: some View {
         ZStack {
             // Фон шторки
-            LinearGradient(
-                colors: colorScheme == .dark
-                    ? [Color(hex: "141A24"), Color(hex: "0E1219")]
-                    : [Color(hex: "F8FAFC"), Color(hex: "F1F5F9")],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PaperBackground()
             
             VStack(spacing: 0) {
                 // Заголовок шторки
@@ -127,7 +120,7 @@ struct BibleLibrarySheetView: View {
                     
                     Text(currentEdition.subtitleKey.localized(for: manager.appLanguage))
                         .font(PaperFont.font(size: 14, weight: .semibold))
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : Color(hex: "334155"))
+                        .foregroundColor(Paper.ink)
                         .id("subtitle_\(selectedBookIndex)")
                     
                     // Кнопка Читать
@@ -140,7 +133,7 @@ struct BibleLibrarySheetView: View {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 14, weight: .semibold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                         .padding(.horizontal, 36)
                         .padding(.vertical, 12)
                         .background(
