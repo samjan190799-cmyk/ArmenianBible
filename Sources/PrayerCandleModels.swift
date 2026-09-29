@@ -147,7 +147,7 @@ enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
         case .freeDaily:
             return language == .armenian ? "Անվճար" : (language == .russian ? "Бесплатно" : "Free")
         case .rewarded:
-            return language == .armenian ? "🎬 Տեսանյութ" : (language == .russian ? "🎬 1 Видео" : "🎬 1 Video")
+            return language == .armenian ? "Տեսանյութ" : (language == .russian ? "1 Видео" : "1 Video")
         case .small:
             return "$0.99"
         case .temple:

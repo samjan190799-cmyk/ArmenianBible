@@ -19,13 +19,13 @@ struct ContentView: View {
                 TabView(selection: $manager.activeTabSelection) {
                     HomeView()
                         .tabItem {
-                            Label("tab_home".localized(for: manager.appLanguage), systemImage: "house.fill")
+                            Label("tab_home".localized(for: manager.appLanguage), systemImage: "house")
                         }
                         .tag(0)
                     
                     FavoritesView()
                         .tabItem {
-                            Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart.fill")
+                            Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart")
                         }
                         .tag(1)
                     
@@ -37,7 +37,7 @@ struct ContentView: View {
                     
                     BibleReaderView()
                         .tabItem {
-                            Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages.fill")
+                            Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages")
                         }
                         .tag(3)
                 }

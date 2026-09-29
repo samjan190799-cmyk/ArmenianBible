@@ -150,7 +150,7 @@ struct QuizStartView: View {
                         Text(isAIGenerationEnabled ?
                              "\("quiz_mode_ai_hint".localized(for: language)) • \(QuizAIEngine.shared.currentProviderDisplayName)" :
                              "quiz_mode_classic_hint".localized(for: language))
-                            .font(.system(size: 11, weight: .medium))
+                            .font(PaperFont.font(size: 11, weight: .medium))
                             .foregroundColor(Paper.inkSecondary)
                     }
                     .padding(.horizontal, 4)

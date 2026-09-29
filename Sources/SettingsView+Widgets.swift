@@ -197,7 +197,7 @@ extension SettingsView {
                              previewWidgetSize == .medium ? (selectedLanguage == .armenian ? "Գլխավոր էկրան (Միջին 4×2)" : selectedLanguage == .russian ? "Рабочий стол (Средний 4×2)" : "Home Screen (Medium 4×2)") :
                              previewWidgetSize == .large ? (selectedLanguage == .armenian ? "Գլխավոր էկրան (Մեծ 4×4)" : selectedLanguage == .russian ? "Рабочий стол (Большой 4×4)" : "Home Screen (Large 4×4)") :
                              (selectedLanguage == .armenian ? "Կողպեքի էկրան (Մոնոխրոմ)" : selectedLanguage == .russian ? "Экран блокировки (Монохром)" : "Lock Screen (Monochrome)"))
-                            .font(.system(size: 12, weight: .medium))
+                            .font(PaperFont.font(size: 12, weight: .medium))
                             .foregroundColor(Paper.inkSecondary)
                     }
                     
@@ -663,7 +663,7 @@ extension SettingsView {
                                     HStack(spacing: 6) {
                                         Image(systemName: isAutoSelected ? "checkmark.circle.fill" : "sparkles")
                                             .font(.system(size: 11, weight: .semibold))
-                                        Text(selectedLanguage == .armenian ? "🔥 Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "🔥 Последняя (Авто)" : "🔥 Latest (Auto)"))
+                                        Text(selectedLanguage == .armenian ? "Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "Последняя (Авто)" : "Latest (Auto)"))
                                             .font(PaperFont.font(size: 12, weight: isAutoSelected ? .semibold : .medium))
                                     }
                                     .padding(.horizontal, 12)
@@ -740,18 +740,13 @@ extension SettingsView {
                               selectedLanguage == .russian ? "✓ Все виджеты успешно обновлены" :
                               "✓ All Widgets Updated Successfully") :
                              "update_widgets_now_button".localized(for: selectedLanguage))
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
-                    .background(
-                        isWidgetsUpdatedSuccess ?
-                            LinearGradient(colors: [Paper.moss, Paper.moss], startPoint: .leading, endPoint: .trailing) :
-                            LinearGradient(colors: [selectedTheme.color, selectedTheme.color], startPoint: .leading, endPoint: .trailing)
-                    )
+                    .background(isWidgetsUpdatedSuccess ? Paper.moss : selectedTheme.color)
                     .cornerRadius(13)
-                    .shadow(color: (isWidgetsUpdatedSuccess ? Paper.moss : selectedTheme.color).opacity(0.35), radius: 8, y: 3)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.top, 4)
@@ -790,7 +785,7 @@ extension SettingsView {
                         
                         Text("NEW")
                             .font(PaperFont.font(size: 9, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.onAccent)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
                             .background(Paper.lapis)

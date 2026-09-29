@@ -182,7 +182,8 @@ struct FavoritesView: View {
                                     }
                                 } label: {
                                     HStack(spacing: 4) {
-                                        Text(tag.icon)
+                                        Image(systemName: tag.symbol)
+                                            .font(.system(size: 11))
                                         Text(tag.localizedTitle(for: manager.appLanguage))
                                             .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                     }
@@ -654,8 +655,8 @@ struct AnnotationCardView: View {
                 HStack(spacing: 6) {
                     ForEach(annotation.tags) { tag in
                         HStack(spacing: 3) {
-                            Text(tag.icon)
-                                .font(PaperFont.font(size: 10))
+                            Image(systemName: tag.symbol)
+                                .font(.system(size: 10))
                             Text(tag.localizedTitle(for: language))
                                 .font(PaperFont.font(size: 10.5, weight: .semibold))
                         }

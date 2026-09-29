@@ -300,8 +300,8 @@ struct CandleStandCellView: View {
                     // Оставшееся время горения и бейдж
                     HStack(spacing: 4) {
                         if candle.tier == .rewarded {
-                            Text("🎬")
-                                .font(PaperFont.font(size: 8))
+                            Image(systemName: "play.rectangle")
+                                .font(.system(size: 8))
                         }
                         Text(candle.remainingTimeText(for: language))
                             .font(PaperFont.font(size: 9, weight: .semibold).monospacedDigit())
@@ -741,9 +741,9 @@ struct LightCandleFormSheetView: View {
     }
     private var rewardedBadgeText: String {
         switch language {
-        case .armenian: return "🎬 1 ՏԵՍԱՆՅՈՒԹ • 24 ԺԱՄ"
-        case .russian: return "🎬 1 ВИДЕО • 24 ЧАСА"
-        case .english: return "🎬 1 VIDEO • 24 HOURS"
+        case .armenian: return "1 ՏԵՍԱՆՅՈՒԹ • 24 ԺԱՄ"
+        case .russian: return "1 ВИДЕО • 24 ЧАСА"
+        case .english: return "1 VIDEO • 24 HOURS"
         }
     }
     private var loadingText: String {
@@ -763,9 +763,9 @@ struct LightCandleFormSheetView: View {
                 }
             } else {
                 switch language {
-                case .armenian: return "🎬 Դիտել գովազդը և վառել մոմը"
-                case .russian: return "🎬 Посмотреть видео и зажечь свечу"
-                case .english: return "🎬 Watch Video & Light Candle"
+                case .armenian: return "Դիտել գովազդը և վառել մոմը"
+                case .russian: return "Посмотреть видео и зажечь свечу"
+                case .english: return "Watch Video & Light Candle"
                 }
             }
         } else {
@@ -997,7 +997,7 @@ struct CandleDetailPrayerSheetView: View {
                                 Text(isCurrentWidgetCandle
                                      ? (language == .armenian ? "✓ Ցուցադրվում է վիջեթում" : (language == .russian ? "✓ Выбрана для виджета" : "✓ Active on Widget"))
                                      : (language == .armenian ? "Տեղադրել վիջեթում" : (language == .russian ? "Поставить на виджет" : "Set for Widget")))
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(PaperFont.font(size: 14, weight: .semibold))
                             }
                             .foregroundColor(isCurrentWidgetCandle ? Paper.gold : Paper.ink)
                             .padding(.horizontal, 20)

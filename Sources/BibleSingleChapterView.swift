@@ -139,8 +139,9 @@ struct BibleSingleChapterView: View {
                                                     if !ann.tags.isEmpty {
                                                         HStack(spacing: 4) {
                                                             ForEach(ann.tags) { tag in
-                                                                Text(tag.icon)
-                                                                    .font(PaperFont.font(size: 10))
+                                                                Image(systemName: tag.symbol)
+                                                                    .font(.system(size: 10))
+                                                                    .foregroundColor(tag.color)
                                                             }
                                                         }
                                                     }

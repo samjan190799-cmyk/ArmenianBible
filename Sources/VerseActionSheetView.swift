@@ -163,7 +163,8 @@ struct VerseActionSheetView: View {
                                     saveChanges()
                                 } label: {
                                     HStack(spacing: 4) {
-                                        Text(tag.icon)
+                                        Image(systemName: tag.symbol)
+                                            .font(.system(size: 12))
                                         Text(tag.localizedTitle(for: language))
                                             .font(PaperFont.font(size: 12, weight: .semibold))
                                     }

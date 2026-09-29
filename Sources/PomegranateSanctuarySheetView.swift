@@ -245,7 +245,7 @@ struct PomegranateSanctuarySheetView: View {
                     Text(treeManager.isWateredToday ?
                          (language == .armenian ? "Օրհնված է երկնային ցողով" : (language == .russian ? "Омыто небесной росой" : "Blessed with Heavenly Dew")) :
                          (language == .armenian ? "Սպասում է առավոտյան ցողի" : (language == .russian ? "Жаждет утренней росы" : "Awaiting Morning Dew")))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(PaperFont.font(size: 15, weight: .semibold))
                         .foregroundColor(Paper.ink)
                     
                     if treeManager.isWateredToday {
@@ -258,7 +258,7 @@ struct PomegranateSanctuarySheetView: View {
                 Text(treeManager.isWateredToday ?
                      (language == .armenian ? "Ձեր աղոթքն ու Խոսքի ընթերցումը սնում են ծառը:" : (language == .russian ? "Слово Божье и молитва питают корни древа." : "God's Word and prayer nourish your tree today.")) :
                      (language == .armenian ? "Կարդացեք օրվա համարը կամ վառեք մոմ:" : (language == .russian ? "Прочтите стих дня или зажгите свечу в храме." : "Read today's verse or light a prayer candle.")))
-                    .font(.system(size: 12))
+                    .font(PaperFont.font(size: 12))
                     .foregroundColor(Paper.inkSecondary)
                     .lineLimit(2)
             }
@@ -337,7 +337,7 @@ struct PomegranateSanctuarySheetView: View {
                 Text(daysLeft > 0 ?
                      (language == .armenian ? "Եվս \(daysLeft) օր մինչև հաջորդ փուլը" : (language == .russian ? "Еще \(daysLeft) дн. до след. ступени" : "\(daysLeft) days to next stage")) :
                      (language == .armenian ? "Բարձրագույն աստիճան" : (language == .russian ? "Высшая ступень благодати" : "Highest state of grace")))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(PaperFont.font(size: 12, weight: .semibold))
                     .foregroundColor(Paper.cinnabar)
             }
             
@@ -560,7 +560,7 @@ struct PomegranateSanctuarySheetView: View {
                  (language == .russian ?
                   "«Я есмь Лоза, а вы ветви; кто пребывает во Мне, и Я в нем, тот приносит много плода; ибо без Меня не можете делать ничего.»" :
                   "«I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit...»"))
-                .font(.system(size: 13, weight: .medium, design: .serif))
+                .font(PaperFont.font(size: 13, weight: .medium))
                 .foregroundColor(Paper.inkSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
@@ -764,7 +764,7 @@ struct PomegranateGardenExportView: View {
                          (language == .russian ?
                           "«Я есмь Лоза, а вы ветви; кто пребывает во Мне, тот приносит много плода.»" :
                           "«I am the vine; you are the branches. If you remain in me you will bear much fruit.»"))
-                        .font(.system(size: 24, weight: .medium, design: .serif))
+                        .font(PaperFont.font(size: 24, weight: .medium))
                         .foregroundColor(Paper.ink)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 48)
@@ -811,7 +811,7 @@ struct PomegranateGrowthGuideSheetView: View {
                              (language == .russian ?
                               "Гранатовое Древо духовного роста отражает ваше ежедневное пребывание в Слове Божьем и молитве." :
                               "The Spiritual Pomegranate Tree reflects your daily walk with the Word of God and prayer."))
-                            .font(.system(size: 13, weight: .medium))
+                            .font(PaperFont.font(size: 13, weight: .medium))
                             .foregroundColor(Paper.inkSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 16)

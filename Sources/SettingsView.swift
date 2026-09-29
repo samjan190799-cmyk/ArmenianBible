@@ -258,7 +258,7 @@ struct SettingsView: View {
                     devPasscodeInput = ""
                 }
             } message: {
-                Text("Текущий статус: \(subscriptionManager.isPremium ? "👑 Premium активен" : "🆓 Free режим")\n\nВведите PIN для переключения режима.")
+                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")\n\nВведите PIN для переключения режима.")
             }
             .alert("ai_clear_chat_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingClearAIChatAlert) {
                 Button("ai_clear_chat_btn".localized(for: selectedLanguage), role: .destructive) {
@@ -344,7 +344,7 @@ struct SettingsView: View {
                     Text(subscriptionManager.isPremium ?
                          (selectedLanguage == .armenian ? "Կարգավիճակ՝ Ակտիվ (Բոլոր ֆունկցիաները բացված են)" : "Статус: Активен (Все функции открыты)") :
                          (selectedLanguage == .armenian ? "Բացեք Նարեկացու 95 աուդիոները, անսահմանափակ AI-ն և PRO պաստառները" : "95 аудио Нарекаци, безлимитный ИИ и PRO обои"))
-                        .font(.system(size: 12))
+                        .font(PaperFont.font(size: 12))
                         .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                 }
@@ -362,7 +362,7 @@ struct SettingsView: View {
                         Text(subscriptionManager.isPremium ?
                              (selectedLanguage == .armenian ? "Կառավարել" : "Управление") :
                              (selectedLanguage == .armenian ? "Ստանալ Premium" : "Оформить Premium"))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                     }
                     .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
@@ -423,7 +423,7 @@ struct SettingsView: View {
                         Spacer()
                         
                         if !CandleManager.shared.activeCandles.isEmpty {
-                            Text("🔥 \(CandleManager.shared.activeCandles.count)")
+                            Text("\(CandleManager.shared.activeCandles.count)")
                                 .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
                                 .foregroundColor(Paper.gold)
                                 .padding(.horizontal, 8)
@@ -459,7 +459,7 @@ struct SettingsView: View {
                     tier: .rewarded,
                     title: selectedLanguage == .armenian ? "Աղոթքի Մոմ" : (selectedLanguage == .russian ? "Молитвенная свеча" : "Prayer Candle"),
                     subtitle: selectedLanguage == .armenian ? "24 ժամ • 1 տեսանյութի դիտմամբ" : (selectedLanguage == .russian ? "24 часа • За 1 видео (без оплаты)" : "24 hrs • Watch 1 video (free)"),
-                    badge: selectedLanguage == .armenian ? "🎬 ՏԵՍԱՆՅՈՒԹ" : (selectedLanguage == .russian ? "🎬 1 ВИДЕО" : "🎬 1 VIDEO"),
+                    badge: selectedLanguage == .armenian ? "ՏԵՍԱՆՅՈՒԹ" : (selectedLanguage == .russian ? "1 ВИДЕО" : "1 VIDEO"),
                     badgeColor: Paper.lapis,
                     icon: "play.circle.fill"
                 )
@@ -521,7 +521,7 @@ struct SettingsView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: isAutoSelected ? "checkmark.circle.fill" : "sparkles")
                                         .font(.system(size: 11, weight: .semibold))
-                                    Text(selectedLanguage == .armenian ? "🔥 Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "🔥 Последняя (Авто)" : "🔥 Latest (Auto)"))
+                                    Text(selectedLanguage == .armenian ? "Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "Последняя (Авто)" : "Latest (Auto)"))
                                         .font(PaperFont.font(size: 12, weight: isAutoSelected ? .semibold : .medium))
                                 }
                                 .padding(.horizontal, 12)
@@ -584,7 +584,7 @@ struct SettingsView: View {
                      : (selectedLanguage == .russian
                         ? "Подсказка: выберите свечу прямо в списке выше или нажмите «Поставить на виджет» при просмотре свечи в притворе."
                         : "Tip: Select a candle above or tap 'Set for Widget' in the sanctuary view to display it on your widget."))
-                    .font(.system(size: 11))
+                    .font(PaperFont.font(size: 11))
                     .foregroundColor(Paper.inkSecondary)
                     .lineSpacing(2)
             }

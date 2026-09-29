@@ -507,7 +507,7 @@ extension SettingsView {
             
             if enablePremium {
                 devToastIcon = "crown.fill"
-                devToastMessage = "👑 Premium активирован!"
+                devToastMessage = "Premium активирован!"
                 devToastSubtitle = "Все возможности открыты, реклама полностью отключена."
                 devToastColor = [Paper.gold, Paper.gold]
             } else {

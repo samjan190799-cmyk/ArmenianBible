@@ -306,6 +306,21 @@ extension VerseTag {
     }
 }
 
+extension VerseTag {
+    /// Символ SF вместо эмодзи: тонкая линия в тон рукописи
+    var symbol: String {
+        switch self {
+        case .faith: return "cross"
+        case .hope: return "sunrise"
+        case .love: return "heart"
+        case .grief: return "flame"
+        case .gratitude: return "sparkles"
+        case .wisdom: return "text.book.closed"
+        case .prayer: return "hands.sparkles"
+        }
+    }
+}
+
 extension FeastType {
     var color: Color {
         switch self {

@@ -133,7 +133,7 @@ struct ReadingPlansCatalogView: View {
                     Text(planManager.currentStreak > 0 ?
                          "streak_active_message".localized(for: language) :
                          "streak_start_message".localized(for: language))
-                        .font(.system(size: 13))
+                        .font(PaperFont.font(size: 13))
                         .foregroundColor(Paper.inkSecondary)
                 }
                 
@@ -548,7 +548,7 @@ struct ReadingPlanDetailView: View {
                 Text(isCurrentPlan ?
                      "abandon_plan_button".localized(for: language) :
                      "start_plan_button".localized(for: language))
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(PaperFont.font(size: 14, weight: .semibold))
             }
             .foregroundColor(isCurrentPlan ? Paper.cinnabar : .white)
             .frame(maxWidth: .infinity)
