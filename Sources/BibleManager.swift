@@ -16,8 +16,8 @@ class BibleManager: ObservableObject {
     @Published var activeProvider: AIProvider = .gemini
     @Published var appLanguage: AppLanguage = .armenian
     @Published var favoriteVerses: [FavoriteItem] = []
-    @Published var appearanceMode: AppAppearanceMode = .system
-    @Published var accentTheme: AccentColorTheme = .indigo
+    @Published var appearanceMode: AppAppearanceMode = .light
+    @Published var accentTheme: AccentColorTheme = .cinnabar
     @Published var dailyNotificationsEnabled: Bool = false
     @Published var dailyNotificationTime: Date = Date()
     
@@ -317,7 +317,7 @@ class BibleManager: ObservableObject {
            let savedMode = AppAppearanceMode(rawValue: savedModeRaw) {
             self.appearanceMode = savedMode
         } else {
-            self.appearanceMode = .system
+            self.appearanceMode = .light
         }
         
         // Загрузка Цветовой темы
@@ -326,7 +326,7 @@ class BibleManager: ObservableObject {
            let savedTheme = AccentColorTheme(rawValue: savedThemeRaw) {
             self.accentTheme = savedTheme
         } else {
-            self.accentTheme = .indigo
+            self.accentTheme = .cinnabar
         }
         
         // Загрузка визуального стиля виджетов и StandBy (отказоустойчивый опрос всех хранилищ)

@@ -20,15 +20,10 @@ struct PomegranateTreeBannerCardView: View {
                 // 1. Живая миниатюра цветущего гранатового дерева
                 ZStack {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(hex: "EF4444").opacity(0.12),
-                                    Color(hex: "78350F").opacity(0.18)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                        .fill(Paper.page)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Paper.hairline, lineWidth: 1)
                         )
                         .frame(width: 68, height: 68)
                     
@@ -43,9 +38,9 @@ struct PomegranateTreeBannerCardView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(language == .armenian ? "ՀՈԳԵՎՈՐ ԱՃԻ ՆՌՆԵՆԻ" : (language == .russian ? "ДРЕВО ДУХОВНОГО РОСТА" : "TREE OF SPIRITUAL GROWTH"))
-                            .font(.system(size: 10, weight: .black))
-                            .foregroundColor(Color(hex: "EF4444"))
-                            .tracking(0.8)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(Paper.cinnabar)
+                            .tracking(1.2)
                         
                         // Бейдж утренней росы
                         if treeManager.isWateredToday {
@@ -53,49 +48,47 @@ struct PomegranateTreeBannerCardView: View {
                                 Image(systemName: "drop.fill")
                                     .font(.system(size: 8))
                                 Text(language == .armenian ? "ՑՈՂ" : (language == .russian ? "РОСА" : "DEW"))
-                                    .font(.system(size: 8, weight: .heavy))
+                                    .font(.system(size: 8, weight: .semibold))
                             }
-                            .foregroundColor(Color(hex: "0284C7"))
-                            .padding(.horizontal, 4)
+                            .foregroundColor(Paper.inkSecondary)
+                            .padding(.horizontal, 5)
                             .padding(.vertical, 2)
-                            .background(Color(hex: "E0F2FE"))
-                            .clipShape(Capsule())
+                            .overlay(Capsule().strokeBorder(Paper.hairline, lineWidth: 0.8))
                         } else {
                             HStack(spacing: 2) {
                                 Image(systemName: "drop.triangle.fill")
                                     .font(.system(size: 8))
                                 Text(language == .armenian ? "ՍՊԱՍՈՒՄ Է" : (language == .russian ? "ЖДЕТ РОСЫ" : "THIRSTY"))
-                                    .font(.system(size: 8, weight: .heavy))
+                                    .font(.system(size: 8, weight: .semibold))
                             }
-                            .foregroundColor(Color(hex: "D97706"))
-                            .padding(.horizontal, 4)
+                            .foregroundColor(Paper.gold)
+                            .padding(.horizontal, 5)
                             .padding(.vertical, 2)
-                            .background(Color(hex: "FEF3C7"))
-                            .clipShape(Capsule())
+                            .overlay(Capsule().strokeBorder(Paper.gold.opacity(0.5), lineWidth: 0.8))
                         }
                     }
                     
                     Text(treeManager.currentStage.title(for: language))
-                        .font(.system(size: 15, weight: .bold, design: .serif))
+                        .font(PaperFont.font(size: 17, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                         .lineLimit(1)
                     
                     HStack(spacing: 6) {
                         Text("\(treeManager.daysStreak) " + (language == .armenian ? "օր Խոսքի մեջ" : (language == .russian ? "дн. в Слове" : "days in Word")))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         Text("•")
                             .font(.system(size: 10))
-                            .foregroundColor(.secondary.opacity(0.5))
+                            .foregroundColor(Paper.inkTertiary)
                         
                         HStack(spacing: 3) {
                             Image(systemName: "heart.fill")
                                 .font(.system(size: 9))
-                                .foregroundColor(Color(hex: "EF4444"))
+                                .foregroundColor(Paper.cinnabar)
                             Text("\(treeManager.visibleFruitsCount)/9 " + (language == .armenian ? "պտուղ" : (language == .russian ? "плодов" : "fruits")))
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(Color(hex: "EF4444"))
+                                .font(PaperFont.font(size: 12, weight: .medium))
+                                .foregroundColor(Paper.cinnabar)
                         }
                     }
                 }
@@ -103,23 +96,11 @@ struct PomegranateTreeBannerCardView: View {
                 Spacer()
                 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(primaryTextColor.opacity(0.3))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.inkTertiary)
             }
             .padding(14)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accentColor.opacity(0.35), lineWidth: 1.2)
-            )
+            .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))

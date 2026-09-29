@@ -16,7 +16,7 @@ struct BibleChapterReaderView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     var body: some View {
@@ -87,11 +87,11 @@ struct BibleChapterReaderView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text("\(book.name) \(currentChapterIndex + 1)")
-                            .font(.system(size: 17, weight: .bold, design: .serif))
+                            .font(PaperFont.font(size: 17, weight: .semibold))
                         Image(systemName: "chevron.down")
                             .font(.system(size: 11, weight: .bold))
                     }
-                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    .foregroundColor(Paper.ink)
                 }
             }
             
@@ -193,8 +193,8 @@ struct BibleChapterReaderView: View {
                 // Заголовок шторки выбора глав
                 HStack {
                     Text("\(book.name)")
-                        .font(.system(size: 20, weight: .bold, design: .serif))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                        .font(PaperFont.font(size: 21, weight: .semibold))
+                        .foregroundColor(Paper.ink)
                     Spacer()
                     Button {
                         showingChapterSheet = false
@@ -236,6 +236,7 @@ struct BibleChapterReaderView: View {
                     .padding(.bottom, 24)
                 }
             }
+            .background(Paper.page.ignoresSafeArea())
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
@@ -259,27 +260,26 @@ struct ChapterSelectionCell: View {
     let onSelect: () -> Void
     
     private var textColor: Color {
-        if isCurrent { return .white }
-        return colorScheme == .dark ? .white : Color(hex: "1E293B")
+        if isCurrent { return Paper.sheet }
+        return Paper.ink
     }
     
     private var backgroundColor: Color {
         if isCurrent { return accentColor }
-        if isRead { return accentColor.opacity(0.12) }
-        return colorScheme == .dark ? Color.white.opacity(0.04) : Color.white
+        return Paper.sheet
     }
     
     private var borderColor: Color {
         if isCurrent { return accentColor }
         if isRead { return accentColor.opacity(0.35) }
-        return colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04)
+        return Paper.hairline
     }
     
     var body: some View {
         Button(action: onSelect) {
             ZStack(alignment: .topTrailing) {
                 Text("\(chapter)")
-                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .font(PaperFont.font(size: 17, weight: isCurrent ? .semibold : .regular))
                     .foregroundColor(textColor)
                     .frame(width: 55, height: 55)
                     .background(backgroundColor)
@@ -288,25 +288,11 @@ struct ChapterSelectionCell: View {
                         RoundedRectangle(cornerRadius: 13, style: .continuous)
                             .stroke(borderColor, lineWidth: 1.0)
                     )
-                    .applyIf(isCurrent) { view in
-                        view.livingBorder(
-                            colors: [
-                                accentColor,
-                                Color(hex: "FDE047"),
-                                Color(hex: "F59E0B"),
-                                accentColor
-                            ],
-                            cornerRadius: 13,
-                            lineWidth: 1.5,
-                            glowRadius: 4,
-                            duration: 4.5
-                        )
-                    }
-                
+
                 if isRead && !isCurrent {
                     Circle()
-                        .fill(Color(hex: "10B981"))
-                        .frame(width: 6, height: 6)
+                        .fill(accentColor)
+                        .frame(width: 5, height: 5)
                         .padding(6)
                 }
             }

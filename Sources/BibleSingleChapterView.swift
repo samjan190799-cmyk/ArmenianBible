@@ -16,17 +16,17 @@ struct BibleSingleChapterView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
-    
+
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "121316") : Color(hex: "F4EFEB")
+        Paper.page
     }
-    
+
     private var rowBgColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.02) : Color.white
+        Paper.sheet
     }
-    
+
     private var highlightColor: Color {
         accentColor.opacity(colorScheme == .dark ? 0.18 : 0.12)
     }
@@ -36,24 +36,19 @@ struct BibleSingleChapterView: View {
     }
     
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
-    
+
     var body: some View {
         ZStack {
             backgroundColor.ignoresSafeArea()
-            
-            // Текстура бумаги
-            Color.black.opacity(colorScheme == .dark ? 0.03 : 0.015)
-                .blendMode(.overlay)
-                .ignoresSafeArea()
-            
+
             // Эффект вогнутости страницы (тень у корешка слева и изгиб у внешнего края справа)
             LinearGradient(
                 colors: [
-                    Color.black.opacity(colorScheme == .dark ? 0.26 : 0.08),
+                    Color.black.opacity(colorScheme == .dark ? 0.22 : 0.05),
                     Color.clear,
-                    Color.black.opacity(colorScheme == .dark ? 0.07 : 0.02)
+                    Color.black.opacity(colorScheme == .dark ? 0.06 : 0.015)
                 ],
                 startPoint: .leading,
                 endPoint: .trailing
@@ -64,44 +59,25 @@ struct BibleSingleChapterView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 0) {
-                            // Книжный заголовок главы
-                            VStack(spacing: 8) {
-                                Text(book.name)
-                                    .font(.system(size: 28, weight: .bold, design: .serif))
-                                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
-                                
-                                Text("\("chapter_title_label".localized(for: manager.appLanguage)) \(chapter)")
-                                    .font(.system(size: 18, weight: .medium, design: .serif))
+                            // Книжный заголовок главы: название книги капителью и крупный номер главы киноварью
+                            VStack(spacing: 6) {
+                                Text(book.name.uppercased())
+                                    .font(PaperFont.font(size: 14, weight: .medium))
+                                    .tracking(2.2)
+                                    .foregroundColor(Paper.inkSecondary)
+                                    .multilineTextAlignment(.center)
+
+                                Text("\(chapter)")
+                                    .font(PaperFont.font(size: 54))
                                     .foregroundColor(accentColor)
-                                
-                                // Изящная классическая виньетка
-                                HStack(spacing: 12) {
-                                    Image(systemName: "leaf.fill")
-                                        .font(.system(size: 8))
-                                        .foregroundColor(accentColor.opacity(0.5))
-                                        .rotationEffect(.degrees(-45))
-                                    
-                                    Rectangle()
-                                        .fill(accentColor.opacity(0.2))
-                                        .frame(width: 35, height: 1)
-                                    
-                                    Image(systemName: "cross.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(accentColor.opacity(0.7))
-                                    
-                                    Rectangle()
-                                        .fill(accentColor.opacity(0.2))
-                                        .frame(width: 35, height: 1)
-                                    
-                                    Image(systemName: "leaf.fill")
-                                        .font(.system(size: 8))
-                                        .foregroundColor(accentColor.opacity(0.5))
-                                        .rotationEffect(.degrees(45))
-                                }
-                                .padding(.top, 4)
+                                    .accessibilityLabel(Text("\("chapter_title_label".localized(for: manager.appLanguage)) \(chapter)"))
+
+                                PaperOrnament(width: 44)
+                                    .padding(.top, 2)
                             }
-                            .padding(.top, 36)
-                            .padding(.bottom, 20)
+                            .padding(.top, 32)
+                            .padding(.bottom, 26)
+                            .padding(.horizontal, 24)
                             .frame(maxWidth: .infinity)
                             
                             // MARK: - Непрерывный текст главы со свободным выделением и нативным копированием
@@ -140,9 +116,9 @@ struct BibleSingleChapterView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack(spacing: 6) {
                                         Image(systemName: "note.text")
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(.system(size: 13, weight: .regular))
                                         Text("personal_note_title".localized(for: manager.appLanguage))
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(PaperFont.font(size: 14, weight: .semibold))
                                     }
                                     .foregroundColor(accentColor)
                                     .padding(.top, 16)
@@ -155,7 +131,7 @@ struct BibleSingleChapterView: View {
                                             VStack(alignment: .leading, spacing: 6) {
                                                 HStack {
                                                     Text("\("verse_label".localized(for: manager.appLanguage)) \(v.verseNumber)")
-                                                        .font(.system(size: 12, weight: .bold, design: .serif))
+                                                        .font(PaperFont.font(size: 12, weight: .semibold))
                                                         .foregroundColor(accentColor)
                                                     
                                                     Spacer()
@@ -172,19 +148,14 @@ struct BibleSingleChapterView: View {
                                                 
                                                 if !ann.note.isEmpty {
                                                     Text(ann.note)
-                                                        .font(.system(size: 13, weight: .regular, design: .serif))
+                                                        .font(PaperFont.font(size: 14))
                                                         .foregroundColor(primaryTextColor)
                                                         .multilineTextAlignment(.leading)
                                                 }
                                             }
                                             .padding(12)
                                             .frame(maxWidth: .infinity, alignment: .leading)
-                                            .background(rowBgColor)
-                                            .cornerRadius(12)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                                            )
+                                            .paperSheet(cornerRadius: 12)
                                         }
                                         .buttonStyle(ScaleButtonStyle())
                                     }
@@ -194,15 +165,12 @@ struct BibleSingleChapterView: View {
                             }
                             
                             // Номер страницы (номер текущей главы)
-                            VStack(spacing: 8) {
-                                Divider()
-                                    .background(accentColor.opacity(0.15))
-                                    .padding(.horizontal, 48)
-                                
-                                Text("— \(chapter) —")
-                                    .font(.system(size: 14, weight: .bold, design: .serif))
-                                    .foregroundColor(accentColor.opacity(0.6))
-                                    .padding(.top, 4)
+                            VStack(spacing: 10) {
+                                PaperOrnament(width: 28)
+
+                                Text("\(chapter)")
+                                    .font(PaperFont.font(size: 13))
+                                    .foregroundColor(Paper.inkTertiary)
                             }
                             .padding(.vertical, 24)
                             .frame(maxWidth: .infinity)
@@ -246,9 +214,9 @@ struct BibleSingleChapterView: View {
                 verse: v,
                 language: manager.appLanguage,
                 accentColor: accentColor,
-                cardBackgroundColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.white,
-                cardBorderColor: LinearGradient(colors: [Color.primary.opacity(0.1), Color.primary.opacity(0.02)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                primaryTextColor: colorScheme == .dark ? .white : Color(hex: "1E293B"),
+                cardBackgroundColor: Paper.sheet,
+                cardBorderColor: LinearGradient(colors: [Paper.hairline, Paper.hairline], startPoint: .top, endPoint: .bottom),
+                primaryTextColor: Paper.ink,
                 onPinToWidget: {
                     pinToWidget(verse: v)
                 },
@@ -365,19 +333,17 @@ struct BibleSingleChapterView: View {
     private func buildChapterNSAttributedString(from text: BibleChapterText) -> NSAttributedString {
         let result = NSMutableAttributedString()
         let fontSize = manager.bibleFontSize
-        let textColor = colorScheme == .dark ? UIColor.white.withAlphaComponent(0.92) : UIColor(red: 0.12, green: 0.16, blue: 0.23, alpha: 1.0)
-        let uiAccentColor = UIColor(Color(hex: manager.accentTheme.colorHex))
-        
+        let textColor = Paper.uiInk
+        let uiAccentColor = manager.accentTheme.uiColor
+
+        // Книжная вёрстка: стих — абзац, умеренный интерлиньяж и небольшой отступ между стихами
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineSpacing = 7
-        paragraphStyle.paragraphSpacing = 16
-        
-        let fontDescriptor = UIFont.systemFont(ofSize: fontSize, weight: .regular).fontDescriptor.withDesign(.serif) ?? UIFont.systemFont(ofSize: fontSize).fontDescriptor
-        let font = UIFont(descriptor: fontDescriptor, size: fontSize)
-        
-        let numDescriptor = UIFont.boldSystemFont(ofSize: max(11, fontSize * 0.65)).fontDescriptor.withDesign(.serif) ?? UIFont.boldSystemFont(ofSize: max(11, fontSize * 0.65)).fontDescriptor
-        let numFont = UIFont(descriptor: numDescriptor, size: max(11, fontSize * 0.65))
-        
+        paragraphStyle.lineSpacing = round(fontSize * 0.4)
+        paragraphStyle.paragraphSpacing = round(fontSize * 0.6)
+
+        let font = PaperFont.uiFont(size: fontSize)
+        let numFont = PaperFont.uiFont(size: max(11, fontSize * 0.62), weight: .semibold)
+
         let verseKey = NSAttributedString.Key("verseNumber")
         
         for (index, verse) in text.verses.enumerated() {
@@ -385,7 +351,7 @@ struct BibleSingleChapterView: View {
             let numAttrs: [NSAttributedString.Key: Any] = [
                 .font: numFont,
                 .foregroundColor: uiAccentColor,
-                .baselineOffset: fontSize * 0.25,
+                .baselineOffset: fontSize * 0.3,
                 .link: URL(string: "verse://\(verse.verseNumber)") ?? "",
                 verseKey: verse.verseNumber
             ]
@@ -415,7 +381,7 @@ struct BibleSingleChapterView: View {
             result.append(verseStr)
             
             if index < text.verses.count - 1 {
-                result.append(NSAttributedString(string: "\n\n", attributes: [.paragraphStyle: paragraphStyle]))
+                result.append(NSAttributedString(string: "\n", attributes: [.font: font, .paragraphStyle: paragraphStyle]))
             }
         }
         

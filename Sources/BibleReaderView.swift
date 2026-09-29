@@ -6,11 +6,11 @@ struct BibleReaderView: View {
     @State private var showingSearch = false
     
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
     
     private var backgroundColor: Color {
-        Color(hex: manager.accentTheme.colorHex).opacity(0.03)
+        Paper.page
     }
     
     var body: some View {

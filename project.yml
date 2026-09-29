@@ -53,6 +53,10 @@ targets:
           - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
         UIBackgroundModes:
           - audio
+        UIAppFonts:
+          - NotoSerifArmenian-Regular.ttf
+          - NotoSerifArmenian-Medium.ttf
+          - NotoSerifArmenian-SemiBold.ttf
         UIRequiresFullScreen: false
         UILaunchScreen:
           UIColorName: LaunchBackground

@@ -155,6 +155,7 @@ enum AppAppearanceMode: String, CaseIterable, Identifiable, Codable {
 
 // MARK: - Цветовые темы оформления
 enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
+    case cinnabar = "cinnabar"
     case indigo = "indigo"
     case gold = "gold"
     case blue = "blue"
@@ -165,6 +166,7 @@ enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
     
     func localizedName(for language: AppLanguage) -> String {
         switch self {
+        case .cinnabar: return "color_cinnabar".localized(for: language)
         case .indigo: return "color_indigo".localized(for: language)
         case .gold: return "color_gold".localized(for: language)
         case .blue: return "color_blue".localized(for: language)
@@ -175,6 +177,7 @@ enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
     
     var colorHex: String {
         switch self {
+        case .cinnabar: return "B03F2F"
         case .indigo: return "6366F1"
         case .gold: return "D97706"
         case .blue: return "0EA5E9"
@@ -185,6 +188,7 @@ enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
     
     var secondaryColorHex: String {
         switch self {
+        case .cinnabar: return "C96A55"
         case .indigo: return "818CF8"
         case .gold: return "FBBF24"
         case .blue: return "38BDF8"

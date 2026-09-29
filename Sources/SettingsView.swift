@@ -24,8 +24,8 @@ struct SettingsView: View {
     @State var selectedInterval: UpdateInterval = .everyHour
     @State var selectedCategory: TextCategory = .both
     @State var selectedScope: VerseSourceScope = .allBible
-    @State var selectedTheme: AccentColorTheme = .indigo
-    @State var selectedAppearanceMode: AppAppearanceMode = .system
+    @State var selectedTheme: AccentColorTheme = .cinnabar
+    @State var selectedAppearanceMode: AppAppearanceMode = .light
     @State var selectedWidgetLanguage: WidgetLanguage = .followApp
     @State var selectedWidgetStyle: WidgetVisualStyle = .oledStandby
     @State var selectedLockCategory: LockScreenCategory = .pearls

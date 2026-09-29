@@ -149,5 +149,11 @@
     <array>
         <string>audio</string>
     </array>
+    <key>UIAppFonts</key>
+    <array>
+        <string>NotoSerifArmenian-Regular.ttf</string>
+        <string>NotoSerifArmenian-Medium.ttf</string>
+        <string>NotoSerifArmenian-SemiBold.ttf</string>
+    </array>
 </dict>
 </plist>

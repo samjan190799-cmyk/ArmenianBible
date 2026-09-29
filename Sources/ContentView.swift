@@ -6,11 +6,11 @@ struct ContentView: View {
     @ObservedObject private var reviewManager = ReviewManager.shared
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @Environment(\.scenePhase) private var scenePhase
-    
+
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
-    
+
     var body: some View {
         ZStack {
             if UserDefaults.standard.string(forKey: "openTab") == "lockscreen" {
@@ -212,159 +212,98 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
     
-    // MARK: - Адаптивная цветовая палитра на основе AccentColorTheme
+    // MARK: - Палитра «Бумага и чернила» (см. PaperTheme.swift)
     private var accentColor: Color {
-        Color(hex: manager.accentTheme.colorHex)
+        manager.accentTheme.color
     }
-    
+
     private var secondaryAccentColor: Color {
-        Color(hex: manager.accentTheme.secondaryColorHex)
+        Paper.inkSecondary
     }
-    
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
-    }
-    
-    private var dotGridColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.03)
-    }
-    
-    private var glowColor: Color {
-        accentColor.opacity(colorScheme == .dark ? 0.08 : 0.05)
-    }
-    
-    private var settingsButtonBgColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
-    }
-    
-    private var settingsButtonBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
-    }
-    
-    private var settingsButtonIconColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.7) : Color.black.opacity(0.6)
-    }
-    
+
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
+        Paper.sheet
     }
-    
+
     private var cardBorderColor: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        LinearGradient(colors: [Paper.hairline, Paper.hairline], startPoint: .top, endPoint: .bottom)
     }
-    
+
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
-    
-    private var randomButtonBgColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05)
+
+    /// Дата в шапке: «Вторник, 29 сентября»
+    private var todayTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: manager.appLanguage.localeCode)
+        formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
+        return formatter.string(from: Date())
     }
-    
-    private var randomButtonBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
-    }
-    
-    private var randomButtonTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
-    }
-    
-    private var instructionBgColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.02) : Color.black.opacity(0.015)
-    }
-    
-    private var instructionBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)
-    }
-    
+
     var body: some View {
         ZStack {
-            // MARK: - Фон
-            backgroundColor
-                .ignoresSafeArea()
-            
-            // Тонкая сетка для техно-индустриального стиля
-            StaticDotGridView(dotColor: dotGridColor)
-                .ignoresSafeArea()
-            
-            // Фоновое живое «дышащее» свечение позади текста (Divine Breathing Glow)
-            DivineBreathingGlow(color: glowColor)
-                .offset(y: -70)
-            
+            // MARK: - Фон: тёплая бумага
+            PaperBackground()
+
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
-                    // MARK: - Кнопка настроек
-                    HStack {
+                    // MARK: - Шапка: дата и кнопка настроек
+                    HStack(alignment: .center) {
+                        Text(todayTitle.uppercased())
+                            .font(PaperFont.font(size: 13, weight: .medium))
+                            .tracking(1.4)
+                            .foregroundColor(Paper.inkSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+
                         Spacer()
-                        
+
                         Button {
                             triggerHaptic(.light)
                             isShowingSettings.toggle()
                         } label: {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(settingsButtonIconColor)
-                                .padding(12)
-                                .background(settingsButtonBgColor)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle().stroke(settingsButtonBorderColor, lineWidth: 1)
-                                )
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 18, weight: .regular))
+                                .foregroundColor(Paper.inkSecondary)
+                                .frame(width: 40, height: 40)
+                                .background(Circle().fill(Paper.sheet))
+                                .overlay(Circle().strokeBorder(Paper.hairline, lineWidth: 1))
                         }
                         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.90))
-                        .padding(.trailing, 20)
-                        .padding(.top, 10)
+                        .accessibilityLabel(Text("settings_title".localized(for: manager.appLanguage)))
                     }
-                    
-                    Spacer()
-                        .frame(height: 10)
-                    
+                    .padding(.horizontal, 24)
+                    .padding(.top, 10)
+
                     // MARK: - Контейнер со стихом
-                    VStack(spacing: 16) {
-                        HStack {
-                            Image(systemName: "laurel.leading")
-                                .font(.system(size: 24))
-                                .foregroundColor(secondaryAccentColor.opacity(0.7))
-                            
-                            Spacer()
-                            
-                            Image(systemName: "laurel.trailing")
-                                .font(.system(size: 24))
-                                .foregroundColor(secondaryAccentColor.opacity(0.7))
-                        }
-                        .padding(.horizontal, 8)
-                        
+                    VStack(spacing: 18) {
+                        PaperOrnament()
+
                         Text(manager.currentVerse.text)
-                            .font(.system(size: 21, weight: .medium, design: manager.widgetVisualStyle.fontDesign))
+                            .font(PaperFont.font(size: 23))
                             .foregroundColor(primaryTextColor)
                             .multilineTextAlignment(.center)
-                            .lineSpacing(8)
-                            .padding(.horizontal, 10)
+                            .lineSpacing(7)
+                            .padding(.horizontal, 4)
                             .fixedSize(horizontal: false, vertical: true)
                             .opacity(animateVerse ? 1 : 0)
                             .offset(y: animateVerse ? 0 : 15)
-                        
-                        Text(manager.currentVerse.reference)
-                            .font(.system(size: 13, weight: .bold, design: manager.widgetVisualStyle.fontDesign))
-                            .foregroundColor(secondaryAccentColor)
-                            .padding(.top, 2)
-                            .opacity(animateVerse ? 0.8 : 0)
+
+                        Text(manager.currentVerse.reference.uppercased())
+                            .font(PaperFont.font(size: 13, weight: .medium))
+                            .tracking(1.6)
+                            .foregroundColor(accentColor)
+                            .opacity(animateVerse ? 1 : 0)
                             .offset(y: animateVerse ? 0 : 10)
-                        
-                        // Кнопки управления стихом: Избранное, Обои, Аудио-озвучка, Поделиться
-                        HStack(spacing: 24) {
+
+                        Rectangle()
+                            .fill(Paper.hairline)
+                            .frame(height: 1)
+                            .padding(.top, 4)
+
+                        // Кнопки управления стихом: Избранное, Обои, Поделиться
+                        HStack(spacing: 0) {
                             // 1. Кнопка Лайка (Избранное) с упругой пружинной анимацией и золотым салютом
                             Button {
                                 triggerHaptic(.medium)
@@ -390,73 +329,49 @@ struct HomeView: View {
                             } label: {
                                 ZStack {
                                     Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundColor(manager.isFavorite(manager.currentVerse) ? .red : primaryTextColor.opacity(0.6))
+                                        .font(.system(size: 18, weight: .regular))
+                                        .foregroundColor(manager.isFavorite(manager.currentVerse) ? accentColor : Paper.inkSecondary)
                                         .scaleEffect(isHeartBouncing ? 1.35 : 1.0)
-                                    
+
                                     GoldenSparkBurstView(isTriggered: isSparkBurstActive)
                                 }
-                                .padding(11)
-                                .background(primaryTextColor.opacity(0.05))
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle().stroke(primaryTextColor.opacity(0.08), lineWidth: 0.8)
-                                )
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
-                            
+
                             // 2. Кнопка Генератора Обоев для LockScreen
                             Button {
                                 triggerHaptic(.medium)
                                 isShowingWallpaperMaker = true
                             } label: {
                                 Image(systemName: "photo.artframe")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(primaryTextColor.opacity(0.6))
-                                    .padding(11)
-                                    .background(primaryTextColor.opacity(0.05))
-                                    .clipShape(Circle())
-                                    .overlay(
-                                        Circle().stroke(primaryTextColor.opacity(0.08), lineWidth: 0.8)
-                                    )
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundColor(Paper.inkSecondary)
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
-                            
+
                             // 3. Кнопка Поделиться открыткой
                             Button {
                                 triggerHaptic(.medium)
                                 shareVerseAsImage()
                             } label: {
                                 Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(primaryTextColor.opacity(0.6))
-                                    .padding(11)
-                                    .background(primaryTextColor.opacity(0.05))
-                                    .clipShape(Circle())
-                                    .overlay(
-                                        Circle().stroke(primaryTextColor.opacity(0.08), lineWidth: 0.8)
-                                    )
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundColor(Paper.inkSecondary)
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
                         }
-                        .padding(.top, 8)
                         .opacity(animateVerse ? 1 : 0)
                     }
-                    .padding(26)
-                    .background(
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(cardBackgroundColor)
-                        }
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(accentColor, lineWidth: 1.5)
-                    )
-                    .shadow(color: accentColor.opacity(colorScheme == .dark ? 0.32 : 0.16), radius: 8, y: 3)
+                    .padding(.horizontal, 26)
+                    .padding(.top, 30)
+                    .padding(.bottom, 14)
+                    .paperSheet(cornerRadius: 22)
                     .padding(.horizontal, 20)
                     .rotation3DEffect(
                         .degrees(cardFlipAngle),
@@ -827,51 +742,35 @@ struct NarekatsiBannerCardView: View {
             onOpenNarek()
         } label: {
             HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(accentColor.opacity(0.12))
-                        .frame(width: 48, height: 48)
-                    FlickeringCandleFlame(baseColor: accentColor, iconSize: 22)
+                PaperIconBadge(tint: accentColor) {
+                    FlickeringCandleFlame(baseColor: accentColor, iconSize: 20)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Text("narekatsi_title".localized(for: language))
-                            .font(.system(size: 16, weight: .bold, design: .serif))
+                            .font(PaperFont.font(size: 17, weight: .semibold))
                             .foregroundColor(primaryTextColor)
-                        
+
                         if narekAudio.isPlaying {
                             AudioWaveformIndicator(isPlaying: true, color: accentColor)
                         }
                     }
-                    
+
                     Text("narekatsi_subtitle".localized(for: language))
-                        .font(.system(size: 12, weight: .medium, design: .serif))
+                        .font(PaperFont.font(size: 13))
                         .foregroundColor(secondaryAccentColor)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(primaryTextColor.opacity(0.3))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.inkTertiary)
             }
             .padding(16)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .gleamingEdge(cornerRadius: 18)
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accentColor.opacity(0.35), lineWidth: 1.2)
-            )
+            .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
@@ -895,64 +794,45 @@ struct PrayerSanctuaryBannerCardView: View {
             onOpenSanctuary()
         } label: {
             HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "D97706").opacity(0.15)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
-                    
-                    FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 22)
+                PaperIconBadge(tint: Paper.gold) {
+                    FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        Text(language == .armenian ? "ՏԱՃԱՐԱՅԻՆ ՄՈՄԱՎԱՌՈՒԹՅՈՒՆ" : (language == .russian ? "ХРАМОВАЯ СВЕЧА И МОЛИТВА" : "SANCTUARY PRAYER CANDLE"))
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(Color(hex: "F59E0B"))
-                        
+                        Text(language == .armenian ? "Տաճարային մոմավառություն" : (language == .russian ? "Храмовая свеча и молитва" : "Sanctuary prayer candle"))
+                            .font(PaperFont.font(size: 17, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+
                         if !candleManager.hasUsedDailyFreeCandle {
                             Text(language == .armenian ? "ԱՆՎՃԱՐ" : (language == .russian ? "ДАР" : "FREE"))
-                                .font(.system(size: 9, weight: .black))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 5)
+                                .font(.system(size: 9, weight: .semibold))
+                                .tracking(0.8)
+                                .foregroundColor(Paper.gold)
+                                .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color(hex: "10B981"))
-                                .cornerRadius(4)
-                                .luysShimmer(duration: 2.2)
+                                .overlay(
+                                    Capsule().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 0.8)
+                                )
                         }
                     }
-                    
+
                     Text(language == .armenian ? "Վառեք մոմ հարազատների առողջության կամ հոգու համար" : (language == .russian ? "Зажгите свечу о здравии или упокоении близких" : "Light a candle for health, peace, or memory"))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(primaryTextColor.opacity(0.85))
+                        .font(PaperFont.font(size: 13))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(primaryTextColor.opacity(0.3))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.inkTertiary)
             }
             .padding(16)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accentColor.opacity(0.35), lineWidth: 1.2)
-            )
+            .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
@@ -983,90 +863,68 @@ struct ChurchFeastsBannerCardView: View {
         } label: {
             HStack(spacing: 16) {
                 // Иконка
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "F59E0B").opacity(0.25), Color(hex: "D97706").opacity(0.15)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
-                    
+                PaperIconBadge(tint: Paper.gold) {
                     if todayFeast != nil {
-                        FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 22)
+                        FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
                     } else {
                         Image(systemName: "calendar")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .font(.system(size: 19, weight: .regular))
+                            .foregroundColor(Paper.gold)
                     }
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     if let today = todayFeast {
                         HStack(spacing: 6) {
                             Text("today_badge".localized(for: language))
-                                .font(.system(size: 10, weight: .heavy))
-                                .foregroundColor(.white)
+                                .font(.system(size: 9, weight: .semibold))
+                                .tracking(0.8)
+                                .foregroundColor(Paper.cinnabar)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color.red)
-                                .cornerRadius(5)
-                                .luysShimmer(duration: 2.2)
-                            
+                                .overlay(
+                                    Capsule().strokeBorder(Paper.cinnabar.opacity(0.6), lineWidth: 0.8)
+                                )
+
                             Text(today.title(for: language))
-                                .font(.system(size: 15, weight: .bold, design: .serif))
+                                .font(PaperFont.font(size: 17, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                                 .lineLimit(1)
                         }
-                        
+
                         Text(today.formattedDate(for: language) + (today.isFasting ? " • " + "fasting_day_badge".localized(for: language) : ""))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .font(PaperFont.font(size: 13))
+                            .foregroundColor(Paper.gold)
                             .lineLimit(1)
                     } else if let next = nextDaghavar {
                         Text("church_calendar_title".localized(for: language))
-                            .font(.system(size: 15, weight: .bold, design: .serif))
+                            .font(PaperFont.font(size: 17, weight: .semibold))
                             .foregroundColor(primaryTextColor)
-                        
+
                         Text("\(next.feast.title(for: language)) • \(next.daysLeft) " + "days_left_format".localized(for: language))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .font(PaperFont.font(size: 13))
+                            .foregroundColor(Paper.gold)
                             .lineLimit(1)
                     } else {
                         Text("church_calendar_title".localized(for: language))
-                            .font(.system(size: 15, weight: .bold, design: .serif))
+                            .font(PaperFont.font(size: 17, weight: .semibold))
                             .foregroundColor(primaryTextColor)
-                        
+
                         Text("church_calendar_subtitle".localized(for: language))
-                            .font(.system(size: 12, weight: .medium))
+                            .font(PaperFont.font(size: 13))
                             .foregroundColor(secondaryAccentColor)
                             .lineLimit(1)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(primaryTextColor.opacity(0.3))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.inkTertiary)
             }
             .padding(16)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .gleamingEdge(cornerRadius: 18)
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(accentColor.opacity(0.35), lineWidth: 1.2)
-            )
+            .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
@@ -1090,66 +948,35 @@ struct PremiumPromoBannerCardView: View {
         } label: {
             HStack(spacing: 16) {
                 // Иконка
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "D97706").opacity(0.15)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
-                    
-                    Image(systemName: isPremium ? "crown.fill" : "sparkles")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                PaperIconBadge(tint: Paper.gold) {
+                    Image(systemName: isPremium ? "crown" : "sparkles")
+                        .font(.system(size: 19, weight: .regular))
+                        .foregroundColor(Paper.gold)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(isPremium ? "PREMIUM ԱԿՏԻՎ Է" : "ARMENIAN BIBLE PREMIUM")
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(Color(hex: "F59E0B"))
-                        
-                        if !isPremium {
-                            Text("PRO")
-                                .font(.system(size: 9, weight: .black))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(Color(hex: "FDE68A"))
-                                .cornerRadius(4)
-                                .luysShimmer(duration: 2.5)
-                        }
-                    }
-                    
+                    Text(isPremium ? "Premium ակտիվ է" : "Armenian Bible Premium")
+                        .font(PaperFont.font(size: 17, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                        .lineLimit(1)
+
                     Text(isPremium ? (language == .armenian ? "Բոլոր 95 աուդիո գլուխները և AI-ն ապաբլոկավորված են" : "Все 95 аудио глав и ИИ разблокированы") : (language == .armenian ? "Բացեք Նարեկացու 95 աուդիո գլուխները և AI-ն" : "95 аудио глав Нарекаци и безлимитный ИИ"))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(primaryTextColor.opacity(0.85))
+                        .font(PaperFont.font(size: 13))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
-                Image(systemName: isPremium ? "checkmark.seal.fill" : "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(isPremium ? Color(hex: "F59E0B") : .secondary)
+
+                Image(systemName: isPremium ? "checkmark.seal" : "chevron.right")
+                    .font(.system(size: isPremium ? 16 : 13, weight: .semibold))
+                    .foregroundColor(isPremium ? Paper.gold : Paper.inkTertiary)
             }
             .padding(16)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(cardBackgroundColor)
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color(hex: "F59E0B").opacity(0.04))
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .gleamingEdge(cornerRadius: 18)
+            .paperSheet(cornerRadius: 18)
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color(hex: "F59E0B").opacity(0.4), lineWidth: 1.2)
+                    .strokeBorder(Paper.gold.opacity(0.45), lineWidth: 1)
             )
             .padding(.horizontal, 20)
         }

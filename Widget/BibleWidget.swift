@@ -715,7 +715,7 @@ private func getSharedTheme() -> AccentColorTheme {
        let theme = AccentColorTheme(rawValue: savedRaw) {
         return theme
     }
-    return .indigo
+    return .cinnabar
 }
 
 extension String {

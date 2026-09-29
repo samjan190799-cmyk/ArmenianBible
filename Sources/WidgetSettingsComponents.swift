@@ -123,74 +123,50 @@ struct BibleQuizCardView: View {
             onStartQuiz()
         } label: {
             HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(accentColor.opacity(0.12))
-                        .frame(width: 52, height: 52)
-                    
-                    Image(systemName: "trophy.fill")
-                        .font(.system(size: 24))
+                PaperIconBadge(tint: accentColor) {
+                    Image(systemName: "trophy")
+                        .font(.system(size: 19, weight: .regular))
                         .foregroundColor(accentColor)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("quiz_title".localized(for: language))
-                            .font(.system(size: 16, weight: .bold))
+                            .font(PaperFont.font(size: 17, weight: .semibold))
                             .foregroundColor(primaryTextColor)
-                        
+
                         Spacer()
-                        
+
                         if bestScore > 0 {
                             HStack(spacing: 3) {
                                 Image(systemName: "star.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.orange)
+                                    .font(.system(size: 9))
+                                    .foregroundColor(Paper.gold)
                                 Text("\(bestScore)")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    .foregroundColor(primaryTextColor)
+                                    .font(PaperFont.font(size: 12, weight: .semibold))
+                                    .foregroundColor(Paper.gold)
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(Color.orange.opacity(0.12))
-                            .cornerRadius(10)
+                            .overlay(
+                                Capsule().strokeBorder(Paper.gold.opacity(0.5), lineWidth: 0.8)
+                            )
                         }
                     }
-                    
+
                     Text("quiz_card_subtitle".localized(for: language))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13))
+                        .foregroundColor(Paper.inkSecondary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                 }
-                
+
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(secondaryAccentColor.opacity(0.6))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.inkTertiary)
             }
-            .padding(18)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .gleamingEdge(cornerRadius: 20)
-            .livingBorder(
-                colors: [
-                    Color(hex: "F59E0B"),
-                    Color(hex: "10B981"),
-                    Color(hex: "FBBF24"),
-                    Color(hex: "F59E0B")
-                ],
-                cornerRadius: 20,
-                lineWidth: 1.3,
-                glowRadius: 5,
-                duration: 6.5
-            )
+            .padding(16)
+            .paperSheet(cornerRadius: 18)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
         .padding(.horizontal, 20)
@@ -549,119 +525,74 @@ struct ReadingPlanBannerCardView: View {
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "EF4444"), Color(hex: "F59E0B")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 48, height: 48)
-                            .shadow(color: Color(hex: "EF4444").opacity(0.35), radius: 6, y: 2)
-                        
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.white)
+                    PaperIconBadge(tint: accentColor) {
+                        Image(systemName: planManager.currentStreak > 0 ? "flame" : "book")
+                            .font(.system(size: 19, weight: .regular))
+                            .foregroundColor(accentColor)
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            Text("\(planManager.currentStreak) \("streak_days_suffix".localized(for: language))")
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundColor(primaryTextColor)
-                            
-                            if planManager.currentStreak > 0 {
-                                Text("🔥")
-                                    .font(.system(size: 14))
-                            }
-                        }
-                        
+                        Text("\(planManager.currentStreak) \("streak_days_suffix".localized(for: language))")
+                            .font(PaperFont.font(size: 17, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+
                         if let plan = planManager.activePlan,
                            let day = planManager.nextIncompleteDay(for: plan.id) {
                             Text("\("day_label".localized(for: language)) \(day.dayNumber): \(day.title(for: language))")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 13))
+                                .foregroundColor(Paper.inkSecondary)
                                 .lineLimit(1)
                         } else {
                             Text("reading_plan_card_hint".localized(for: language))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 13))
+                                .foregroundColor(Paper.inkSecondary)
                                 .lineLimit(1)
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.secondary.opacity(0.6))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Paper.inkTertiary)
                 }
-                
+
                 // Если есть активный план — показываем прогресс-бар
                 if let plan = planManager.activePlan {
                     let progress = planManager.progress(for: plan.id)
                     let completed = planManager.completedDaysCount(for: plan.id)
-                    
-                    VStack(alignment: .leading, spacing: 5) {
+
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text(plan.title(for: language))
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.secondary)
-                            
+                                .font(PaperFont.font(size: 12))
+                                .foregroundColor(Paper.inkSecondary)
+
                             Spacer()
-                            
+
                             Text("\(completed)/\(plan.daysCount)")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 12, weight: .medium))
+                                .foregroundColor(Paper.inkSecondary)
                         }
-                        
+
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 Capsule()
-                                    .fill(Color.white.opacity(0.08))
-                                    .frame(height: 5)
-                                
+                                    .fill(Paper.hairline)
+                                    .frame(height: 3)
+
                                 Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color(hex: "F59E0B"), Color(hex: "EF4444")],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: max(5, geo.size.width * CGFloat(progress)), height: 5)
+                                    .fill(accentColor)
+                                    .frame(width: max(3, geo.size.width * CGFloat(progress)), height: 3)
                             }
                         }
-                        .frame(height: 5)
+                        .frame(height: 3)
                     }
                     .padding(.top, 2)
                 }
             }
             .padding(16)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .gleamingEdge(cornerRadius: 20)
-            .livingBorder(
-                colors: [
-                    Color(hex: "EF4444"),
-                    Color(hex: "F59E0B"),
-                    Color(hex: "FBBF24"),
-                    Color(hex: "EF4444")
-                ],
-                cornerRadius: 20,
-                lineWidth: 1.3,
-                glowRadius: 5,
-                duration: 5.5
-            )
+            .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
