@@ -21,6 +21,8 @@ struct BibleChapterReaderView: View {
     
     var body: some View {
         ZStack {
+            Paper.page.ignoresSafeArea()
+            
             PageCurlReaderView(
                 book: book,
                 currentChapterIndex: $currentChapterIndex,
