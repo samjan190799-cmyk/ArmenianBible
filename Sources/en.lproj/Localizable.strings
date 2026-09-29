@@ -309,6 +309,7 @@
 "narek_prayers_count" = "95 prayers";
 "narek_loading_audio" = "• Loading audio...";
 "narek_saved_position_format" = "Saved position: %@ (Chapter %d)";
+"narek_continue_format" = "Continue: %@ (Chapter %d)";
 "narek_listen_pro" = "Listen (PRO)";
 "narek_stop" = "Stop";
 "narek_listen_prayer" = "Listen to Prayer";

@@ -718,6 +718,17 @@ struct NarekatsiBannerCardView: View {
     
     @ObservedObject private var narekAudio = NarekAudioPlayer.shared
     
+    /// Подзаголовок: если есть сохранённая позиция — предлагаем продолжить с того же места
+    private var subtitleText: String {
+        let saved = narekAudio.savedTimeSeconds
+        if saved >= 20 && !narekAudio.isPlaying {
+            let secs = Int(saved)
+            let time = String(format: "%d:%02d", secs / 60, secs % 60)
+            return String(format: "narek_continue_format".localized(for: language), time, narekAudio.savedPrayerId)
+        }
+        return "narekatsi_subtitle".localized(for: language)
+    }
+    
     var body: some View {
         Button {
             onOpenNarek()
@@ -738,7 +749,7 @@ struct NarekatsiBannerCardView: View {
                         }
                     }
 
-                    Text("narekatsi_subtitle".localized(for: language))
+                    Text(subtitleText)
                         .font(PaperFont.font(size: 13))
                         .foregroundColor(secondaryAccentColor)
                         .lineLimit(1)

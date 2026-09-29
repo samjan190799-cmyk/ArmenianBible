@@ -309,6 +309,7 @@
 "narek_prayers_count" = "95 աղոթք";
 "narek_loading_audio" = "• Բեռնվում է...";
 "narek_saved_position_format" = "Պահպանված դիրք՝ %@ (Գլուխ %d)";
+"narek_continue_format" = "Շարունակել՝ %@ (Գլուխ %d)";
 "narek_listen_pro" = "Լսել (PRO)";
 "narek_stop" = "Դադարեցնել";
 "narek_listen_prayer" = "Լսել աղոթքը";

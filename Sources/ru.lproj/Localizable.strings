@@ -309,6 +309,7 @@
 "narek_prayers_count" = "95 молитв";
 "narek_loading_audio" = "• Загрузка аудио...";
 "narek_saved_position_format" = "Сохраненная позиция: %@ (Глава %d)";
+"narek_continue_format" = "Продолжить: %@ (Глава %d)";
 "narek_listen_pro" = "Слушать (PRO)";
 "narek_stop" = "Остановить";
 "narek_listen_prayer" = "Слушать молитву";

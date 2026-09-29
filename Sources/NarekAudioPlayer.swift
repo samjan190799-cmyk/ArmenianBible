@@ -28,9 +28,9 @@ enum NarekSleepTimerOption: Int, CaseIterable, Identifiable {
     case min45 = 45
     case min60 = 60
     case endOfChapter = -1
-    
+
     var id: Int { rawValue }
-    
+
     func title(for language: AppLanguage) -> String {
         switch self {
         case .off: return "narek_sleep_timer_off".localized(for: language)
@@ -46,35 +46,50 @@ enum NarekSleepTimerOption: Int, CaseIterable, Identifiable {
 // MARK: - Полнофункциональный Аудиоплеер Нарекаци (Запоминание позиции, перемотка, плейлист)
 class NarekAudioPlayer: NSObject, ObservableObject {
     static let shared = NarekAudioPlayer()
-    
+
     private var player: AVPlayer?
     private var statusObservation: NSKeyValueObservation?
     private var timeObserverToken: Any?
-    
+
     @Published var isPlaying: Bool = false
     @Published var currentlyPlayingId: Int? = nil
     @Published var currentTime: Double = 0.0
     @Published var duration: Double = 0.0
     @Published var isStreaming: Bool = false
     @Published var voiceLanguage: AppLanguage = .armenian
-    
+
     // Настройки воспроизведения (Пункт 2)
     @Published var playbackRate: Double = 1.0
     @Published var autoPlayNextChapter: Bool = true
     @Published var sleepTimerOption: NarekSleepTimerOption = .off
     @Published var sleepTimerRemainingSeconds: Int = 0
     private var sleepCountdownTimer: Timer? = nil
-    
+
     // Запоминание последнего прослушанного состояния
     @Published var savedPrayerId: Int = 1
     @Published var savedTimeSeconds: Double = 0.0
-    
+
     private let kSavedPrayerId = "narek_last_prayer_id"
     private let kSavedTimeSeconds = "narek_last_time_seconds"
     private let kSavedVoiceLang = "narek_voice_language"
     private let kSavedPlaybackRate = "narek_playback_rate"
     private let kSavedAutoPlayNext = "narek_autoplay_next_chapter"
-    
+
+    /// Голос сохранённой позиции: время в файле имеет смысл только для того же голоса
+    private var savedVoiceLanguage: AppLanguage = .armenian
+    /// Голос, для которого сейчас загружен AVPlayer (у каждого голоса свой файл)
+    private var loadedVoiceIsArmenian: Bool? = nil
+    /// Пока плеер переходит к стартовой позиции, его время (0:00) нельзя считать настоящим
+    private var isSeekPending = false
+    private var lastPersistDate = Date.distantPast
+    /// Приложение на переднем плане (обновляется уведомлениями жизненного цикла)
+    private var isAppInForeground = true
+
+    /// Длительности файлов озвучки (сек). Нужны, чтобы бегунок сразу показывал
+    /// сохранённую позицию, ещё до загрузки плеера.
+    private let armenianTotalSeconds = 3169.0
+    private let russianTotalSeconds = 3710.0
+
     override private init() {
         super.init()
         restorePlaybackState()
@@ -84,72 +99,119 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             UIApplication.shared.beginReceivingRemoteControlEvents()
         }
     }
-    
+
+    // MARK: - Правила фонового воспроизведения
+
+    /// Фон и экран блокировки доступны ТОЛЬКО в TestFlight (и Debug).
+    /// В App Store звук работает лишь пока приложение открыто.
+    private var backgroundPlaybackAllowed: Bool {
+        Bundle.isTestFlightOrDebug || isAppInForeground
+    }
+
+    private func knownDuration(for language: AppLanguage) -> Double {
+        language == .armenian ? armenianTotalSeconds : russianTotalSeconds
+    }
+
+    private func isSameVoice(_ a: AppLanguage, _ b: AppLanguage) -> Bool {
+        (a == .armenian) == (b == .armenian)
+    }
+
+    private func isLoadedVoice(_ language: AppLanguage) -> Bool {
+        guard let loaded = loadedVoiceIsArmenian else { return false }
+        return loaded == (language == .armenian)
+    }
+
     // MARK: - Сохранение и Восстановление состояния
-    
+
     func restorePlaybackState() {
         let prayerId = UserDefaults.standard.integer(forKey: kSavedPrayerId)
         savedPrayerId = prayerId > 0 ? prayerId : 1
-        savedTimeSeconds = UserDefaults.standard.double(forKey: kSavedTimeSeconds)
-        
+        savedTimeSeconds = max(0, UserDefaults.standard.double(forKey: kSavedTimeSeconds))
+
         if let rawLang = UserDefaults.standard.string(forKey: kSavedVoiceLang),
            let lang = AppLanguage(rawValue: rawLang) {
             voiceLanguage = lang
         }
-        
+        savedVoiceLanguage = voiceLanguage
+
         let savedRate = UserDefaults.standard.double(forKey: kSavedPlaybackRate)
         playbackRate = savedRate > 0 ? savedRate : 1.0
-        
+
         if UserDefaults.standard.object(forKey: kSavedAutoPlayNext) != nil {
             autoPlayNextChapter = UserDefaults.standard.bool(forKey: kSavedAutoPlayNext)
         } else {
             autoPlayNextChapter = true
         }
-        
+
         currentTime = savedTimeSeconds
         currentlyPlayingId = savedPrayerId
+        duration = knownDuration(for: voiceLanguage)
     }
-    
-    func savePlaybackState() {
-        if let currentId = currentlyPlayingId {
-            savedPrayerId = currentId
-            savedTimeSeconds = currentTime
-            UserDefaults.standard.set(savedPrayerId, forKey: kSavedPrayerId)
-            UserDefaults.standard.set(savedTimeSeconds, forKey: kSavedTimeSeconds)
-            UserDefaults.standard.set(voiceLanguage.rawValue, forKey: kSavedVoiceLang)
-            UserDefaults.standard.set(playbackRate, forKey: kSavedPlaybackRate)
-            UserDefaults.standard.set(autoPlayNextChapter, forKey: kSavedAutoPlayNext)
+
+    /// Записывает текущую главу и точное время на диск.
+    /// - Parameter refreshFromPlayer: взять время прямо у плеера (а не из последнего тика бегунка).
+    func savePlaybackState(refreshFromPlayer: Bool = true) {
+        guard let currentId = currentlyPlayingId else { return }
+
+        if refreshFromPlayer, !isSeekPending, let p = player {
+            let t = p.currentTime().seconds
+            if t.isFinite && t >= 0 {
+                currentTime = t
+            }
         }
+
+        savedPrayerId = currentId
+        savedTimeSeconds = currentTime
+        savedVoiceLanguage = voiceLanguage
+        UserDefaults.standard.set(savedPrayerId, forKey: kSavedPrayerId)
+        UserDefaults.standard.set(savedTimeSeconds, forKey: kSavedTimeSeconds)
+        UserDefaults.standard.set(voiceLanguage.rawValue, forKey: kSavedVoiceLang)
+        UserDefaults.standard.set(playbackRate, forKey: kSavedPlaybackRate)
+        UserDefaults.standard.set(autoPlayNextChapter, forKey: kSavedAutoPlayNext)
+        lastPersistDate = Date()
     }
-    
+
+    /// Место, с которого нужно продолжить главу: сохранённая позиция (тот же голос и глава),
+    /// иначе nil — тогда воспроизведение начнётся с начала главы.
+    private func resumePosition(for prayer: NarekPrayer, language: AppLanguage) -> Double? {
+        guard prayer.id == savedPrayerId,
+              isSameVoice(language, savedVoiceLanguage),
+              savedTimeSeconds > 1 else { return nil }
+        // Дослушали файл до конца — начинаем главу заново
+        guard savedTimeSeconds < knownDuration(for: language) - 3 else { return nil }
+        return savedTimeSeconds
+    }
+
     // MARK: - Воспроизведение
-    
+
     func togglePlay(prayer: NarekPrayer, language: AppLanguage? = nil) {
         let lang = language ?? voiceLanguage
-        voiceLanguage = lang
-        
+
         if isPlaying && currentlyPlayingId == prayer.id {
             pause()
             return
         }
-        
-        if !isPlaying && currentlyPlayingId == prayer.id && player != nil {
+
+        if !isPlaying && currentlyPlayingId == prayer.id && player != nil && isLoadedVoice(lang) {
             resume()
             return
         }
-        
+
         playPrayer(prayer, language: lang)
     }
-    
+
     func playPrayer(_ prayer: NarekPrayer, language: AppLanguage? = nil) {
+        guard backgroundPlaybackAllowed else { return }
+
         let lang = language ?? voiceLanguage
-        voiceLanguage = lang
-        currentlyPlayingId = prayer.id
-        savedPrayerId = prayer.id
-        let targetTime = prayer.audioTimestampSeconds(for: lang)
-        
-        if let p = player {
-            seek(to: targetTime)
+        // Позицию продолжения определяем до смены состояния
+        let startTime = resumePosition(for: prayer, language: lang) ?? prayer.audioTimestampSeconds(for: lang)
+
+        if let p = player, isLoadedVoice(lang) {
+            voiceLanguage = lang
+            currentlyPlayingId = prayer.id
+            savedPrayerId = prayer.id
+            seek(to: startTime)
             if !isPlaying {
                 p.play()
                 p.rate = Float(playbackRate)
@@ -157,18 +219,29 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             }
             updateNowPlayingInfo(prayer: prayer)
         } else {
-            play(prayer: prayer, language: lang, startAtSeconds: targetTime)
+            play(prayer: prayer, language: lang, startAtSeconds: startTime)
         }
     }
-    
-    func play(prayer: NarekPrayer, language: AppLanguage, startAtSeconds: Double = 0.0) {
-        stop()
-        
+
+    func play(prayer: NarekPrayer, language: AppLanguage, startAtSeconds: Double? = nil) {
+        guard backgroundPlaybackAllowed else { return }
+
+        let startAt = startAtSeconds ?? prayer.audioTimestampSeconds(for: language)
+
+        // Останавливаем прежний плеер, не затирая сохранённую позицию промежуточным состоянием
+        setSleepTimer(.off)
+        cleanupPlayer()
+        isStreaming = false
+
         currentlyPlayingId = prayer.id
+        savedPrayerId = prayer.id
         voiceLanguage = language
+        loadedVoiceIsArmenian = (language == .armenian)
         isPlaying = true
-        currentTime = startAtSeconds
-        
+        currentTime = startAt
+        duration = knownDuration(for: language)
+        savePlaybackState(refreshFromPlayer: false)
+
         // Настройка AVAudioSession: категория .playback с default режимом и опциями маршрутизации
         // гарантирует непрерывное воспроизведение при блокировке экрана и сворачивании
         do {
@@ -187,10 +260,10 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         } catch {
             print("⚠️ [NarekPlayer] Ошибка настройки AVAudioSession: \(error)")
         }
-        
+
         // Немедленно регистрируем информацию о треке в Центре управления и на Экране блокировки
         updateNowPlayingInfo(prayer: prayer)
-        
+
         // Проверяем наличие встроенного файла в бандле приложения
         let resourceName = (language == .armenian) ? "narek_sos_sargsyan" : "narek_oleg_molenko"
         var targetUrl = Bundle.main.url(forResource: resourceName, withExtension: "mp3")
@@ -203,102 +276,119 @@ class NarekAudioPlayer: NSObject, ObservableObject {
                 targetUrl = URL(string: validUrlString)
             }
         }
-        
-        if let url = targetUrl {
-            isStreaming = url.scheme == "http" || url.scheme == "https"
-            let playerItem = AVPlayerItem(url: url)
-            playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
-            playerItem.preferredForwardBufferDuration = 30.0
-            
-            let newPlayer = AVPlayer(playerItem: playerItem)
-            newPlayer.automaticallyWaitsToMinimizeStalling = false
-            newPlayer.preventsDisplaySleepDuringVideoPlayback = false
-            self.player = newPlayer
-            
-            // Наблюдение за статусом
-            statusObservation = playerItem.observe(\.status, options: [.new, .old]) { [weak self] item, _ in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    if item.status == .readyToPlay {
-                        let dur = item.duration.seconds
-                        if !dur.isNaN && dur > 0 {
-                            self.duration = dur
-                        }
-                        if startAtSeconds > 0 {
-                            let seekTime = CMTime(seconds: startAtSeconds, preferredTimescale: 600)
-                            newPlayer.seek(to: seekTime)
-                        }
-                        self.isStreaming = false
-                        self.updateNowPlayingInfo(prayer: prayer)
-                    } else if item.status == .failed {
-                        print("⚠️ Ошибка потока Нарекаци: \(item.error?.localizedDescription ?? "unknown error")")
-                        self.isPlaying = false
-                    }
-                }
-            }
-            
-            // Периодический таймер времени для бегунка
-            let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
-            timeObserverToken = newPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-                guard let self = self, self.isPlaying else { return }
-                let currentSec = time.seconds
-                if !currentSec.isNaN {
-                    self.currentTime = currentSec
-                    
-                    // Сохраняем состояние на диск только периодически (раз в 5 сек),
-                    // чтобы не нагружать I/O и не вызывать срабатывание системного watchdog в фоне
-                    if Int(currentSec) % 5 == 0 {
-                        self.savePlaybackState()
-                    }
-                    
-                    // Автоматически синхронизируем активную главу с текущим таймкодом
-                    if abs(currentSec - startAtSeconds) > 1.0,
-                       let active = NarekatsiDatabase.shared.prayers.last(where: { $0.audioTimestampSeconds(for: self.voiceLanguage) <= currentSec }) {
-                        if self.currentlyPlayingId != active.id {
-                            if self.sleepTimerOption == .endOfChapter {
-                                self.setSleepTimer(.off)
-                                self.pause()
-                                return
-                            }
-                            if !self.autoPlayNextChapter && self.currentlyPlayingId != nil {
-                                self.pause()
-                                return
-                            }
-                            self.currentlyPlayingId = active.id
-                            self.savedPrayerId = active.id
-                            self.savePlaybackState()
-                        }
-                    }
-                }
-            }
-            
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(playerItemDidFinishPlaying),
-                name: .AVPlayerItemDidPlayToEndTime,
-                object: playerItem
-            )
-            
-            newPlayer.play()
-            newPlayer.rate = Float(playbackRate)
-        } else {
+
+        guard let url = targetUrl else {
             print("⚠️ Аудиофайл для главы Нарекаци не найден")
             isPlaying = false
+            return
+        }
+
+        isStreaming = url.scheme == "http" || url.scheme == "https"
+        let playerItem = AVPlayerItem(url: url)
+        playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
+        playerItem.preferredForwardBufferDuration = 30.0
+
+        let newPlayer = AVPlayer(playerItem: playerItem)
+        newPlayer.automaticallyWaitsToMinimizeStalling = false
+        newPlayer.preventsDisplaySleepDuringVideoPlayback = false
+        self.player = newPlayer
+
+        // Наблюдение за статусом
+        statusObservation = playerItem.observe(\.status, options: [.new, .old]) { [weak self] item, _ in
+            DispatchQueue.main.async {
+                guard let self = self, self.player === newPlayer else { return }
+                if item.status == .readyToPlay {
+                    let dur = item.duration.seconds
+                    if !dur.isNaN && dur > 0 {
+                        self.duration = dur
+                    }
+                    self.isStreaming = false
+                    self.updateNowPlayingInfo(prayer: prayer)
+                } else if item.status == .failed {
+                    print("⚠️ Ошибка потока Нарекаци: \(item.error?.localizedDescription ?? "unknown error")")
+                    self.isPlaying = false
+                }
+            }
+        }
+
+        // Периодический таймер времени для бегунка
+        let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
+        timeObserverToken = newPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+            guard let self = self, self.isPlaying, !self.isSeekPending else { return }
+            let currentSec = time.seconds
+            guard !currentSec.isNaN else { return }
+            self.currentTime = currentSec
+
+            // Сохраняем позицию на диск не чаще раза в 3 секунды: и память не потеряется,
+            // и системный watchdog в фоне не сработает от лишнего I/O
+            if Date().timeIntervalSince(self.lastPersistDate) >= 3 {
+                self.savePlaybackState(refreshFromPlayer: false)
+            }
+
+            // Автоматически синхронизируем активную главу с текущим таймкодом
+            if abs(currentSec - startAt) > 1.0,
+               let active = NarekatsiDatabase.shared.prayers.last(where: { $0.audioTimestampSeconds(for: self.voiceLanguage) <= currentSec }) {
+                if self.currentlyPlayingId != active.id {
+                    if self.sleepTimerOption == .endOfChapter {
+                        self.setSleepTimer(.off)
+                        self.pause()
+                        return
+                    }
+                    if !self.autoPlayNextChapter && self.currentlyPlayingId != nil {
+                        self.pause()
+                        return
+                    }
+                    self.currentlyPlayingId = active.id
+                    self.savedPrayerId = active.id
+                    self.savePlaybackState(refreshFromPlayer: false)
+                }
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerItemDidFinishPlaying),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: playerItem
+        )
+
+        // Сначала переходим к нужной позиции и только потом включаем звук:
+        // без «проблеска» с 00:00 и без обратного скачка после загрузки
+        let rate = Float(playbackRate)
+        if startAt > 0.5 {
+            isSeekPending = true
+            let target = CMTime(seconds: startAt, preferredTimescale: 600)
+            newPlayer.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self, weak newPlayer] _ in
+                DispatchQueue.main.async {
+                    guard let self = self, let p = newPlayer, self.player === p else { return }
+                    self.isSeekPending = false
+                    if self.isPlaying && self.backgroundPlaybackAllowed {
+                        p.play()
+                        p.rate = rate
+                    }
+                }
+            }
+        } else {
+            newPlayer.play()
+            newPlayer.rate = rate
         }
     }
-    
+
     // MARK: - Управление
-    
+
     func pause() {
         if let p = player {
             p.pause()
         }
+        savePlaybackState()
         isPlaying = false
         updateNowPlayingInfo()
-        savePlaybackState()
     }
-    
+
     func resume() {
+        // Вне TestFlight продолжить звук из фона или с экрана блокировки нельзя
+        guard backgroundPlaybackAllowed else { return }
+
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playback,
@@ -309,7 +399,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         } catch {
             print("⚠️ [NarekPlayer] Ошибка активации AVAudioSession в resume: \(error)")
         }
-        
+
         if let p = player {
             p.play()
             p.rate = Float(playbackRate)
@@ -320,43 +410,63 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             play(prayer: prayer, language: voiceLanguage, startAtSeconds: currentTime)
         }
     }
-    
+
     func seek(to seconds: Double) {
-        currentTime = seconds
+        let bounded = max(0, seconds)
+        currentTime = bounded
         if let p = player {
-            let targetTime = CMTime(seconds: seconds, preferredTimescale: 600)
+            let targetTime = CMTime(seconds: bounded, preferredTimescale: 600)
             p.seek(to: targetTime)
         }
         updateNowPlayingInfo()
-        savePlaybackState()
+        savePlaybackState(refreshFromPlayer: false)
     }
-    
+
     func skipForward(seconds: Double = 15) {
         let newTime = min(currentTime + seconds, duration > 0 ? duration : currentTime + seconds)
         seek(to: newTime)
     }
-    
+
     func skipBackward(seconds: Double = 15) {
         let newTime = max(currentTime - seconds, 0)
         seek(to: newTime)
     }
-    
+
     func playNextPrayer() {
         guard let currentId = currentlyPlayingId ?? Optional(savedPrayerId) else { return }
         let nextId = currentId < 95 ? currentId + 1 : 1
         if let nextPrayer = NarekatsiDatabase.shared.prayers.first(where: { $0.id == nextId }) {
-            playPrayer(nextPrayer, language: voiceLanguage)
+            playChapterFromStart(nextPrayer)
         }
     }
-    
+
     func playPreviousPrayer() {
         guard let currentId = currentlyPlayingId ?? Optional(savedPrayerId) else { return }
         let prevId = currentId > 1 ? currentId - 1 : 95
         if let prevPrayer = NarekatsiDatabase.shared.prayers.first(where: { $0.id == prevId }) {
-            playPrayer(prevPrayer, language: voiceLanguage)
+            playChapterFromStart(prevPrayer)
         }
     }
-    
+
+    /// Явный переход к другой главе (вперёд/назад) — всегда с её начала, без «продолжения».
+    private func playChapterFromStart(_ prayer: NarekPrayer) {
+        guard backgroundPlaybackAllowed else { return }
+        let start = prayer.audioTimestampSeconds(for: voiceLanguage)
+        if let p = player, isLoadedVoice(voiceLanguage) {
+            currentlyPlayingId = prayer.id
+            savedPrayerId = prayer.id
+            seek(to: start)
+            if !isPlaying {
+                p.play()
+                p.rate = Float(playbackRate)
+                isPlaying = true
+            }
+            updateNowPlayingInfo(prayer: prayer)
+        } else {
+            play(prayer: prayer, language: voiceLanguage, startAtSeconds: start)
+        }
+    }
+
     func stop() {
         setSleepTimer(.off)
         savePlaybackState()
@@ -365,9 +475,9 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         isStreaming = false
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
-    
+
     // MARK: - Управление скоростью, автопереходом и таймером сна
-    
+
     func setPlaybackRate(_ rate: Double) {
         playbackRate = rate
         UserDefaults.standard.set(rate, forKey: kSavedPlaybackRate)
@@ -376,17 +486,17 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         }
         updateNowPlayingInfo()
     }
-    
+
     func setAutoPlayNextChapter(_ enabled: Bool) {
         autoPlayNextChapter = enabled
         UserDefaults.standard.set(enabled, forKey: kSavedAutoPlayNext)
     }
-    
+
     func setSleepTimer(_ option: NarekSleepTimerOption) {
         sleepCountdownTimer?.invalidate()
         sleepCountdownTimer = nil
         sleepTimerOption = option
-        
+
         switch option {
         case .off:
             sleepTimerRemainingSeconds = 0
@@ -397,7 +507,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             sleepTimerRemainingSeconds = 0
         }
     }
-    
+
     private func startSleepTimerCountdown() {
         sleepCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self = self else {
@@ -417,23 +527,25 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             }
         }
     }
-    
+
     private func cleanupPlayer() {
         statusObservation?.invalidate()
         statusObservation = nil
-        
+        isSeekPending = false
+
         if let token = timeObserverToken, let p = player {
             p.removeTimeObserver(token)
             timeObserverToken = nil
         }
-        
+
         if let p = player {
             p.pause()
             NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: p.currentItem)
         }
         player = nil
+        loadedVoiceIsArmenian = nil
     }
-    
+
     @objc private func playerItemDidFinishPlaying(notification: Notification) {
         DispatchQueue.main.async {
             if self.sleepTimerOption == .endOfChapter {
@@ -446,37 +558,82 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Системные уведомления AVAudioSession и Жизненного Цикла
-    
+
     private func setupAudioSessionNotifications() {
-        NotificationCenter.default.addObserver(
+        let center = NotificationCenter.default
+        center.addObserver(
             self,
             selector: #selector(handleAudioInterruption(_:)),
             name: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance()
         )
-        NotificationCenter.default.addObserver(
+        center.addObserver(
             self,
             selector: #selector(handleAudioRouteChange(_:)),
             name: AVAudioSession.routeChangeNotification,
             object: AVAudioSession.sharedInstance()
         )
-        NotificationCenter.default.addObserver(
+        center.addObserver(
             self,
             selector: #selector(handleAppDidEnterBackground),
             name: UIApplication.didEnterBackgroundNotification,
             object: nil
         )
+        center.addObserver(
+            self,
+            selector: #selector(handleAppDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+        // Позиция должна пережить любое закрытие приложения
+        center.addObserver(
+            self,
+            selector: #selector(handleAppWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+        center.addObserver(
+            self,
+            selector: #selector(handleAppWillTerminate),
+            name: UIApplication.willTerminateNotification,
+            object: nil
+        )
     }
-    
+
+    @objc private func handleAppWillResignActive() {
+        DispatchQueue.main.async { [weak self] in
+            self?.savePlaybackState()
+        }
+    }
+
+    @objc private func handleAppWillTerminate() {
+        // Вызывается на главном потоке; выполняем синхронно, пока процесс не завершён
+        savePlaybackState()
+    }
+
+    @objc private func handleAppDidBecomeActive() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isAppInForeground = true
+            // После возвращения показываем актуальную информацию в Центре управления
+            if self.player != nil {
+                self.updateNowPlayingInfo()
+            }
+        }
+    }
+
     @objc private func handleAppDidEnterBackground() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            
+            self.isAppInForeground = false
+            self.savePlaybackState()
+
             // ВАЖНОЕ ТРЕБОВАНИЕ: Фоновое воспроизведение и работа при блокировке экрана
             // активны ТОЛЬКО для пользователей TestFlight (и разработчиков в Debug).
-            // В боевом релизе App Store фоновое воспроизведение автоматически ставится на паузу.
+            // В боевом релизе App Store звук останавливается при сворачивании, а элементы
+            // управления убираются с экрана блокировки, чтобы продолжить нельзя было и оттуда.
             if !Bundle.isTestFlightOrDebug {
                 if self.isPlaying {
                     #if DEBUG
@@ -484,22 +641,22 @@ class NarekAudioPlayer: NSObject, ObservableObject {
                     #endif
                     self.pause()
                 }
-            } else {
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            } else if self.isPlaying {
                 // Для TestFlight: обновляем информацию на экране блокировки
-                if self.isPlaying {
-                    self.updateNowPlayingInfo()
-                }
+                self.updateNowPlayingInfo()
             }
         }
     }
-    
+
     @objc private func handleAudioInterruption(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
               let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
             return
         }
-        
+
         DispatchQueue.main.async {
             switch type {
             case .began:
@@ -517,14 +674,14 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             }
         }
     }
-    
+
     @objc private func handleAudioRouteChange(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
             return
         }
-        
+
         // По стандартам Apple HIG: если наушники/AirPods отключены, звук ставится на паузу
         if reason == .oldDeviceUnavailable {
             DispatchQueue.main.async {
@@ -534,20 +691,13 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Lock Screen & Control Center Integration
-    
+
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
-        
-        commandCenter.playCommand.isEnabled = true
-        commandCenter.playCommand.addTarget { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.resume()
-            }
-            return .success
-        }
-        
+
+        // Пауза разрешена всегда; всё, что запускает звук, — только когда фон разрешён
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] _ in
             DispatchQueue.main.async {
@@ -555,57 +705,72 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             }
             return .success
         }
-        
+
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.playCommand.addTarget { [weak self] _ in
+            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
+            DispatchQueue.main.async {
+                self.resume()
+            }
+            return .success
+        }
+
         commandCenter.togglePlayPauseCommand.isEnabled = true
         commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
+            guard let self = self else { return .commandFailed }
             DispatchQueue.main.async {
-                guard let self = self else { return }
                 if self.isPlaying {
                     self.pause()
-                } else {
+                } else if self.backgroundPlaybackAllowed {
                     self.resume()
                 }
             }
             return .success
         }
-        
+
         commandCenter.nextTrackCommand.isEnabled = true
         commandCenter.nextTrackCommand.addTarget { [weak self] _ in
+            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
             DispatchQueue.main.async {
-                self?.playNextPrayer()
+                self.playNextPrayer()
             }
             return .success
         }
-        
+
         commandCenter.previousTrackCommand.isEnabled = true
         commandCenter.previousTrackCommand.addTarget { [weak self] _ in
+            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
             DispatchQueue.main.async {
-                self?.playPreviousPrayer()
+                self.playPreviousPrayer()
             }
             return .success
         }
-        
+
         commandCenter.skipForwardCommand.isEnabled = true
         commandCenter.skipForwardCommand.preferredIntervals = [15]
         commandCenter.skipForwardCommand.addTarget { [weak self] _ in
+            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
             DispatchQueue.main.async {
-                self?.skipForward(seconds: 15)
+                self.skipForward(seconds: 15)
             }
             return .success
         }
-        
+
         commandCenter.skipBackwardCommand.isEnabled = true
         commandCenter.skipBackwardCommand.preferredIntervals = [15]
         commandCenter.skipBackwardCommand.addTarget { [weak self] _ in
+            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
             DispatchQueue.main.async {
-                self?.skipBackward(seconds: 15)
+                self.skipBackward(seconds: 15)
             }
             return .success
         }
-        
+
         commandCenter.changePlaybackPositionCommand.isEnabled = true
         commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
-            guard let self = self, let posEvent = event as? MPChangePlaybackPositionCommandEvent else {
+            guard let self = self,
+                  self.backgroundPlaybackAllowed,
+                  let posEvent = event as? MPChangePlaybackPositionCommandEvent else {
                 return .commandFailed
             }
             DispatchQueue.main.async {
@@ -614,11 +779,14 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             return .success
         }
     }
-    
+
     func updateNowPlayingInfo(prayer: NarekPrayer? = nil) {
+        // Вне TestFlight на экране блокировки плеера быть не должно
+        guard backgroundPlaybackAllowed else { return }
+
         let p = prayer ?? (currentlyPlayingId != nil ? NarekatsiDatabase.shared.prayers.first(where: { $0.id == currentlyPlayingId }) : nil)
         guard let currentPrayer = p else { return }
-        
+
         var info = [String: Any]()
         info[MPMediaItemPropertyTitle] = currentPrayer.title(for: voiceLanguage)
         info[MPMediaItemPropertyArtist] = (voiceLanguage == .armenian) ? "Սոս Սարգսյան (Գրիգոր Նարեկացի)" : "Олег Моленко (Григор Нарекаци)"
@@ -628,12 +796,11 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
         info[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? playbackRate : 0.0
         info[MPNowPlayingInfoPropertyMediaType] = MPNowPlayingInfoMediaType.audio.rawValue
-        
+
         if let artImage = UIImage(named: "AppIcon") ?? UIImage(systemName: "book.pages.fill") {
             info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: CGSize(width: 300, height: 300)) { _ in artImage }
         }
-        
+
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 }
-
