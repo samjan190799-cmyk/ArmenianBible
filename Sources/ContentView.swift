@@ -98,21 +98,8 @@ struct BiometricLockOverlayView: View {
     
     var body: some View {
         ZStack {
-            // Размытый полноэкранный ультратонкий фон
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea()
-            
-            // Полупрозрачный градиентный фон в тон темы
-            LinearGradient(
-                colors: [
-                    (colorScheme == .dark ? Color.black.opacity(0.85) : Color.white.opacity(0.92)),
-                    (colorScheme == .dark ? Color(hex: "090A0F").opacity(0.95) : Color(hex: "F8FAFC").opacity(0.95))
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Непрозрачная бумага: скрывает содержимое приложения до разблокировки
+            PaperBackground()
             
             VStack(spacing: 28) {
                 Spacer()
@@ -164,16 +151,10 @@ struct BiometricLockOverlayView: View {
                         Text("unlock_app_btn".localized(for: manager.appLanguage))
                             .font(PaperFont.font(size: 16, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(
-                        LinearGradient(
-                            colors: [accentColor, Paper.inkSecondary],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .background(accentColor)
                     .cornerRadius(16)
                     .shadow(color: Paper.shadow, radius: 10, y: 4)
                 }

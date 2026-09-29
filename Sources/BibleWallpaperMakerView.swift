@@ -212,7 +212,7 @@ struct BibleWallpaperMakerView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0B0D13").ignoresSafeArea()
+                PaperBackground()
                 
                 VStack(spacing: 0) {
                     // MARK: - Область Предпросмотра Обоев iPhone
@@ -232,7 +232,7 @@ struct BibleWallpaperMakerView: View {
                             RoundedRectangle(cornerRadius: 38, style: .continuous)
                                 .stroke(
                                     LinearGradient(
-                                        colors: [Color.white.opacity(0.3), Color.white.opacity(0.05)],
+                                        colors: [Paper.fillMuted, Paper.fillMuted],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     ),
@@ -240,7 +240,7 @@ struct BibleWallpaperMakerView: View {
                                 )
                         )
                         .shadow(color: selectedTheme.accentColor.opacity(0.25), radius: 24, x: 0, y: 12)
-                        .shadow(color: Color.black.opacity(0.6), radius: 20, x: 0, y: 10)
+                        .shadow(color: Paper.shadow, radius: 20, x: 0, y: 10)
                         
                         // Тост об успешном сохранении
                         if showSaveSuccessToast {
@@ -251,14 +251,13 @@ struct BibleWallpaperMakerView: View {
                                         .foregroundColor(Paper.moss)
                                     Text("wallpaper_saved_success".localized(for: manager.appLanguage))
                                         .font(PaperFont.font(size: 13, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(Paper.ink)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 10)
-                                .background(Paper.page)
-                                .background(Color.black.opacity(0.6))
+                                .background(Paper.sheet)
                                 .clipShape(Capsule())
-                                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                                .overlay(Capsule().stroke(Paper.hairline, lineWidth: 1))
                                 .shadow(radius: 10)
                                 .transition(.move(edge: .top).combined(with: .opacity))
                                 
@@ -277,7 +276,7 @@ struct BibleWallpaperMakerView: View {
                             HStack {
                                 Text("wallpaper_background_title".localized(for: manager.appLanguage))
                                     .font(PaperFont.font(size: 12, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .foregroundColor(Paper.inkSecondary)
                                 
                                 Spacer()
                                 
@@ -294,10 +293,10 @@ struct BibleWallpaperMakerView: View {
                                         Text("lockscreen_preview".localized(for: manager.appLanguage))
                                             .font(PaperFont.font(size: 11, weight: .medium))
                                     }
-                                    .foregroundColor(showLockScreenOverlay ? selectedTheme.accentColor : .white.opacity(0.5))
+                                    .foregroundColor(showLockScreenOverlay ? selectedTheme.accentColor : Paper.inkTertiary)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Color.white.opacity(0.06))
+                                    .background(Paper.fillSubtle)
                                     .cornerRadius(10)
                                 }
                             }
@@ -327,7 +326,7 @@ struct BibleWallpaperMakerView: View {
                                                     
                                                     if selectedTheme == theme {
                                                         Circle()
-                                                            .stroke(Color.white, lineWidth: 2.5)
+                                                            .stroke(Paper.ink, lineWidth: 2)
                                                             .frame(width: 50, height: 50)
                                                     }
                                                     
@@ -344,7 +343,7 @@ struct BibleWallpaperMakerView: View {
                                                 
                                                 Text(theme.title(for: manager.appLanguage))
                                                     .font(PaperFont.font(size: 10, weight: selectedTheme == theme ? .semibold : .medium))
-                                                    .foregroundColor(selectedTheme == theme ? .white : .white.opacity(0.6))
+                                                    .foregroundColor(selectedTheme == theme ? Paper.ink : Paper.inkSecondary)
                                             }
                                         }
                                         .buttonStyle(ScaleButtonStyle())
@@ -375,10 +374,10 @@ struct BibleWallpaperMakerView: View {
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 9))
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.ink)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(Color.white.opacity(0.08))
+                                .background(Paper.fillSubtle)
                                 .cornerRadius(12)
                             }
                             
@@ -401,10 +400,10 @@ struct BibleWallpaperMakerView: View {
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 9))
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.ink)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(Color.white.opacity(0.08))
+                                .background(Paper.fillSubtle)
                                 .cornerRadius(12)
                             }
                             
@@ -427,10 +426,10 @@ struct BibleWallpaperMakerView: View {
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 9))
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(Paper.ink)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(Color.white.opacity(0.08))
+                                .background(Paper.fillSubtle)
                                 .cornerRadius(12)
                             }
                         }
@@ -444,7 +443,7 @@ struct BibleWallpaperMakerView: View {
                             HStack(spacing: 10) {
                                 if isExporting {
                                     ProgressView()
-                                        .tint(.black)
+                                        .tint(Paper.onAccent)
                                 } else {
                                     Image(systemName: "arrow.down.to.line.circle.fill")
                                         .font(.system(size: 18, weight: .semibold))
@@ -452,18 +451,11 @@ struct BibleWallpaperMakerView: View {
                                         .font(PaperFont.font(size: 16, weight: .semibold))
                                 }
                             }
-                            .foregroundColor(.black)
+                            .foregroundColor(Paper.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 15)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.white, Color(hex: "F1F5F9")],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
+                            .background(Paper.ink)
                             .cornerRadius(16)
-                            .shadow(color: Color.white.opacity(0.2), radius: 10, y: 4)
                         }
                         .disabled(isExporting)
                         .buttonStyle(ScaleButtonStyle())
@@ -473,8 +465,7 @@ struct BibleWallpaperMakerView: View {
                     .padding(.top, 14)
                     .background(
                         ZStack {
-                            Color(hex: "12151E")
-                            Color.white.opacity(0.02)
+                            Paper.sheet
                         }
                         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     )
@@ -504,7 +495,7 @@ struct BibleWallpaperMakerView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
             }

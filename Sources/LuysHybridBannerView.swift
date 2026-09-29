@@ -76,7 +76,7 @@ public struct LuysHybridBannerView: View {
             subtitleRu: "Молитвы св. Григора Нарекаци в благоговейном исполнении",
             subtitleEn: "Soulful prayers of St. Gregory of Narek with audio narration",
             icon: "headphones",
-            colorHex: "D97706",
+            colorHex: "8F6B2A",
             targetUrl: "https://armenianchurch.org"
         ),
         LuysSponsorCreative(
@@ -91,7 +91,7 @@ public struct LuysHybridBannerView: View {
             subtitleRu: "Священные библейские сюжеты, доступные для детей и семьи",
             subtitleEn: "Inspiring Biblical stories crafted for children and families",
             icon: "figure.2.and.child.holdinghands",
-            colorHex: "2563EB",
+            colorHex: "3D5A8C",
             targetUrl: "https://armenianbible.org"
         ),
         LuysSponsorCreative(
@@ -106,7 +106,7 @@ public struct LuysHybridBannerView: View {
             subtitleRu: "Ежедневные чтения Писания, дни памяти святых и посты",
             subtitleEn: "Daily Bible readings, holy fasts and saint commemorations",
             icon: "calendar.badge.clock",
-            colorHex: "059669",
+            colorHex: "4F6B45",
             targetUrl: "https://qahana.am"
         ),
         LuysSponsorCreative(
@@ -121,7 +121,7 @@ public struct LuysHybridBannerView: View {
             subtitleRu: "Эчмиадзин, Татев, Гегард. Виртуальные паломнические туры",
             subtitleEn: "Echmiadzin, Tatev, Geghard. Discover historic Christian heritage",
             icon: "building.columns.fill",
-            colorHex: "7C3AED",
+            colorHex: "6E4B73",
             targetUrl: "https://armenianchurch.org"
         )
     ]

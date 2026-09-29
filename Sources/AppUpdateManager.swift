@@ -226,7 +226,7 @@ struct ForceUpdateOverlayView: View {
     
     private var accentGradient: LinearGradient {
         LinearGradient(
-            colors: [Paper.lapis, Paper.lapis],
+            colors: [manager.accentTheme.color, manager.accentTheme.color],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -235,11 +235,7 @@ struct ForceUpdateOverlayView: View {
     var body: some View {
         ZStack {
             // Размытый полноэкранный затемняющий фон
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea()
-            
-            Color.black.opacity(colorScheme == .dark ? 0.75 : 0.45)
+            Paper.scrim
                 .ignoresSafeArea()
             
             // Центральная карточка блокировки
@@ -247,14 +243,14 @@ struct ForceUpdateOverlayView: View {
                 // Анимированная иконка обновления
                 ZStack {
                     Circle()
-                        .fill(Paper.lapis.opacity(0.18))
+                        .fill(manager.accentTheme.color.opacity(0.18))
                         .frame(width: 100, height: 100)
                         .scaleEffect(isPulsing ? 1.15 : 0.95)
                     
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Paper.lapis, Paper.lapis],
+                                colors: [manager.accentTheme.color, manager.accentTheme.color],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -264,7 +260,7 @@ struct ForceUpdateOverlayView: View {
                     
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: 34, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                         .rotationEffect(.degrees(isPulsing ? 360 : 0))
                 }
                 .padding(.top, 8)
@@ -276,22 +272,22 @@ struct ForceUpdateOverlayView: View {
                     Text(versionBadgeText)
                         .font(PaperFont.font(size: 12, weight: .semibold))
                 }
-                .foregroundColor(Paper.lapis)
+                .foregroundColor(manager.accentTheme.color)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 5)
-                .background(Paper.lapis.opacity(0.15))
+                .background(manager.accentTheme.color.opacity(0.15))
                 .clipShape(Capsule())
                 
                 // Заголовок и описание
                 VStack(spacing: 10) {
                     Text(updateManager.updateTitle.isEmpty ? defaultTitle : updateManager.updateTitle)
                         .font(PaperFont.font(size: 22, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.ink)
                         .multilineTextAlignment(.center)
                     
                     Text(updateManager.updateMessage.isEmpty ? defaultMessage : updateManager.updateMessage)
                         .font(PaperFont.font(size: 14.5))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(Paper.ink)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
                         .padding(.horizontal, 8)
@@ -302,28 +298,28 @@ struct ForceUpdateOverlayView: View {
                     VStack(spacing: 2) {
                         Text(currentVersionLabel)
                             .font(PaperFont.font(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.55))
+                            .foregroundColor(Paper.inkSecondary)
                         Text(updateManager.currentVersion)
                             .font(PaperFont.font(size: 14, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(Paper.ink)
                     }
                     
                     Image(systemName: "arrow.right")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Paper.lapis)
+                        .foregroundColor(manager.accentTheme.color)
                     
                     VStack(spacing: 2) {
                         Text(newVersionLabel)
                             .font(PaperFont.font(size: 11, weight: .medium))
-                            .foregroundColor(Paper.lapis)
+                            .foregroundColor(manager.accentTheme.color)
                         Text(updateManager.availableVersion.isEmpty ? "2.4+" : updateManager.availableVersion)
                             .font(PaperFont.font(size: 14, weight: .semibold))
-                            .foregroundColor(Paper.lapis)
+                            .foregroundColor(manager.accentTheme.color)
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(Color.white.opacity(0.06))
+                .background(Paper.fillSubtle)
                 .cornerRadius(12)
                 
                 // Главная обязательная кнопка «Обновить в App Store»
@@ -336,12 +332,12 @@ struct ForceUpdateOverlayView: View {
                         Text(updateButtonText)
                             .font(PaperFont.font(size: 16, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
                         LinearGradient(
-                            colors: [Paper.lapis, Paper.lapis],
+                            colors: [manager.accentTheme.color, manager.accentTheme.color],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -355,20 +351,20 @@ struct ForceUpdateOverlayView: View {
             .padding(26)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color(hex: "111827").opacity(0.96))
+                    .fill(Paper.page)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .stroke(
                         LinearGradient(
-                            colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
+                            colors: [Paper.fillMuted, Paper.fillMuted],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
                         lineWidth: 1.5
                     )
             )
-            .shadow(color: Color.black.opacity(0.6), radius: 30, y: 15)
+            .shadow(color: Paper.shadow, radius: 30, y: 15)
             .padding(.horizontal, 24)
         }
         .onAppear {

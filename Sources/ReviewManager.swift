@@ -151,8 +151,7 @@ public struct ReviewPromptSheetView: View {
     public var body: some View {
         ZStack {
             // Мягкий фон с поддержкой тем
-            (colorScheme == .dark ? Color(hex: "0D0E15") : Color(hex: "F8FAFC"))
-                .ignoresSafeArea()
+            PaperBackground()
             
             VStack(spacing: 24) {
                 // Верхний декоративный индикатор
@@ -173,13 +172,7 @@ public struct ReviewPromptSheetView: View {
                     
                     Image(systemName: "star.circle.fill")
                         .font(.system(size: 64, weight: .semibold))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Paper.gold, Paper.gold],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .foregroundColor(Paper.gold)
                 }
                 .padding(.top, 8)
                 

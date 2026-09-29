@@ -533,7 +533,7 @@ extension AIGuideView {
                         
                         Image(systemName: "paperplane.fill")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.onAccent)
                             .offset(x: -1, y: 1)
                     }
                 }
