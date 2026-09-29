@@ -38,7 +38,7 @@ struct VerseActionSheetView: View {
                     // Цитата стиха
                     VStack(alignment: .leading, spacing: 6) {
                         Text(verse.text(for: language))
-                            .font(.system(size: 15, weight: .medium, design: .serif))
+                            .font(PaperFont.font(size: 15, weight: .medium))
                             .foregroundColor(primaryTextColor)
                             .lineSpacing(5)
                     }
@@ -48,7 +48,7 @@ struct VerseActionSheetView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1.0)
+                            .stroke(Paper.ink.opacity(0.08), lineWidth: 1.0)
                     )
                     .applyIf(selectedColorHex != nil) { view in
                         view.livingBorder(
@@ -68,8 +68,8 @@ struct VerseActionSheetView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("highlight_color_title".localized(for: language))
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 13, weight: .semibold))
+                                .foregroundColor(Paper.inkSecondary)
                             
                             Spacer()
                             
@@ -84,12 +84,12 @@ struct VerseActionSheetView: View {
                                         Image(systemName: "trash.fill")
                                             .font(.system(size: 12))
                                         Text("remove_highlight_btn".localized(for: language))
-                                            .font(.system(size: 12, weight: .bold))
+                                            .font(PaperFont.font(size: 12, weight: .semibold))
                                     }
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Paper.cinnabar)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
-                                    .background(Color.red.opacity(0.12))
+                                    .background(Paper.cinnabar.opacity(0.12))
                                     .cornerRadius(10)
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -112,7 +112,7 @@ struct VerseActionSheetView: View {
                                         .frame(width: 36, height: 36)
                                         .overlay(
                                             Circle()
-                                                .stroke(selectedColorHex == c.hex ? Color.primary : Color.clear, lineWidth: 3)
+                                                .stroke(selectedColorHex == c.hex ? Paper.ink : Color.clear, lineWidth: 3)
                                         )
                                         .scaleEffect(selectedColorHex == c.hex ? 1.15 : 1.0)
                                         .shadow(color: Color(hex: c.hex).opacity(selectedColorHex == c.hex ? 0.4 : 0.15), radius: 3, y: 1.5)
@@ -130,7 +130,7 @@ struct VerseActionSheetView: View {
                             } label: {
                                 ZStack {
                                     Circle()
-                                        .stroke(Color.primary.opacity(0.15), lineWidth: 1.5)
+                                        .stroke(Paper.ink.opacity(0.15), lineWidth: 1.5)
                                         .frame(width: 36, height: 36)
                                     
                                     Image(systemName: "slash.circle")
@@ -145,8 +145,8 @@ struct VerseActionSheetView: View {
                     // Поле личной заметки
                     VStack(alignment: .leading, spacing: 8) {
                         Text("personal_note_title".localized(for: language))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 13, weight: .semibold))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         TextField("add_note_placeholder".localized(for: language), text: $noteText, axis: .vertical)
                             .lineLimit(3...6)
@@ -156,7 +156,7 @@ struct VerseActionSheetView: View {
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                                    .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
                             )
                             .keyboardDismissToolbar()
                             .onChange(of: noteText) { _ in
@@ -167,8 +167,8 @@ struct VerseActionSheetView: View {
                     // Тематические теги
                     VStack(alignment: .leading, spacing: 8) {
                         Text("tags_section_title".localized(for: language))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 13, weight: .semibold))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         FlowLayout(spacing: 8) {
                             ForEach(VerseTag.allCases) { tag in
@@ -185,7 +185,7 @@ struct VerseActionSheetView: View {
                                     HStack(spacing: 4) {
                                         Text(tag.icon)
                                         Text(tag.localizedTitle(for: language))
-                                            .font(.system(size: 12, weight: .semibold))
+                                            .font(PaperFont.font(size: 12, weight: .semibold))
                                     }
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
@@ -194,7 +194,7 @@ struct VerseActionSheetView: View {
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(isSelected ? Color(hex: tag.colorHex) : Color.primary.opacity(0.1), lineWidth: 1)
+                                            .stroke(isSelected ? Color(hex: tag.colorHex) : Paper.ink.opacity(0.1), lineWidth: 1)
                                     )
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -215,7 +215,7 @@ struct VerseActionSheetView: View {
                                 Image(systemName: "square.stack.3d.up.fill")
                                     .foregroundColor(accentColor)
                                 Text("pin_to_widget".localized(for: language))
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(PaperFont.font(size: 15, weight: .semibold))
                                     .foregroundColor(primaryTextColor)
                                 Spacer()
                             }
@@ -225,7 +225,7 @@ struct VerseActionSheetView: View {
                             .livingBorder(
                                 colors: [
                                     accentColor,
-                                    Color(hex: "FDE047"),
+                                    Paper.gold,
                                     accentColor
                                 ],
                                 cornerRadius: 14,
@@ -243,16 +243,16 @@ struct VerseActionSheetView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: manager.isFavorite(verseText: verse) ? "heart.slash.fill" : "heart.fill")
-                                        .foregroundColor(.red)
+                                        .foregroundColor(Paper.cinnabar)
                                     Text(manager.isFavorite(verseText: verse) ? "context_menu_remove_favorite".localized(for: language) : "context_menu_add_favorite".localized(for: language))
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(PaperFont.font(size: 13, weight: .semibold))
                                         .lineLimit(1)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(12)
                                 .background(cardBackgroundColor)
                                 .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.ink.opacity(0.08), lineWidth: 1))
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                             
@@ -264,13 +264,13 @@ struct VerseActionSheetView: View {
                                     Image(systemName: "doc.on.doc")
                                         .foregroundColor(accentColor)
                                     Text("context_menu_copy".localized(for: language))
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(PaperFont.font(size: 13, weight: .semibold))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(12)
                                 .background(cardBackgroundColor)
                                 .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.ink.opacity(0.08), lineWidth: 1))
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                             
@@ -282,13 +282,13 @@ struct VerseActionSheetView: View {
                                     Image(systemName: "square.and.arrow.up")
                                         .foregroundColor(accentColor)
                                     Text("context_menu_share".localized(for: language))
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(PaperFont.font(size: 13, weight: .semibold))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(12)
                                 .background(cardBackgroundColor)
                                 .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.ink.opacity(0.08), lineWidth: 1))
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                         }
@@ -306,7 +306,7 @@ struct VerseActionSheetView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 22))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
             }

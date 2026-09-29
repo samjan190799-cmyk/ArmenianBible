@@ -40,12 +40,12 @@ struct QuizStartView: View {
                     }
                     
                     Text("quiz_start_title".localized(for: language))
-                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .font(PaperFont.font(size: 22, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Text("quiz_start_subtitle".localized(for: language))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13))
+                        .foregroundColor(Paper.inkSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
                 }
@@ -56,14 +56,14 @@ struct QuizStartView: View {
                     if bestScore > 0 {
                         HStack(spacing: 6) {
                             Image(systemName: "crown.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(Paper.gold)
                             Text("quiz_best_score".localized(for: language) + ": \(bestScore)")
-                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .font(PaperFont.font(size: 12, weight: .semibold).monospacedDigit())
                                 .foregroundColor(primaryTextColor)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(Color.orange.opacity(0.1))
+                        .background(Paper.gold.opacity(0.1))
                         .cornerRadius(20)
                     }
                     
@@ -74,7 +74,7 @@ struct QuizStartView: View {
                             Image(systemName: "medal.fill")
                                 .foregroundColor(.yellow)
                             Text("\(unlockedBadgesCount)/\(totalBadgesCount) " + "achievements_btn".localized(for: language))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                         }
                         .padding(.horizontal, 12)
@@ -88,8 +88,8 @@ struct QuizStartView: View {
                 // Выбор режима викторины (ИИ с адаптацией vs Офлайн база)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("quiz_mode_title".localized(for: language))
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 12, weight: .semibold))
+                        .foregroundColor(Paper.inkSecondary)
                         .padding(.horizontal, 4)
                     
                     HStack(spacing: 10) {
@@ -103,7 +103,7 @@ struct QuizStartView: View {
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 13, weight: .semibold))
                                 Text("quiz_mode_ai".localized(for: language))
-                                    .font(.system(size: 13, weight: isAIGenerationEnabled ? .bold : .medium))
+                                    .font(PaperFont.font(size: 13, weight: isAIGenerationEnabled ? .semibold : .medium))
                             }
                             .foregroundColor(isAIGenerationEnabled ? .white : primaryTextColor)
                             .frame(maxWidth: .infinity)
@@ -112,7 +112,7 @@ struct QuizStartView: View {
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(isAIGenerationEnabled ? accentColor : Color.primary.opacity(0.06), lineWidth: 1.2)
+                                    .stroke(isAIGenerationEnabled ? accentColor : Paper.ink.opacity(0.06), lineWidth: 1.2)
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -136,7 +136,7 @@ struct QuizStartView: View {
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(!isAIGenerationEnabled ? accentColor : Color.primary.opacity(0.06), lineWidth: 1.2)
+                                    .stroke(!isAIGenerationEnabled ? accentColor : Paper.ink.opacity(0.06), lineWidth: 1.2)
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -146,12 +146,12 @@ struct QuizStartView: View {
                     HStack(spacing: 6) {
                         Image(systemName: isAIGenerationEnabled ? "sparkles" : "internaldrive.fill")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(isAIGenerationEnabled ? Color(hex: "F59E0B") : secondaryAccentColor)
+                            .foregroundColor(isAIGenerationEnabled ? Paper.gold : secondaryAccentColor)
                         Text(isAIGenerationEnabled ?
                              "\("quiz_mode_ai_hint".localized(for: language)) • \(QuizAIEngine.shared.currentProviderDisplayName)" :
                              "quiz_mode_classic_hint".localized(for: language))
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     .padding(.horizontal, 4)
                 }
@@ -160,8 +160,8 @@ struct QuizStartView: View {
                 // Выбор количества вопросов
                 VStack(alignment: .leading, spacing: 8) {
                     Text("quiz_questions_count".localized(for: language))
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 12, weight: .semibold))
+                        .foregroundColor(Paper.inkSecondary)
                         .padding(.horizontal, 4)
                     
                     HStack(spacing: 10) {
@@ -179,7 +179,7 @@ struct QuizStartView: View {
                                     .cornerRadius(12)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(selectedQuestionCount == count ? accentColor : Color.primary.opacity(0.06), lineWidth: 1)
+                                            .stroke(selectedQuestionCount == count ? accentColor : Paper.ink.opacity(0.06), lineWidth: 1)
                                     )
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -191,8 +191,8 @@ struct QuizStartView: View {
                 // Выбор категории
                 VStack(alignment: .leading, spacing: 8) {
                     Text("quiz_select_category".localized(for: language))
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 12, weight: .semibold))
+                        .foregroundColor(Paper.inkSecondary)
                         .padding(.horizontal, 4)
                     
                     VStack(spacing: 8) {
@@ -227,7 +227,7 @@ struct QuizStartView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(selectedCategory == cat ? accentColor : Color.primary.opacity(0.06), lineWidth: 1.2)
+                                        .stroke(selectedCategory == cat ? accentColor : Paper.ink.opacity(0.06), lineWidth: 1.2)
                                 )
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -240,7 +240,7 @@ struct QuizStartView: View {
                     onStart()
                 } label: {
                     Text("quiz_button_start".localized(for: language))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)

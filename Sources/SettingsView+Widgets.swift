@@ -12,7 +12,7 @@ extension SettingsView {
             HStack(spacing: 8) {
                 Label {
                     Text("lockscreen_widget_section_title".localized(for: selectedLanguage))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                 } icon: {
                     Image(systemName: "apps.iphone")
@@ -25,12 +25,12 @@ extension SettingsView {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 9))
                     Text("STANDBY")
-                        .font(.system(size: 9, weight: .black))
+                        .font(PaperFont.font(size: 9, weight: .semibold))
                 }
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2.5)
-                .background(Color(hex: "F59E0B").opacity(0.18))
-                .foregroundColor(Color(hex: "F59E0B"))
+                .background(Paper.gold.opacity(0.18))
+                .foregroundColor(Paper.gold)
                 .cornerRadius(6)
                 
                 Spacer()
@@ -45,7 +45,7 @@ extension SettingsView {
                         Image(systemName: "questionmark.circle.fill")
                             .font(.system(size: 14))
                         Text("widget_instruction_title".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
                     }
                     .foregroundColor(Color(hex: selectedTheme.colorHex))
                 }
@@ -53,8 +53,8 @@ extension SettingsView {
             }
             
             Text("widget_style_section_desc".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(3)
             
             // 2. Язык виджетов
@@ -64,7 +64,7 @@ extension SettingsView {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Color(hex: selectedTheme.colorHex))
                     Text("widget_language_title".localized(for: selectedLanguage))
-                        .font(.system(size: 13.5, weight: .semibold))
+                        .font(PaperFont.font(size: 13.5, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                 }
                 
@@ -74,7 +74,7 @@ extension SettingsView {
                     }
                 }
                 .pickerStyle(.segmented)
-                .tint(colorScheme == .dark ? .white : .primary)
+                .tint(Paper.ink)
                 .onChange(of: selectedWidgetLanguage) { newLang in
                     let generator = UIImpactFeedbackGenerator(style: .light)
                     generator.prepare()
@@ -90,7 +90,7 @@ extension SettingsView {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Color(hex: selectedTheme.colorHex))
                     Text("widget_style_section_title".localized(for: selectedLanguage))
-                        .font(.system(size: 13.5, weight: .semibold))
+                        .font(PaperFont.font(size: 13.5, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                 }
                 
@@ -129,7 +129,7 @@ extension SettingsView {
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(Color(hex: selectedTheme.colorHex))
                     Text("standby_preview_title".localized(for: selectedLanguage))
-                        .font(.system(size: 14, weight: .bold))
+                        .font(PaperFont.font(size: 14, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                 }
                 
@@ -151,7 +151,7 @@ extension SettingsView {
                                     Image(systemName: size.iconName)
                                         .font(.system(size: 12.5, weight: isSelected ? .bold : .medium))
                                     Text(size.localizedTitle(for: selectedLanguage))
-                                        .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                                        .font(PaperFont.font(size: 13, weight: isSelected ? .semibold : .medium))
                                         .fixedSize(horizontal: true, vertical: false)
                                 }
                                 .padding(.horizontal, 14)
@@ -198,7 +198,7 @@ extension SettingsView {
                              previewWidgetSize == .large ? (selectedLanguage == .armenian ? "Գլխավոր էկրան (Մեծ 4×4)" : selectedLanguage == .russian ? "Рабочий стол (Большой 4×4)" : "Home Screen (Large 4×4)") :
                              (selectedLanguage == .armenian ? "Կողպեքի էկրան (Մոնոխրոմ)" : selectedLanguage == .russian ? "Экран блокировки (Монохром)" : "Lock Screen (Monochrome)"))
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     
                     Spacer()
@@ -213,7 +213,7 @@ extension SettingsView {
                             Image(systemName: "shuffle")
                                 .font(.system(size: 11, weight: .bold))
                             Text("button_random_verse".localized(for: selectedLanguage))
-                                .font(.system(size: 11.5, weight: .semibold))
+                                .font(PaperFont.font(size: 11.5, weight: .semibold))
                         }
                         .foregroundColor(Color(hex: selectedTheme.colorHex))
                         .padding(.horizontal, 10)
@@ -447,8 +447,8 @@ extension SettingsView {
                     switch previewWidgetSize {
                     case .small:
                         Text(selectedLanguage == .armenian ? "Գլխավոր էկրանի համարների ոճը" : selectedLanguage == .russian ? "Стиль стихов для Рабочего стола" : "Home Screen Verse Category")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -485,8 +485,8 @@ extension SettingsView {
                         
                     case .lockScreen:
                         Text("lockscreen_category_title".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -523,8 +523,8 @@ extension SettingsView {
                         
                         // Выбор шрифта для виджета Lock Screen
                         Text(selectedLanguage == .armenian ? "Ֆոնտ" : selectedLanguage == .russian ? "Шрифт виджета" : "Widget Font")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -542,7 +542,7 @@ extension SettingsView {
                                                 .font(.system(size: 13, weight: .semibold, design: design.fontDesign))
                                                 .foregroundColor(isSelected ? Color(hex: selectedTheme.colorHex) : primaryTextColor)
                                             Text(design.title(for: selectedLanguage))
-                                                .font(.system(size: 9, weight: .medium))
+                                                .font(PaperFont.font(size: 9, weight: .medium))
                                                 .foregroundColor(isSelected ? Color(hex: selectedTheme.colorHex) : .secondary)
                                         }
                                         .padding(.horizontal, 10)
@@ -566,8 +566,8 @@ extension SettingsView {
                         
                     case .medium:
                         Text("widget_medium_category_title".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -604,8 +604,8 @@ extension SettingsView {
                         
                     case .large:
                         Text("widget_large_category_title".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -648,9 +648,9 @@ extension SettingsView {
                         HStack(spacing: 6) {
                             Image(systemName: "flame.fill")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(Color(hex: "F59E0B"))
+                                .foregroundColor(Paper.gold)
                             Text(selectedLanguage == .armenian ? "«Աղոթքի մոմ» վիջեթի ընտրություն" : (selectedLanguage == .russian ? "Свеча для виджета «Молитвенная свеча»" : "Candle for 'Prayer Candle' Widget"))
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(PaperFont.font(size: 13, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                         }
                         
@@ -664,16 +664,16 @@ extension SettingsView {
                                         Image(systemName: isAutoSelected ? "checkmark.circle.fill" : "sparkles")
                                             .font(.system(size: 11, weight: .bold))
                                         Text(selectedLanguage == .armenian ? "🔥 Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "🔥 Последняя (Авто)" : "🔥 Latest (Auto)"))
-                                            .font(.system(size: 12, weight: isAutoSelected ? .bold : .medium))
+                                            .font(PaperFont.font(size: 12, weight: isAutoSelected ? .semibold : .medium))
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .background(isAutoSelected ? Color(hex: "F59E0B").opacity(0.25) : inputFieldBgColor)
-                                    .foregroundColor(isAutoSelected ? Color(hex: "FDE68A") : .secondary)
+                                    .background(isAutoSelected ? Paper.gold.opacity(0.25) : inputFieldBgColor)
+                                    .foregroundColor(isAutoSelected ? Paper.gold.opacity(0.18) : .secondary)
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(isAutoSelected ? Color(hex: "F59E0B") : inputFieldBorderColor, lineWidth: 1.2)
+                                            .stroke(isAutoSelected ? Paper.gold : inputFieldBorderColor, lineWidth: 1.2)
                                     )
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -688,20 +688,20 @@ extension SettingsView {
                                             Image(systemName: isSelected ? "checkmark.circle.fill" : candle.intention.icon)
                                                 .font(.system(size: 11, weight: .bold))
                                             Text(name)
-                                                .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                                .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                                 .lineLimit(1)
                                             Text(candle.remainingTimeText(for: selectedLanguage))
-                                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                                .font(PaperFont.font(size: 10, weight: .semibold).monospacedDigit())
                                                 .opacity(0.7)
                                         }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
-                                        .background(isSelected ? Color(hex: "F59E0B").opacity(0.25) : inputFieldBgColor)
-                                        .foregroundColor(isSelected ? Color(hex: "FDE68A") : primaryTextColor)
+                                        .background(isSelected ? Paper.gold.opacity(0.25) : inputFieldBgColor)
+                                        .foregroundColor(isSelected ? Paper.gold.opacity(0.18) : primaryTextColor)
                                         .cornerRadius(10)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 10)
-                                                .stroke(isSelected ? Color(hex: "F59E0B") : inputFieldBorderColor, lineWidth: 1.2)
+                                                .stroke(isSelected ? Paper.gold : inputFieldBorderColor, lineWidth: 1.2)
                                         )
                                     }
                                     .buttonStyle(ScaleButtonStyle())
@@ -747,11 +747,11 @@ extension SettingsView {
                     .padding(.vertical, 13)
                     .background(
                         isWidgetsUpdatedSuccess ?
-                            LinearGradient(colors: [Color(hex: "10B981"), Color(hex: "059669")], startPoint: .leading, endPoint: .trailing) :
+                            LinearGradient(colors: [Paper.moss, Paper.moss], startPoint: .leading, endPoint: .trailing) :
                             LinearGradient(colors: [Color(hex: selectedTheme.colorHex), Color(hex: selectedTheme.secondaryColorHex)], startPoint: .leading, endPoint: .trailing)
                     )
                     .cornerRadius(13)
-                    .shadow(color: (isWidgetsUpdatedSuccess ? Color(hex: "10B981") : Color(hex: selectedTheme.colorHex)).opacity(0.35), radius: 8, y: 3)
+                    .shadow(color: (isWidgetsUpdatedSuccess ? Paper.moss : Color(hex: selectedTheme.colorHex)).opacity(0.35), radius: 8, y: 3)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.top, 4)
@@ -790,11 +790,11 @@ extension SettingsView {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text("settings_auto_wallpaper_title".localized(for: selectedLanguage))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(PaperFont.font(size: 15, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Text("NEW")
-                            .font(.system(size: 9, weight: .heavy))
+                            .font(PaperFont.font(size: 9, weight: .semibold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -803,8 +803,8 @@ extension SettingsView {
                     }
                     
                     Text("settings_auto_wallpaper_subtitle".localized(for: selectedLanguage))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 12))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                 }
             }
@@ -818,20 +818,20 @@ extension SettingsView {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 14, weight: .bold))
                     Text("auto_wallpaper_nav_button".localized(for: selectedLanguage))
-                        .font(.system(size: 14, weight: .bold))
+                        .font(PaperFont.font(size: 14, weight: .semibold))
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Paper.inkSecondary)
                 }
                 .foregroundColor(primaryTextColor)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
-                .background(Color.primary.opacity(0.05))
+                .background(Paper.ink.opacity(0.05))
                 .cornerRadius(12)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                        .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
                 )
             }
             .buttonStyle(ScaleButtonStyle())

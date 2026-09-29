@@ -16,15 +16,15 @@ struct ReadingPlansCatalogView: View {
     }
     
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white
+        Paper.sheet
     }
     
     private var cardBorderColor: Color {
@@ -106,13 +106,13 @@ struct ReadingPlansCatalogView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "EF4444"), Color(hex: "F59E0B")],
+                                colors: [Paper.cinnabar, Paper.gold],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 52, height: 52)
-                        .shadow(color: Color(hex: "EF4444").opacity(0.3), radius: 8, y: 3)
+                        .shadow(color: Paper.cinnabar.opacity(0.3), radius: 8, y: 3)
                     
                     Image(systemName: "flame.fill")
                         .font(.system(size: 26, weight: .bold))
@@ -122,11 +122,11 @@ struct ReadingPlansCatalogView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text("\(planManager.currentStreak)")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .font(PaperFont.font(size: 22, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Text("streak_days_suffix".localized(for: language))
-                            .font(.system(size: 16, weight: .bold))
+                            .font(PaperFont.font(size: 16, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                     }
                     
@@ -134,28 +134,28 @@ struct ReadingPlansCatalogView: View {
                          "streak_active_message".localized(for: language) :
                          "streak_start_message".localized(for: language))
                         .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Paper.inkSecondary)
                 }
                 
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("streak_record_label".localized(for: language))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11, weight: .medium))
+                        .foregroundColor(Paper.inkSecondary)
                     
                     HStack(spacing: 4) {
                         Image(systemName: "trophy.fill")
                             .font(.system(size: 11))
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .foregroundColor(Paper.gold)
                         Text("\(planManager.bestStreak)")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                     }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                .background(Paper.fillSubtle)
                 .cornerRadius(10)
                 
                 Image(systemName: "chevron.right")
@@ -183,18 +183,18 @@ struct ReadingPlansCatalogView: View {
         return VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("active_plan_header".localized(for: language))
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(Color(hex: "10B981"))
+                    .font(PaperFont.font(size: 12, weight: .semibold))
+                    .foregroundColor(Paper.moss)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Color(hex: "10B981").opacity(0.12))
+                    .background(Paper.moss.opacity(0.12))
                     .cornerRadius(6)
                 
                 Spacer()
                 
                 Text("\(completed)/\(total)")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.inkSecondary)
             }
             
             HStack(spacing: 12) {
@@ -210,13 +210,13 @@ struct ReadingPlansCatalogView: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(plan.title(for: language))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     if let day = nextDay {
                         Text("\("day_label".localized(for: language)) \(day.dayNumber): \(day.title(for: language))")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 13))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
                 
@@ -227,7 +227,7 @@ struct ReadingPlansCatalogView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                        .fill(Paper.fillSubtle)
                         .frame(height: 8)
                     
                     Capsule()
@@ -249,7 +249,7 @@ struct ReadingPlansCatalogView: View {
                             Image(systemName: "book.fill")
                                 .font(.system(size: 13, weight: .bold))
                             Text("read_today_button".localized(for: language))
-                                .font(.system(size: 13, weight: .bold))
+                                .font(PaperFont.font(size: 13, weight: .semibold))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -266,11 +266,11 @@ struct ReadingPlansCatalogView: View {
                     selectedPlanForDetail = plan
                 } label: {
                     Text("view_plan_button".localized(for: language))
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(PaperFont.font(size: 13, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
+                        .background(Paper.fillSubtle)
                         .cornerRadius(10)
                 }
             }
@@ -311,7 +311,7 @@ struct ReadingPlansCatalogView: View {
             }
         }) {
             Text(title)
-                .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                .font(PaperFont.font(size: 13, weight: isSelected ? .semibold : .medium))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background(isSelected ? primaryTextColor : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05)))
@@ -346,19 +346,19 @@ struct ReadingPlansCatalogView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(plan.title(for: language))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(PaperFont.font(size: 15, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Spacer()
                         
                         Text("\(plan.daysCount) \("days_suffix".localized(for: language))")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12, weight: .semibold))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     
                     Text(plan.desc(for: language))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 12))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                     
@@ -366,10 +366,10 @@ struct ReadingPlansCatalogView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 11))
-                                .foregroundColor(Color(hex: "10B981"))
+                                .foregroundColor(Paper.moss)
                             Text("\(completed)/\(plan.daysCount) \("completed_label".localized(for: language))")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Color(hex: "10B981"))
+                                .font(PaperFont.font(size: 11, weight: .semibold))
+                                .foregroundColor(Paper.moss)
                         }
                         .padding(.top, 2)
                     }
@@ -384,7 +384,7 @@ struct ReadingPlansCatalogView: View {
             .cornerRadius(16)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isCurrent ? Color(hex: "10B981").opacity(0.4) : cardBorderColor, lineWidth: isCurrent ? 1.5 : 1)
+                    .stroke(isCurrent ? Paper.moss.opacity(0.4) : cardBorderColor, lineWidth: isCurrent ? 1.5 : 1)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -406,15 +406,15 @@ struct ReadingPlanDetailView: View {
     }
     
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white
+        Paper.sheet
     }
     
     private var cardBorderColor: Color {
@@ -482,40 +482,40 @@ struct ReadingPlanDetailView: View {
                 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(plan.title(for: language))
-                        .font(.system(size: 18, weight: .bold))
+                        .font(PaperFont.font(size: 18, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Text("\(plan.daysCount) \("days_suffix".localized(for: language)) • \(plan.category.localizedName(for: language))")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13, weight: .semibold))
+                        .foregroundColor(Paper.inkSecondary)
                 }
                 
                 Spacer()
             }
             
             Text(plan.desc(for: language))
-                .font(.system(size: 14))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 14))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(4)
             
             // Прогресс
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text("progress_label".localized(for: language))
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 12, weight: .semibold))
+                        .foregroundColor(Paper.inkSecondary)
                     
                     Spacer()
                     
                     Text("\(completedCount) / \(plan.daysCount) (\(Int(planManager.progress(for: plan.id) * 100))%)")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(PaperFont.font(size: 12, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                 }
                 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                            .fill(Paper.fillSubtle)
                             .frame(height: 8)
                         
                         Capsule()
@@ -565,8 +565,8 @@ struct ReadingPlanDetailView: View {
             .padding(.vertical, 12)
             .background(
                 isCurrentPlan ?
-                    Color.red.opacity(0.12) :
-                    Color(hex: "10B981")
+                    Paper.cinnabar.opacity(0.12) :
+                    Paper.moss
             )
             .cornerRadius(12)
         }
@@ -577,7 +577,7 @@ struct ReadingPlanDetailView: View {
     private var daysListView: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("reading_schedule_header".localized(for: language))
-                .font(.system(size: 15, weight: .bold))
+                .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
                 .padding(.horizontal, 4)
             
@@ -595,7 +595,7 @@ struct ReadingPlanDetailView: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(isDone ? Color(hex: "10B981") : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)))
+                                .fill(isDone ? Paper.moss : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)))
                                 .frame(width: 32, height: 32)
                                 .scaleEffect(isDone ? 1.05 : 1.0)
                             
@@ -606,8 +606,8 @@ struct ReadingPlanDetailView: View {
                                     .transition(.scale.combined(with: .opacity))
                             } else {
                                 Text("\(day.dayNumber)")
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                                    .foregroundColor(.secondary)
+                                    .font(PaperFont.font(size: 12, weight: .semibold))
+                                    .foregroundColor(Paper.inkSecondary)
                                     .transition(.scale.combined(with: .opacity))
                             }
                         }
@@ -617,13 +617,13 @@ struct ReadingPlanDetailView: View {
                     // Описание дня
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\("day_label".localized(for: language)) \(day.dayNumber): \(day.title(for: language))")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(isDone ? .secondary : primaryTextColor)
                             .strikethrough(isDone, color: .secondary)
                         
                         Text(day.desc(for: language))
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12))
+                            .foregroundColor(Paper.inkSecondary)
                             .lineLimit(1)
                     }
                     
@@ -636,7 +636,7 @@ struct ReadingPlanDetailView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text("read_button".localized(for: language))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
                             Image(systemName: "arrow.right")
                                 .font(.system(size: 10, weight: .bold))
                         }
@@ -653,7 +653,7 @@ struct ReadingPlanDetailView: View {
                 .cornerRadius(14)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(isDone ? Color(hex: "10B981").opacity(0.3) : cardBorderColor, lineWidth: 1)
+                        .stroke(isDone ? Paper.moss.opacity(0.3) : cardBorderColor, lineWidth: 1)
                 )
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDone)
             }

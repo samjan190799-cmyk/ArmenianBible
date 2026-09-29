@@ -31,11 +31,11 @@ struct FavoritesView: View {
     }
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.85)
+        Paper.sheet
     }
     
     private var cardBorderColor: LinearGradient {
@@ -55,7 +55,7 @@ struct FavoritesView: View {
     }
     
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     // MARK: - Фильтрация заметок и аннотаций
@@ -140,12 +140,12 @@ struct FavoritesView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("notes_title".localized(for: manager.appLanguage))
-                                .font(.system(size: 26, weight: .bold, design: .default))
+                                .font(PaperFont.font(size: 26, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                             
                             if totalItemsCount > 0 {
                                 Text("\(totalItemsCount) " + "favorites_count_format".localized(for: manager.appLanguage))
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(PaperFont.font(size: 13, weight: .medium))
                                     .foregroundColor(secondaryAccentColor)
                             }
                         }
@@ -185,7 +185,7 @@ struct FavoritesView: View {
                                     .cornerRadius(20)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 20)
-                                            .stroke(selectedTagFilter == nil ? accentColor : Color.primary.opacity(0.1), lineWidth: 1)
+                                            .stroke(selectedTagFilter == nil ? accentColor : Paper.ink.opacity(0.1), lineWidth: 1)
                                     )
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -205,7 +205,7 @@ struct FavoritesView: View {
                                     HStack(spacing: 4) {
                                         Text(tag.icon)
                                         Text(tag.localizedTitle(for: manager.appLanguage))
-                                            .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                            .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
@@ -214,7 +214,7 @@ struct FavoritesView: View {
                                     .cornerRadius(20)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 20)
-                                            .stroke(isSelected ? Color(hex: tag.colorHex) : Color.primary.opacity(0.1), lineWidth: 1)
+                                            .stroke(isSelected ? Color(hex: tag.colorHex) : Paper.ink.opacity(0.1), lineWidth: 1)
                                     )
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -371,9 +371,9 @@ struct FavoritesView: View {
                     Spacer()
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
+                            .foregroundColor(Paper.moss)
                         Text(toastMessage)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(PaperFont.font(size: 14, weight: .medium))
                             .foregroundColor(.white)
                     }
                     .padding(.horizontal, 16)
@@ -405,7 +405,7 @@ struct FavoritesView: View {
                     verse: v,
                     language: manager.appLanguage,
                     accentColor: accentColor,
-                    cardBackgroundColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.white,
+                    cardBackgroundColor: Paper.sheet,
                     cardBorderColor: cardBorderColor,
                     primaryTextColor: primaryTextColor,
                     onPinToWidget: {
@@ -602,11 +602,11 @@ struct AnnotationCardView: View {
                     Circle()
                         .fill(Color(hex: colorHex))
                         .frame(width: 12, height: 12)
-                        .overlay(Circle().stroke(Color.primary.opacity(0.15), lineWidth: 1))
+                        .overlay(Circle().stroke(Paper.ink.opacity(0.15), lineWidth: 1))
                 }
                 
                 Text(annotation.reference(for: language))
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
                     .foregroundColor(secondaryAccentColor)
                 
                 Spacer()
@@ -636,7 +636,7 @@ struct AnnotationCardView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.red.opacity(0.8))
                         .padding(6)
-                        .background(Color.red.opacity(0.08))
+                        .background(Paper.cinnabar.opacity(0.08))
                         .clipShape(Circle())
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -644,7 +644,7 @@ struct AnnotationCardView: View {
             
             // Текст стиха
             Text(annotation.text(for: language))
-                .font(.system(size: 16, weight: .medium, design: .serif))
+                .font(PaperFont.font(size: 16, weight: .medium))
                 .foregroundColor(primaryTextColor)
                 .lineSpacing(5)
                 .multilineTextAlignment(.leading)
@@ -656,12 +656,12 @@ struct AnnotationCardView: View {
                         Image(systemName: "note.text")
                             .font(.system(size: 11, weight: .semibold))
                         Text("personal_note_title".localized(for: language))
-                            .font(.system(size: 11, weight: .bold))
+                            .font(PaperFont.font(size: 11, weight: .semibold))
                     }
                     .foregroundColor(secondaryAccentColor)
                     
                     Text(annotation.note)
-                        .font(.system(size: 13.5, weight: .regular, design: .serif))
+                        .font(PaperFont.font(size: 13.5))
                         .foregroundColor(primaryTextColor.opacity(0.9))
                         .lineSpacing(3)
                 }
@@ -681,9 +681,9 @@ struct AnnotationCardView: View {
                     ForEach(annotation.tags) { tag in
                         HStack(spacing: 3) {
                             Text(tag.icon)
-                                .font(.system(size: 10))
+                                .font(PaperFont.font(size: 10))
                             Text(tag.localizedTitle(for: language))
-                                .font(.system(size: 10.5, weight: .bold))
+                                .font(PaperFont.font(size: 10.5, weight: .semibold))
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -703,7 +703,7 @@ struct AnnotationCardView: View {
                         Image(systemName: "book.pages.fill")
                             .font(.system(size: 12))
                         Text("open_in_bible".localized(for: language))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
                     }
                     .foregroundColor(secondaryAccentColor)
                     .padding(.horizontal, 10)
@@ -793,23 +793,23 @@ struct FavoriteCardView: View {
                 } label: {
                     Image(systemName: "heart.fill")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.red)
+                        .foregroundColor(Paper.cinnabar)
                         .padding(8)
-                        .background(Color.red.opacity(0.08))
+                        .background(Paper.cinnabar.opacity(0.08))
                         .clipShape(Circle())
                 }
                 .buttonStyle(ScaleButtonStyle())
             }
             
             Text(item.text(for: language))
-                .font(.system(size: 17, weight: .medium, design: .serif))
+                .font(PaperFont.font(size: 17, weight: .medium))
                 .foregroundColor(primaryTextColor)
                 .lineSpacing(6)
                 .multilineTextAlignment(.leading)
             
             HStack {
                 Text(item.reference(for: language))
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
                     .foregroundColor(secondaryAccentColor)
                 
                 Spacer()
@@ -906,7 +906,7 @@ struct EmptyFavoritesView: View {
         VStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Color.red.opacity(0.08))
+                    .fill(Paper.cinnabar.opacity(0.08))
                     .frame(width: 90, height: 90)
                 
                 Image(systemName: hasSearchText ? "magnifyingglass" : "note.text.badge.plus")
@@ -915,13 +915,13 @@ struct EmptyFavoritesView: View {
             }
             
             Text(hasSearchText ? "search_no_results".localized(for: language) : "no_notes_found".localized(for: language))
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.primary)
+                .font(PaperFont.font(size: 18, weight: .semibold))
+                .foregroundColor(Paper.ink)
 
             if !hasSearchText {
                 Text("favorites_empty_subtitle".localized(for: language))
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 14))
+                    .foregroundColor(Paper.inkSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
                     .lineSpacing(4)

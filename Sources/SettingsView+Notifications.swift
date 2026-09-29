@@ -14,22 +14,22 @@ extension SettingsView {
                     .foregroundColor(Color(hex: selectedTheme.colorHex))
                 
                 Text("notification_section_title".localized(for: selectedLanguage))
-                    .font(.system(size: 16, weight: .bold))
+                    .font(PaperFont.font(size: 16, weight: .semibold))
                     .foregroundColor(primaryTextColor)
                 
                 Spacer()
             }
             
             Text("notification_section_desc".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(3)
             
             VStack(spacing: 12) {
                 // 1. Утренний стих дня
                 notificationItemRow(
                     icon: "sun.max.fill",
-                    iconColor: Color(hex: "F59E0B"),
+                    iconColor: Paper.gold,
                     title: "notification_morning_title".localized(for: selectedLanguage),
                     subtitle: "notification_morning_desc".localized(for: selectedLanguage),
                     isOn: $morningNotificationsEnabled,
@@ -87,7 +87,7 @@ extension SettingsView {
                 // 3. Церковные праздники и посты ААЦ
                 notificationItemRow(
                     icon: "cross.fill",
-                    iconColor: Color(hex: "10B981"),
+                    iconColor: Paper.moss,
                     title: "notification_church_calendar_title".localized(for: selectedLanguage),
                     subtitle: "notification_church_calendar_desc".localized(for: selectedLanguage),
                     isOn: $churchFeastsNotificationsEnabled,
@@ -167,12 +167,12 @@ extension SettingsView {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(PaperFont.font(size: 14, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Text(subtitle)
-                        .font(.system(size: 11.5))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11.5))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                 }
                 
@@ -273,7 +273,7 @@ extension SettingsView {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("update_interval_title".localized(for: selectedLanguage))
-                    .font(.system(size: 15, weight: .bold))
+                    .font(PaperFont.font(size: 15, weight: .semibold))
                     .foregroundColor(primaryTextColor)
                 
                 Spacer()
@@ -289,7 +289,7 @@ extension SettingsView {
                             .font(.system(size: 16))
                             .foregroundColor(Color(hex: selectedTheme.colorHex))
                         Text("widget_instruction_title".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
                             .foregroundColor(Color(hex: selectedTheme.colorHex))
                     }
                 }
@@ -297,8 +297,8 @@ extension SettingsView {
             }
             
             Text("update_interval_description".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(4)
             
             Picker("update_interval_title", selection: $selectedInterval) {
@@ -307,7 +307,7 @@ extension SettingsView {
                 }
             }
             .pickerStyle(.menu)
-            .tint(colorScheme == .dark ? .white : .primary)
+            .tint(Paper.ink)
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -328,12 +328,12 @@ extension SettingsView {
     var verseSourceScopeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("verse_source_scope_title".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
+                .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
             
             Text("verse_source_scope_description".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(4)
             
             VStack(spacing: 8) {
@@ -384,12 +384,12 @@ extension SettingsView {
     var contentTypeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("content_type_title".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
+                .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
             
             Text("content_type_description".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(4)
             
             Picker("content_type_title", selection: $selectedCategory) {
@@ -398,7 +398,7 @@ extension SettingsView {
                 }
             }
             .pickerStyle(.menu)
-            .tint(colorScheme == .dark ? .white : .primary)
+            .tint(Paper.ink)
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, alignment: .leading)

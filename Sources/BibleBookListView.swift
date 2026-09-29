@@ -55,7 +55,7 @@ struct BibleBookListView: View {
                                 books = BibleDatabase.shared.getBooks()
                             } label: {
                                 Text(retryButtonText)
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(PaperFont.font(size: 14, weight: .semibold))
                                     .foregroundColor(accentColor)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
@@ -158,7 +158,7 @@ struct BibleBookListView: View {
                         Image(systemName: "books.vertical.fill")
                             .font(.system(size: 14, weight: .bold))
                         Text(manager.appLanguage.displayName)
-                            .font(.system(size: 14, weight: .bold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                     }
                     .foregroundColor(accentColor)
                 }

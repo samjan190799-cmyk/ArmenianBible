@@ -274,7 +274,7 @@ struct ForceUpdateOverlayView: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 11, weight: .bold))
                     Text(versionBadgeText)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(PaperFont.font(size: 12, weight: .semibold))
                 }
                 .foregroundColor(Color(hex: "60A5FA"))
                 .padding(.horizontal, 12)
@@ -285,12 +285,12 @@ struct ForceUpdateOverlayView: View {
                 // Заголовок и описание
                 VStack(spacing: 10) {
                     Text(updateManager.updateTitle.isEmpty ? defaultTitle : updateManager.updateTitle)
-                        .font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .font(PaperFont.font(size: 22, weight: .semibold))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     
                     Text(updateManager.updateMessage.isEmpty ? defaultMessage : updateManager.updateMessage)
-                        .font(.system(size: 14.5, weight: .regular))
+                        .font(PaperFont.font(size: 14.5))
                         .foregroundColor(.white.opacity(0.85))
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
@@ -301,10 +301,10 @@ struct ForceUpdateOverlayView: View {
                 HStack(spacing: 16) {
                     VStack(spacing: 2) {
                         Text(currentVersionLabel)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(PaperFont.font(size: 11, weight: .medium))
                             .foregroundColor(.white.opacity(0.55))
                         Text(updateManager.currentVersion)
-                            .font(.system(size: 14, weight: .bold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
                     }
                     
@@ -314,10 +314,10 @@ struct ForceUpdateOverlayView: View {
                     
                     VStack(spacing: 2) {
                         Text(newVersionLabel)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(PaperFont.font(size: 11, weight: .medium))
                             .foregroundColor(Color(hex: "60A5FA"))
                         Text(updateManager.availableVersion.isEmpty ? "2.4+" : updateManager.availableVersion)
-                            .font(.system(size: 14, weight: .bold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(Color(hex: "60A5FA"))
                     }
                 }
@@ -334,7 +334,7 @@ struct ForceUpdateOverlayView: View {
                         Image(systemName: "arrow.down.circle.fill")
                             .font(.system(size: 17, weight: .bold))
                         Text(updateButtonText)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(PaperFont.font(size: 16, weight: .semibold))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

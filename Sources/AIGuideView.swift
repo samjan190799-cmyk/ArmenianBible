@@ -31,10 +31,10 @@ struct AIGuideView: View {
         Color(hex: manager.accentTheme.secondaryColorHex)
     }
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.85)
+        Paper.sheet
     }
     private var cardBorderColor: LinearGradient {
         if colorScheme == .dark {
@@ -52,7 +52,7 @@ struct AIGuideView: View {
         }
     }
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     struct SuggestedQuestion: Identifiable {
@@ -163,9 +163,9 @@ struct AIGuideView: View {
                     Spacer()
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
+                            .foregroundColor(Paper.moss)
                         Text(toastMessage)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(PaperFont.font(size: 14, weight: .medium))
                             .foregroundColor(.white)
                     }
                     .padding(.horizontal, 16)
@@ -245,7 +245,7 @@ extension AIGuideView {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     Text("ai_guide_title".localized(for: manager.appLanguage))
-                        .font(.system(size: 20, weight: .bold, design: .serif))
+                        .font(PaperFont.font(size: 20, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     // Меню переключения активной модели ИИ
@@ -271,11 +271,11 @@ extension AIGuideView {
                                 .fill(Color(hex: manager.activeProvider.accentColorHex))
                                 .frame(width: 6, height: 6)
                             Text(manager.activeProvider.displayName)
-                                .font(.system(size: 11, weight: .bold))
+                                .font(PaperFont.font(size: 11, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 8, weight: .bold))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Paper.inkSecondary)
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -288,11 +288,11 @@ extension AIGuideView {
                 HStack(spacing: 6) {
                     Image(systemName: subscriptionManager.isPremium ? "crown.fill" : (subscriptionManager.accumulatedBonusAiQuestions > 0 ? "archivebox.fill" : "sparkles"))
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(Paper.gold)
                     
                     Text(headerQuestionsStatusText)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(subscriptionManager.isPremium ? Color(hex: "F59E0B") : .secondary)
+                        .font(PaperFont.font(size: 11, weight: .semibold))
+                        .foregroundColor(subscriptionManager.isPremium ? Paper.gold : .secondary)
                     
                     if !subscriptionManager.isPremium {
                         Button {
@@ -300,7 +300,7 @@ extension AIGuideView {
                             isShowingPaywall = true
                         } label: {
                             Text("PRO")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(PaperFont.font(size: 9, weight: .semibold))
                                 .foregroundColor(accentColor)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1.5)
@@ -330,20 +330,20 @@ extension AIGuideView {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 9, weight: .bold))
                                 Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(PaperFont.font(size: 9, weight: .semibold))
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 1.5)
                             .background(
                                 LinearGradient(
-                                    colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                    colors: [Paper.gold, Paper.gold],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
                             .cornerRadius(4)
-                            .shadow(color: Color(hex: "F59E0B").opacity(0.3), radius: 2, x: 0, y: 1)
+                            .shadow(color: Paper.gold.opacity(0.3), radius: 2, x: 0, y: 1)
                         }
                     }
                 }
@@ -359,11 +359,11 @@ extension AIGuideView {
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Paper.inkSecondary)
                         .padding(9)
                         .background(cardBackgroundColor)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 1))
+                        .overlay(Circle().stroke(Paper.ink.opacity(0.08), lineWidth: 1))
                 }
                 .buttonStyle(ScaleButtonStyle())
             }
@@ -389,12 +389,12 @@ extension AIGuideView {
             
             VStack(spacing: 6) {
                 Text("ai_guide_title".localized(for: manager.appLanguage))
-                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .font(PaperFont.font(size: 22, weight: .semibold))
                     .foregroundColor(primaryTextColor)
                 
                 Text("ai_guide_subtitle".localized(for: manager.appLanguage))
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 13))
+                    .foregroundColor(Paper.inkSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
                     .lineSpacing(4)
@@ -413,7 +413,7 @@ extension AIGuideView {
                             Image(systemName: provider.iconName)
                                 .font(.system(size: 11, weight: .bold))
                             Text(provider.displayName)
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
                         }
                         .foregroundColor(manager.activeProvider == provider ? .white : primaryTextColor.opacity(0.7))
                         .padding(.horizontal, 14)
@@ -426,7 +426,7 @@ extension AIGuideView {
                         .cornerRadius(20)
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .stroke(manager.activeProvider == provider ? Color.clear : Color.primary.opacity(0.08), lineWidth: 1)
+                                .stroke(manager.activeProvider == provider ? Color.clear : Paper.ink.opacity(0.08), lineWidth: 1)
                         )
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -447,8 +447,8 @@ extension AIGuideView {
             // Подсказки быстрых вопросов
             VStack(alignment: .leading, spacing: 10) {
                 Text("suggested_questions_title".localized(for: manager.appLanguage))
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.inkSecondary)
                     .padding(.horizontal, 4)
                 
                 ForEach(suggestedQuestions) { sq in
@@ -464,7 +464,7 @@ extension AIGuideView {
                                 .frame(width: 22)
                             
                             Text(sq.key.localized(for: manager.appLanguage))
-                                .font(.system(size: 14, weight: .medium))
+                                .font(PaperFont.font(size: 14, weight: .medium))
                                 .foregroundColor(primaryTextColor)
                                 .multilineTextAlignment(.leading)
                             
@@ -480,7 +480,7 @@ extension AIGuideView {
                         .cornerRadius(14)
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                                .stroke(Paper.ink.opacity(0.06), lineWidth: 1)
                         )
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -498,10 +498,10 @@ extension AIGuideView {
                 HStack(spacing: 8) {
                     Image(systemName: "archivebox.fill")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(Paper.gold)
                     
                     Text(manager.appLanguage == .armenian ? "Հարցերի լիմիտը սպառվել է" : (manager.appLanguage == .russian ? "Лимит вопросов исчерпан" : "Question limit reached"))
-                        .font(.system(size: 12, weight: .medium))
+                        .font(PaperFont.font(size: 12, weight: .medium))
                         .foregroundColor(primaryTextColor)
                     
                     Spacer()
@@ -518,14 +518,14 @@ extension AIGuideView {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 9, weight: .bold))
                             Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(PaperFont.font(size: 11, weight: .semibold))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3.5)
                         .background(
                             LinearGradient(
-                                colors: [Color(hex: "F59E0B"), Color(hex: "EA580C")],
+                                colors: [Paper.gold, Paper.gold],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -553,7 +553,7 @@ extension AIGuideView {
                     .cornerRadius(20)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(questionText.isEmpty ? Color.primary.opacity(0.08) : accentColor.opacity(0.5), lineWidth: 1.2)
+                            .stroke(questionText.isEmpty ? Paper.ink.opacity(0.08) : accentColor.opacity(0.5), lineWidth: 1.2)
                     )
                     .keyboardDismissToolbar()
                 
@@ -656,7 +656,7 @@ extension AIGuideView {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "F59E0B").opacity(0.2), Color(hex: "EA580C").opacity(0.12)],
+                                colors: [Paper.gold.opacity(0.2), Paper.gold.opacity(0.12)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -665,13 +665,13 @@ extension AIGuideView {
                     
                     Image(systemName: "archivebox.fill")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(Paper.gold)
                 }
                 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(manager.appLanguage == .armenian ? "Հարցերի Կուտակիչ (+1)" : (manager.appLanguage == .russian ? "Копилка вопросов (+1)" : "Question Bank (+1)"))
-                            .font(.system(size: 14, weight: .bold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         if subscriptionManager.accumulatedBonusAiQuestions > 0 {
@@ -679,27 +679,27 @@ extension AIGuideView {
                                 Image(systemName: "archivebox.fill")
                                     .font(.system(size: 7))
                                 Text("\(subscriptionManager.accumulatedBonusAiQuestions)")
-                                    .font(.system(size: 9, weight: .black))
+                                    .font(PaperFont.font(size: 9, weight: .semibold))
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1.5)
-                            .background(Color(hex: "10B981"))
+                            .background(Paper.moss)
                             .cornerRadius(4)
                         } else {
                             Text("REWARD")
-                                .font(.system(size: 8, weight: .black))
+                                .font(PaperFont.font(size: 8, weight: .semibold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 1.5)
-                                .background(Color(hex: "F59E0B"))
+                                .background(Paper.gold)
                                 .cornerRadius(3)
                         }
                     }
                     
                     Text(manager.appLanguage == .armenian ? "Դիտեք գովազդներ և կուտակեք հարցեր առանց սահմանափակման: Կուտակված հարցերը երբեք չեն սպառվում օրվա ավարտին:" : (manager.appLanguage == .russian ? "Смотрите видео и копите вопросы без ограничений! Накопленные вопросы сохраняются навсегда и не сгорают завтра." : "Watch videos to bank questions with no limit! Banked questions never expire at midnight."))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11))
+                        .foregroundColor(Paper.inkSecondary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                 }
@@ -708,7 +708,7 @@ extension AIGuideView {
                 
                 HStack(spacing: 4) {
                     Text(manager.appLanguage == .armenian ? "Կուտակել" : (manager.appLanguage == .russian ? "Копить" : "Bank"))
-                        .font(.system(size: 11, weight: .bold))
+                        .font(PaperFont.font(size: 11, weight: .semibold))
                     Image(systemName: "play.fill")
                         .font(.system(size: 8, weight: .bold))
                 }
@@ -717,13 +717,13 @@ extension AIGuideView {
                 .padding(.vertical, 6)
                 .background(
                     LinearGradient(
-                        colors: [Color(hex: "F59E0B"), Color(hex: "EA580C")],
+                        colors: [Paper.gold, Paper.gold],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
                 .cornerRadius(10)
-                .shadow(color: Color(hex: "F59E0B").opacity(0.35), radius: 3, x: 0, y: 1.5)
+                .shadow(color: Paper.gold.opacity(0.35), radius: 3, x: 0, y: 1.5)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -733,7 +733,7 @@ extension AIGuideView {
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(
                         LinearGradient(
-                            colors: [Color(hex: "F59E0B").opacity(0.35), Color.clear],
+                            colors: [Paper.gold.opacity(0.35), Color.clear],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),

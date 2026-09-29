@@ -52,11 +52,11 @@ struct ChurchCalendarView: View {
     }
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.9)
+        Paper.sheet
     }
     
     private var cardBorderColor: LinearGradient {
@@ -76,7 +76,7 @@ struct ChurchCalendarView: View {
     }
     
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     private var feasts: [ArmenianChurchFeast] {
@@ -102,7 +102,7 @@ struct ChurchCalendarView: View {
                 
                 // Мягкое неоновое свечение
                 RadialGradient(
-                    gradient: Gradient(colors: [Color(hex: "F59E0B").opacity(colorScheme == .dark ? 0.09 : 0.05), Color.clear]),
+                    gradient: Gradient(colors: [Paper.gold.opacity(colorScheme == .dark ? 0.09 : 0.05), Color.clear]),
                     center: .top,
                     startRadius: 40,
                     endRadius: 380
@@ -124,7 +124,7 @@ struct ChurchCalendarView: View {
                             } label: {
                                 HStack(spacing: 5) {
                                     Text("\(selectedYear)")
-                                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                        .font(PaperFont.font(size: 16, weight: .semibold).monospacedDigit())
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 11, weight: .bold))
                                 }
@@ -160,9 +160,9 @@ struct ChurchCalendarView: View {
                                 HStack(spacing: 5) {
                                     Image(systemName: sortMode.icon)
                                         .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(Color(hex: "F59E0B"))
+                                        .foregroundColor(Paper.gold)
                                     Text(sortMode.localizedTitle(for: manager.appLanguage))
-                                        .font(.system(size: 12.5, weight: .bold))
+                                        .font(PaperFont.font(size: 12.5, weight: .semibold))
                                         .foregroundColor(primaryTextColor)
                                     Image(systemName: "chevron.up.chevron.down")
                                         .font(.system(size: 9, weight: .bold))
@@ -174,7 +174,7 @@ struct ChurchCalendarView: View {
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color(hex: "F59E0B").opacity(0.3), lineWidth: 1)
+                                        .stroke(Paper.gold.opacity(0.3), lineWidth: 1)
                                 )
                             }
                             
@@ -189,20 +189,20 @@ struct ChurchCalendarView: View {
                                     Image(systemName: "calendar.badge.plus")
                                         .font(.system(size: 13, weight: .bold))
                                     Text("export_calendar_btn".localized(for: manager.appLanguage))
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(PaperFont.font(size: 12, weight: .semibold))
                                 }
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
                                 .background(
                                     LinearGradient(
-                                        colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                        colors: [Paper.gold, Paper.gold],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
                                 )
                                 .cornerRadius(12)
-                                .shadow(color: Color(hex: "F59E0B").opacity(0.3), radius: 6, y: 3)
+                                .shadow(color: Paper.gold.opacity(0.3), radius: 6, y: 3)
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }
@@ -221,12 +221,12 @@ struct ChurchCalendarView: View {
                                         .font(.system(size: 12, weight: selectedCategory == nil ? .bold : .medium))
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(selectedCategory == nil ? Color(hex: "F59E0B") : cardBackgroundColor)
+                                        .background(selectedCategory == nil ? Paper.gold : cardBackgroundColor)
                                         .foregroundColor(selectedCategory == nil ? .white : primaryTextColor)
                                         .cornerRadius(16)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 16)
-                                                .stroke(selectedCategory == nil ? Color(hex: "F59E0B") : Color.primary.opacity(0.1), lineWidth: 1)
+                                                .stroke(selectedCategory == nil ? Paper.gold : Paper.ink.opacity(0.1), lineWidth: 1)
                                         )
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -241,7 +241,7 @@ struct ChurchCalendarView: View {
                                             Image(systemName: cat.icon)
                                                 .font(.system(size: 11, weight: .bold))
                                             Text(cat.localizedTitle(for: manager.appLanguage))
-                                                .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                                .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                         }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
@@ -250,7 +250,7 @@ struct ChurchCalendarView: View {
                                         .cornerRadius(16)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 16)
-                                                .stroke(isSelected ? Color(hex: cat.colorHex) : Color.primary.opacity(0.1), lineWidth: 1)
+                                                .stroke(isSelected ? Color(hex: cat.colorHex) : Paper.ink.opacity(0.1), lineWidth: 1)
                                         )
                                     }
                                     .buttonStyle(ScaleButtonStyle())
@@ -310,9 +310,9 @@ struct ChurchCalendarView: View {
                         Spacer()
                         HStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
+                                .foregroundColor(Paper.moss)
                             Text(toastMessage)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(PaperFont.font(size: 14, weight: .medium))
                                 .foregroundColor(.white)
                         }
                         .padding(.horizontal, 16)
@@ -477,7 +477,7 @@ struct ChurchFeastCardView: View {
                     Image(systemName: feast.type.icon)
                         .font(.system(size: 10, weight: .bold))
                     Text(feast.type.localizedTitle(for: language))
-                        .font(.system(size: 11, weight: .bold))
+                        .font(PaperFont.font(size: 11, weight: .semibold))
                 }
                 .foregroundColor(Color(hex: feast.type.colorHex))
                 .padding(.horizontal, 8)
@@ -491,24 +491,24 @@ struct ChurchFeastCardView: View {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 9))
                         Text(countdown.text)
-                            .font(.system(size: 10.5, weight: .heavy))
+                            .font(PaperFont.font(size: 10.5, weight: .semibold))
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3.5)
-                    .background(Color.red)
+                    .background(Paper.cinnabar)
                     .cornerRadius(6)
                 } else if countdown.isUpcoming {
                     HStack(spacing: 3) {
                         Image(systemName: "hourglass")
                             .font(.system(size: 9))
                         Text(countdown.text)
-                            .font(.system(size: 10, weight: .bold))
+                            .font(PaperFont.font(size: 10, weight: .semibold))
                     }
-                    .foregroundColor(Color(hex: "D97706"))
+                    .foregroundColor(Paper.gold)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3.5)
-                    .background(Color(hex: "F59E0B").opacity(0.18))
+                    .background(Paper.gold.opacity(0.18))
                     .cornerRadius(6)
                 }
                 
@@ -516,14 +516,14 @@ struct ChurchFeastCardView: View {
                 
                 // Дата праздника
                 Text(feast.formattedDate(for: language))
-                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                    .font(PaperFont.font(size: 11.5, weight: .semibold).monospacedDigit())
                     .foregroundColor(secondaryAccentColor)
             }
             
             // Название праздника + Кнопка разъяснения смысла (?)
             HStack(alignment: .top, spacing: 8) {
                 Text(feast.title(for: language))
-                    .font(.system(size: 16.5, weight: .bold, design: .serif))
+                    .font(PaperFont.font(size: 16.5, weight: .semibold))
                     .foregroundColor(primaryTextColor)
                     .lineSpacing(3)
                     .multilineTextAlignment(.leading)
@@ -538,9 +538,9 @@ struct ChurchFeastCardView: View {
                         Image(systemName: "questionmark.circle.fill")
                             .font(.system(size: 18, weight: .bold))
                     }
-                    .foregroundColor(Color(hex: "F59E0B"))
+                    .foregroundColor(Paper.gold)
                     .padding(4)
-                    .background(Color(hex: "F59E0B").opacity(0.12))
+                    .background(Paper.gold.opacity(0.12))
                     .clipShape(Circle())
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -549,7 +549,7 @@ struct ChurchFeastCardView: View {
             
             // Краткое описание
             Text(feast.description(for: language))
-                .font(.system(size: 13, weight: .regular, design: .serif))
+                .font(PaperFont.font(size: 13))
                 .foregroundColor(primaryTextColor.opacity(0.85))
                 .lineSpacing(4)
                 .lineLimit(isExpanded ? nil : 3)
@@ -563,12 +563,12 @@ struct ChurchFeastCardView: View {
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 11))
                                 Text("feast_meaning_section_spiritual".localized(for: language))
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(PaperFont.font(size: 11, weight: .semibold))
                             }
                             .foregroundColor(Color(hex: "8B5CF6"))
                             
                             Text(feast.meaning(for: language))
-                                .font(.system(size: 12.5, weight: .regular, design: .serif))
+                                .font(PaperFont.font(size: 12.5))
                                 .foregroundColor(primaryTextColor.opacity(0.9))
                                 .lineSpacing(3)
                         }
@@ -584,10 +584,10 @@ struct ChurchFeastCardView: View {
                                 .font(.system(size: 12))
                                 .foregroundColor(Color(hex: "0284C7"))
                             Text("scripture_readings_title".localized(for: language) + ":")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
                                 .foregroundColor(Color(hex: "0284C7"))
                             Text(feast.scriptureReading)
-                                .font(.system(size: 12, weight: .semibold, design: .serif))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                         }
                         .padding(8)
@@ -602,18 +602,18 @@ struct ChurchFeastCardView: View {
                                 Image(systemName: "hands.sparkles.fill")
                                     .font(.system(size: 11))
                                 Text("prayer_title".localized(for: language))
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(PaperFont.font(size: 11, weight: .semibold))
                             }
-                            .foregroundColor(Color(hex: "D97706"))
+                            .foregroundColor(Paper.gold)
                             
                             Text(feast.prayer(for: language))
-                                .font(.system(size: 13, weight: .regular, design: .serif))
+                                .font(PaperFont.font(size: 13))
                                 .foregroundColor(primaryTextColor.opacity(0.9))
                                 .lineSpacing(3)
                         }
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(hex: "D97706").opacity(0.08))
+                        .background(Paper.gold.opacity(0.08))
                         .cornerRadius(10)
                     }
                 }
@@ -627,7 +627,7 @@ struct ChurchFeastCardView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(isExpanded ? "collapse_details".localized(for: language) : "expand_details".localized(for: language))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: 10, weight: .bold))
                     }
@@ -644,9 +644,9 @@ struct ChurchFeastCardView: View {
                     } label: {
                         Image(systemName: "calendar.badge.plus")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(Color(hex: "D97706"))
+                            .foregroundColor(Paper.gold)
                             .padding(7)
-                            .background(Color(hex: "D97706").opacity(0.1))
+                            .background(Paper.gold.opacity(0.1))
                             .clipShape(Circle())
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -692,7 +692,7 @@ struct ChurchFeastCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(countdown.isToday ? LinearGradient(colors: [Color(hex: "F59E0B"), Color.red], startPoint: .topLeading, endPoint: .bottomTrailing) : cardBorderColor, lineWidth: countdown.isToday ? 1.8 : 1.2)
+                .stroke(countdown.isToday ? LinearGradient(colors: [Paper.gold, Paper.cinnabar], startPoint: .topLeading, endPoint: .bottomTrailing) : cardBorderColor, lineWidth: countdown.isToday ? 1.8 : 1.2)
         )
     }
 }
@@ -728,14 +728,14 @@ struct FeastMeaningSheetView: View {
                             .padding(.bottom, 2)
                         
                         Text(feast.title(for: language))
-                            .font(.system(size: 22, weight: .bold, design: .serif))
+                            .font(PaperFont.font(size: 22, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 10)
                         
                         HStack(spacing: 8) {
                             Text(feast.type.localizedTitle(for: language))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
                                 .foregroundColor(Color(hex: feast.type.colorHex))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
@@ -743,24 +743,24 @@ struct FeastMeaningSheetView: View {
                                 .cornerRadius(8)
                             
                             Text(feast.formattedDate(for: language))
-                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
+                                .foregroundColor(Paper.inkSecondary)
                             
                             if countdown.isToday {
                                 Text(countdown.text)
-                                    .font(.system(size: 11, weight: .heavy))
+                                    .font(PaperFont.font(size: 11, weight: .semibold))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 3.5)
-                                    .background(Color.red)
+                                    .background(Paper.cinnabar)
                                     .cornerRadius(6)
                             } else if countdown.isUpcoming {
                                 Text(countdown.text)
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(Color(hex: "D97706"))
+                                    .font(PaperFont.font(size: 11, weight: .semibold))
+                                    .foregroundColor(Paper.gold)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 3.5)
-                                    .background(Color(hex: "F59E0B").opacity(0.2))
+                                    .background(Paper.gold.opacity(0.2))
                                     .cornerRadius(6)
                             }
                         }
@@ -776,12 +776,12 @@ struct FeastMeaningSheetView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(Color(hex: "0284C7"))
                                 Text("feast_meaning_section_event".localized(for: language))
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(PaperFont.font(size: 14, weight: .semibold))
                                     .foregroundColor(Color(hex: "0284C7"))
                             }
                             
                             Text(feast.description(for: language))
-                                .font(.system(size: 14.5, weight: .regular, design: .serif))
+                                .font(PaperFont.font(size: 14.5))
                                 .foregroundColor(primaryTextColor)
                                 .lineSpacing(5)
                         }
@@ -803,12 +803,12 @@ struct FeastMeaningSheetView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(Color(hex: "8B5CF6"))
                                 Text("feast_meaning_section_spiritual".localized(for: language))
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(PaperFont.font(size: 14, weight: .semibold))
                                     .foregroundColor(Color(hex: "8B5CF6"))
                             }
                             
                             Text(feast.meaning(for: language))
-                                .font(.system(size: 14.5, weight: .regular, design: .serif))
+                                .font(PaperFont.font(size: 14.5))
                                 .foregroundColor(primaryTextColor)
                                 .lineSpacing(5)
                         }
@@ -828,14 +828,14 @@ struct FeastMeaningSheetView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "flame.circle.fill")
                                     .font(.system(size: 14))
-                                    .foregroundColor(Color(hex: "F59E0B"))
+                                    .foregroundColor(Paper.gold)
                                 Text("feast_meaning_section_traditions".localized(for: language))
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(Color(hex: "F59E0B"))
+                                    .font(PaperFont.font(size: 14, weight: .semibold))
+                                    .foregroundColor(Paper.gold)
                             }
                             
                             Text(feast.traditions(for: language))
-                                .font(.system(size: 14.5, weight: .regular, design: .serif))
+                                .font(PaperFont.font(size: 14.5))
                                 .foregroundColor(primaryTextColor)
                                 .lineSpacing(5)
                         }
@@ -845,7 +845,7 @@ struct FeastMeaningSheetView: View {
                         .cornerRadius(16)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color(hex: "F59E0B").opacity(0.2), lineWidth: 1)
+                                .stroke(Paper.gold.opacity(0.2), lineWidth: 1)
                         )
                     }
                     
@@ -855,19 +855,19 @@ struct FeastMeaningSheetView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "book.pages.fill")
                                     .font(.system(size: 13))
-                                    .foregroundColor(Color(hex: "10B981"))
+                                    .foregroundColor(Paper.moss)
                                 Text("scripture_readings_title".localized(for: language))
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(Color(hex: "10B981"))
+                                    .font(PaperFont.font(size: 13, weight: .semibold))
+                                    .foregroundColor(Paper.moss)
                             }
                             
                             Text(feast.scriptureReading)
-                                .font(.system(size: 14, weight: .medium, design: .serif))
+                                .font(PaperFont.font(size: 14, weight: .medium))
                                 .foregroundColor(primaryTextColor)
                         }
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(hex: "10B981").opacity(0.08))
+                        .background(Paper.moss.opacity(0.08))
                         .cornerRadius(14)
                     }
                     
@@ -877,20 +877,20 @@ struct FeastMeaningSheetView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "hands.sparkles.fill")
                                     .font(.system(size: 13))
-                                    .foregroundColor(Color(hex: "D97706"))
+                                    .foregroundColor(Paper.gold)
                                 Text("prayer_title".localized(for: language))
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(Color(hex: "D97706"))
+                                    .font(PaperFont.font(size: 13, weight: .semibold))
+                                    .foregroundColor(Paper.gold)
                             }
                             
                             Text(feast.prayer(for: language))
-                                .font(.system(size: 14, weight: .regular, design: .serif))
+                                .font(PaperFont.font(size: 14))
                                 .foregroundColor(primaryTextColor)
                                 .lineSpacing(4)
                         }
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(hex: "D97706").opacity(0.08))
+                        .background(Paper.gold.opacity(0.08))
                         .cornerRadius(14)
                     }
                     
@@ -911,7 +911,7 @@ struct FeastMeaningSheetView: View {
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                    .stroke(Paper.ink.opacity(0.1), lineWidth: 1)
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -931,7 +931,7 @@ struct FeastMeaningSheetView: View {
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                    .stroke(Paper.ink.opacity(0.1), lineWidth: 1)
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -949,7 +949,7 @@ struct FeastMeaningSheetView: View {
                             .padding(.vertical, 12)
                             .background(
                                 LinearGradient(
-                                    colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                    colors: [Paper.gold, Paper.gold],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )

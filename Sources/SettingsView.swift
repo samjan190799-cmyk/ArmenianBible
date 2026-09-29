@@ -81,18 +81,18 @@ struct SettingsView: View {
     @State var devToastMessage = ""
     @State var devToastSubtitle = ""
     @State var devToastIcon = "crown.fill"
-    @State var devToastColor: [Color] = [Color(hex: "F59E0B"), Color(hex: "D97706")]
+    @State var devToastColor: [Color] = [Paper.gold, Paper.gold]
     @State var showDevToast = false
     @State var isWidgetsUpdatedSuccess = false
 
     @Environment(\.colorScheme) var colorScheme
     
     var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     
     var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     var inputFieldBgColor: Color {
@@ -112,7 +112,7 @@ struct SettingsView: View {
     }
     
     var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
+        Paper.sheet
     }
     
     var cardBorderColor: LinearGradient {
@@ -324,7 +324,7 @@ struct SettingsView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "D97706").opacity(0.15)],
+                                colors: [Paper.gold.opacity(0.3), Paper.gold.opacity(0.15)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -333,22 +333,22 @@ struct SettingsView: View {
                     
                     Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(Paper.gold)
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text("Armenian Bible Premium")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(PaperFont.font(size: 16, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         if subscriptionManager.isPremium {
                             Text("PRO")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(PaperFont.font(size: 10, weight: .semibold))
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color(hex: "FDE68A"))
+                                .background(Paper.gold.opacity(0.18))
                                 .cornerRadius(6)
                         }
                     }
@@ -357,7 +357,7 @@ struct SettingsView: View {
                          (selectedLanguage == .armenian ? "Կարգավիճակ՝ Ակտիվ (Բոլոր ֆունկցիաները բացված են)" : "Статус: Активен (Все функции открыты)") :
                          (selectedLanguage == .armenian ? "Բացեք Նարեկացու 95 աուդիոները, անսահմանափակ AI-ն և PRO պաստառները" : "95 аудио Нарекаци, безлимитный ИИ и PRO обои"))
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                 }
             }
@@ -381,7 +381,7 @@ struct SettingsView: View {
                     .padding(.vertical, 10)
                     .background(
                         LinearGradient(
-                            colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                            colors: [Paper.gold, Paper.gold],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -398,7 +398,7 @@ struct SettingsView: View {
                     }
                 } label: {
                     Text(selectedLanguage == .armenian ? "Վերականգնել" : "Восстановить")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(PaperFont.font(size: 13, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
@@ -406,7 +406,7 @@ struct SettingsView: View {
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                .stroke(Paper.ink.opacity(0.1), lineWidth: 1)
                         )
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -418,7 +418,7 @@ struct SettingsView: View {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(cardBackgroundColor)
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color(hex: "F59E0B").opacity(0.04))
+                    .fill(Paper.gold.opacity(0.04))
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -426,7 +426,7 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(
                     LinearGradient(
-                        colors: [Color(hex: "F59E0B").opacity(0.4), Color.clear],
+                        colors: [Paper.gold.opacity(0.4), Color.clear],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -446,38 +446,38 @@ struct SettingsView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "D97706").opacity(0.15)],
+                                colors: [Paper.gold.opacity(0.3), Paper.gold.opacity(0.15)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 44, height: 44)
                     
-                    FlickeringCandleFlame(baseColor: Color(hex: "F59E0B"), iconSize: 20)
+                    FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(selectedLanguage == .armenian ? "Տաճարային Մոմավառություն" : (selectedLanguage == .russian ? "Храмовая молитва и свечи" : "Sanctuary & Prayer Candles"))
-                            .font(.system(size: 16, weight: .bold))
+                            .font(PaperFont.font(size: 16, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Spacer()
                         
                         if !CandleManager.shared.activeCandles.isEmpty {
                             Text("🔥 \(CandleManager.shared.activeCandles.count)")
-                                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                                .foregroundColor(Color(hex: "FDE68A"))
+                                .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
+                                .foregroundColor(Paper.gold.opacity(0.18))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(Color(hex: "F59E0B").opacity(0.2))
+                                .background(Paper.gold.opacity(0.2))
                                 .clipShape(Capsule())
                         }
                     }
                     
                     Text(selectedLanguage == .armenian ? "Օրական անվճար մոմ և մոմավառություն տեսանյութով" : (selectedLanguage == .russian ? "Бесплатная ежедневная свеча и молитва за просмотр видео" : "Free daily candle & prayer candle with video"))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 12))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                 }
             }
@@ -492,7 +492,7 @@ struct SettingsView: View {
                     badge: CandleManager.shared.hasUsedDailyFreeCandle
                         ? (selectedLanguage == .armenian ? "Վառված է" : (selectedLanguage == .russian ? "Уже зажжена" : "Lit Today"))
                         : (selectedLanguage == .armenian ? "ԱՆՎՃԱՐ" : (selectedLanguage == .russian ? "БЕСПЛАТНО" : "FREE")),
-                    badgeColor: CandleManager.shared.hasUsedDailyFreeCandle ? Color.gray : Color(hex: "10B981"),
+                    badgeColor: CandleManager.shared.hasUsedDailyFreeCandle ? Color.gray : Paper.moss,
                     icon: "flame"
                 )
                 
@@ -517,7 +517,7 @@ struct SettingsView: View {
                     Image(systemName: "building.columns.fill")
                         .font(.system(size: 13, weight: .bold))
                     Text(selectedLanguage == .armenian ? "Մտնել Տաճար • Տեսնել բոլոր մոմերը" : (selectedLanguage == .russian ? "Войти в притвор • Все горящие свечи" : "Enter Sanctuary • View All Candles"))
-                        .font(.system(size: 13, weight: .bold))
+                        .font(PaperFont.font(size: 13, weight: .semibold))
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .bold))
@@ -528,7 +528,7 @@ struct SettingsView: View {
                 .padding(.vertical, 11)
                 .background(
                     LinearGradient(
-                        colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B")],
+                        colors: [Paper.gold.opacity(0.18), Paper.gold],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -543,19 +543,19 @@ struct SettingsView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "apps.iphone")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .foregroundColor(Paper.gold)
                         Text(selectedLanguage == .armenian ? "Վիջեթի մոմը" : (selectedLanguage == .russian ? "Свеча на виджете" : "Candle on Widget"))
-                            .font(.system(size: 13, weight: .bold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Spacer()
                         
                         Text(candleManager.selectedWidgetCandleId == nil ? (selectedLanguage == .armenian ? "Ավտոմատ" : (selectedLanguage == .russian ? "Автовыбор" : "Auto")) : (selectedLanguage == .armenian ? "Ընտրված" : (selectedLanguage == .russian ? "Выбрана" : "Fixed")))
-                            .font(.system(size: 10, weight: .heavy, design: .rounded))
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .font(PaperFont.font(size: 10, weight: .semibold))
+                            .foregroundColor(Paper.gold)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color(hex: "F59E0B").opacity(0.15))
+                            .background(Paper.gold.opacity(0.15))
                             .clipShape(Capsule())
                     }
                     
@@ -570,16 +570,16 @@ struct SettingsView: View {
                                     Image(systemName: isAutoSelected ? "checkmark.circle.fill" : "sparkles")
                                         .font(.system(size: 11, weight: .bold))
                                     Text(selectedLanguage == .armenian ? "🔥 Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "🔥 Последняя (Авто)" : "🔥 Latest (Auto)"))
-                                        .font(.system(size: 12, weight: isAutoSelected ? .bold : .medium))
+                                        .font(PaperFont.font(size: 12, weight: isAutoSelected ? .semibold : .medium))
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(isAutoSelected ? Color(hex: "F59E0B").opacity(0.25) : inputFieldBgColor)
-                                .foregroundColor(isAutoSelected ? Color(hex: "FDE68A") : .secondary)
+                                .background(isAutoSelected ? Paper.gold.opacity(0.25) : inputFieldBgColor)
+                                .foregroundColor(isAutoSelected ? Paper.gold.opacity(0.18) : .secondary)
                                 .cornerRadius(10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .stroke(isAutoSelected ? Color(hex: "F59E0B") : inputFieldBorderColor, lineWidth: 1.2)
+                                        .stroke(isAutoSelected ? Paper.gold : inputFieldBorderColor, lineWidth: 1.2)
                                 )
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -595,20 +595,20 @@ struct SettingsView: View {
                                         Image(systemName: isSelected ? "checkmark.circle.fill" : candle.intention.icon)
                                             .font(.system(size: 11, weight: .bold))
                                         Text(name)
-                                            .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                            .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                             .lineLimit(1)
                                         Text(candle.remainingTimeText(for: selectedLanguage))
-                                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                            .font(PaperFont.font(size: 10, weight: .semibold).monospacedDigit())
                                             .opacity(0.7)
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .background(isSelected ? Color(hex: "F59E0B").opacity(0.25) : inputFieldBgColor)
-                                    .foregroundColor(isSelected ? Color(hex: "FDE68A") : primaryTextColor)
+                                    .background(isSelected ? Paper.gold.opacity(0.25) : inputFieldBgColor)
+                                    .foregroundColor(isSelected ? Paper.gold.opacity(0.18) : primaryTextColor)
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(isSelected ? Color(hex: "F59E0B") : inputFieldBorderColor, lineWidth: 1.2)
+                                            .stroke(isSelected ? Paper.gold : inputFieldBorderColor, lineWidth: 1.2)
                                     )
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -624,7 +624,7 @@ struct SettingsView: View {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "hand.tap.fill")
                     .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "F59E0B"))
+                    .foregroundColor(Paper.gold)
                     .padding(.top, 2)
                 
                 Text(selectedLanguage == .armenian
@@ -633,7 +633,7 @@ struct SettingsView: View {
                         ? "Подсказка: выберите свечу прямо в списке выше или нажмите «Поставить на виджет» при просмотре свечи в притворе."
                         : "Tip: Select a candle above or tap 'Set for Widget' in the sanctuary view to display it on your widget."))
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Paper.inkSecondary)
                     .lineSpacing(2)
             }
             .padding(.top, 2)
@@ -650,7 +650,7 @@ struct SettingsView: View {
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color(hex: "F59E0B").opacity(0.35),
+                            Paper.gold.opacity(0.35),
                             colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
                         ],
                         startPoint: .topLeading,
@@ -688,19 +688,19 @@ struct SettingsView: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 13.5, weight: .bold))
+                        .font(PaperFont.font(size: 13.5, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Text(subtitle)
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(1)
                 }
                 
                 Spacer()
                 
                 Text(badge)
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .font(PaperFont.font(size: 10, weight: .semibold).monospacedDigit())
                     .foregroundColor(badgeColor)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3.5)
@@ -713,7 +713,7 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Color.primary.opacity(0.03))
+            .background(Paper.ink.opacity(0.03))
             .cornerRadius(12)
         }
         .buttonStyle(ScaleButtonStyle())
@@ -724,12 +724,12 @@ struct SettingsView: View {
     var appLanguageSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ai_language".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
+                .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
             
             Text("ai_language_description".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(4)
             
             Picker("ai_language", selection: $selectedLanguage) {
@@ -738,7 +738,7 @@ struct SettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .tint(colorScheme == .dark ? .white : .primary)
+            .tint(Paper.ink)
             .padding(.vertical, 4)
             .onChange(of: selectedLanguage) { newLang in
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -754,14 +754,14 @@ struct SettingsView: View {
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(Color(hex: selectedTheme.colorHex))
                         Text("cards_translation_title".localized(for: selectedLanguage))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                     }
                     .padding(.top, 2)
                     
                     Text("cards_translation_desc".localized(for: selectedLanguage))
-                        .font(.system(size: 11.5))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11.5))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineSpacing(3)
                     
                     Picker("cards_translation_title", selection: $selectedArmenianEdition) {
@@ -786,7 +786,7 @@ struct SettingsView: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                        .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
                 )
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -798,7 +798,7 @@ struct SettingsView: View {
     var appearanceModeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("appearance_section_title".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
+                .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
             
             Picker("appearance_section_title", selection: $selectedAppearanceMode) {
@@ -808,7 +808,7 @@ struct SettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .tint(colorScheme == .dark ? .white : .primary)
+            .tint(Paper.ink)
             .padding(.vertical, 4)
             .onChange(of: selectedAppearanceMode) { newMode in
                 let generator = UIImpactFeedbackGenerator(style: .light)
@@ -824,7 +824,7 @@ struct SettingsView: View {
     var colorThemeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("theme_section_title".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
+                .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
             
             HStack(spacing: 16) {
@@ -868,12 +868,12 @@ struct SettingsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("settings_app_icon_title".localized(for: selectedLanguage))
-                        .font(.system(size: 15, weight: .bold))
+                        .font(PaperFont.font(size: 15, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Text("settings_app_icon_subtitle".localized(for: selectedLanguage))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13))
+                        .foregroundColor(Paper.inkSecondary)
                 }
                 
                 Spacer()
@@ -882,10 +882,10 @@ struct SettingsView: View {
             if let errorMsg = appIconManager.errorMessage {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
+                        .foregroundColor(Paper.gold)
                         .font(.system(size: 13))
                     Text(errorMsg)
-                        .font(.system(size: 12))
+                        .font(PaperFont.font(size: 12))
                         .foregroundColor(primaryTextColor)
                         .lineLimit(2)
                     Spacer()
@@ -896,7 +896,7 @@ struct SettingsView: View {
                     .foregroundColor(Color(hex: selectedTheme.colorHex))
                 }
                 .padding(10)
-                .background(Color.orange.opacity(0.12))
+                .background(Paper.gold.opacity(0.12))
                 .cornerRadius(10)
             }
             
@@ -946,7 +946,7 @@ struct SettingsView: View {
                                             Circle()
                                                 .fill(
                                                     LinearGradient(
-                                                        colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                                        colors: [Paper.gold, Paper.gold],
                                                         startPoint: .topLeading,
                                                         endPoint: .bottomTrailing
                                                     )
@@ -963,17 +963,17 @@ struct SettingsView: View {
                                 VStack(spacing: 2) {
                                     HStack(spacing: 4) {
                                         Text(option.title(for: selectedLanguage))
-                                            .font(.system(size: 12, weight: .semibold))
+                                            .font(PaperFont.font(size: 12, weight: .semibold))
                                             .foregroundColor(primaryTextColor)
                                             .lineLimit(1)
                                         
                                         if option.isPremium {
                                             Text("PRO")
-                                                .font(.system(size: 8, weight: .heavy))
+                                                .font(PaperFont.font(size: 8, weight: .semibold))
                                                 .foregroundColor(.black)
                                                 .padding(.horizontal, 4)
                                                 .padding(.vertical, 1)
-                                                .background(Color(hex: "FDE68A"))
+                                                .background(Paper.gold.opacity(0.18))
                                                 .cornerRadius(4)
                                         }
                                     }

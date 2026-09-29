@@ -16,6 +16,9 @@ enum Paper {
     static let uiGold = dynamic(light: 0x8F6B2A, dark: 0xCFAE6E)
     static let uiHairline = dynamic(light: 0x2B241D, lightAlpha: 0.10, dark: 0xECE3D2, darkAlpha: 0.09)
     static let uiShadow = dynamic(light: 0x4A3517, lightAlpha: 0.08, dark: 0x000000, darkAlpha: 0.35)
+    static let uiMoss = dynamic(light: 0x4F6B45, dark: 0x9DBB8E)
+    static let uiFillSubtle = dynamic(light: 0x2B241D, lightAlpha: 0.045, dark: 0xECE3D2, darkAlpha: 0.06)
+    static let uiFillMuted = dynamic(light: 0x2B241D, lightAlpha: 0.08, dark: 0xECE3D2, darkAlpha: 0.11)
 
     // MARK: SwiftUI-цвета
     /// Фон страницы
@@ -36,6 +39,14 @@ enum Paper {
     static let hairline = Color(uiColor: uiHairline)
     /// Мягкая тень листа
     static let shadow = Color(uiColor: uiShadow)
+    /// Мох — «успех», «прочитано», «выполнено» (вместо ярко-зелёного)
+    static let moss = Color(uiColor: uiMoss)
+    /// Едва заметная подложка (чипы, поля ввода, неактивные кнопки)
+    static let fillSubtle = Color(uiColor: uiFillSubtle)
+    /// Заметная подложка (выбранный чип, активный сегмент)
+    static let fillMuted = Color(uiColor: uiFillMuted)
+    /// Затемнение под модальными окнами
+    static let scrim = Color.black.opacity(0.45)
 
     private static func dynamic(light: UInt32, lightAlpha: CGFloat = 1, dark: UInt32, darkAlpha: CGFloat = 1) -> UIColor {
         UIColor { traits in
@@ -178,5 +189,61 @@ struct PaperIconBadge<Icon: View>: View {
             icon()
         }
         .frame(width: 46, height: 46)
+    }
+}
+
+// MARK: - Глобальный внешний вид системных компонентов (навигация, вкладки, сегменты)
+enum PaperAppearance {
+    static func apply() {
+        // Навигационная панель: книжный заголовок, чернила и тонкая линия
+        let nav = UINavigationBarAppearance()
+        nav.configureWithTransparentBackground()
+        nav.backgroundColor = Paper.uiPage.withAlphaComponent(0.94)
+        nav.shadowColor = Paper.uiHairline
+        nav.titleTextAttributes = [
+            .font: PaperFont.uiFont(size: 17, weight: .semibold),
+            .foregroundColor: Paper.uiInk
+        ]
+        nav.largeTitleTextAttributes = [
+            .font: PaperFont.uiFont(size: 32, weight: .semibold),
+            .foregroundColor: Paper.uiInk
+        ]
+        let navScrollEdge = UINavigationBarAppearance()
+        navScrollEdge.configureWithTransparentBackground()
+        navScrollEdge.shadowColor = .clear
+        navScrollEdge.titleTextAttributes = nav.titleTextAttributes
+        navScrollEdge.largeTitleTextAttributes = nav.largeTitleTextAttributes
+        UINavigationBar.appearance().standardAppearance = nav
+        UINavigationBar.appearance().compactAppearance = nav
+        UINavigationBar.appearance().scrollEdgeAppearance = navScrollEdge
+        
+        // Панель вкладок: подписи книжным шрифтом, спокойный цвет неактивных вкладок
+        let tabTitleNormal: [NSAttributedString.Key: Any] = [
+            .font: PaperFont.uiFont(size: 10, weight: .medium)
+        ]
+        UITabBarItem.appearance().setTitleTextAttributes(tabTitleNormal, for: .normal)
+        UITabBarItem.appearance().setTitleTextAttributes(tabTitleNormal, for: .selected)
+        UITabBar.appearance().unselectedItemTintColor = Paper.uiInkTertiary
+        if #unavailable(iOS 26.0) {
+            let tab = UITabBarAppearance()
+            tab.configureWithDefaultBackground()
+            tab.backgroundColor = Paper.uiPage.withAlphaComponent(0.94)
+            tab.shadowColor = Paper.uiHairline
+            UITabBar.appearance().standardAppearance = tab
+            UITabBar.appearance().scrollEdgeAppearance = tab
+        }
+        
+        // Сегментированные переключатели: лист бумаги на тёплой подложке
+        let segmented = UISegmentedControl.appearance()
+        segmented.backgroundColor = Paper.uiFillMuted
+        segmented.selectedSegmentTintColor = Paper.uiSheet
+        segmented.setTitleTextAttributes([
+            .font: PaperFont.uiFont(size: 14, weight: .medium),
+            .foregroundColor: Paper.uiInkSecondary
+        ], for: .normal)
+        segmented.setTitleTextAttributes([
+            .font: PaperFont.uiFont(size: 14, weight: .semibold),
+            .foregroundColor: Paper.uiInk
+        ], for: .selected)
     }
 }

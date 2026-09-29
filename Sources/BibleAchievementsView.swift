@@ -17,13 +17,13 @@ struct BibleAchievementsView: View {
         Color(hex: manager.accentTheme.secondaryColorHex)
     }
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.85)
+        Paper.sheet
     }
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     private let columns = [
@@ -60,7 +60,7 @@ struct BibleAchievementsView: View {
                     Spacer()
                     
                     Text("achievements_title".localized(for: manager.appLanguage))
-                        .font(.system(size: 18, weight: .bold))
+                        .font(PaperFont.font(size: 18, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Spacer()
@@ -83,13 +83,13 @@ struct BibleAchievementsView: View {
                                     Circle()
                                         .fill(
                                             LinearGradient(
-                                                colors: [Color.orange, Color.yellow],
+                                                colors: [Paper.gold, Color.yellow],
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             )
                                         )
                                         .frame(width: 56, height: 56)
-                                        .shadow(color: Color.orange.opacity(0.35), radius: 8, y: 3)
+                                        .shadow(color: Paper.gold.opacity(0.35), radius: 8, y: 3)
                                     
                                     Image(systemName: "trophy.fill")
                                         .font(.system(size: 26))
@@ -98,11 +98,11 @@ struct BibleAchievementsView: View {
                                 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("your_rank".localized(for: manager.appLanguage))
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
+                                        .font(PaperFont.font(size: 12, weight: .medium))
+                                        .foregroundColor(Paper.inkSecondary)
                                     
                                     Text(achievements.userRankTitle(for: manager.appLanguage))
-                                        .font(.system(size: 18, weight: .bold, design: .serif))
+                                        .font(PaperFont.font(size: 18, weight: .semibold))
                                         .foregroundColor(primaryTextColor)
                                 }
                                 
@@ -110,12 +110,12 @@ struct BibleAchievementsView: View {
                                 
                                 VStack(alignment: .trailing, spacing: 4) {
                                     Text("\(achievements.unlockedCount) / \(achievements.badges.count)")
-                                        .font(.system(size: 18, weight: .black, design: .monospaced))
-                                        .foregroundColor(Color.orange)
+                                        .font(PaperFont.font(size: 18, weight: .semibold).monospacedDigit())
+                                        .foregroundColor(Paper.gold)
                                     
                                     Text("unlocked_count".localized(for: manager.appLanguage))
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.secondary)
+                                        .font(PaperFont.font(size: 11))
+                                        .foregroundColor(Paper.inkSecondary)
                                 }
                             }
                             
@@ -123,13 +123,13 @@ struct BibleAchievementsView: View {
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
                                     Capsule()
-                                        .fill(Color.primary.opacity(0.08))
+                                        .fill(Paper.ink.opacity(0.08))
                                         .frame(height: 8)
                                     
                                     Capsule()
                                         .fill(
                                             LinearGradient(
-                                                colors: [Color.orange, Color.yellow],
+                                                colors: [Paper.gold, Color.yellow],
                                                 startPoint: .leading,
                                                 endPoint: .trailing
                                             )
@@ -154,7 +154,7 @@ struct BibleAchievementsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                                .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
                         )
                         .padding(.horizontal, 20)
                         
@@ -233,7 +233,7 @@ struct BadgeCardView: View {
                             .foregroundColor(.white)
                     } else {
                         Circle()
-                            .fill(Color.primary.opacity(0.06))
+                            .fill(Paper.ink.opacity(0.06))
                             .frame(width: 60, height: 60)
                         
                         Image(systemName: "lock.fill")
@@ -245,7 +245,7 @@ struct BadgeCardView: View {
                 
                 VStack(spacing: 4) {
                     Text(badge.title(for: language))
-                        .font(.system(size: 13, weight: .bold))
+                        .font(PaperFont.font(size: 13, weight: .semibold))
                         .foregroundColor(badge.isUnlocked ? primaryTextColor : .secondary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
@@ -255,20 +255,20 @@ struct BadgeCardView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 11))
-                                .foregroundColor(.green)
+                                .foregroundColor(Paper.moss)
                             Text("unlocked_status".localized(for: language))
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.green)
+                                .font(PaperFont.font(size: 11, weight: .semibold))
+                                .foregroundColor(Paper.moss)
                         }
                     } else {
                         // Прогресс
                         VStack(spacing: 3) {
                             Text("\(badge.currentProgress) / \(badge.requiredCount)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 10, weight: .semibold).monospacedDigit())
+                                .foregroundColor(Paper.inkSecondary)
                             
                             ProgressView(value: badge.progressRatio)
-                                .tint(Color.orange)
+                                .tint(Paper.gold)
                                 .scaleEffect(x: 1, y: 0.6, anchor: .center)
                         }
                     }
@@ -285,7 +285,7 @@ struct BadgeCardView: View {
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(badge.isUnlocked ? Color.orange.opacity(0.3) : Color.primary.opacity(0.06), lineWidth: 1.2)
+                    .stroke(badge.isUnlocked ? Paper.gold.opacity(0.3) : Paper.ink.opacity(0.06), lineWidth: 1.2)
             )
         }
         .buttonStyle(ScaleButtonStyle())
@@ -322,24 +322,24 @@ struct BadgeDetailSheet: View {
                         .foregroundColor(.white)
                 } else {
                     Circle()
-                        .fill(Color.primary.opacity(0.08))
+                        .fill(Paper.ink.opacity(0.08))
                         .frame(width: 74, height: 74)
                     
                     Image(systemName: "lock.fill")
                         .font(.system(size: 28))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Paper.inkSecondary)
                 }
             }
             .padding(.top, 10)
             
             VStack(spacing: 6) {
                 Text(badge.title(for: language))
-                    .font(.system(size: 20, weight: .bold, design: .serif))
+                    .font(PaperFont.font(size: 20, weight: .semibold))
                     .foregroundColor(primaryTextColor)
                 
                 Text(badge.description(for: language))
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 14))
+                    .foregroundColor(Paper.inkSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
             }
@@ -347,23 +347,23 @@ struct BadgeDetailSheet: View {
             if badge.isUnlocked {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
-                        .foregroundColor(.orange)
+                        .foregroundColor(Paper.gold)
                     Text("badge_unlocked_message".localized(for: language))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.orange)
+                        .font(PaperFont.font(size: 13, weight: .semibold))
+                        .foregroundColor(Paper.gold)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(Color.orange.opacity(0.12))
+                .background(Paper.gold.opacity(0.12))
                 .cornerRadius(16)
             } else {
                 VStack(spacing: 6) {
                     Text("\(badge.currentProgress) / \(badge.requiredCount)")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
                         .foregroundColor(primaryTextColor)
                     
                     ProgressView(value: badge.progressRatio)
-                        .tint(Color.orange)
+                        .tint(Paper.gold)
                         .padding(.horizontal, 40)
                 }
             }

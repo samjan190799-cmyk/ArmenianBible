@@ -34,7 +34,7 @@ extension SettingsView {
                 .foregroundColor(providerAccentColor(for: selectedProvider))
             
             Text("ai_provider".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
+                .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
             
             Spacer()
@@ -45,7 +45,7 @@ extension SettingsView {
                     .fill(providerAccentColor(for: selectedProvider))
                     .frame(width: 6, height: 6)
                 Text(selectedProvider.displayName)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(PaperFont.font(size: 12, weight: .semibold))
                     .foregroundColor(primaryTextColor)
             }
             .padding(.horizontal, 8)
@@ -95,7 +95,7 @@ extension SettingsView {
                         Image(systemName: providerIconName(for: provider))
                             .font(.system(size: 11, weight: .bold))
                         Text(provider.displayName)
-                            .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                            .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                     }
                     .foregroundColor(isSelected ? .white : primaryTextColor.opacity(0.7))
                     .frame(maxWidth: .infinity)
@@ -108,7 +108,7 @@ extension SettingsView {
         .padding(4)
         .background(
             RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.03) : Color.black.opacity(0.03))
+                .fill(Paper.fillSubtle)
         )
         .padding(.horizontal, 4)
     }
@@ -140,7 +140,7 @@ extension SettingsView {
                     let pColor = providerAccentColor(for: provider)
                     
                     Capsule()
-                        .fill(isSelected ? pColor : Color.secondary.opacity(0.3))
+                        .fill(isSelected ? pColor : Paper.inkSecondary.opacity(0.3))
                         .frame(width: isSelected ? 18 : 6, height: 6)
                         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectedProvider)
                 }
@@ -158,13 +158,13 @@ extension SettingsView {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Color(hex: selectedTheme.colorHex))
                 Text("ai_theological_tone_title".localized(for: selectedLanguage))
-                    .font(.system(size: 14, weight: .bold))
+                    .font(PaperFont.font(size: 14, weight: .semibold))
                     .foregroundColor(primaryTextColor)
             }
             
             Text("ai_theological_tone_desc".localized(for: selectedLanguage))
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 12))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(3)
             
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
@@ -212,13 +212,13 @@ extension SettingsView {
                 }
                 
                 Text(tone.localizedTitle(for: selectedLanguage))
-                    .font(.system(size: 12, weight: isSelected ? .bold : .semibold))
+                    .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .semibold))
                     .foregroundColor(primaryTextColor)
                     .lineLimit(1)
                 
                 Text(tone.localizedDesc(for: selectedLanguage))
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 10))
+                    .foregroundColor(Paper.inkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -243,11 +243,11 @@ extension SettingsView {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text("ai_clear_chat_title".localized(for: selectedLanguage))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Text("\(manager.aiChatMessages.count) " + "ai_chat_messages_count".localized(for: selectedLanguage))
-                            .font(.system(size: 10, weight: .bold))
+                            .font(PaperFont.font(size: 10, weight: .semibold))
                             .foregroundColor(Color(hex: selectedTheme.colorHex))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -256,8 +256,8 @@ extension SettingsView {
                     }
                     
                     Text("ai_clear_chat_desc".localized(for: selectedLanguage))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11))
+                        .foregroundColor(Paper.inkSecondary)
                 }
                 
                 Spacer()
@@ -272,12 +272,12 @@ extension SettingsView {
                         Image(systemName: "trash")
                             .font(.system(size: 11, weight: .semibold))
                         Text("ai_clear_chat_btn".localized(for: selectedLanguage))
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(PaperFont.font(size: 11, weight: .semibold))
                     }
-                    .foregroundColor(Color(hex: "EF4444"))
+                    .foregroundColor(Paper.cinnabar)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color(hex: "EF4444").opacity(0.1))
+                    .background(Paper.cinnabar.opacity(0.1))
                     .cornerRadius(8)
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -291,17 +291,17 @@ extension SettingsView {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                    .stroke(Paper.hairline, lineWidth: 1)
             )
             
             if showAIChatClearedToast {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(Color(hex: "10B981"))
+                        .foregroundColor(Paper.moss)
                         .font(.system(size: 12))
                     Text("ai_clear_chat_cleared_toast".localized(for: selectedLanguage))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(Color(hex: "10B981"))
+                        .font(PaperFont.font(size: 12, weight: .medium))
+                        .foregroundColor(Paper.moss)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 2)
@@ -337,10 +337,10 @@ extension SettingsView {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(providerTitle(for: provider))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     Text(providerModelSubtitle(for: provider))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(PaperFont.font(size: 11, weight: .medium))
                         .foregroundColor(pColor.opacity(0.95))
                 }
                 
@@ -351,7 +351,7 @@ extension SettingsView {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.system(size: 11))
                         Text(activeBadgeText)
-                            .font(.system(size: 11, weight: .bold))
+                            .font(PaperFont.font(size: 11, weight: .semibold))
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 9)
@@ -365,8 +365,8 @@ extension SettingsView {
             
             // Описание назначения модели
             Text(providerDescription(for: provider))
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 12))
+                .foregroundColor(Paper.inkSecondary)
                 .lineLimit(2)
                 .lineSpacing(2)
             
@@ -382,16 +382,16 @@ extension SettingsView {
                 if isKeySaved(for: provider) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 13))
-                        .foregroundColor(.green)
+                        .foregroundColor(Paper.moss)
                     Text("api_key_saved".localized(for: selectedLanguage))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.green)
+                        .font(PaperFont.font(size: 12, weight: .medium))
+                        .foregroundColor(Paper.moss)
                 } else {
                     Image(systemName: "info.circle")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary.opacity(0.7))
                     Text(apiKeyRequiredText)
-                        .font(.system(size: 11))
+                        .font(PaperFont.font(size: 11))
                         .foregroundColor(.secondary.opacity(0.7))
                 }
                 
@@ -442,7 +442,7 @@ extension SettingsView {
                                 .font(.system(size: 10, weight: .bold))
                         }
                         Text(isCheckingModels ? "checking_models".localized(for: selectedLanguage) : "check_models".localized(for: selectedLanguage))
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(PaperFont.font(size: 11, weight: .semibold))
                     }
                     .foregroundColor(pColor)
                     .padding(.horizontal, 8)
@@ -460,7 +460,7 @@ extension SettingsView {
                     Image(systemName: "sparkles")
                         .font(.system(size: 10))
                     Text(toast)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(PaperFont.font(size: 11, weight: .medium))
                 }
                 .foregroundColor(pColor)
                 .transition(.opacity.combined(with: .scale))
@@ -497,8 +497,8 @@ extension SettingsView {
     func providerSecondaryColor(for provider: AIProvider) -> Color {
         switch provider {
         case .gemini: return Color(hex: "8E55EA")
-        case .chatgpt: return Color(hex: "059669")
-        case .claude: return Color(hex: "D97706")
+        case .chatgpt: return Paper.moss
+        case .claude: return Paper.gold
         }
     }
     

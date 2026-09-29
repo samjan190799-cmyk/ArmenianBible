@@ -15,7 +15,7 @@ extension SettingsView {
                     .foregroundColor(Color(hex: selectedTheme.colorHex))
                 
                 Text("narek_audio_settings_title".localized(for: selectedLanguage))
-                    .font(.system(size: 15, weight: .bold))
+                    .font(PaperFont.font(size: 15, weight: .semibold))
                     .foregroundColor(primaryTextColor)
                 
                 Spacer()
@@ -23,23 +23,23 @@ extension SettingsView {
                 if narekPlayer.isPlaying {
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(Color(hex: "10B981"))
+                            .fill(Paper.moss)
                             .frame(width: 6, height: 6)
                         Text("Active")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(Color(hex: "10B981"))
+                            .font(PaperFont.font(size: 11, weight: .semibold))
+                            .foregroundColor(Paper.moss)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Color(hex: "10B981").opacity(0.12))
+                    .background(Paper.moss.opacity(0.12))
                     .cornerRadius(8)
                 }
             }
             .padding(.horizontal, 4)
             
             Text("narek_audio_settings_desc".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(3)
                 .padding(.horizontal, 4)
             
@@ -51,14 +51,14 @@ extension SettingsView {
                             .foregroundColor(Color(hex: selectedTheme.colorHex))
                             .font(.system(size: 14))
                         Text("narek_playback_rate_title".localized(for: selectedLanguage))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         Spacer()
                     }
                     
                     Text("narek_playback_rate_desc".localized(for: selectedLanguage))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11))
+                        .foregroundColor(Paper.inkSecondary)
                     
                     HStack(spacing: 8) {
                         let rateOptions: [(Double, String)] = [
@@ -78,7 +78,7 @@ extension SettingsView {
                                 }
                             } label: {
                                 Text(option.1)
-                                    .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                    .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                     .foregroundColor(isSelected ? .white : primaryTextColor)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
@@ -102,17 +102,17 @@ extension SettingsView {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                        .stroke(Paper.hairline, lineWidth: 1)
                 )
                 
                 // 2. Таймер сна
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "moon.zzz.fill")
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .foregroundColor(Paper.gold)
                             .font(.system(size: 14))
                         Text("narek_sleep_timer_title".localized(for: selectedLanguage))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         Spacer()
                         
@@ -120,18 +120,18 @@ extension SettingsView {
                             let mins = narekPlayer.sleepTimerRemainingSeconds / 60
                             let secs = narekPlayer.sleepTimerRemainingSeconds % 60
                             Text(String(format: "%02d:%02d", mins, secs))
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                .foregroundColor(Color(hex: "F59E0B"))
+                                .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
+                                .foregroundColor(Paper.gold)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color(hex: "F59E0B").opacity(0.12))
+                                .background(Paper.gold.opacity(0.12))
                                 .cornerRadius(6)
                         }
                     }
                     
                     Text("narek_sleep_timer_desc".localized(for: selectedLanguage))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11))
+                        .foregroundColor(Paper.inkSecondary)
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -146,13 +146,13 @@ extension SettingsView {
                                     }
                                 } label: {
                                     Text(option.title(for: selectedLanguage))
-                                        .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                        .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                         .foregroundColor(isSelected ? .white : primaryTextColor)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(
                                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .fill(isSelected ? Color(hex: "F59E0B") : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                                .fill(isSelected ? Paper.gold : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
                                         )
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -172,7 +172,7 @@ extension SettingsView {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                        .stroke(Paper.hairline, lineWidth: 1)
                 )
                 
                 // 3. Автопереход к следующей главе
@@ -188,11 +188,11 @@ extension SettingsView {
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("narek_autoplay_next_title".localized(for: selectedLanguage))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         Text("narek_autoplay_next_desc".localized(for: selectedLanguage))
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     
                     Spacer()
@@ -216,7 +216,7 @@ extension SettingsView {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                        .stroke(Paper.hairline, lineWidth: 1)
                 )
             }
         }

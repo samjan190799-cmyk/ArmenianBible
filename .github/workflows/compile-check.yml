@@ -1,0 +1,55 @@
+name: Compile Check
+
+# Быстрая проверка компиляции без подписи и без отправки в TestFlight.
+# Запускается только для рабочих веток feat/** и вручную.
+on:
+  push:
+    branches: [ "feat/**" ]
+    paths:
+      - "Sources/**"
+      - "Widget/**"
+      - "project.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: Компиляция (iOS, без подписи)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Select Latest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          [ -z "$XCODE" ] && XCODE="/Applications/Xcode.app"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build (no signing)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project ArmenianBible.xcodeproj \
+            -scheme ArmenianBible \
+            -destination 'generic/platform=iOS' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            2>&1 | tee "$RUNNER_TEMP/build.log" | grep -E "error:|warning: unused|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/build.log"
+
+      - name: Show compile errors
+        if: failure()
+        run: grep -E "error:" "$RUNNER_TEMP/build.log" | sort -u | head -80

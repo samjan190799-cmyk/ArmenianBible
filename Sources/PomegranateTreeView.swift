@@ -60,8 +60,8 @@ struct PomegranateTreeView: View {
                     .fill(
                         RadialGradient(
                             colors: [
-                                (stage == .treeOfLife ? Color(hex: "FDE047") : Color(hex: "F59E0B")).opacity(stage >= .bloomingTree ? 0.35 : 0.18),
-                                Color(hex: "D97706").opacity(0.08),
+                                (stage == .treeOfLife ? Paper.gold : Paper.gold).opacity(stage >= .bloomingTree ? 0.35 : 0.18),
+                                Paper.gold.opacity(0.08),
                                 Color.clear
                             ],
                             center: .center,
@@ -181,7 +181,7 @@ struct PomegranateSoilBaseView: View {
                 .overlay(
                     // Тонкая окантовка света на почве
                     Ellipse()
-                        .stroke(Color(hex: "D97706").opacity(0.35), lineWidth: 0.8)
+                        .stroke(Paper.gold.opacity(0.35), lineWidth: 0.8)
                 )
         }
     }
@@ -201,8 +201,8 @@ struct PomegranateSeedView: View {
                 // 1. Небесный луч света, нисходящий на семя
                 LinearGradient(
                     colors: [
-                        Color(hex: "FDE047").opacity(0.28),
-                        Color(hex: "F59E0B").opacity(0.12),
+                        Paper.gold.opacity(0.28),
+                        Paper.gold.opacity(0.12),
                         Color.clear
                     ],
                     startPoint: .top,
@@ -217,15 +217,15 @@ struct PomegranateSeedView: View {
                 VStack(spacing: 4) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 14))
-                        .foregroundColor(Color(hex: "F59E0B").opacity(seedGlow ? 0.6 : 0.3))
+                        .foregroundColor(Paper.gold.opacity(seedGlow ? 0.6 : 0.3))
                     
                     Image(systemName: "tree.fill")
                         .font(.system(size: 130))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [
-                                    Color(hex: "10B981").opacity(0.16),
-                                    Color(hex: "059669").opacity(0.08),
+                                    Paper.moss.opacity(0.16),
+                                    Paper.moss.opacity(0.08),
                                     Color.clear
                                 ],
                                 startPoint: .top,
@@ -241,9 +241,9 @@ struct PomegranateSeedView: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 9))
                     Text(BibleManager.shared.appLanguage == .armenian ? "Սերմը արմատավորվում է" : (BibleManager.shared.appLanguage == .russian ? "Семя пускает корни" : "Seed taking root"))
-                        .font(.system(size: 11, weight: .bold))
+                        .font(PaperFont.font(size: 11, weight: .semibold))
                 }
-                .foregroundColor(Color(hex: "EF4444"))
+                .foregroundColor(Paper.cinnabar)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(
@@ -251,7 +251,7 @@ struct PomegranateSeedView: View {
                         .fill(Color.white.opacity(0.85))
                         .shadow(color: Color.black.opacity(0.08), radius: 4)
                 )
-                .overlay(Capsule().stroke(Color(hex: "EF4444").opacity(0.3), lineWidth: 1))
+                .overlay(Capsule().stroke(Paper.cinnabar.opacity(0.3), lineWidth: 1))
                 .offset(y: -seedSize - 20)
             }
             
@@ -267,7 +267,7 @@ struct PomegranateSeedView: View {
                 }
                 .stroke(
                     LinearGradient(
-                        colors: [Color(hex: "FDE047").opacity(0.7), Color(hex: "D97706").opacity(0.2)],
+                        colors: [Paper.gold.opacity(0.7), Paper.gold.opacity(0.2)],
                         startPoint: .top,
                         endPoint: .bottom
                     ),
@@ -282,7 +282,7 @@ struct PomegranateSeedView: View {
                 ZStack {
                     // Внешнее свечение
                     Circle()
-                        .fill(Color(hex: "EF4444").opacity(seedGlow ? 0.35 : 0.15))
+                        .fill(Paper.cinnabar.opacity(seedGlow ? 0.35 : 0.15))
                         .frame(width: seedSize * 1.6, height: seedSize * 1.6)
                         .blur(radius: 6)
                     
@@ -291,17 +291,17 @@ struct PomegranateSeedView: View {
                         .font(.system(size: seedSize, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [Color(hex: "F87171"), Color(hex: "DC2626"), Color(hex: "7F1D1D")],
+                                colors: [Paper.cinnabar, Paper.cinnabar, Color(hex: "7F1D1D")],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
                         .rotationEffect(.degrees(180))
-                        .shadow(color: Color(hex: "EF4444").opacity(seedGlow ? 0.8 : 0.35), radius: seedGlow ? 12 : 5)
+                        .shadow(color: Paper.cinnabar.opacity(seedGlow ? 0.8 : 0.35), radius: seedGlow ? 12 : 5)
                     
                     // Золотой внутренний зародыш жизни
                     Circle()
-                        .fill(Color(hex: "FDE047"))
+                        .fill(Paper.gold)
                         .frame(width: seedSize * 0.35, height: seedSize * 0.35)
                         .blur(radius: 0.5)
                 }
@@ -339,7 +339,7 @@ struct PomegranateSproutView: View {
             }
             .stroke(
                 LinearGradient(
-                    colors: [Color(hex: "15803D"), Color(hex: "22C55E"), Color(hex: "4ADE80")],
+                    colors: [Paper.moss, Paper.moss, Paper.moss],
                     startPoint: .bottom,
                     endPoint: .top
                 ),
@@ -352,7 +352,7 @@ struct PomegranateSproutView: View {
                 PomegranateLeafShape()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: "86EFAC"), Color(hex: "16A34A")],
+                            colors: [Paper.moss, Paper.moss],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -364,7 +364,7 @@ struct PomegranateSproutView: View {
                 PomegranateLeafShape()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: "BBF7D0"), Color(hex: "22C55E")],
+                            colors: [Color(hex: "BBF7D0"), Paper.moss],
                             startPoint: .topTrailing,
                             endPoint: .bottomLeading
                         )
@@ -531,7 +531,7 @@ struct PomegranateMatureTrunkView: View {
             .fill(
                 LinearGradient(
                     colors: isTreeOfLife ? [
-                        Color(hex: "B45309"),
+                        Paper.gold,
                         Color(hex: "78350F"),
                         Color(hex: "451A03")
                     ] : [
@@ -553,7 +553,7 @@ struct PomegranateMatureTrunkView: View {
                         control2: CGPoint(x: width * 0.58, y: height * 0.5)
                     )
                 }
-                .stroke(Color(hex: "D97706").opacity(0.4), lineWidth: isCompact ? 1.0 : 2.0)
+                .stroke(Paper.gold.opacity(0.4), lineWidth: isCompact ? 1.0 : 2.0)
             )
         }
         .frame(width: width, height: height)
@@ -572,7 +572,7 @@ struct PomegranateFoliageBackground: View {
                 .fill(
                     RadialGradient(
                         colors: [
-                            (isTreeOfLife ? Color(hex: "15803D") : Color(hex: "14532D")),
+                            (isTreeOfLife ? Paper.moss : Color(hex: "14532D")),
                             Color(hex: "064E3B").opacity(0.85)
                         ],
                         center: .center,
@@ -700,7 +700,7 @@ struct RoyalPomegranateFruitView: View {
                     TriangleShape()
                         .fill(
                             LinearGradient(
-                                colors: isGolden ? [Color(hex: "FDE047"), Color(hex: "D97706")] : [Color(hex: "EF4444"), Color(hex: "991B1B")],
+                                colors: isGolden ? [Paper.gold, Paper.gold] : [Paper.cinnabar, Paper.cinnabar],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -713,7 +713,7 @@ struct RoyalPomegranateFruitView: View {
             ZStack {
                 // Внешний мягкий ореол света
                 Circle()
-                    .fill((isGolden ? Color(hex: "F59E0B") : Color(hex: "EF4444")).opacity(isPulsing ? 0.35 : 0.12))
+                    .fill((isGolden ? Paper.gold : Paper.cinnabar).opacity(isPulsing ? 0.35 : 0.12))
                     .frame(width: size * 1.35, height: size * 1.35)
                     .blur(radius: 4)
                 
@@ -722,13 +722,13 @@ struct RoyalPomegranateFruitView: View {
                     .fill(
                         LinearGradient(
                             colors: isGolden ? [
-                                Color(hex: "FEF08A"),
-                                Color(hex: "F59E0B"),
-                                Color(hex: "B45309")
+                                Paper.gold.opacity(0.18),
+                                Paper.gold,
+                                Paper.gold
                             ] : [
-                                Color(hex: "F87171"),
-                                Color(hex: "DC2626"),
-                                Color(hex: "991B1B"),
+                                Paper.cinnabar,
+                                Paper.cinnabar,
+                                Paper.cinnabar,
                                 Color(hex: "450A0A")
                             ],
                             startPoint: .topLeading,
@@ -736,7 +736,7 @@ struct RoyalPomegranateFruitView: View {
                         )
                     )
                     .frame(width: size, height: size)
-                    .shadow(color: (isGolden ? Color(hex: "F59E0B") : Color(hex: "EF4444")).opacity(0.45), radius: size * 0.25, y: 1)
+                    .shadow(color: (isGolden ? Paper.gold : Paper.cinnabar).opacity(0.45), radius: size * 0.25, y: 1)
                 
                 // Внутренний рубиновый глянцевый блик света
                 Circle()
@@ -768,7 +768,7 @@ struct PomegranateBlossomView: View {
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: "F87171"), Color(hex: "DC2626"), Color(hex: "991B1B")],
+                            colors: [Paper.cinnabar, Paper.cinnabar, Paper.cinnabar],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -779,9 +779,9 @@ struct PomegranateBlossomView: View {
             
             // Золотые тычинки в центре
             Circle()
-                .fill(Color(hex: "FDE047"))
+                .fill(Paper.gold)
                 .frame(width: size * 0.35, height: size * 0.35)
-                .shadow(color: Color(hex: "F59E0B").opacity(0.8), radius: 2)
+                .shadow(color: Paper.gold.opacity(0.8), radius: 2)
         }
     }
 }
@@ -794,7 +794,7 @@ struct PomegranateFlowerBudView: View {
         Capsule()
             .fill(
                 LinearGradient(
-                    colors: [Color(hex: "F87171"), Color(hex: "B91C1C")],
+                    colors: [Paper.cinnabar, Paper.cinnabar],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -814,7 +814,7 @@ struct PomegranateLeafClusterView: View {
             PomegranateLeafShape()
                 .fill(
                     LinearGradient(
-                        colors: [Color(hex: "4ADE80"), Color(hex: "15803D"), Color(hex: "14532D")],
+                        colors: [Paper.moss, Paper.moss, Color(hex: "14532D")],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -825,7 +825,7 @@ struct PomegranateLeafClusterView: View {
             PomegranateLeafShape()
                 .fill(
                     LinearGradient(
-                        colors: [Color(hex: "86EFAC"), Color(hex: "16A34A"), Color(hex: "14532D")],
+                        colors: [Paper.moss, Paper.moss, Color(hex: "14532D")],
                         startPoint: .topTrailing,
                         endPoint: .bottomLeading
                     )
@@ -901,7 +901,7 @@ struct PomegranatePollenParticlesView: View {
                 let y = sin(angle) * (dist * 0.7) - (height * 0.4)
                 
                 Circle()
-                    .fill(idx % 2 == 0 ? Color(hex: "FDE047") : Color(hex: "F59E0B"))
+                    .fill(idx % 2 == 0 ? Paper.gold : Paper.gold)
                     .frame(width: (idx % 3 == 0) ? 3.5 : 2.0, height: (idx % 3 == 0) ? 3.5 : 2.0)
                     .offset(x: animPhase ? x + 6 : x - 6, y: animPhase ? y - 8 : y + 8)
                     .opacity(animPhase ? 0.85 : 0.25)

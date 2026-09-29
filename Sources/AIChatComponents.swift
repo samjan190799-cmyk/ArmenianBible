@@ -24,7 +24,7 @@ struct AIChatBubbleRow: View {
                 Spacer(minLength: 44)
                 
                 Text(message.text)
-                    .font(.system(size: 15, weight: .regular))
+                    .font(PaperFont.font(size: 15))
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -48,7 +48,7 @@ struct AIChatBubbleRow: View {
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(accentColor)
                         Text("ai_guide_title".localized(for: manager.appLanguage))
-                            .font(.system(size: 12, weight: .bold))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
                             .foregroundColor(accentColor)
                         
                         Spacer()
@@ -59,13 +59,13 @@ struct AIChatBubbleRow: View {
                         } label: {
                             Image(systemName: "doc.on.doc")
                                 .font(.system(size: 12))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Paper.inkSecondary)
                         }
                         .buttonStyle(ScaleButtonStyle())
                     }
                     
                     Text(message.text)
-                        .font(.system(size: 15, weight: .regular))
+                        .font(PaperFont.font(size: 15))
                         .foregroundColor(primaryTextColor)
                         .lineSpacing(6)
                         .fixedSize(horizontal: false, vertical: true)
@@ -84,13 +84,13 @@ struct AIChatBubbleRow: View {
                             }
                             
                             Text(verse.text)
-                                .font(.system(size: 15, weight: .medium, design: .serif))
+                                .font(PaperFont.font(size: 15, weight: .medium))
                                 .foregroundColor(primaryTextColor)
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(5)
                             
                             Text(verse.reference)
-                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .font(PaperFont.font(size: 12, weight: .semibold).monospacedDigit())
                                 .foregroundColor(secondaryAccentColor)
                             
                             // Кнопки управления стихом
@@ -159,7 +159,7 @@ struct AIChatBubbleRow: View {
                         .cornerRadius(14)
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                                .stroke(Paper.ink.opacity(0.06), lineWidth: 1)
                         )
                     }
                 }
@@ -201,8 +201,8 @@ struct AIChatThinkingRow: View {
                     .scaleEffect(0.9)
                 
                 Text("ai_searching_answer".localized(for: language))
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 13, weight: .medium))
+                    .foregroundColor(Paper.inkSecondary)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

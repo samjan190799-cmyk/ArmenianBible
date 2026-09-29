@@ -15,7 +15,7 @@ extension SettingsView {
                     .foregroundColor(Color(hex: selectedTheme.colorHex))
                 
                 Text("quiz_settings_section_title".localized(for: selectedLanguage))
-                    .font(.system(size: 15, weight: .bold))
+                    .font(PaperFont.font(size: 15, weight: .semibold))
                     .foregroundColor(primaryTextColor)
                 
                 Spacer()
@@ -23,8 +23,8 @@ extension SettingsView {
             .padding(.horizontal, 4)
             
             Text("quiz_settings_section_desc".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(3)
                 .padding(.horizontal, 4)
             
@@ -36,7 +36,7 @@ extension SettingsView {
                             .foregroundColor(Color(hex: selectedTheme.colorHex))
                             .font(.system(size: 14))
                         Text("quiz_default_count_title".localized(for: selectedLanguage))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         Spacer()
                     }
@@ -54,7 +54,7 @@ extension SettingsView {
                                 }
                             } label: {
                                 Text("\(count)")
-                                    .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                                    .font(PaperFont.font(size: 13, weight: isSelected ? .semibold : .medium))
                                     .foregroundColor(isSelected ? .white : primaryTextColor)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
@@ -78,17 +78,17 @@ extension SettingsView {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                        .stroke(Paper.hairline, lineWidth: 1)
                 )
                 
                 // 2. Таймер на ответ
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "timer")
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .foregroundColor(Paper.gold)
                             .font(.system(size: 14))
                         Text("quiz_timer_setting_title".localized(for: selectedLanguage))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         Spacer()
                     }
@@ -112,13 +112,13 @@ extension SettingsView {
                                 }
                             } label: {
                                 Text(option.1)
-                                    .font(.system(size: 12, weight: isSelected ? .bold : .medium))
+                                    .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                     .foregroundColor(isSelected ? .white : primaryTextColor)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(isSelected ? Color(hex: "F59E0B") : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                            .fill(isSelected ? Paper.gold : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
                                     )
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -136,27 +136,27 @@ extension SettingsView {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                        .stroke(Paper.hairline, lineWidth: 1)
                 )
                 
                 // 3. Звуковые эффекты
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color(hex: "10B981").opacity(0.15))
+                            .fill(Paper.moss.opacity(0.15))
                             .frame(width: 32, height: 32)
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: "10B981"))
+                            .foregroundColor(Paper.moss)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("quiz_sound_title".localized(for: selectedLanguage))
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         Text("quiz_sound_desc".localized(for: selectedLanguage))
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     
                     Spacer()
@@ -178,7 +178,7 @@ extension SettingsView {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                        .stroke(Paper.hairline, lineWidth: 1)
                 )
                 
                 // 4. Сброс статистики викторины
@@ -186,20 +186,20 @@ extension SettingsView {
                     HStack {
                         ZStack {
                             Circle()
-                                .fill(Color(hex: "EF4444").opacity(0.15))
+                                .fill(Paper.cinnabar.opacity(0.15))
                                 .frame(width: 32, height: 32)
                             Image(systemName: "arrow.counterclockwise")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(Color(hex: "EF4444"))
+                                .foregroundColor(Paper.cinnabar)
                         }
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text("quiz_reset_stats_title".localized(for: selectedLanguage))
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(PaperFont.font(size: 14, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                             Text("quiz_reset_stats_desc".localized(for: selectedLanguage))
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 11))
+                                .foregroundColor(Paper.inkSecondary)
                         }
                         
                         Spacer()
@@ -214,12 +214,12 @@ extension SettingsView {
                                 Image(systemName: "trash")
                                     .font(.system(size: 11, weight: .semibold))
                                 Text("quiz_reset_stats_btn".localized(for: selectedLanguage))
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(PaperFont.font(size: 11, weight: .semibold))
                             }
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .foregroundColor(Paper.cinnabar)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Color(hex: "EF4444").opacity(0.1))
+                            .background(Paper.cinnabar.opacity(0.1))
                             .cornerRadius(8)
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -228,11 +228,11 @@ extension SettingsView {
                     if showQuizResetToast {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(Color(hex: "10B981"))
+                                .foregroundColor(Paper.moss)
                                 .font(.system(size: 12))
                             Text("quiz_stats_reset_toast".localized(for: selectedLanguage))
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(Color(hex: "10B981"))
+                                .font(PaperFont.font(size: 12, weight: .medium))
+                                .foregroundColor(Paper.moss)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 2)
@@ -246,7 +246,7 @@ extension SettingsView {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04), lineWidth: 1)
+                        .stroke(Paper.hairline, lineWidth: 1)
                 )
             }
         }

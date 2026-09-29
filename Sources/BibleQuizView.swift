@@ -51,10 +51,10 @@ struct BibleQuizView: View {
         Color(hex: manager.accentTheme.secondaryColorHex)
     }
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.85)
+        Paper.sheet
     }
     private var cardBorderColor: LinearGradient {
         if colorScheme == .dark {
@@ -72,7 +72,7 @@ struct BibleQuizView: View {
         }
     }
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     var body: some View {
@@ -104,7 +104,7 @@ struct BibleQuizView: View {
                     Spacer()
                     
                     Text("quiz_title".localized(for: manager.appLanguage))
-                        .font(.system(size: 18, weight: .bold))
+                        .font(PaperFont.font(size: 18, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Spacer()
@@ -117,11 +117,11 @@ struct BibleQuizView: View {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "trophy.fill")
                                 .font(.system(size: 20))
-                                .foregroundColor(Color.orange)
+                                .foregroundColor(Paper.gold)
                             
                             if achievements.unlockedCount > 0 {
                                 Circle()
-                                    .fill(Color.red)
+                                    .fill(Paper.cinnabar)
                                     .frame(width: 8, height: 8)
                                     .offset(x: 2, y: -2)
                             }
@@ -188,16 +188,16 @@ struct BibleQuizView: View {
                                 // Прогресс
                                 HStack {
                                     Text("\(currentQuestionIndex + 1) / \(activeQuestions.count)")
-                                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                        .font(PaperFont.font(size: 14, weight: .semibold).monospacedDigit())
                                         .foregroundColor(secondaryAccentColor)
                                     
                                     Spacer()
                                     
                                     HStack(spacing: 4) {
                                         Image(systemName: "star.fill")
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(Paper.gold)
                                         Text("\(score)")
-                                            .font(.system(size: 15, weight: .bold))
+                                            .font(PaperFont.font(size: 15, weight: .semibold))
                                             .foregroundColor(primaryTextColor)
                                     }
                                 }
@@ -218,7 +218,7 @@ struct BibleQuizView: View {
                                         GeometryReader { geo in
                                             ZStack(alignment: .leading) {
                                                 Capsule()
-                                                    .fill(Color.primary.opacity(0.08))
+                                                    .fill(Paper.ink.opacity(0.08))
                                                 
                                                 Capsule()
                                                     .fill(
@@ -232,7 +232,7 @@ struct BibleQuizView: View {
                                         .frame(height: 6)
                                         
                                         Text("\(timeRemaining)s")
-                                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                            .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
                                             .foregroundColor(timeRemaining <= 5 ? .red : primaryTextColor)
                                             .scaleEffect(timeRemaining <= 5 ? 1.08 : 1.0)
                                             .animation(.easeInOut(duration: 0.2), value: timeRemaining)
@@ -248,12 +248,12 @@ struct BibleQuizView: View {
                                         if question.isAIGenerated {
                                             Image(systemName: "sparkles")
                                                 .font(.system(size: 11, weight: .bold))
-                                                .foregroundColor(Color(hex: "F59E0B"))
+                                                .foregroundColor(Paper.gold)
                                             Text("\("quiz_badge_ai_generated".localized(for: manager.appLanguage)) • \(question.aiProviderName ?? QuizAIEngine.shared.currentProviderDisplayName)")
-                                                .font(.system(size: 11, weight: .bold))
+                                                .font(PaperFont.font(size: 11, weight: .semibold))
                                                 .foregroundStyle(
                                                     LinearGradient(
-                                                        colors: [Color(hex: "F59E0B"), accentColor],
+                                                        colors: [Paper.gold, accentColor],
                                                         startPoint: .leading,
                                                         endPoint: .trailing
                                                     )
@@ -261,21 +261,21 @@ struct BibleQuizView: View {
                                         } else {
                                             Image(systemName: "book.closed.fill")
                                                 .font(.system(size: 11, weight: .medium))
-                                                .foregroundColor(.secondary)
+                                                .foregroundColor(Paper.inkSecondary)
                                             Text("quiz_badge_offline_database".localized(for: manager.appLanguage))
-                                                .font(.system(size: 11, weight: .medium))
-                                                .foregroundColor(.secondary)
+                                                .font(PaperFont.font(size: 11, weight: .medium))
+                                                .foregroundColor(Paper.inkSecondary)
                                         }
                                     }
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
                                     .background(
                                         Capsule()
-                                            .fill(question.isAIGenerated ? Color(hex: "F59E0B").opacity(0.12) : Color.primary.opacity(0.06))
+                                            .fill(question.isAIGenerated ? Paper.gold.opacity(0.12) : Paper.ink.opacity(0.06))
                                     )
                                     .overlay(
                                         Capsule()
-                                            .stroke(question.isAIGenerated ? Color(hex: "F59E0B").opacity(0.35) : Color.clear, lineWidth: 1)
+                                            .stroke(question.isAIGenerated ? Paper.gold.opacity(0.35) : Color.clear, lineWidth: 1)
                                     )
                                     .padding(.bottom, 2)
                                     
@@ -284,7 +284,7 @@ struct BibleQuizView: View {
                                         .foregroundColor(accentColor)
                                     
                                     Text(question.question(for: manager.appLanguage))
-                                        .font(.system(size: 18, weight: .semibold, design: .serif))
+                                        .font(PaperFont.font(size: 18, weight: .semibold))
                                         .foregroundColor(primaryTextColor)
                                         .multilineTextAlignment(.center)
                                         .lineSpacing(6)
@@ -322,11 +322,11 @@ struct BibleQuizView: View {
                                         } label: {
                                             HStack {
                                                 Text("\(letterPrefix(for: idx)).")
-                                                    .font(.system(size: 15, weight: .bold, design: .monospaced))
+                                                    .font(PaperFont.font(size: 15, weight: .semibold).monospacedDigit())
                                                     .foregroundColor(optionTextColor(isSelected: isSelected, isCorrect: isCorrect))
                                                 
                                                 Text(optionText)
-                                                    .font(.system(size: 15, weight: .medium))
+                                                    .font(PaperFont.font(size: 15, weight: .medium))
                                                     .foregroundColor(primaryTextColor)
                                                     .multilineTextAlignment(.leading)
                                                 
@@ -336,13 +336,13 @@ struct BibleQuizView: View {
                                                     if isCorrect {
                                                         ZStack {
                                                             Image(systemName: "checkmark.circle.fill")
-                                                                .foregroundColor(.green)
+                                                                .foregroundColor(Paper.moss)
                                                             GoldenSparkBurstView(isTriggered: true)
                                                         }
                                                         .transition(.scale.combined(with: .opacity))
                                                     } else if isSelected {
                                                         Image(systemName: "xmark.circle.fill")
-                                                            .foregroundColor(.red)
+                                                            .foregroundColor(Paper.cinnabar)
                                                             .transition(.scale.combined(with: .opacity))
                                                     }
                                                 }
@@ -380,7 +380,7 @@ struct BibleQuizView: View {
                                                     Image(systemName: "book.pages.fill")
                                                         .font(.system(size: 12))
                                                     Text(question.verseRef(for: manager.appLanguage))
-                                                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                                        .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
                                                     Image(systemName: "arrow.up.right")
                                                         .font(.system(size: 10, weight: .bold))
                                                 }
@@ -396,7 +396,7 @@ struct BibleQuizView: View {
                                         }
                                         
                                         Text(question.explanation(for: manager.appLanguage))
-                                            .font(.system(size: 14))
+                                            .font(PaperFont.font(size: 14))
                                             .foregroundColor(primaryTextColor.opacity(0.9))
                                             .lineSpacing(5)
                                         
@@ -405,7 +405,7 @@ struct BibleQuizView: View {
                                             nextQuestion(proxy: proxy)
                                         } label: {
                                             Text("quiz_next_question".localized(for: manager.appLanguage))
-                                                .font(.system(size: 15, weight: .bold))
+                                                .font(PaperFont.font(size: 15, weight: .semibold))
                                                 .foregroundColor(.white)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
@@ -454,7 +454,7 @@ struct BibleQuizView: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [Color(hex: "F59E0B").opacity(0.25), accentColor.opacity(0.15)],
+                                    colors: [Paper.gold.opacity(0.25), accentColor.opacity(0.15)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -465,7 +465,7 @@ struct BibleQuizView: View {
                             .font(.system(size: 32, weight: .semibold))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [Color(hex: "F59E0B"), accentColor],
+                                    colors: [Paper.gold, accentColor],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
@@ -474,12 +474,12 @@ struct BibleQuizView: View {
                     
                     VStack(spacing: 8) {
                         Text("quiz_generating_title".localized(for: manager.appLanguage))
-                            .font(.system(size: 18, weight: .bold))
+                            .font(PaperFont.font(size: 18, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Text(currentAIStepText)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 13, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .frame(height: 38)
@@ -490,15 +490,15 @@ struct BibleQuizView: View {
                     // Индикатор активного ИИ
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(Color.green)
+                            .fill(Paper.moss)
                             .frame(width: 7, height: 7)
                         Text(QuizAIEngine.shared.currentProviderDisplayName)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11, weight: .semibold))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Color.primary.opacity(0.05))
+                    .background(Paper.ink.opacity(0.05))
                     .cornerRadius(12)
                     
                     ProgressView()
@@ -575,10 +575,10 @@ struct BibleQuizView: View {
             return cardBackgroundColor
         }
         if isCorrect {
-            return Color.green.opacity(0.12)
+            return Paper.moss.opacity(0.12)
         }
         if isSelected && !isCorrect {
-            return Color.red.opacity(0.12)
+            return Paper.cinnabar.opacity(0.12)
         }
         return cardBackgroundColor
     }
@@ -588,10 +588,10 @@ struct BibleQuizView: View {
             return primaryTextColor.opacity(0.08)
         }
         if isCorrect {
-            return Color.green
+            return Paper.moss
         }
         if isSelected && !isCorrect {
-            return Color.red
+            return Paper.cinnabar
         }
         return primaryTextColor.opacity(0.08)
     }

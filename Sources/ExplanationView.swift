@@ -21,10 +21,10 @@ struct ExplanationView: View {
         Color(hex: manager.accentTheme.secondaryColorHex)
     }
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white.opacity(0.75)
+        Paper.sheet
     }
     private var cardBorderColor: LinearGradient {
         if colorScheme == .dark {
@@ -42,7 +42,7 @@ struct ExplanationView: View {
         }
     }
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     var body: some View {
@@ -62,11 +62,11 @@ struct ExplanationView: View {
                     // Заголовок
                     VStack(spacing: 6) {
                         Text("explain_title".localized(for: manager.appLanguage))
-                            .font(.system(size: 26, weight: .bold, design: .serif))
+                            .font(PaperFont.font(size: 26, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         Text("explain_subtitle".localized(for: manager.appLanguage))
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 13))
+                            .foregroundColor(Paper.inkSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                     }
@@ -79,12 +79,12 @@ struct ExplanationView: View {
                                 .font(.system(size: 14))
                                 .foregroundColor(secondaryAccentColor)
                             Text(manager.currentVerse.reference)
-                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .font(PaperFont.font(size: 12, weight: .semibold).monospacedDigit())
                                 .foregroundColor(secondaryAccentColor)
                         }
                         
                         Text(manager.currentVerse.text)
-                            .font(.system(size: 15, weight: .medium, design: .serif))
+                            .font(PaperFont.font(size: 15, weight: .medium))
                             .foregroundColor(primaryTextColor.opacity(0.85))
                             .lineSpacing(5)
                             .fixedSize(horizontal: false, vertical: true)
@@ -143,8 +143,8 @@ struct ExplanationView: View {
                             ProgressView()
                                 .tint(accentColor)
                             Text("explain_loading".localized(for: manager.appLanguage))
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 13, weight: .medium))
+                                .foregroundColor(Paper.inkSecondary)
                         }
                         .padding(.vertical, 60)
                     } else if !explanationText.isEmpty {
@@ -154,13 +154,13 @@ struct ExplanationView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(secondaryAccentColor)
                                 Text("explain_title".localized(for: manager.appLanguage))
-                                    .font(.system(size: 13, weight: .bold))
+                                    .font(PaperFont.font(size: 13, weight: .semibold))
                                     .foregroundColor(secondaryAccentColor)
                             }
                             .padding(.bottom, 4)
                             
                             Text(explanationText)
-                                .font(.system(size: 15, weight: .regular))
+                                .font(PaperFont.font(size: 15))
                                 .foregroundColor(primaryTextColor)
                                 .lineSpacing(7)
                         }
@@ -181,8 +181,8 @@ struct ExplanationView: View {
                                 .font(.system(size: 40))
                                 .foregroundColor(secondaryAccentColor.opacity(0.4))
                             Text("explain_welcome".localized(for: manager.appLanguage))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 13))
+                                .foregroundColor(Paper.inkSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
                         }

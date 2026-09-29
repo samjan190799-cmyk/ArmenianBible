@@ -23,7 +23,7 @@ struct InstructionRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Text(number)
-                .font(.system(size: 12, weight: .bold))
+                .font(PaperFont.font(size: 12, weight: .semibold))
                 .foregroundColor(numberTextColor)
                 .frame(width: 20, height: 20)
                 .background(numberBgColor)
@@ -31,8 +31,8 @@ struct InstructionRow: View {
                 .padding(.top, 1)
             
             Text(text)
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -212,12 +212,12 @@ struct WidgetInstructionSheetView: View {
                     }
                     
                     Text("widget_instruction_title".localized(for: language))
-                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .font(PaperFont.font(size: 22, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Text("widget_instruction_subtitle".localized(for: language))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13))
+                        .foregroundColor(Paper.inkSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
                 }
@@ -248,7 +248,7 @@ struct WidgetInstructionSheetView: View {
                     dismiss()
                 } label: {
                     Text("alert_ok_button".localized(for: language))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -282,12 +282,12 @@ struct LockCategoryChipView: View {
             HStack(spacing: 6) {
                 Text(cat.icon)
                 Text(cat.localizedTitle(for: selectedLanguage))
-                    .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                    .font(PaperFont.font(size: 13, weight: isSelected ? .semibold : .medium))
                 
                 if isLocked {
                     Image(systemName: "crown.fill")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(Paper.gold)
                 }
             }
             .padding(.horizontal, 12)
@@ -324,12 +324,12 @@ struct HomeCategoryChipView: View {
                 Image(systemName: cat.icon)
                     .font(.system(size: 12, weight: .semibold))
                 Text(cat.localizedTitle(for: selectedLanguage))
-                    .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                    .font(PaperFont.font(size: 13, weight: isSelected ? .semibold : .medium))
                 
                 if isLocked {
                     Image(systemName: "crown.fill")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(Paper.gold)
                 }
             }
             .padding(.horizontal, 12)
@@ -360,11 +360,11 @@ struct WidgetStyleCardButton: View {
     
     private var accentColor: Color {
         switch style {
-        case .oledStandby: return Color(hex: "F59E0B")
-        case .celestialEmerald: return Color(hex: "34D399")
+        case .oledStandby: return Paper.gold
+        case .celestialEmerald: return Paper.moss
         case .crimsonGospel: return Color(hex: "F472B6")
-        case .auroraSunset: return Color(hex: "FB923C")
-        case .monasticStone: return Color(hex: "D97706")
+        case .auroraSunset: return Paper.gold
+        case .monasticStone: return Paper.gold
         default: return Color(hex: themeColorHex)
         }
     }
@@ -391,12 +391,12 @@ struct WidgetStyleCardButton: View {
                             Image(systemName: "crown.fill")
                                 .font(.system(size: 8.5, weight: .bold))
                             Text("PRO")
-                                .font(.system(size: 8, weight: .heavy))
+                                .font(PaperFont.font(size: 8, weight: .semibold))
                         }
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
-                        .background(Color(hex: "F59E0B").opacity(0.22))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .background(Paper.gold.opacity(0.22))
+                        .foregroundColor(Paper.gold)
                         .cornerRadius(5)
                     } else if isSelected {
                         Image(systemName: "checkmark.circle.fill")
@@ -414,7 +414,7 @@ struct WidgetStyleCardButton: View {
                     .multilineTextAlignment(.leading)
                 
                 Text(style.localizedSubtitle(for: selectedLanguage))
-                    .font(.system(size: 9.5))
+                    .font(PaperFont.font(size: 9.5))
                     .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: themeColorHex).opacity(0.85))
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -474,7 +474,7 @@ struct LockScreenPreviewCardView: View {
             
             HStack(spacing: 4) {
                 Text("✝")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(PaperFont.font(size: 10, weight: .semibold))
                     .foregroundColor(style.quoteIconColor(for: colorScheme, accentHex: accentHex))
                 Text(verse.reference(for: language))
                     .font(.system(size: 11.5, weight: .bold, design: style.fontDesign))
@@ -486,7 +486,7 @@ struct LockScreenPreviewCardView: View {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 8.5))
                     Text("Lock Screen")
-                        .font(.system(size: 9.5, weight: .semibold))
+                        .font(PaperFont.font(size: 9.5, weight: .semibold))
                 }
                 .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: accentHex).opacity(0.85))
                 .padding(.horizontal, 6)
@@ -624,7 +624,7 @@ struct VisibleApiKeyField: View {
             if isRevealed {
                 TextField(placeholder, text: $text)
                     .font(.system(size: 14, design: .monospaced))
-                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    .foregroundColor(Paper.ink)
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
                     .padding(.horizontal, 14)
@@ -632,7 +632,7 @@ struct VisibleApiKeyField: View {
             } else {
                 SecureField(placeholder, text: $text)
                     .font(.system(size: 14, design: .monospaced))
-                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    .foregroundColor(Paper.ink)
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
                     .padding(.horizontal, 14)

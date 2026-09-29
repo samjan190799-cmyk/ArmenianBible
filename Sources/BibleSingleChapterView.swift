@@ -140,7 +140,7 @@ struct BibleSingleChapterView: View {
                                                         HStack(spacing: 4) {
                                                             ForEach(ann.tags) { tag in
                                                                 Text(tag.icon)
-                                                                    .font(.system(size: 10))
+                                                                    .font(PaperFont.font(size: 10))
                                                             }
                                                         }
                                                     }
@@ -198,8 +198,8 @@ struct BibleSingleChapterView: View {
                     ProgressView()
                         .tint(accentColor)
                     Text("loading_label".localized(for: manager.appLanguage))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13))
+                        .foregroundColor(Paper.inkSecondary)
                         .padding(.top, 8)
                 }
             }
@@ -238,9 +238,9 @@ struct BibleSingleChapterView: View {
                 if let msg = toastMessage {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
+                            .foregroundColor(Paper.moss)
                         Text(msg)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(.white)
                     }
                     .padding(.horizontal, 16)

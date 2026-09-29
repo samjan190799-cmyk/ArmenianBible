@@ -33,7 +33,7 @@ struct PomegranateSanctuarySheetView: View {
                         Color(hex: "180C0E"),
                         Color(hex: "0F172A")
                     ] : [
-                        Color(hex: "FFFBEB"),
+                        Paper.gold.opacity(0.18),
                         Color(hex: "FEF2F2"),
                         Color(hex: "F8FAFC")
                     ],
@@ -43,7 +43,7 @@ struct PomegranateSanctuarySheetView: View {
                 .ignoresSafeArea()
                 
                 // Тонкое фоновое сияние
-                DivineBreathingGlow(color: Color(hex: "EF4444").opacity(colorScheme == .dark ? 0.22 : 0.12))
+                DivineBreathingGlow(color: Paper.cinnabar.opacity(colorScheme == .dark ? 0.22 : 0.12))
                     .offset(y: -100)
                 
                 ScrollView(showsIndicators: false) {
@@ -79,9 +79,9 @@ struct PomegranateSanctuarySheetView: View {
                                         Image(systemName: "hand.tap.fill")
                                             .font(.system(size: 11))
                                         Text(language == .armenian ? "Հպվեք նռանը՝ պտուղը բացելու համար" : (language == .russian ? "Коснитесь плода, чтобы открыть благословение" : "Tap any pomegranate to reveal blessing"))
-                                            .font(.system(size: 11, weight: .semibold))
+                                            .font(PaperFont.font(size: 11, weight: .semibold))
                                     }
-                                    .foregroundColor(colorScheme == .dark ? Color(hex: "FDE047") : Color(hex: "B45309"))
+                                    .foregroundColor(colorScheme == .dark ? Paper.gold : Paper.gold)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(
@@ -123,7 +123,7 @@ struct PomegranateSanctuarySheetView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 22))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Paper.inkSecondary)
                     }
                 }
                 
@@ -135,7 +135,7 @@ struct PomegranateSanctuarySheetView: View {
                         } label: {
                             Image(systemName: "questionmark.circle.fill")
                                 .font(.system(size: 20))
-                                .foregroundColor(Color(hex: "EF4444"))
+                                .foregroundColor(Paper.cinnabar)
                         }
 
                         Button {
@@ -146,12 +146,12 @@ struct PomegranateSanctuarySheetView: View {
                                 Image(systemName: "square.and.arrow.up")
                                     .font(.system(size: 14, weight: .bold))
                                 Text(language == .armenian ? "Կիսվել" : (language == .russian ? "Поделиться" : "Share"))
-                                    .font(.system(size: 13, weight: .bold))
+                                    .font(PaperFont.font(size: 13, weight: .semibold))
                             }
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .foregroundColor(Paper.cinnabar)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
-                            .background(Color(hex: "EF4444").opacity(0.12))
+                            .background(Paper.cinnabar.opacity(0.12))
                             .clipShape(Capsule())
                         }
                     }
@@ -184,25 +184,25 @@ struct PomegranateSanctuarySheetView: View {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "EF4444"))
+                    .foregroundColor(Paper.cinnabar)
                 
                 Text(language == .armenian ? "ՀՈԳԵՎՈՐ ԱՃԻ ՆՌՆԵՆԻ" : (language == .russian ? "ДРЕВО ДУХОВНОГО РОСТА" : "TREE OF SPIRITUAL GROWTH"))
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(Color(hex: "EF4444"))
+                    .font(PaperFont.font(size: 12, weight: .semibold))
+                    .foregroundColor(Paper.cinnabar)
                     .tracking(1.2)
                 
                 Image(systemName: "sparkles")
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "EF4444"))
+                    .foregroundColor(Paper.cinnabar)
             }
             
             Text(treeManager.currentStage.title(for: language))
-                .font(.system(size: 26, weight: .bold, design: .serif))
-                .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                .font(PaperFont.font(size: 26, weight: .semibold))
+                .foregroundColor(Paper.ink)
             
             Text(treeManager.currentStage.description(for: language))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
@@ -215,16 +215,16 @@ struct PomegranateSanctuarySheetView: View {
                     Image(systemName: "questionmark.circle.fill")
                         .font(.system(size: 12, weight: .bold))
                     Text(language == .armenian ? "Ինչպե՞ս է աճում ծառը" : (language == .russian ? "Как растёт дерево?" : "How does the tree grow?"))
-                        .font(.system(size: 12, weight: .bold))
+                        .font(PaperFont.font(size: 12, weight: .semibold))
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .bold))
                 }
-                .foregroundColor(Color(hex: "EF4444"))
+                .foregroundColor(Paper.cinnabar)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
-                .background(Color(hex: "EF4444").opacity(0.10))
+                .background(Paper.cinnabar.opacity(0.10))
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color(hex: "EF4444").opacity(0.25), lineWidth: 1))
+                .overlay(Capsule().stroke(Paper.cinnabar.opacity(0.25), lineWidth: 1))
             }
             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
             .padding(.top, 2)
@@ -242,15 +242,15 @@ struct PomegranateSanctuarySheetView: View {
                                 Color(hex: "38BDF8"),
                                 Color(hex: "0284C7")
                             ] : [
-                                Color(hex: "F59E0B"),
-                                Color(hex: "D97706")
+                                Paper.gold,
+                                Paper.gold
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 48, height: 48)
-                    .shadow(color: (treeManager.isWateredToday ? Color(hex: "0284C7") : Color(hex: "D97706")).opacity(0.35), radius: 6)
+                    .shadow(color: (treeManager.isWateredToday ? Color(hex: "0284C7") : Paper.gold).opacity(0.35), radius: 6)
                 
                 Image(systemName: treeManager.isWateredToday ? "drop.fill" : "drop.triangle.fill")
                     .font(.system(size: 22, weight: .bold))
@@ -263,12 +263,12 @@ struct PomegranateSanctuarySheetView: View {
                          (language == .armenian ? "Օրհնված է երկնային ցողով" : (language == .russian ? "Омыто небесной росой" : "Blessed with Heavenly Dew")) :
                          (language == .armenian ? "Սպասում է առավոտյան ցողի" : (language == .russian ? "Жаждет утренней росы" : "Awaiting Morning Dew")))
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                        .foregroundColor(Paper.ink)
                     
                     if treeManager.isWateredToday {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "10B981"))
+                            .foregroundColor(Paper.moss)
                     }
                 }
                 
@@ -276,7 +276,7 @@ struct PomegranateSanctuarySheetView: View {
                      (language == .armenian ? "Ձեր աղոթքն ու Խոսքի ընթերցումը սնում են ծառը:" : (language == .russian ? "Слово Божье и молитва питают корни древа." : "God's Word and prayer nourish your tree today.")) :
                      (language == .armenian ? "Կարդացեք օրվա համարը կամ վառեք մոմ:" : (language == .russian ? "Прочтите стих дня или зажгите свечу в храме." : "Read today's verse or light a prayer candle.")))
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Paper.inkSecondary)
                     .lineLimit(2)
             }
             
@@ -294,7 +294,7 @@ struct PomegranateSanctuarySheetView: View {
                         Image(systemName: "drop.fill")
                             .font(.system(size: 10))
                         Text(language == .armenian ? "Ցողել" : (language == .russian ? "Омыть" : "Water"))
-                            .font(.system(size: 12, weight: .black))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 14)
@@ -318,12 +318,12 @@ struct PomegranateSanctuarySheetView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.85))
+                .fill(Paper.sheet)
         )
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(treeManager.isWateredToday ? Color(hex: "38BDF8").opacity(0.45) : Color(hex: "F59E0B").opacity(0.45), lineWidth: 1.2)
+                .stroke(treeManager.isWateredToday ? Color(hex: "38BDF8").opacity(0.45) : Paper.gold.opacity(0.45), lineWidth: 1.2)
         )
     }
     
@@ -335,15 +335,15 @@ struct PomegranateSanctuarySheetView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "flame.fill")
                         .font(.system(size: 14))
-                        .foregroundColor(Color(hex: "EF4444"))
+                        .foregroundColor(Paper.cinnabar)
                     
                     Text("\(treeManager.daysStreak)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
+                        .foregroundColor(Paper.ink)
                     
                     Text(language == .armenian ? "օր Խոսքի մեջ" : (language == .russian ? "дн. в Слове" : "days in Word"))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13, weight: .medium))
+                        .foregroundColor(Paper.inkSecondary)
                 }
                 
                 Spacer()
@@ -355,20 +355,20 @@ struct PomegranateSanctuarySheetView: View {
                      (language == .armenian ? "Եվս \(daysLeft) օր մինչև հաջորդ փուլը" : (language == .russian ? "Еще \(daysLeft) дн. до след. ступени" : "\(daysLeft) days to next stage")) :
                      (language == .armenian ? "Բարձրագույն աստիճան" : (language == .russian ? "Высшая ступень благодати" : "Highest state of grace")))
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color(hex: "EF4444"))
+                    .foregroundColor(Paper.cinnabar)
             }
             
             // Полоса прогресса
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                        .fill(Paper.fillSubtle)
                         .frame(height: 8)
                     
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "EF4444"), Color(hex: "F59E0B")],
+                                colors: [Paper.cinnabar, Paper.gold],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -382,8 +382,8 @@ struct PomegranateSanctuarySheetView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(language == .armenian ? "ԱՃԻ 6 ՓՈՒԼԵՐԸ (ՍԵՂՄԵՔ ՓՈՒԼԻՆ)" : (language == .russian ? "6 СТАДИЙ РОСТА (НАЖМИТЕ ДЛЯ ДЕТАЛЕЙ)" : "6 GROWTH STAGES (TAP FOR DETAILS)"))
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 10, weight: .semibold))
+                        .foregroundColor(Paper.inkSecondary)
                         .tracking(0.8)
                     
                     Spacer()
@@ -394,11 +394,11 @@ struct PomegranateSanctuarySheetView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text(language == .armenian ? "Կանոններ" : (language == .russian ? "Правила" : "Rules"))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(PaperFont.font(size: 11, weight: .semibold))
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 9, weight: .bold))
                         }
-                        .foregroundColor(Color(hex: "EF4444"))
+                        .foregroundColor(Paper.cinnabar)
                     }
                 }
                 
@@ -417,8 +417,8 @@ struct PomegranateSanctuarySheetView: View {
                                     ZStack {
                                         Circle()
                                             .fill(
-                                                isCurrent ? Color(hex: "EF4444") :
-                                                (isCompleted ? Color(hex: "10B981") : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)))
+                                                isCurrent ? Paper.cinnabar :
+                                                (isCompleted ? Paper.moss : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)))
                                             )
                                             .frame(width: 36, height: 36)
                                         
@@ -428,28 +428,28 @@ struct PomegranateSanctuarySheetView: View {
                                                 .foregroundColor(.white)
                                         } else {
                                             Text(stageIcon(for: stage))
-                                                .font(.system(size: 16))
+                                                .font(PaperFont.font(size: 16))
                                         }
                                     }
                                     
                                     Text(stage.title(for: language))
-                                        .font(.system(size: 11, weight: isCurrent ? .bold : .medium))
-                                        .foregroundColor(isCurrent ? (colorScheme == .dark ? .white : Color(hex: "1E293B")) : .secondary)
+                                        .font(PaperFont.font(size: 11, weight: isCurrent ? .semibold : .medium))
+                                        .foregroundColor(isCurrent ? (Paper.ink) : .secondary)
                                         .lineLimit(1)
                                     
                                     Text("\(stage.requiredDays)+ " + (language == .armenian ? "օր" : (language == .russian ? "дн" : "d")))
-                                        .font(.system(size: 10, weight: isCurrent ? .bold : .regular))
-                                        .foregroundColor(isCurrent ? Color(hex: "EF4444") : .secondary.opacity(0.7))
+                                        .font(PaperFont.font(size: 10, weight: isCurrent ? .semibold : .regular))
+                                        .foregroundColor(isCurrent ? Paper.cinnabar : .secondary.opacity(0.7))
                                 }
                                 .padding(.vertical, 8)
                                 .padding(.horizontal, 10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(isCurrent ? Color(hex: "EF4444").opacity(0.12) : Color.clear)
+                                        .fill(isCurrent ? Paper.cinnabar.opacity(0.12) : Color.clear)
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(isCurrent ? Color(hex: "EF4444") : (isCompleted ? Color(hex: "10B981").opacity(0.4) : Color.clear), lineWidth: 1.2)
+                                        .stroke(isCurrent ? Paper.cinnabar : (isCompleted ? Paper.moss.opacity(0.4) : Color.clear), lineWidth: 1.2)
                                 )
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
@@ -462,12 +462,12 @@ struct PomegranateSanctuarySheetView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.85))
+                .fill(Paper.sheet)
         )
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color(hex: "EF4444").opacity(0.35), lineWidth: 1.2)
+                .stroke(Paper.cinnabar.opacity(0.35), lineWidth: 1.2)
         )
     }
     
@@ -477,23 +477,23 @@ struct PomegranateSanctuarySheetView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(language == .armenian ? "ՍՈՒՐԲ ՀՈԳՈՒ 9 ՊՏՈՒՂՆԵՐԸ" : (language == .russian ? "9 ПЛОДОВ СВЯТОГО ДУХА" : "9 FRUITS OF THE HOLY SPIRIT"))
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundColor(Color(hex: "EF4444"))
+                        .font(PaperFont.font(size: 11, weight: .semibold))
+                        .foregroundColor(Paper.cinnabar)
                         .tracking(1.0)
                     
                     Text(language == .armenian ? "Գաղատացիս 5:22-23" : (language == .russian ? "Послание к Галатам 5:22-23" : "Galatians 5:22-23"))
-                        .font(.system(size: 14, weight: .bold, design: .serif))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                        .font(PaperFont.font(size: 14, weight: .semibold))
+                        .foregroundColor(Paper.ink)
                 }
                 
                 Spacer()
                 
                 Text("\(treeManager.visibleFruitsCount)/9")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(Color(hex: "EF4444"))
+                    .font(PaperFont.font(size: 14, weight: .semibold))
+                    .foregroundColor(Paper.cinnabar)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Color(hex: "EF4444").opacity(0.12))
+                    .background(Paper.cinnabar.opacity(0.12))
                     .clipShape(Capsule())
             }
             
@@ -515,7 +515,7 @@ struct PomegranateSanctuarySheetView: View {
                                     .fill(
                                         isUnlocked ?
                                         LinearGradient(
-                                            colors: [Color(hex: "EF4444"), Color(hex: "991B1B")],
+                                            colors: [Paper.cinnabar, Paper.cinnabar],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ) :
@@ -526,7 +526,7 @@ struct PomegranateSanctuarySheetView: View {
                                         )
                                     )
                                     .frame(width: 44, height: 44)
-                                    .shadow(color: isUnlocked ? Color(hex: "EF4444").opacity(0.4) : Color.clear, radius: 4)
+                                    .shadow(color: isUnlocked ? Paper.cinnabar.opacity(0.4) : Color.clear, radius: 4)
                                 
                                 Image(systemName: fruit.icon)
                                     .font(.system(size: 18, weight: .bold))
@@ -534,8 +534,8 @@ struct PomegranateSanctuarySheetView: View {
                             }
                             
                             Text(fruit.name(for: language))
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(isUnlocked ? (colorScheme == .dark ? .white : Color(hex: "1E293B")) : .secondary)
+                                .font(PaperFont.font(size: 12, weight: .semibold))
+                                .foregroundColor(isUnlocked ? (Paper.ink) : .secondary)
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity)
@@ -545,7 +545,7 @@ struct PomegranateSanctuarySheetView: View {
                                 .fill(colorScheme == .dark ? Color.white.opacity(isUnlocked ? 0.06 : 0.02) : Color.white.opacity(isUnlocked ? 0.9 : 0.5))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(isUnlocked ? Color(hex: "EF4444").opacity(0.3) : Color.clear, lineWidth: 1)
+                                        .stroke(isUnlocked ? Paper.cinnabar.opacity(0.3) : Color.clear, lineWidth: 1)
                                 )
                         )
                     }
@@ -556,12 +556,12 @@ struct PomegranateSanctuarySheetView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.85))
+                .fill(Paper.sheet)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color(hex: "EF4444").opacity(0.35), lineWidth: 1.2)
+                .stroke(Paper.cinnabar.opacity(0.35), lineWidth: 1.2)
         )
     }
     
@@ -570,7 +570,7 @@ struct PomegranateSanctuarySheetView: View {
         VStack(spacing: 8) {
             Image(systemName: "quote.opening")
                 .font(.system(size: 20))
-                .foregroundColor(Color(hex: "EF4444").opacity(0.6))
+                .foregroundColor(Paper.cinnabar.opacity(0.6))
             
             Text(language == .armenian ?
                  "«Ես եմ որթատունկը, և դուք՝ ճյուղերը: Ով մնում է իմ մեջ, և ես՝ նրա մեջ, նա շատ պտուղ է բերում...»" :
@@ -578,22 +578,22 @@ struct PomegranateSanctuarySheetView: View {
                   "«Я есмь Лоза, а вы ветви; кто пребывает во Мне, и Я в нем, тот приносит много плода; ибо без Меня не можете делать ничего.»" :
                   "«I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit...»"))
                 .font(.system(size: 13, weight: .medium, design: .serif))
-                .foregroundColor(colorScheme == .dark ? Color(hex: "E2E8F0") : Color(hex: "334155"))
+                .foregroundColor(Paper.inkSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
             
             Text(language == .armenian ? "Յովհաննու 15:5" : (language == .russian ? "От Иоанна 15:5" : "John 15:5"))
-                .font(.system(size: 12, weight: .bold, design: .serif))
-                .foregroundColor(Color(hex: "EF4444"))
+                .font(PaperFont.font(size: 12, weight: .semibold))
+                .foregroundColor(Paper.cinnabar)
         }
         .padding(18)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(hex: "EF4444").opacity(colorScheme == .dark ? 0.08 : 0.04))
+                .fill(Paper.cinnabar.opacity(colorScheme == .dark ? 0.08 : 0.04))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color(hex: "EF4444").opacity(0.2), lineWidth: 0.8)
+                        .stroke(Paper.cinnabar.opacity(0.2), lineWidth: 0.8)
                 )
         )
     }
@@ -662,13 +662,13 @@ struct SpiritualFruitDetailSheetView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: "F87171"), Color(hex: "DC2626"), Color(hex: "991B1B")],
+                            colors: [Paper.cinnabar, Paper.cinnabar, Paper.cinnabar],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 80, height: 80)
-                    .shadow(color: Color(hex: "EF4444").opacity(0.4), radius: 10, y: 4)
+                    .shadow(color: Paper.cinnabar.opacity(0.4), radius: 10, y: 4)
                 
                 Image(systemName: fruit.icon)
                     .font(.system(size: 34, weight: .bold))
@@ -678,19 +678,19 @@ struct SpiritualFruitDetailSheetView: View {
             
             VStack(spacing: 6) {
                 Text(fruit.name(for: language))
-                    .font(.system(size: 26, weight: .bold, design: .serif))
-                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    .font(PaperFont.font(size: 26, weight: .semibold))
+                    .foregroundColor(Paper.ink)
                 
                 Text(fruit.scriptureRef)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(Color(hex: "EF4444"))
+                    .font(PaperFont.font(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.cinnabar)
             }
             
             // Стихотворное Писание
             VStack(spacing: 10) {
                 Text(fruit.scripture(for: language))
-                    .font(.system(size: 15, weight: .medium, design: .serif))
-                    .foregroundColor(colorScheme == .dark ? Color(hex: "E2E8F0") : Color(hex: "334155"))
+                    .font(PaperFont.font(size: 15, weight: .medium))
+                    .foregroundColor(Paper.inkSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(6)
                     .padding(.horizontal, 16)
@@ -699,17 +699,17 @@ struct SpiritualFruitDetailSheetView: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
+                    .fill(Paper.fillSubtle)
             )
             .padding(.horizontal, 24)
             
             // Благословение
             HStack(spacing: 10) {
                 Image(systemName: "sparkles")
-                    .foregroundColor(Color(hex: "F59E0B"))
+                    .foregroundColor(Paper.gold)
                 Text(fruit.blessing(for: language))
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 13, weight: .medium))
+                    .foregroundColor(Paper.inkSecondary)
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 24)
@@ -721,19 +721,19 @@ struct SpiritualFruitDetailSheetView: View {
                 dismiss()
             } label: {
                 Text(language == .armenian ? "Փակել" : (language == .russian ? "Принять благословение" : "Accept Blessing"))
-                    .font(.system(size: 15, weight: .bold))
+                    .font(PaperFont.font(size: 15, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
                     .background(
                         LinearGradient(
-                            colors: [Color(hex: "EF4444"), Color(hex: "B91C1C")],
+                            colors: [Paper.cinnabar, Paper.cinnabar],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .shadow(color: Color(hex: "EF4444").opacity(0.35), radius: 8, y: 3)
+                    .shadow(color: Paper.cinnabar.opacity(0.35), radius: 8, y: 3)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
@@ -759,17 +759,17 @@ struct PomegranateGardenExportView: View {
                 // Заголовок
                 VStack(spacing: 8) {
                     Text("LUYS • ARMENIAN BIBLE")
-                        .font(.system(size: 18, weight: .black, design: .rounded))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .font(PaperFont.font(size: 18, weight: .semibold))
+                        .foregroundColor(Paper.gold)
                         .tracking(3.0)
                     
                     Text(treeManager.currentStage.title(for: language))
-                        .font(.system(size: 42, weight: .bold, design: .serif))
+                        .font(PaperFont.font(size: 42, weight: .semibold))
                         .foregroundColor(.white)
                     
                     Text("\(treeManager.daysStreak) " + (language == .armenian ? "օր Խոսքի մեջ" : (language == .russian ? "дней в Слове" : "days in Word")))
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(Color(hex: "EF4444"))
+                        .font(PaperFont.font(size: 20, weight: .semibold))
+                        .foregroundColor(Paper.cinnabar)
                 }
                 .padding(.top, 60)
                 
@@ -793,8 +793,8 @@ struct PomegranateGardenExportView: View {
                         .padding(.horizontal, 48)
                     
                     Text("Յովհաննու 15:5")
-                        .font(.system(size: 18, weight: .bold, design: .serif))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .font(PaperFont.font(size: 18, weight: .semibold))
+                        .foregroundColor(Paper.gold)
                 }
                 
                 Spacer()
@@ -818,16 +818,16 @@ struct PomegranateGrowthGuideSheetView: View {
                     VStack(spacing: 10) {
                         ZStack {
                             Circle()
-                                .fill(Color(hex: "EF4444").opacity(0.12))
+                                .fill(Paper.cinnabar.opacity(0.12))
                                 .frame(width: 64, height: 64)
                             Image(systemName: "tree.fill")
                                 .font(.system(size: 30))
-                                .foregroundColor(Color(hex: "EF4444"))
+                                .foregroundColor(Paper.cinnabar)
                         }
                         
                         Text(language == .armenian ? "Ինչպե՞ս է աճում ծառը" : (language == .russian ? "Как растёт Древо веры?" : "How does the Tree grow?"))
-                            .font(.system(size: 22, weight: .bold, design: .serif))
-                            .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                            .font(PaperFont.font(size: 22, weight: .semibold))
+                            .foregroundColor(Paper.ink)
                         
                         Text(language == .armenian ?
                              "Հոգևոր աճի նռնենին արտացոլում է ձեր ամենօրյա հոգևոր կյանքը և Աստծո Խոսքի մեջ հաստատուն մնալը:" :
@@ -835,7 +835,7 @@ struct PomegranateGrowthGuideSheetView: View {
                               "Гранатовое Древо духовного роста отражает ваше ежедневное пребывание в Слове Божьем и молитве." :
                               "The Spiritual Pomegranate Tree reflects your daily walk with the Word of God and prayer."))
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Paper.inkSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 16)
                     }
@@ -867,7 +867,7 @@ struct PomegranateGrowthGuideSheetView: View {
                         
                         guideRuleCard(
                             icon: "leaf.arrow.triangle.circlepath",
-                            iconColor: Color(hex: "10B981"),
+                            iconColor: Paper.moss,
                             title: language == .armenian ? "3. 6 Սրբազան Փուլեր" : (language == .russian ? "3. 6 Ступеней роста" : "3. 6 Growth Stages"),
                             text: language == .armenian ?
                             "🌱 Սերմ (1-2 օր) ➔ 🌿 Ծիլ (3-6 օր) ➔ 🌳 Տնկի (7-13 օր) ➔ 🌺 Ծաղկած (14-29 օր) ➔ 🍎 Պտղաբեր (30-59 օր) ➔ ✨ Կենաց Ծառ (60+ օր):" :
@@ -878,7 +878,7 @@ struct PomegranateGrowthGuideSheetView: View {
                         
                         guideRuleCard(
                             icon: "heart.fill",
-                            iconColor: Color(hex: "EF4444"),
+                            iconColor: Paper.cinnabar,
                             title: language == .armenian ? "4. Հոգու 9 Պտուղները (Գաղ. 5:22-23)" : (language == .russian ? "4. 9 Плодов Духа (Гал. 5:22-23)" : "4. 9 Fruits of the Spirit"),
                             text: language == .armenian ?
                             "14-րդ օրվանից ծառի ճյուղերին հասունանում են նռան պտուղները: Սեղմեք նռանը՝ բացելու համար Սիրո, Խնդության, Խաղաղության օրհնությունները:" :
@@ -889,7 +889,7 @@ struct PomegranateGrowthGuideSheetView: View {
                         
                         guideRuleCard(
                             icon: "shield.lefthalf.filled",
-                            iconColor: Color(hex: "F59E0B"),
+                            iconColor: Paper.gold,
                             title: language == .armenian ? "5. Ողորմության Օրենք (Անմահ Ծառ)" : (language == .russian ? "5. Закон Милосердия (Дерево не умирает)" : "5. Law of Grace (Tree Never Dies)"),
                             text: language == .armenian ?
                             "Եթե բաց եք թողել մի օր, ծառը չի մահանում: Այն պարզապես սպասում է ձեր վերադարձին և արթնանում է հենց որ կարդաք Աստծո Խոսքը:" :
@@ -910,7 +910,7 @@ struct PomegranateGrowthGuideSheetView: View {
                         dismiss()
                     }
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(Color(hex: "EF4444"))
+                    .foregroundColor(Paper.cinnabar)
                 }
             }
         }
@@ -929,12 +929,12 @@ struct PomegranateGrowthGuideSheetView: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    .font(PaperFont.font(size: 14, weight: .semibold))
+                    .foregroundColor(Paper.ink)
                 
                 Text(text)
-                    .font(.system(size: 12.5, weight: .regular))
-                    .foregroundColor(.secondary)
+                    .font(PaperFont.font(size: 12.5))
+                    .foregroundColor(Paper.inkSecondary)
                     .lineSpacing(3)
             }
             Spacer()
@@ -942,7 +942,7 @@ struct PomegranateGrowthGuideSheetView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.85))
+                .fill(Paper.sheet)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -970,42 +970,42 @@ struct PomegranateStageDetailSheetView: View {
             ZStack {
                 Circle()
                     .fill(
-                        isCurrent ? Color(hex: "EF4444").opacity(0.15) :
-                        (isCompleted ? Color(hex: "10B981").opacity(0.15) : Color.gray.opacity(0.1))
+                        isCurrent ? Paper.cinnabar.opacity(0.15) :
+                        (isCompleted ? Paper.moss.opacity(0.15) : Color.gray.opacity(0.1))
                     )
                     .frame(width: 76, height: 76)
                 
                 Text(stageEmoji(for: stage))
-                    .font(.system(size: 38))
+                    .font(PaperFont.font(size: 38))
             }
             .padding(.top, 20)
             
             VStack(spacing: 6) {
                 Text(stage.title(for: language))
-                    .font(.system(size: 24, weight: .bold, design: .serif))
-                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                    .font(PaperFont.font(size: 24, weight: .semibold))
+                    .foregroundColor(Paper.ink)
                 
                 // Бейдж статуса
                 HStack(spacing: 6) {
                     if isCompleted {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(Color(hex: "10B981"))
+                            .foregroundColor(Paper.moss)
                         Text(language == .armenian ? "Անցած փուլ" : (language == .russian ? "Пройденный этап" : "Completed Stage"))
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(hex: "10B981"))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
+                            .foregroundColor(Paper.moss)
                     } else if isCurrent {
                         Image(systemName: "flame.fill")
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .foregroundColor(Paper.cinnabar)
                         Text(language == .armenian ? "Ընթացիկ փուլ" : (language == .russian ? "Текущий этап" : "Current Stage"))
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
+                            .foregroundColor(Paper.cinnabar)
                     } else {
                         Image(systemName: "lock.fill")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Paper.inkSecondary)
                         let daysNeeded = max(0, stage.requiredDays - currentStreak)
                         Text(language == .armenian ? "Կբացվի \(daysNeeded) օրից" : (language == .russian ? "Откроется через \(daysNeeded) дн." : "Unlocks in \(daysNeeded) d"))
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 12, weight: .semibold))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
                 .padding(.horizontal, 10)
@@ -1016,8 +1016,8 @@ struct PomegranateStageDetailSheetView: View {
             // Описание стадии
             VStack(spacing: 12) {
                 Text(stage.description(for: language))
-                    .font(.system(size: 14, weight: .medium, design: .serif))
-                    .foregroundColor(colorScheme == .dark ? Color(hex: "E2E8F0") : Color(hex: "334155"))
+                    .font(PaperFont.font(size: 14, weight: .medium))
+                    .foregroundColor(Paper.inkSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(5)
                 
@@ -1027,22 +1027,22 @@ struct PomegranateStageDetailSheetView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(language == .armenian ? "Պահանջվող ընթերցում:" : (language == .russian ? "Требуется дней в Слове:" : "Required days in Word:"))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                         Text("\(stage.requiredDays) " + (language == .armenian ? "օր անընդմեջ" : (language == .russian ? "дней подряд" : "consecutive days")))
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
+                            .foregroundColor(Paper.cinnabar)
                     }
                     
                     Spacer()
                     
                     VStack(alignment: .trailing, spacing: 3) {
                         Text(language == .armenian ? "Հասանելի պտուղներ:" : (language == .russian ? "Доступно плодов:" : "Available fruits:"))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                         Text("\(fruitsUnlocked(for: stage))/9 " + (language == .armenian ? "պտուղ" : (language == .russian ? "плодов" : "fruits")))
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(Color(hex: "10B981"))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
+                            .foregroundColor(Paper.moss)
                     }
                 }
                 .padding(.horizontal, 4)
@@ -1050,7 +1050,7 @@ struct PomegranateStageDetailSheetView: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
+                    .fill(Paper.fillSubtle)
             )
             .padding(.horizontal, 20)
             
@@ -1060,13 +1060,13 @@ struct PomegranateStageDetailSheetView: View {
                 dismiss()
             } label: {
                 Text(language == .armenian ? "Լավ" : (language == .russian ? "Понятно" : "Close"))
-                    .font(.system(size: 15, weight: .bold))
+                    .font(PaperFont.font(size: 15, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
                     .background(
                         LinearGradient(
-                            colors: [Color(hex: "EF4444"), Color(hex: "B91C1C")],
+                            colors: [Paper.cinnabar, Paper.cinnabar],
                             startPoint: .leading,
                             endPoint: .trailing
                         )

@@ -38,7 +38,7 @@ struct PomegranateTreeBannerCardView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(language == .armenian ? "ՀՈԳԵՎՈՐ ԱՃԻ ՆՌՆԵՆԻ" : (language == .russian ? "ДРЕВО ДУХОВНОГО РОСТА" : "TREE OF SPIRITUAL GROWTH"))
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(PaperFont.font(size: 10, weight: .semibold))
                             .foregroundColor(Paper.cinnabar)
                             .tracking(1.2)
                         
@@ -48,7 +48,7 @@ struct PomegranateTreeBannerCardView: View {
                                 Image(systemName: "drop.fill")
                                     .font(.system(size: 8))
                                 Text(language == .armenian ? "ՑՈՂ" : (language == .russian ? "РОСА" : "DEW"))
-                                    .font(.system(size: 8, weight: .semibold))
+                                    .font(PaperFont.font(size: 8, weight: .semibold))
                             }
                             .foregroundColor(Paper.inkSecondary)
                             .padding(.horizontal, 5)
@@ -59,7 +59,7 @@ struct PomegranateTreeBannerCardView: View {
                                 Image(systemName: "drop.triangle.fill")
                                     .font(.system(size: 8))
                                 Text(language == .armenian ? "ՍՊԱՍՈՒՄ Է" : (language == .russian ? "ЖДЕТ РОСЫ" : "THIRSTY"))
-                                    .font(.system(size: 8, weight: .semibold))
+                                    .font(PaperFont.font(size: 8, weight: .semibold))
                             }
                             .foregroundColor(Paper.gold)
                             .padding(.horizontal, 5)
@@ -79,7 +79,7 @@ struct PomegranateTreeBannerCardView: View {
                             .foregroundColor(Paper.inkSecondary)
                         
                         Text("•")
-                            .font(.system(size: 10))
+                            .font(PaperFont.font(size: 10))
                             .foregroundColor(Paper.inkTertiary)
                         
                         HStack(spacing: 3) {

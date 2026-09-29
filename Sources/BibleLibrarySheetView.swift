@@ -28,7 +28,7 @@ struct BibleLibrarySheetView: View {
             title: "Աստվածաշունչ",
             subtitleKey: "edition_armenian_subtitle",
             coverColors: [Color(hex: "6A0B1A"), Color(hex: "3B040B")],
-            accentColor: Color(hex: "D4AF37"), // Золотой
+            accentColor: Paper.gold, // Золотой
             languageName: "ՀԱՅԵՐԵՆ"
         ),
         SheetBookEdition(
@@ -37,7 +37,7 @@ struct BibleLibrarySheetView: View {
             title: "Библия",
             subtitleKey: "edition_russian_subtitle",
             coverColors: [Color(hex: "0F2347"), Color(hex: "060E1E")],
-            accentColor: Color(hex: "E5C158"), // Золотой теплый
+            accentColor: Paper.gold, // Золотой теплый
             languageName: "РУССКИЙ"
         ),
         SheetBookEdition(
@@ -46,7 +46,7 @@ struct BibleLibrarySheetView: View {
             title: "Holy Bible",
             subtitleKey: "edition_english_subtitle",
             coverColors: [Color(hex: "3E2723"), Color(hex: "1F0F0C")],
-            accentColor: Color(hex: "CFAC62"), // Латунный золотой
+            accentColor: Paper.gold, // Латунный золотой
             languageName: "ENGLISH"
         )
     ]
@@ -71,12 +71,12 @@ struct BibleLibrarySheetView: View {
                 // Заголовок шторки
                 VStack(spacing: 4) {
                     Text("library_title".localized(for: manager.appLanguage))
-                        .font(.system(size: 20, weight: .bold, design: .serif))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                        .font(PaperFont.font(size: 20, weight: .semibold))
+                        .foregroundColor(Paper.ink)
                     
                     Text("library_subtitle".localized(for: manager.appLanguage))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13, weight: .medium))
+                        .foregroundColor(Paper.inkSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, 24)
@@ -126,7 +126,7 @@ struct BibleLibrarySheetView: View {
                     let currentEdition = editions[selectedBookIndex]
                     
                     Text(currentEdition.subtitleKey.localized(for: manager.appLanguage))
-                        .font(.system(size: 14, weight: .semibold, design: .serif))
+                        .font(PaperFont.font(size: 14, weight: .semibold))
                         .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : Color(hex: "334155"))
                         .id("subtitle_\(selectedBookIndex)")
                     
@@ -136,7 +136,7 @@ struct BibleLibrarySheetView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Text("button_read_bible".localized(for: manager.appLanguage))
-                                .font(.system(size: 15, weight: .bold))
+                                .font(PaperFont.font(size: 15, weight: .semibold))
                             Image(systemName: "checkmark")
                                 .font(.system(size: 14, weight: .bold))
                         }
@@ -290,14 +290,14 @@ struct SheetBookCoverContentView: View {
                 
                 VStack(spacing: 4) {
                     Text(edition.title)
-                        .font(.system(size: 15, weight: .bold, design: .serif))
+                        .font(PaperFont.font(size: 15, weight: .semibold))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 10)
                         .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
                     
                     Text("HOLY SCRIPTURES")
-                        .font(.system(size: 6, weight: .semibold, design: .monospaced))
+                        .font(PaperFont.font(size: 6, weight: .semibold).monospacedDigit())
                         .foregroundColor(edition.accentColor.opacity(0.85))
                         .tracking(1.5)
                 }
@@ -305,7 +305,7 @@ struct SheetBookCoverContentView: View {
                 Spacer()
                 
                 Text(edition.languageName)
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .font(PaperFont.font(size: 8, weight: .semibold).monospacedDigit())
                     .foregroundColor(.white.opacity(0.6))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)

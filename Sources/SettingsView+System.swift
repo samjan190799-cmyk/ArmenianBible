@@ -17,13 +17,13 @@ extension SettingsView {
                     .foregroundColor(Color(hex: selectedTheme.colorHex))
                 
                 Text("system_storage_section_title".localized(for: selectedLanguage))
-                    .font(.system(size: 16, weight: .bold))
+                    .font(PaperFont.font(size: 16, weight: .semibold))
                     .foregroundColor(primaryTextColor)
             }
             
             Text("system_storage_section_desc".localized(for: selectedLanguage))
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
                 .lineSpacing(3)
             
             VStack(spacing: 12) {
@@ -41,12 +41,12 @@ extension SettingsView {
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("haptics_title".localized(for: selectedLanguage))
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Text("haptics_desc".localized(for: selectedLanguage))
-                            .font(.system(size: 11.5))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11.5))
+                            .foregroundColor(Paper.inkSecondary)
                             .lineLimit(2)
                     }
                     
@@ -71,22 +71,22 @@ extension SettingsView {
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color(hex: "10B981").opacity(0.15))
+                            .fill(Paper.moss.opacity(0.15))
                             .frame(width: 34, height: 34)
                         
                         Image(systemName: "faceid")
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(Color(hex: "10B981"))
+                            .foregroundColor(Paper.moss)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("biometric_lock_title".localized(for: selectedLanguage))
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Text("biometric_lock_desc".localized(for: selectedLanguage))
-                            .font(.system(size: 11.5))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11.5))
+                            .foregroundColor(Paper.inkSecondary)
                             .lineLimit(2)
                     }
                     
@@ -110,33 +110,33 @@ extension SettingsView {
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color(hex: "EF4444").opacity(0.15))
+                            .fill(Paper.cinnabar.opacity(0.15))
                             .frame(width: 34, height: 34)
                         
                         Image(systemName: "trash.fill")
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .foregroundColor(Paper.cinnabar)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
                             Text("cache_clear_title".localized(for: selectedLanguage))
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(PaperFont.font(size: 14, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                             
                             // Бейдж размера кэша
                             Text(cacheSizeDisplay)
-                                .font(.system(size: 11, weight: .bold))
+                                .font(PaperFont.font(size: 11, weight: .semibold))
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(inputFieldBgColor)
                                 .cornerRadius(6)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Paper.inkSecondary)
                         }
                         
                         Text("cache_clear_desc".localized(for: selectedLanguage))
-                            .font(.system(size: 11.5))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11.5))
+                            .foregroundColor(Paper.inkSecondary)
                             .lineLimit(2)
                     }
                     
@@ -161,11 +161,11 @@ extension SettingsView {
                         }
                     } label: {
                         Text("cache_clear_btn".localized(for: selectedLanguage))
-                            .font(.system(size: 12.5, weight: .semibold))
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .font(PaperFont.font(size: 12.5, weight: .semibold))
+                            .foregroundColor(Paper.cinnabar)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Color(hex: "EF4444").opacity(0.1))
+                            .background(Paper.cinnabar.opacity(0.1))
                             .cornerRadius(8)
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -174,11 +174,11 @@ extension SettingsView {
                 if showCacheClearedToast {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(Color(hex: "10B981"))
+                            .foregroundColor(Paper.moss)
                             .font(.system(size: 12))
                         Text("cache_cleared_toast".localized(for: selectedLanguage))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(hex: "10B981"))
+                            .font(PaperFont.font(size: 12, weight: .medium))
+                            .foregroundColor(Paper.moss)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 2)
@@ -201,12 +201,12 @@ extension SettingsView {
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("export_backup_title".localized(for: selectedLanguage))
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
                         Text("export_backup_desc".localized(for: selectedLanguage))
-                            .font(.system(size: 11.5))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11.5))
+                            .foregroundColor(Paper.inkSecondary)
                             .lineLimit(2)
                     }
                     
@@ -311,7 +311,7 @@ extension SettingsView {
         // 🔐 Секретная зона разработчика: 5 быстрых тапов → диалог PIN-кода
         HStack(spacing: 6) {
             Text("about_app_title".localized(for: selectedLanguage))
-                .font(.system(size: 15, weight: .bold))
+                .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
             Spacer()
         }
@@ -339,7 +339,7 @@ extension SettingsView {
             Text("about_app_version".localized(for: selectedLanguage))
             Spacer()
             Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.5")
-                .foregroundColor(.secondary)
+                .foregroundColor(Paper.inkSecondary)
             
             Button {
                 let g = UIImpactFeedbackGenerator(style: .light)
@@ -359,7 +359,7 @@ extension SettingsView {
             Text("about_app_developer".localized(for: selectedLanguage))
             Spacer()
             Text("Samvel")
-                .foregroundColor(.secondary)
+                .foregroundColor(Paper.inkSecondary)
         }
         .font(.system(size: 14))
     }
@@ -372,23 +372,23 @@ extension SettingsView {
             HStack(spacing: 10) {
                 Image(systemName: "crown.fill")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(Color(hex: "F59E0B"))
+                    .foregroundColor(Paper.gold)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ARMENIAN BIBLE PREMIUM")
-                        .font(.system(size: 12, weight: .black))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .font(PaperFont.font(size: 12, weight: .semibold))
+                        .foregroundColor(Paper.gold)
                     Text(premiumActiveTitle)
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11))
+                        .foregroundColor(Paper.inkSecondary)
                 }
                 Spacer()
                 Image(systemName: "checkmark.seal.fill")
-                    .foregroundColor(.green)
+                    .foregroundColor(Paper.moss)
             }
             .padding(12)
-            .background(Color(hex: "F59E0B").opacity(0.08))
+            .background(Paper.gold.opacity(0.08))
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.gold.opacity(0.25), lineWidth: 1))
         } else {
             Button {
                 let g = UIImpactFeedbackGenerator(style: .medium)
@@ -398,24 +398,24 @@ extension SettingsView {
                 HStack(spacing: 10) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(Paper.gold)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ARMENIAN BIBLE PREMIUM")
-                            .font(.system(size: 12, weight: .black))
-                            .foregroundColor(Color(hex: "F59E0B"))
+                            .font(PaperFont.font(size: 12, weight: .semibold))
+                            .foregroundColor(Paper.gold)
                         Text(unlockFeaturesButtonTitle)
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 11))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(hex: "F59E0B").opacity(0.7))
+                        .foregroundColor(Paper.gold.opacity(0.7))
                 }
                 .padding(12)
-                .background(Color(hex: "F59E0B").opacity(0.08))
+                .background(Paper.gold.opacity(0.08))
                 .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.gold.opacity(0.25), lineWidth: 1))
             }
             .buttonStyle(ScaleButtonStyle())
         }
@@ -435,7 +435,7 @@ extension SettingsView {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 12, weight: .semibold))
                 Text(restorePurchasesButtonTitle)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(PaperFont.font(size: 13, weight: .medium))
             }
             .foregroundColor(Color(hex: selectedTheme.colorHex))
             .frame(maxWidth: .infinity)
@@ -455,16 +455,16 @@ extension SettingsView {
             HStack(spacing: 8) {
                 Image(systemName: "star.fill")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(hex: "F59E0B"))
+                    .foregroundColor(Paper.gold)
                 Text(rateAppButtonTitle)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(hex: "F59E0B"))
+                    .font(PaperFont.font(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.gold)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 11)
-            .background(Color(hex: "F59E0B").opacity(0.12))
+            .background(Paper.gold.opacity(0.12))
             .cornerRadius(10)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: "F59E0B").opacity(0.35), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Paper.gold.opacity(0.35), lineWidth: 1))
         }
         .buttonStyle(ScaleButtonStyle())
     }
@@ -477,10 +477,10 @@ extension SettingsView {
                 .foregroundColor(.white)
             VStack(alignment: .leading, spacing: 2) {
                 Text(devToastMessage)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(PaperFont.font(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                 Text(devToastSubtitle)
-                    .font(.system(size: 12))
+                    .font(PaperFont.font(size: 12))
                     .foregroundColor(.white.opacity(0.85))
             }
             Spacer()
@@ -514,7 +514,7 @@ extension SettingsView {
                 devToastIcon = "crown.fill"
                 devToastMessage = "👑 Premium активирован!"
                 devToastSubtitle = "Все возможности открыты, реклама полностью отключена."
-                devToastColor = [Color(hex: "F59E0B"), Color(hex: "D97706")]
+                devToastColor = [Paper.gold, Paper.gold]
             } else {
                 devToastIcon = "hammer.fill"
                 devToastMessage = "🧪 Free-режим включен!"

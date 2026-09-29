@@ -24,11 +24,11 @@ struct NarekatsiView: View {
     }
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     
     private var cardBackgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.white
+        Paper.sheet
     }
     
     private var cardBorderColor: Color {
@@ -36,7 +36,7 @@ struct NarekatsiView: View {
     }
     
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "0F172A")
+        Paper.ink
     }
     
     private var filteredPrayers: [NarekPrayer] {
@@ -73,7 +73,7 @@ struct NarekatsiView: View {
                         Image(systemName: "doc.text.fill")
                             .font(.system(size: 13, weight: .bold))
                         Text("narek_tab_text".localized(for: manager.appLanguage))
-                            .font(.system(size: 13, weight: .bold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                     }
                     .foregroundColor(subTab == 0 ? accentColor : .secondary)
                     .frame(maxWidth: .infinity)
@@ -96,11 +96,11 @@ struct NarekatsiView: View {
                         Image(systemName: "headphones")
                             .font(.system(size: 13, weight: .bold))
                         Text("narek_tab_audio".localized(for: manager.appLanguage))
-                            .font(.system(size: 13, weight: .bold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                         
                         if audioPlayer.isPlaying {
                             Circle()
-                                .fill(Color.green)
+                                .fill(Paper.moss)
                                 .frame(width: 6, height: 6)
                         }
                     }
@@ -129,7 +129,7 @@ struct NarekatsiView: View {
                         // Поиск по 95 главам
                         HStack(spacing: 10) {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Paper.inkSecondary)
                             TextField("Поиск по 95 главам (напр. Բան Ժ или Глава 10)...", text: $searchText)
                                 .font(.system(size: 14))
                                 .foregroundColor(primaryTextColor)
@@ -139,7 +139,7 @@ struct NarekatsiView: View {
                                     searchText = ""
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(Paper.inkSecondary)
                                 }
                             }
                         }
@@ -228,12 +228,12 @@ struct NarekatsiView: View {
                         // ЗАГОЛОВОК ПЛЕЙЛИСТА
                         HStack {
                             Text("narek_playlist_title".localized(for: manager.appLanguage))
-                                .font(.system(size: 16, weight: .bold, design: .serif))
+                                .font(PaperFont.font(size: 16, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                             Spacer()
                             Text("narek_prayers_count".localized(for: manager.appLanguage))
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 12, weight: .semibold))
+                                .foregroundColor(Paper.inkSecondary)
                         }
                         .padding(.horizontal, 20)
                         
@@ -265,10 +265,10 @@ struct NarekatsiView: View {
                                             } else if isChapterLocked {
                                                 Image(systemName: "lock.fill")
                                                     .font(.system(size: 14, weight: .semibold))
-                                                    .foregroundColor(Color(hex: "F59E0B"))
+                                                    .foregroundColor(Paper.gold)
                                             } else {
                                                 Text("\(prayer.id)")
-                                                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                                    .font(PaperFont.font(size: 14, weight: .semibold).monospacedDigit())
                                                     .foregroundColor(isCurrent ? accentColor : (colorScheme == .dark ? Color(hex: "94A3B8") : Color(hex: "64748B")))
                                             }
                                         }
@@ -276,26 +276,26 @@ struct NarekatsiView: View {
                                         VStack(alignment: .leading, spacing: 3) {
                                             HStack(spacing: 6) {
                                                 Text(prayer.banNumber)
-                                                    .font(.system(size: 13, weight: .bold))
+                                                    .font(PaperFont.font(size: 13, weight: .semibold))
                                                     .foregroundColor(isCurrent ? accentColor : primaryTextColor)
                                                 
                                                 if isChapterLocked {
                                                     Text("PREMIUM")
-                                                        .font(.system(size: 9, weight: .black))
+                                                        .font(PaperFont.font(size: 9, weight: .semibold))
                                                         .foregroundColor(.black)
                                                         .padding(.horizontal, 5)
                                                         .padding(.vertical, 2)
-                                                        .background(Color(hex: "FDE68A"))
+                                                        .background(Paper.gold.opacity(0.18))
                                                         .cornerRadius(4)
                                                 } else {
                                                     Text("• \(prayer.formattedTimestamp(for: audioPlayer.voiceLanguage))")
-                                                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                                        .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
                                                         .foregroundColor(isCurrent ? accentColor.opacity(0.9) : .secondary)
                                                 }
                                             }
                                             
                                             Text(prayer.title(for: audioPlayer.voiceLanguage))
-                                                .font(.system(size: 12, weight: .medium))
+                                                .font(PaperFont.font(size: 12, weight: .medium))
                                                 .foregroundColor(isCurrent ? primaryTextColor : .secondary)
                                                 .lineLimit(1)
                                         }
@@ -305,11 +305,11 @@ struct NarekatsiView: View {
                                         if isChapterLocked {
                                             Image(systemName: "crown.fill")
                                                 .font(.system(size: 16))
-                                                .foregroundColor(Color(hex: "F59E0B"))
+                                                .foregroundColor(Paper.gold)
                                         } else {
                                             Image(systemName: isThisPlaying ? "pause.circle.fill" : (isCurrent ? "play.circle.fill" : "play.circle"))
                                                 .font(.system(size: 24))
-                                                .foregroundColor(isCurrent ? accentColor : Color.secondary.opacity(0.5))
+                                                .foregroundColor(isCurrent ? accentColor : Paper.inkSecondary.opacity(0.5))
                                         }
                                     }
                                     .padding(.horizontal, 14)
@@ -338,9 +338,9 @@ struct NarekatsiView: View {
                 if let msg = toastMessage {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
+                            .foregroundColor(Paper.moss)
                         Text(msg)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                     }
                     .padding(.horizontal, 16)
@@ -439,7 +439,7 @@ struct NarekHeroPlayerCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Text(prayer.banNumber)
-                            .font(.system(size: 18, weight: .bold, design: .serif))
+                            .font(PaperFont.font(size: 18, weight: .semibold))
                             .foregroundColor(accentColor)
                         
                         if audioPlayer.isPlaying {
@@ -448,22 +448,21 @@ struct NarekHeroPlayerCard: View {
                         
                         if isLocked {
                             Text("👑 PREMIUM")
-                                .font(.system(size: 10, weight: .heavy))
+                                .font(PaperFont.font(size: 10, weight: .semibold))
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color(hex: "FDE68A"))
+                                .background(Paper.gold.opacity(0.18))
                                 .cornerRadius(5)
-                                .luysShimmer(duration: 2.5)
                         } else if audioPlayer.isStreaming {
                             Text("narek_loading_audio".localized(for: audioPlayer.voiceLanguage))
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 11, weight: .semibold))
+                                .foregroundColor(Paper.inkSecondary)
                         }
                     }
                     
                     Text(prayer.title(for: audioPlayer.voiceLanguage))
-                        .font(.system(size: 14, weight: .medium, design: .serif))
+                        .font(PaperFont.font(size: 14, weight: .medium))
                         .foregroundColor(primaryTextColor)
                         .lineLimit(2)
                 }
@@ -492,7 +491,7 @@ struct NarekHeroPlayerCard: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(audioPlayer.voiceLanguage == .armenian ? "🇦🇲 Սոս Ս." : "🇷🇺 О. Моленко")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(PaperFont.font(size: 11, weight: .semibold))
                         Image(systemName: "chevron.down")
                             .font(.system(size: 9, weight: .bold))
                     }
@@ -522,12 +521,12 @@ struct NarekHeroPlayerCard: View {
                 
                 HStack {
                     Text(formatTime(audioPlayer.currentTime))
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
+                        .foregroundColor(Paper.inkSecondary)
                     Spacer()
                     Text(audioPlayer.duration > 0 ? formatTime(audioPlayer.duration) : "--:--")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
+                        .foregroundColor(Paper.inkSecondary)
                 }
             }
             
@@ -566,7 +565,7 @@ struct NarekHeroPlayerCard: View {
                             .fill(
                                 isLocked ?
                                 LinearGradient(
-                                    colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                    colors: [Paper.gold, Paper.gold],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ) :
@@ -577,7 +576,7 @@ struct NarekHeroPlayerCard: View {
                                 )
                             )
                             .frame(width: 58, height: 58)
-                            .shadow(color: (isLocked ? Color(hex: "F59E0B") : accentColor).opacity(0.4), radius: 8, y: 4)
+                            .shadow(color: (isLocked ? Paper.gold : accentColor).opacity(0.4), radius: 8, y: 4)
                         
                         if isLocked {
                             Image(systemName: "lock.fill")
@@ -640,7 +639,7 @@ struct NarekHeroPlayerCard: View {
                         Image(systemName: "speedometer")
                             .font(.system(size: 11, weight: .semibold))
                         Text(String(format: "%.2gx", audioPlayer.playbackRate))
-                            .font(.system(size: 11, weight: .bold))
+                            .font(PaperFont.font(size: 11, weight: .semibold))
                     }
                     .foregroundColor(audioPlayer.playbackRate != 1.0 ? accentColor : .secondary)
                     .padding(.horizontal, 8)
@@ -676,20 +675,20 @@ struct NarekHeroPlayerCard: View {
                             let mins = audioPlayer.sleepTimerRemainingSeconds / 60
                             let secs = audioPlayer.sleepTimerRemainingSeconds % 60
                             Text(String(format: "%02d:%02d", mins, secs))
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
                         } else if audioPlayer.sleepTimerOption == .endOfChapter {
                             Text(NarekSleepTimerOption.endOfChapter.title(for: audioPlayer.voiceLanguage))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(PaperFont.font(size: 11, weight: .semibold))
                         } else {
                             Text("narek_sleep_timer_title".localized(for: audioPlayer.voiceLanguage))
-                                .font(.system(size: 11, weight: .medium))
+                                .font(PaperFont.font(size: 11, weight: .medium))
                         }
                     }
-                    .foregroundColor(audioPlayer.sleepTimerOption != .off ? Color(hex: "F59E0B") : .secondary)
+                    .foregroundColor(audioPlayer.sleepTimerOption != .off ? Paper.gold : .secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .background(
-                        (audioPlayer.sleepTimerOption != .off ? Color(hex: "F59E0B").opacity(0.12) : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)))
+                        (audioPlayer.sleepTimerOption != .off ? Paper.gold.opacity(0.12) : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)))
                     )
                     .cornerRadius(8)
                 }
@@ -705,7 +704,7 @@ struct NarekHeroPlayerCard: View {
                         Image(systemName: audioPlayer.autoPlayNextChapter ? "repeat" : "stop.circle")
                             .font(.system(size: 11, weight: .semibold))
                         Text(audioPlayer.autoPlayNextChapter ? "Auto ➔" : "Stop ■")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(PaperFont.font(size: 10, weight: .semibold))
                     }
                     .foregroundColor(audioPlayer.autoPlayNextChapter ? accentColor : .secondary)
                     .padding(.horizontal, 8)
@@ -725,8 +724,8 @@ struct NarekHeroPlayerCard: View {
                         .font(.system(size: 11))
                         .foregroundColor(accentColor)
                     Text(String(format: "narek_saved_position_format".localized(for: audioPlayer.voiceLanguage), formatTime(audioPlayer.savedTimeSeconds), audioPlayer.savedPrayerId))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11, weight: .medium))
+                        .foregroundColor(Paper.inkSecondary)
                 }
                 .padding(.top, 2)
             }
@@ -734,12 +733,11 @@ struct NarekHeroPlayerCard: View {
         .padding(18)
         .background(cardBgColor)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .gleamingEdge(cornerRadius: 20)
         .livingBorder(
             colors: audioPlayer.isPlaying ? [
                 accentColor,
-                Color(hex: "F59E0B"),
-                Color(hex: "FBBF24"),
+                Paper.gold,
+                Paper.gold,
                 accentColor
             ] : [
                 accentColor.opacity(0.35),
@@ -779,7 +777,7 @@ struct NarekCardView: View {
             // Верхняя строка карточки: Номер главы + Кнопка прослушивания
             HStack {
                 Text(prayer.banNumber)
-                    .font(.system(size: 13, weight: .bold, design: .serif))
+                    .font(PaperFont.font(size: 13, weight: .semibold))
                     .foregroundColor(accentColor)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
@@ -798,21 +796,21 @@ struct NarekCardView: View {
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.white)
                             Text("narek_listen_pro".localized(for: language))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(PaperFont.font(size: 11, weight: .semibold))
                                 .foregroundColor(.white)
                         } else {
                             Image(systemName: isPlaying ? "stop.fill" : "speaker.wave.2.fill")
                                 .font(.system(size: 12, weight: .bold))
                             Text(isPlaying ? "narek_stop".localized(for: language) : "narek_listen_prayer".localized(for: language))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
                         }
                     }
                     .foregroundColor(isLocked ? .white : (isPlaying ? .white : accentColor))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(
-                        isLocked ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "F59E0B"), Color(hex: "D97706")], startPoint: .leading, endPoint: .trailing)) :
-                        (isPlaying ? AnyShapeStyle(Color.red) : AnyShapeStyle(accentColor.opacity(0.12)))
+                        isLocked ? AnyShapeStyle(LinearGradient(colors: [Paper.gold, Paper.gold], startPoint: .leading, endPoint: .trailing)) :
+                        (isPlaying ? AnyShapeStyle(Paper.cinnabar) : AnyShapeStyle(accentColor.opacity(0.12)))
                     )
                     .cornerRadius(12)
                 }
@@ -821,13 +819,13 @@ struct NarekCardView: View {
             
             // Заголовок главы
             Text(prayer.title(for: language))
-                .font(.system(size: 16, weight: .bold, design: .serif))
+                .font(PaperFont.font(size: 16, weight: .semibold))
                 .foregroundColor(primaryTextColor)
                 .fixedSize(horizontal: false, vertical: true)
             
             // Текст молитвы
             Text(prayer.text(for: language))
-                .font(.system(size: 15, weight: .regular, design: .serif))
+                .font(PaperFont.font(size: 15))
                 .foregroundColor(primaryTextColor.opacity(0.9))
                 .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
@@ -835,7 +833,7 @@ struct NarekCardView: View {
             // Нижняя панель действий (Виджет, Копировать, Поделиться)
             HStack {
                 Text("saint_gregory_narekatsi".localized(for: language))
-                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                    .font(PaperFont.font(size: 12, weight: .semibold))
                     .foregroundColor(accentColor.opacity(0.8))
                 
                 Spacer()
@@ -846,7 +844,7 @@ struct NarekCardView: View {
                     } label: {
                         Image(systemName: "square.stack.3d.up.fill")
                             .font(.system(size: 15))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     
                     Button {
@@ -854,7 +852,7 @@ struct NarekCardView: View {
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 15))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     
                     Button {
@@ -862,7 +860,7 @@ struct NarekCardView: View {
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 15))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Paper.inkSecondary)
                     }
                 }
             }

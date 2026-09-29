@@ -18,11 +18,11 @@ struct BibleSearchView: View {
     }
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     
     private var cardBgColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.03) : Color.white
+        Paper.sheet
     }
     
     private var cardBorderColor: Color {
@@ -39,7 +39,7 @@ struct BibleSearchView: View {
                     HStack {
                         HStack {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Paper.inkSecondary)
                             
                             TextField("search_placeholder".localized(for: manager.appLanguage), text: $searchQuery)
                                 .focused($isSearchFieldFocused)
@@ -57,12 +57,12 @@ struct BibleSearchView: View {
                                     searchResults = []
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(Paper.inkSecondary)
                                 }
                             }
                         }
                         .padding(10)
-                        .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                        .background(Paper.fillSubtle)
                         .cornerRadius(12)
                         
                         Button {
@@ -70,7 +70,7 @@ struct BibleSearchView: View {
                         } label: {
                             Text("search_cancel".localized(for: manager.appLanguage))
                                 .foregroundColor(accentColor)
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(PaperFont.font(size: 15, weight: .semibold))
                         }
                         .padding(.leading, 8)
                     }
@@ -86,8 +86,8 @@ struct BibleSearchView: View {
                             ProgressView()
                                 .tint(accentColor)
                             Text("search_loading".localized(for: manager.appLanguage))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 13))
+                                .foregroundColor(Paper.inkSecondary)
                             Spacer()
                         }
                     } else if searchResults.isEmpty {
@@ -97,8 +97,8 @@ struct BibleSearchView: View {
                                 .font(.system(size: 48))
                                 .foregroundColor(accentColor.opacity(0.2))
                             Text(searchQuery.count >= 2 ? "search_no_results".localized(for: manager.appLanguage) : "search_instruction".localized(for: manager.appLanguage))
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 14))
+                                .foregroundColor(Paper.inkSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
                             Spacer()
@@ -112,11 +112,11 @@ struct BibleSearchView: View {
                                     VStack(alignment: .leading, spacing: 8) {
                                         HStack {
                                             Text(result.bookName)
-                                                .font(.system(size: 14, weight: .bold, design: .serif))
+                                                .font(PaperFont.font(size: 14, weight: .semibold))
                                                 .foregroundColor(accentColor)
                                             Text("\(result.chapter):\(result.verseNumber)")
-                                                .font(.system(size: 13, weight: .bold, design: .monospaced))
-                                                .foregroundColor(.secondary)
+                                                .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
+                                                .foregroundColor(Paper.inkSecondary)
                                         }
                                         
                                         // Текст с подсветкой

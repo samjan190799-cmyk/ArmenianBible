@@ -209,11 +209,11 @@ public struct LuysHybridBannerView: View {
                 // Компактная полоса с кнопкой «Отключить рекламу в PRO»
                 HStack {
                     Text(adBadgeTitle)
-                        .font(.system(size: 9, weight: .bold))
+                        .font(PaperFont.font(size: 9, weight: .semibold))
                         .foregroundColor(.secondary.opacity(0.8))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.primary.opacity(0.06))
+                        .background(Paper.ink.opacity(0.06))
                         .cornerRadius(4)
                     
                     Spacer()
@@ -225,14 +225,14 @@ public struct LuysHybridBannerView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "crown.fill")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(Color(hex: "F59E0B"))
+                                .foregroundColor(Paper.gold)
                             Text(removeAdsTitle)
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.secondary)
+                                .font(PaperFont.font(size: 10, weight: .semibold))
+                                .foregroundColor(Paper.inkSecondary)
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color.primary.opacity(0.04))
+                        .background(Paper.ink.opacity(0.04))
                         .cornerRadius(10)
                     }
                 }
@@ -283,7 +283,7 @@ public struct LuysHybridBannerView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(creative.tag(for: language))
-                            .font(.system(size: 9, weight: .bold))
+                            .font(PaperFont.font(size: 9, weight: .semibold))
                             .foregroundColor(Color(hex: creative.colorHex))
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1.5)
@@ -291,14 +291,14 @@ public struct LuysHybridBannerView: View {
                             .cornerRadius(4)
                         
                         Text(creative.title(for: language))
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.primary)
+                            .font(PaperFont.font(size: 13, weight: .semibold))
+                            .foregroundColor(Paper.ink)
                             .lineLimit(1)
                     }
                     
                     Text(creative.subtitle(for: language))
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 11))
+                        .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
@@ -313,10 +313,10 @@ public struct LuysHybridBannerView: View {
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
+                    .fill(Paper.fillSubtle)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                            .stroke(Paper.ink.opacity(0.06), lineWidth: 1)
                     )
             )
             .padding(.horizontal, 16)

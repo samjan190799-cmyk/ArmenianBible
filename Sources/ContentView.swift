@@ -140,13 +140,13 @@ struct BiometricLockOverlayView: View {
                 
                 VStack(spacing: 10) {
                     Text("app_locked_title".localized(for: manager.appLanguage))
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                        .font(PaperFont.font(size: 22, weight: .semibold))
+                        .foregroundColor(Paper.ink)
                         .multilineTextAlignment(.center)
                     
                     Text("app_locked_subtitle".localized(for: manager.appLanguage))
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 14))
+                        .foregroundColor(Paper.inkSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                 }
@@ -162,7 +162,7 @@ struct BiometricLockOverlayView: View {
                         Image(systemName: "lock.open.fill")
                             .font(.system(size: 16, weight: .semibold))
                         Text("unlock_app_btn".localized(for: manager.appLanguage))
-                            .font(.system(size: 16, weight: .bold))
+                            .font(PaperFont.font(size: 16, weight: .semibold))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -808,7 +808,7 @@ struct PrayerSanctuaryBannerCardView: View {
 
                         if !candleManager.hasUsedDailyFreeCandle {
                             Text(language == .armenian ? "ԱՆՎՃԱՐ" : (language == .russian ? "ДАР" : "FREE"))
-                                .font(.system(size: 9, weight: .semibold))
+                                .font(PaperFont.font(size: 9, weight: .semibold))
                                 .tracking(0.8)
                                 .foregroundColor(Paper.gold)
                                 .padding(.horizontal, 6)
@@ -877,7 +877,7 @@ struct ChurchFeastsBannerCardView: View {
                     if let today = todayFeast {
                         HStack(spacing: 6) {
                             Text("today_badge".localized(for: language))
-                                .font(.system(size: 9, weight: .semibold))
+                                .font(PaperFont.font(size: 9, weight: .semibold))
                                 .tracking(0.8)
                                 .foregroundColor(Paper.cinnabar)
                                 .padding(.horizontal, 6)
@@ -991,11 +991,11 @@ struct VerseCardExportView: View {
     let colorScheme: ColorScheme
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? Color(hex: "090A0F") : Color(hex: "F8FAFC")
+        Paper.page
     }
     
     private var primaryTextColor: Color {
-        colorScheme == .dark ? .white : Color(hex: "1E293B")
+        Paper.ink
     }
     
     private var accentColor: Color {
@@ -1024,14 +1024,14 @@ struct VerseCardExportView: View {
                     .foregroundColor(secondaryTextColor.opacity(0.7))
                 
                 Text(verse.text)
-                    .font(.system(size: 42, weight: .medium, design: .serif))
+                    .font(PaperFont.font(size: 42, weight: .medium))
                     .foregroundColor(primaryTextColor)
                     .multilineTextAlignment(.center)
                     .lineSpacing(14)
                     .padding(.horizontal, 80)
                 
                 Text(verse.reference)
-                    .font(.system(size: 26, weight: .bold, design: .monospaced))
+                    .font(PaperFont.font(size: 26, weight: .semibold).monospacedDigit())
                     .foregroundColor(secondaryTextColor)
                     .padding(.top, 10)
                 
@@ -1046,10 +1046,10 @@ struct VerseCardExportView: View {
                 // Подпись приложения
                 VStack(spacing: 6) {
                     Text("widget_title".localized(for: BibleManager.shared.appLanguage))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(primaryTextColor.opacity(0.6))
                     Text("LockScreen Widget App")
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .font(PaperFont.font(size: 12, weight: .medium).monospacedDigit())
                         .foregroundColor(secondaryTextColor.opacity(0.5))
                 }
             }

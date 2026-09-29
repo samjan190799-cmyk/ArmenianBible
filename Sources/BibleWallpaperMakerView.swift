@@ -71,34 +71,34 @@ enum WallpaperTheme: String, CaseIterable, Identifiable {
     var colors: [Color] {
         switch self {
         case .ararat:
-            return [Color(hex: "060B19"), Color(hex: "172554"), Color(hex: "BE185D"), Color(hex: "F59E0B")]
+            return [Color(hex: "060B19"), Color(hex: "172554"), Color(hex: "BE185D"), Paper.gold]
         case .tatev:
             return [Color(hex: "020617"), Color(hex: "0F172A"), Color(hex: "0369A1"), Color(hex: "0D9488")]
         case .khachkar:
-            return [Color(hex: "18181B"), Color(hex: "27272A"), Color(hex: "78350F"), Color(hex: "D97706")]
+            return [Color(hex: "18181B"), Color(hex: "27272A"), Color(hex: "78350F"), Paper.gold]
         case .parchment:
-            return [Color(hex: "1C1917"), Color(hex: "44403C"), Color(hex: "78716C"), Color(hex: "B45309")]
+            return [Color(hex: "1C1917"), Color(hex: "44403C"), Color(hex: "78716C"), Paper.gold]
         case .bethlehem:
             return [Color(hex: "020617"), Color(hex: "0B132B"), Color(hex: "1E1B4B"), Color(hex: "4338CA")]
         case .sunset:
-            return [Color(hex: "1E1B4B"), Color(hex: "581C87"), Color(hex: "9D174D"), Color(hex: "EA580C")]
+            return [Color(hex: "1E1B4B"), Color(hex: "581C87"), Color(hex: "9D174D"), Paper.gold]
         case .graphite:
             return [Color(hex: "090A0F"), Color(hex: "12141C"), Color(hex: "1E2230"), Color(hex: "334155")]
         case .royal:
-            return [Color(hex: "180828"), Color(hex: "3B0764"), Color(hex: "581C87"), Color(hex: "D97706")]
+            return [Color(hex: "180828"), Color(hex: "3B0764"), Color(hex: "581C87"), Paper.gold]
         }
     }
     
     var accentColor: Color {
         switch self {
-        case .ararat: return Color(hex: "FDE047")
+        case .ararat: return Paper.gold
         case .tatev: return Color(hex: "38BDF8")
-        case .khachkar: return Color(hex: "FBBF24")
-        case .parchment: return Color(hex: "FDE68A")
+        case .khachkar: return Paper.gold
+        case .parchment: return Paper.gold.opacity(0.18)
         case .bethlehem: return Color(hex: "A5B4FC")
-        case .sunset: return Color(hex: "FDBA74")
+        case .sunset: return Paper.gold
         case .graphite: return Color(hex: "E2E8F0")
-        case .royal: return Color(hex: "FCD34D")
+        case .royal: return Paper.gold
         }
     }
 }
@@ -248,9 +248,9 @@ struct BibleWallpaperMakerView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: 18, weight: .bold))
-                                        .foregroundColor(.green)
+                                        .foregroundColor(Paper.moss)
                                     Text("wallpaper_saved_success".localized(for: manager.appLanguage))
-                                        .font(.system(size: 13, weight: .bold))
+                                        .font(PaperFont.font(size: 13, weight: .semibold))
                                         .foregroundColor(.white)
                                 }
                                 .padding(.horizontal, 16)
@@ -276,7 +276,7 @@ struct BibleWallpaperMakerView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("wallpaper_background_title".localized(for: manager.appLanguage))
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(PaperFont.font(size: 12, weight: .semibold))
                                     .foregroundColor(.white.opacity(0.7))
                                 
                                 Spacer()
@@ -292,7 +292,7 @@ struct BibleWallpaperMakerView: View {
                                         Image(systemName: showLockScreenOverlay ? "clock.fill" : "clock")
                                             .font(.system(size: 11))
                                         Text("lockscreen_preview".localized(for: manager.appLanguage))
-                                            .font(.system(size: 11, weight: .medium))
+                                            .font(PaperFont.font(size: 11, weight: .medium))
                                     }
                                     .foregroundColor(showLockScreenOverlay ? selectedTheme.accentColor : .white.opacity(0.5))
                                     .padding(.horizontal, 8)
@@ -336,7 +336,7 @@ struct BibleWallpaperMakerView: View {
                                                             .font(.system(size: 10, weight: .bold))
                                                             .foregroundColor(.black)
                                                             .padding(4)
-                                                            .background(Color(hex: "FDE68A"))
+                                                            .background(Paper.gold.opacity(0.18))
                                                             .clipShape(Circle())
                                                             .offset(x: 16, y: -16)
                                                     }
@@ -371,7 +371,7 @@ struct BibleWallpaperMakerView: View {
                                     Image(systemName: "textformat")
                                         .font(.system(size: 12))
                                     Text(selectedFont.title(for: manager.appLanguage))
-                                        .font(.system(size: 12, weight: .semibold))
+                                        .font(PaperFont.font(size: 12, weight: .semibold))
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 9))
                                 }
@@ -397,7 +397,7 @@ struct BibleWallpaperMakerView: View {
                                     Image(systemName: selectedDecor.icon)
                                         .font(.system(size: 12))
                                     Text(selectedDecor.title(for: manager.appLanguage))
-                                        .font(.system(size: 12, weight: .semibold))
+                                        .font(PaperFont.font(size: 12, weight: .semibold))
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 9))
                                 }
@@ -423,7 +423,7 @@ struct BibleWallpaperMakerView: View {
                                     Image(systemName: "globe")
                                         .font(.system(size: 12))
                                     Text(selectedLanguage.displayName)
-                                        .font(.system(size: 12, weight: .semibold))
+                                        .font(PaperFont.font(size: 12, weight: .semibold))
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 9))
                                 }
@@ -449,7 +449,7 @@ struct BibleWallpaperMakerView: View {
                                     Image(systemName: "arrow.down.to.line.circle.fill")
                                         .font(.system(size: 18, weight: .bold))
                                     Text("save_wallpaper_button".localized(for: manager.appLanguage))
-                                        .font(.system(size: 16, weight: .bold))
+                                        .font(PaperFont.font(size: 16, weight: .semibold))
                                 }
                             }
                             .foregroundColor(.black)
@@ -491,9 +491,9 @@ struct BibleWallpaperMakerView: View {
                         HStack(spacing: 5) {
                             Image(systemName: "clock.arrow.circlepath")
                             Text("auto_wallpaper_nav_button".localized(for: manager.appLanguage))
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(PaperFont.font(size: 13, weight: .semibold))
                         }
-                        .foregroundColor(Color(hex: "FDE047"))
+                        .foregroundColor(Paper.gold)
                     }
                 }
                 
@@ -628,7 +628,7 @@ struct WallpaperArtBackground: View {
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color(hex: "FDE047").opacity(0.8), Color(hex: "F59E0B").opacity(0.3), Color.clear],
+                                colors: [Paper.gold.opacity(0.8), Paper.gold.opacity(0.3), Color.clear],
                                 center: .center,
                                 startRadius: 10,
                                 endRadius: 120
@@ -720,7 +720,7 @@ struct WallpaperArtBackground: View {
                 // Резной орнамент армянского хачкара
                 ZStack {
                     RadialGradient(
-                        colors: [Color(hex: "D97706").opacity(0.35), Color.clear],
+                        colors: [Paper.gold.opacity(0.35), Color.clear],
                         center: .center,
                         startRadius: 20,
                         endRadius: 220
@@ -730,7 +730,7 @@ struct WallpaperArtBackground: View {
                     VStack(spacing: 0) {
                         Image(systemName: "cross.fill")
                             .font(.system(size: 80, weight: .ultraLight))
-                            .foregroundColor(Color(hex: "F59E0B").opacity(0.18))
+                            .foregroundColor(Paper.gold.opacity(0.18))
                     }
                 }
                 
@@ -740,7 +740,7 @@ struct WallpaperArtBackground: View {
                     Color(hex: "292524").opacity(0.3)
                     // Тонкая рамка манускрипта
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(Color(hex: "D97706").opacity(0.25), lineWidth: 1.5)
+                        .stroke(Paper.gold.opacity(0.25), lineWidth: 1.5)
                         .padding(14)
                 }
                 
@@ -768,7 +768,7 @@ struct WallpaperArtBackground: View {
                 // Закат над Армянским нагорьем
                 ZStack {
                     RadialGradient(
-                        colors: [Color(hex: "FB7185").opacity(0.45), Color(hex: "EA580C").opacity(0.2), Color.clear],
+                        colors: [Color(hex: "FB7185").opacity(0.45), Paper.gold.opacity(0.2), Color.clear],
                         center: .center,
                         startRadius: 30,
                         endRadius: 240
@@ -790,7 +790,7 @@ struct WallpaperArtBackground: View {
                 // Королевский пурпур и сияние
                 ZStack {
                     RadialGradient(
-                        colors: [Color(hex: "F59E0B").opacity(0.3), Color(hex: "7C3AED").opacity(0.2), Color.clear],
+                        colors: [Paper.gold.opacity(0.3), Color(hex: "7C3AED").opacity(0.2), Color.clear],
                         center: .top,
                         startRadius: 20,
                         endRadius: 240
@@ -846,13 +846,13 @@ struct WallpaperCanvasView: View {
                 if showOverlay {
                     VStack(spacing: 2) {
                         Text(currentDateString(for: language))
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(PaperFont.font(size: 9, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                             .shadow(color: .black.opacity(0.8), radius: 4)
                             .padding(.top, 24)
                         
                         Text("09:41")
-                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .font(PaperFont.font(size: 42, weight: .semibold))
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.8), radius: 6)
                     }
@@ -882,7 +882,7 @@ struct WallpaperCanvasView: View {
                     
                     HStack(spacing: 4) {
                         Text(verse.reference(for: language))
-                            .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                            .font(PaperFont.font(size: 9.5, weight: .semibold))
                             .foregroundColor(theme.accentColor)
                     }
                     .padding(.horizontal, 10)
@@ -984,7 +984,7 @@ struct FullResolutionWallpaperView: View {
                     // Ссылка на стих в контрастном бейдже
                     HStack(spacing: 8) {
                         Text(verse.reference(for: language))
-                            .font(.system(size: 38, weight: .bold, design: .rounded))
+                            .font(PaperFont.font(size: 38, weight: .semibold))
                             .foregroundColor(theme.accentColor)
                     }
                     .padding(.horizontal, 28)
@@ -1003,7 +1003,7 @@ struct FullResolutionWallpaperView: View {
                 // Защитная зона кнопок фонарика, камеры и Home Indicator (нижние ~320 px)
                 VStack(spacing: 4) {
                     Text("ArmenianBible")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(PaperFont.font(size: 20, weight: .semibold))
                         .foregroundColor(.white.opacity(0.4))
                         .shadow(color: .black.opacity(0.8), radius: 4)
                 }

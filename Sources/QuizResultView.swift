@@ -36,7 +36,7 @@ struct QuizResultView: View {
                             Image(systemName: "sparkles")
                                 .foregroundColor(.yellow)
                             Text("new_badge_unlocked".localized(for: language))
-                                .font(.system(size: 15, weight: .bold))
+                                .font(PaperFont.font(size: 15, weight: .semibold))
                                 .foregroundColor(.yellow)
                             Image(systemName: "sparkles")
                                 .foregroundColor(.yellow)
@@ -46,15 +46,15 @@ struct QuizResultView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: badge.icon)
                                     .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Paper.gold)
                                 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(badge.title(for: language))
-                                        .font(.system(size: 14, weight: .bold))
+                                        .font(PaperFont.font(size: 14, weight: .semibold))
                                         .foregroundColor(primaryTextColor)
                                     Text(badge.description(for: language))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
+                                        .font(PaperFont.font(size: 12))
+                                        .foregroundColor(Paper.inkSecondary)
                                 }
                                 Spacer()
                             }
@@ -66,11 +66,11 @@ struct QuizResultView: View {
                     .padding(16)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.orange.opacity(0.1))
+                            .fill(Paper.gold.opacity(0.1))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.orange.opacity(0.3), lineWidth: 1.2)
+                            .stroke(Paper.gold.opacity(0.3), lineWidth: 1.2)
                     )
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
@@ -88,16 +88,16 @@ struct QuizResultView: View {
                     }
                     
                     Text(resultTitle)
-                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .font(PaperFont.font(size: 22, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                     
                     Text("\(score) / \(total)")
-                        .font(.system(size: 36, weight: .black, design: .monospaced))
+                        .font(PaperFont.font(size: 36, weight: .semibold).monospacedDigit())
                         .foregroundColor(accentColor)
                     
                     Text("quiz_result_subtitle".localized(for: language))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 13))
+                        .foregroundColor(Paper.inkSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
                 }
@@ -125,9 +125,9 @@ struct QuizResultView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "medal.fill")
-                            .foregroundColor(.orange)
+                            .foregroundColor(Paper.gold)
                         Text("view_all_badges".localized(for: language))
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(PaperFont.font(size: 15, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                     }
                     .frame(maxWidth: .infinity)
@@ -136,7 +136,7 @@ struct QuizResultView: View {
                     .cornerRadius(16)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                            .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
                     )
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -149,7 +149,7 @@ struct QuizResultView: View {
                         Image(systemName: "square.and.arrow.up.fill")
                             .foregroundColor(secondaryAccentColor)
                         Text("quiz_share_result".localized(for: language))
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(PaperFont.font(size: 15, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                     }
                     .frame(maxWidth: .infinity)
@@ -158,7 +158,7 @@ struct QuizResultView: View {
                     .cornerRadius(16)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                            .stroke(Paper.ink.opacity(0.08), lineWidth: 1)
                     )
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -169,7 +169,7 @@ struct QuizResultView: View {
                     onRestart()
                 } label: {
                     Text("quiz_button_play_again".localized(for: language))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)

@@ -30,14 +30,14 @@ struct iPadLockScreenShowcaseView: View {
                 
                 // Дата на армянском языке
                 Text("Շաբաթ, 12 Սեպտեմբերի")
-                    .font(.system(size: 28, weight: .medium, design: .default))
+                    .font(PaperFont.font(size: 28, weight: .medium))
                     .foregroundColor(.white.opacity(0.95))
                     .shadow(color: .black.opacity(0.6), radius: 10, x: 0, y: 3)
                     .padding(.bottom, 4)
                 
                 // Крупные часы iPadOS
                 Text("09:41")
-                    .font(.system(size: 154, weight: .bold, design: .rounded))
+                    .font(PaperFont.font(size: 154, weight: .semibold))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.55), radius: 20, x: 0, y: 8)
                     .padding(.bottom, 26)
@@ -48,7 +48,7 @@ struct iPadLockScreenShowcaseView: View {
                     HStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 5) {
                             Text("Տերն իմ լույսն է և իմ փրկությունը, ումի՞ց ես վախենամ:")
-                                .font(.system(size: 17, weight: .semibold, design: .default))
+                                .font(PaperFont.font(size: 17, weight: .semibold))
                                 .foregroundColor(.white)
                                 .lineLimit(2)
                                 .lineSpacing(2)
@@ -58,10 +58,10 @@ struct iPadLockScreenShowcaseView: View {
                             
                             HStack(spacing: 4) {
                                 Text("✝")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Color(hex: "FDE047"))
+                                    .font(PaperFont.font(size: 12, weight: .semibold))
+                                    .foregroundColor(Paper.gold)
                                 Text("Սաղմոսներ 27:1")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .font(PaperFont.font(size: 13, weight: .semibold))
                                     .foregroundColor(.white.opacity(0.9))
                             }
                         }
@@ -87,9 +87,9 @@ struct iPadLockScreenShowcaseView: View {
                         VStack(spacing: 4) {
                             Image(systemName: "cross.fill")
                                 .font(.system(size: 26, weight: .semibold))
-                                .foregroundColor(Color(hex: "FDE047"))
+                                .foregroundColor(Paper.gold)
                             Text("Օրվա խոսք")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(PaperFont.font(size: 11, weight: .semibold))
                                 .foregroundColor(.white.opacity(0.95))
                         }
                     }
@@ -101,21 +101,21 @@ struct iPadLockScreenShowcaseView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 4) {
                                 Text("📅")
-                                    .font(.system(size: 12))
+                                    .font(PaperFont.font(size: 12))
                                 Text("13 Սեպտեմբերի")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color(hex: "FDE047"))
+                                    .font(PaperFont.font(size: 13, weight: .semibold))
+                                    .foregroundColor(Paper.gold)
                             }
                             
                             Text("Խաչվերացի Տոն")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(PaperFont.font(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                             
                             Spacer(minLength: 0)
                             
                             Text("Հայ Եկեղեցական Տոնացույց")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(PaperFont.font(size: 12, weight: .medium))
                                 .foregroundColor(.white.opacity(0.85))
                                 .lineLimit(1)
                         }
@@ -140,23 +140,23 @@ struct iPadLockScreenShowcaseView: View {
                     HStack {
                         Image(systemName: "cross.fill")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(Color(hex: "FDE047"))
+                            .foregroundColor(Paper.gold)
                         Text("Armenian Bible • Օրվա Համար")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                         Spacer()
                         Text("հենց նոր")
-                            .font(.system(size: 12))
+                            .font(PaperFont.font(size: 12))
                             .foregroundColor(.white.opacity(0.6))
                     }
                     
                     Text("«Ամեն ինչ կարող եմ ինձ զորացնող Քրիստոսի միջոցով:»")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     
                     Text("Փիլիպեցիս 4:13")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(hex: "FDE047"))
+                        .font(PaperFont.font(size: 13, weight: .medium))
+                        .foregroundColor(Paper.gold)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)

@@ -157,7 +157,7 @@ public struct ReviewPromptSheetView: View {
             VStack(spacing: 24) {
                 // Верхний декоративный индикатор
                 Capsule()
-                    .fill(Color.secondary.opacity(0.2))
+                    .fill(Paper.inkSecondary.opacity(0.2))
                     .frame(width: 36, height: 5)
                     .padding(.top, 10)
                 
@@ -166,7 +166,7 @@ public struct ReviewPromptSheetView: View {
                 // Иконка приложения с золотым сиянием
                 ZStack {
                     Circle()
-                        .fill(Color(hex: "F59E0B").opacity(0.15))
+                        .fill(Paper.gold.opacity(0.15))
                         .frame(width: 96, height: 96)
                         .scaleEffect(isPulsing ? 1.08 : 1.0)
                         .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: isPulsing)
@@ -175,7 +175,7 @@ public struct ReviewPromptSheetView: View {
                         .font(.system(size: 64, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                colors: [Paper.gold, Paper.gold],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -186,13 +186,13 @@ public struct ReviewPromptSheetView: View {
                 // Заголовок и пояснение
                 VStack(spacing: 8) {
                     Text(titleText)
-                        .font(.system(size: 24, weight: .bold, design: .serif))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "1E293B"))
+                        .font(PaperFont.font(size: 24, weight: .semibold))
+                        .foregroundColor(Paper.ink)
                         .multilineTextAlignment(.center)
                     
                     Text(subtitleText)
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                        .font(PaperFont.font(size: 14))
+                        .foregroundColor(Paper.inkSecondary)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
                         .padding(.horizontal, 16)
@@ -208,7 +208,7 @@ public struct ReviewPromptSheetView: View {
                         } label: {
                             Image(systemName: star <= selectedStars ? "star.fill" : "star")
                                 .font(.system(size: 32, weight: .semibold))
-                                .foregroundColor(Color(hex: "F59E0B"))
+                                .foregroundColor(Paper.gold)
                                 .scaleEffect(star == selectedStars ? 1.15 : 1.0)
                                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selectedStars)
                         }
@@ -230,20 +230,20 @@ public struct ReviewPromptSheetView: View {
                             Image(systemName: "heart.fill")
                                 .font(.system(size: 14, weight: .bold))
                             Text(rateButtonText)
-                                .font(.system(size: 16, weight: .bold))
+                                .font(PaperFont.font(size: 16, weight: .semibold))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
                             LinearGradient(
-                                colors: [Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                colors: [Paper.gold, Paper.gold],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
                         .cornerRadius(16)
-                        .shadow(color: Color(hex: "F59E0B").opacity(0.35), radius: 10, y: 5)
+                        .shadow(color: Paper.gold.opacity(0.35), radius: 10, y: 5)
                     }
                     
                     Button {
@@ -253,8 +253,8 @@ public struct ReviewPromptSheetView: View {
                         dismiss()
                     } label: {
                         Text(laterButtonText)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(PaperFont.font(size: 14, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                             .padding(.vertical, 8)
                     }
                 }

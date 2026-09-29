@@ -9,6 +9,7 @@ struct ArmenianBibleApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
+                .tint(manager.accentTheme.color)
                 .task {
                     // Предотвращение Watchdog 0x8BADF00D:
                     // Инициализация рекламных сервисов запускается строго после того,

@@ -44,7 +44,7 @@ struct PaywallView: View {
                     .offset(x: -80, y: animateGlow ? -200 : -160)
                 
                 Circle()
-                    .fill(Color(hex: "F59E0B").opacity(0.12)) // Золотое свечение
+                    .fill(Paper.gold.opacity(0.12)) // Золотое свечение
                     .frame(width: 280, height: 280)
                     .blur(radius: 90)
                     .offset(x: 100, y: animateGlow ? -100 : -140)
@@ -59,35 +59,35 @@ struct PaywallView: View {
                             Circle()
                                 .fill(
                                     LinearGradient(
-                                        colors: [Color(hex: "F59E0B").opacity(0.3), accentColor.opacity(0.2)],
+                                        colors: [Paper.gold.opacity(0.3), accentColor.opacity(0.2)],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
                                 )
                                 .frame(width: 84, height: 84)
                                 .overlay(
-                                    Circle().stroke(Color(hex: "F59E0B").opacity(0.4), lineWidth: 1.5)
+                                    Circle().stroke(Paper.gold.opacity(0.4), lineWidth: 1.5)
                                 )
                             
                             Image(systemName: "crown.fill")
                                 .font(.system(size: 40))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: [Color(hex: "FDE68A"), Color(hex: "F59E0B"), Color(hex: "D97706")],
+                                        colors: [Paper.gold.opacity(0.18), Paper.gold, Paper.gold],
                                         startPoint: .top,
                                         endPoint: .bottom
                                     )
                                 )
-                                .shadow(color: Color(hex: "F59E0B").opacity(0.5), radius: 10, y: 3)
+                                .shadow(color: Paper.gold.opacity(0.5), radius: 10, y: 3)
                         }
                         
                         Text(headerTitle)
-                            .font(.system(size: 28, weight: .bold, design: .serif))
+                            .font(PaperFont.font(size: 28, weight: .semibold))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                         
                         Text(headerSubtitle)
-                            .font(.system(size: 14, weight: .regular))
+                            .font(PaperFont.font(size: 14))
                             .foregroundColor(.white.opacity(0.7))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
@@ -97,13 +97,13 @@ struct PaywallView: View {
                     VStack(spacing: 14) {
                         featureRow(
                             icon: "slash.circle.fill",
-                            iconColor: Color(hex: "10B981"),
+                            iconColor: Paper.moss,
                             title: featureTitleAds,
                             subtitle: featureDescAds
                         )
                         featureRow(
                             icon: "app.dashed",
-                            iconColor: Color(hex: "F59E0B"),
+                            iconColor: Paper.gold,
                             title: featureTitleIcons,
                             subtitle: featureDescIcons
                         )
@@ -127,13 +127,13 @@ struct PaywallView: View {
                         )
                         featureRow(
                             icon: "paintpalette.fill",
-                            iconColor: Color(hex: "F59E0B"),
+                            iconColor: Paper.gold,
                             title: featureTitle3,
                             subtitle: featureDesc3
                         )
                         featureRow(
                             icon: "lock.square.fill",
-                            iconColor: Color(hex: "34D399"),
+                            iconColor: Paper.moss,
                             title: featureTitle4,
                             subtitle: featureDesc4
                         )
@@ -177,7 +177,7 @@ struct PaywallView: View {
                                     Image(systemName: "sparkles")
                                         .font(.system(size: 16, weight: .bold))
                                     Text(ctaButtonTitle)
-                                        .font(.system(size: 17, weight: .bold))
+                                        .font(PaperFont.font(size: 17, weight: .semibold))
                                 }
                             }
                             .foregroundColor(.white)
@@ -185,19 +185,19 @@ struct PaywallView: View {
                             .padding(.vertical, 16)
                             .background(
                                 LinearGradient(
-                                    colors: [Color(hex: "F59E0B"), Color(hex: "D97706"), accentColor],
+                                    colors: [Paper.gold, Paper.gold, accentColor],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
                             )
                             .cornerRadius(18)
-                            .shadow(color: Color(hex: "F59E0B").opacity(0.35), radius: 12, y: 4)
+                            .shadow(color: Paper.gold.opacity(0.35), radius: 12, y: 4)
                         }
                         .disabled(isPurchasing)
                         .buttonStyle(ScaleButtonStyle())
                         
                         Text(trialDisclaimer)
-                            .font(.system(size: 11))
+                            .font(PaperFont.font(size: 11))
                             .foregroundColor(.white.opacity(0.5))
                             .multilineTextAlignment(.center)
                     }
@@ -211,7 +211,7 @@ struct PaywallView: View {
                             executeRestore()
                         } label: {
                             Text(restoreTitle)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(PaperFont.font(size: 12, weight: .medium))
                                 .foregroundColor(.white.opacity(0.6))
                         }
                         
@@ -297,11 +297,11 @@ struct PaywallView: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(PaperFont.font(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                 
                 Text(subtitle)
-                    .font(.system(size: 12, weight: .regular))
+                    .font(PaperFont.font(size: 12))
                     .foregroundColor(.white.opacity(0.65))
             }
             
@@ -321,12 +321,12 @@ struct PaywallView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .stroke(isSelected ? Color(hex: "F59E0B") : Color.white.opacity(0.2), lineWidth: 2)
+                        .stroke(isSelected ? Paper.gold : Color.white.opacity(0.2), lineWidth: 2)
                         .frame(width: 22, height: 22)
                     
                     if isSelected {
                         Circle()
-                            .fill(Color(hex: "F59E0B"))
+                            .fill(Paper.gold)
                             .frame(width: 12, height: 12)
                             .transition(.scale.combined(with: .opacity))
                     }
@@ -335,17 +335,17 @@ struct PaywallView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
                         Text(plan.localizedTitle(for: language))
-                            .font(.system(size: 16, weight: .bold))
+                            .font(PaperFont.font(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                         
                         let product = subscriptionManager.products.first(where: { $0.id == plan.rawValue })
                         if let badge = plan.localizedBadge(for: language, product: product) {
                             Text(badge)
-                                .font(.system(size: 10, weight: .bold))
+                                .font(PaperFont.font(size: 10, weight: .semibold))
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(Color(hex: "FDE68A"))
+                                .background(Paper.gold.opacity(0.18))
                                 .cornerRadius(8)
                         }
                     }
@@ -354,19 +354,19 @@ struct PaywallView: View {
                 Spacer()
                 
                 Text(displayPrice(for: plan))
-                    .font(.system(size: 15, weight: .bold, design: .monospaced))
-                    .foregroundColor(isSelected ? Color(hex: "FDE68A") : .white.opacity(0.85))
+                    .font(PaperFont.font(size: 15, weight: .semibold).monospacedDigit())
+                    .foregroundColor(isSelected ? Paper.gold.opacity(0.18) : .white.opacity(0.85))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .scaleEffect(isSelected ? 1.02 : 1.0)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isSelected ? Color(hex: "F59E0B").opacity(0.12) : Color.white.opacity(0.04))
+                    .fill(isSelected ? Paper.gold.opacity(0.12) : Color.white.opacity(0.04))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(isSelected ? Color(hex: "F59E0B") : Color.white.opacity(0.08), lineWidth: isSelected ? 1.8 : 1)
+                    .stroke(isSelected ? Paper.gold : Color.white.opacity(0.08), lineWidth: isSelected ? 1.8 : 1)
             )
         }
         .buttonStyle(ScaleButtonStyle())
