@@ -253,7 +253,7 @@ extension AIGuideView {
                                 .font(PaperFont.font(size: 11, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 8, weight: .semibold))
                                 .foregroundColor(Paper.inkSecondary)
                         }
                         .padding(.horizontal, 8)
@@ -266,12 +266,12 @@ extension AIGuideView {
                 // Статус подписки и кнопка пополнения копилки вопросов
                 HStack(spacing: 6) {
                     Image(systemName: subscriptionManager.isPremium ? "crown.fill" : (subscriptionManager.accumulatedBonusAiQuestions > 0 ? "archivebox.fill" : "sparkles"))
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(Paper.gold)
                     
                     Text(headerQuestionsStatusText)
                         .font(PaperFont.font(size: 11, weight: .semibold))
-                        .foregroundColor(subscriptionManager.isPremium ? Paper.gold : .secondary)
+                        .foregroundColor(subscriptionManager.isPremium ? Paper.gold : Paper.inkSecondary)
                     
                     if !subscriptionManager.isPremium {
                         Button {
@@ -307,7 +307,7 @@ extension AIGuideView {
                         } label: {
                             HStack(spacing: 3) {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.system(size: 9, weight: .semibold))
                                 Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
                                     .font(PaperFont.font(size: 9, weight: .semibold))
                             }
@@ -384,7 +384,7 @@ extension AIGuideView {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: provider.iconName)
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 11, weight: .semibold))
                             Text(provider.displayName)
                                 .font(PaperFont.font(size: 12, weight: .semibold))
                         }
@@ -444,7 +444,7 @@ extension AIGuideView {
                             Spacer()
                             
                             Image(systemName: "arrow.up.right")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(Paper.inkSecondary.opacity(0.5))
                         }
                         .padding(.horizontal, 16)
@@ -465,7 +465,7 @@ extension AIGuideView {
             if !subscriptionManager.isPremium && subscriptionManager.remainingFreeAiQuestions == 0 {
                 HStack(spacing: 8) {
                     Image(systemName: "archivebox.fill")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(Paper.gold)
                     
                     Text(manager.appLanguage == .armenian ? "Հարցերի լիմիտը սպառվել է" : (manager.appLanguage == .russian ? "Лимит вопросов исчерпан" : "Question limit reached"))
@@ -484,7 +484,7 @@ extension AIGuideView {
                     } label: {
                         HStack(spacing: 3) {
                             Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: 9, weight: .semibold))
                             Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
                                 .font(PaperFont.font(size: 11, weight: .semibold))
                         }
@@ -532,7 +532,7 @@ extension AIGuideView {
                             .frame(width: 42, height: 42)
                         
                         Image(systemName: "paperplane.fill")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .offset(x: -1, y: 1)
                     }
@@ -672,7 +672,7 @@ extension AIGuideView {
                     Text(manager.appLanguage == .armenian ? "Կուտակել" : (manager.appLanguage == .russian ? "Копить" : "Bank"))
                         .font(PaperFont.font(size: 11, weight: .semibold))
                     Image(systemName: "play.fill")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 8, weight: .semibold))
                 }
                 .foregroundColor(Paper.onAccent)
                 .padding(.horizontal, 10)

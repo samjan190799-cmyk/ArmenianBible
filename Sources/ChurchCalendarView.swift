@@ -105,7 +105,7 @@ struct ChurchCalendarView: View {
                                     Text("\(selectedYear)")
                                         .font(PaperFont.font(size: 16, weight: .semibold).monospacedDigit())
                                     Image(systemName: "chevron.down")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.system(size: 11, weight: .semibold))
                                 }
                                 .foregroundColor(primaryTextColor)
                                 .padding(.horizontal, 12)
@@ -139,7 +139,7 @@ struct ChurchCalendarView: View {
                                         .font(PaperFont.font(size: 12.5, weight: .semibold))
                                         .foregroundColor(primaryTextColor)
                                     Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 9, weight: .bold))
+                                        .font(.system(size: 9, weight: .semibold))
                                         .foregroundColor(primaryTextColor.opacity(0.5))
                                 }
                                 .padding(.horizontal, 10)
@@ -156,7 +156,7 @@ struct ChurchCalendarView: View {
                             } label: {
                                 HStack(spacing: 5) {
                                     Image(systemName: "calendar.badge.plus")
-                                        .font(.system(size: 13, weight: .bold))
+                                        .font(.system(size: 13, weight: .semibold))
                                     Text("export_calendar_btn".localized(for: manager.appLanguage))
                                         .font(PaperFont.font(size: 12, weight: .semibold))
                                 }
@@ -202,7 +202,7 @@ struct ChurchCalendarView: View {
                                     } label: {
                                         HStack(spacing: 5) {
                                             Image(systemName: cat.icon)
-                                                .font(.system(size: 11, weight: .bold))
+                                                .font(.system(size: 11, weight: .semibold))
                                             Text(cat.localizedTitle(for: manager.appLanguage))
                                                 .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                         }
@@ -438,7 +438,7 @@ struct ChurchFeastCardView: View {
                 // Иконка и категория
                 HStack(spacing: 4) {
                     Image(systemName: feast.type.icon)
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 10, weight: .semibold))
                     Text(feast.type.localizedTitle(for: language))
                         .font(PaperFont.font(size: 11, weight: .semibold))
                 }
@@ -499,7 +499,7 @@ struct ChurchFeastCardView: View {
                 } label: {
                     HStack(spacing: 3) {
                         Image(systemName: "questionmark.circle.fill")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 18, weight: .semibold))
                     }
                     .foregroundColor(Paper.gold)
                     .padding(4)
@@ -528,7 +528,7 @@ struct ChurchFeastCardView: View {
                                 Text("feast_meaning_section_spiritual".localized(for: language))
                                     .font(PaperFont.font(size: 11, weight: .semibold))
                             }
-                            .foregroundColor(Color(hex: "8B5CF6"))
+                            .foregroundColor(Paper.plum)
                             
                             Text(feast.meaning(for: language))
                                 .font(PaperFont.font(size: 12.5))
@@ -537,7 +537,7 @@ struct ChurchFeastCardView: View {
                         }
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(hex: "8B5CF6").opacity(0.08))
+                        .background(Paper.plum.opacity(0.08))
                         .cornerRadius(10)
                     }
                     
@@ -545,17 +545,17 @@ struct ChurchFeastCardView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "book.pages.fill")
                                 .font(.system(size: 12))
-                                .foregroundColor(Color(hex: "0284C7"))
+                                .foregroundColor(Paper.lapis)
                             Text("scripture_readings_title".localized(for: language) + ":")
                                 .font(PaperFont.font(size: 12, weight: .semibold))
-                                .foregroundColor(Color(hex: "0284C7"))
+                                .foregroundColor(Paper.lapis)
                             Text(feast.scriptureReading)
                                 .font(PaperFont.font(size: 12, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                         }
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(hex: "0284C7").opacity(0.08))
+                        .background(Paper.lapis.opacity(0.08))
                         .cornerRadius(8)
                     }
                     
@@ -592,7 +592,7 @@ struct ChurchFeastCardView: View {
                         Text(isExpanded ? "collapse_details".localized(for: language) : "expand_details".localized(for: language))
                             .font(PaperFont.font(size: 12, weight: .semibold))
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 10, weight: .semibold))
                     }
                     .foregroundColor(secondaryAccentColor)
                 }
@@ -725,10 +725,10 @@ struct FeastMeaningSheetView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "book.closed.fill")
                                     .font(.system(size: 14))
-                                    .foregroundColor(Color(hex: "0284C7"))
+                                    .foregroundColor(Paper.lapis)
                                 Text("feast_meaning_section_event".localized(for: language))
                                     .font(PaperFont.font(size: 14, weight: .semibold))
-                                    .foregroundColor(Color(hex: "0284C7"))
+                                    .foregroundColor(Paper.lapis)
                             }
                             
                             Text(feast.description(for: language))
@@ -747,10 +747,10 @@ struct FeastMeaningSheetView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 14))
-                                    .foregroundColor(Color(hex: "8B5CF6"))
+                                    .foregroundColor(Paper.plum)
                                 Text("feast_meaning_section_spiritual".localized(for: language))
                                     .font(PaperFont.font(size: 14, weight: .semibold))
-                                    .foregroundColor(Color(hex: "8B5CF6"))
+                                    .foregroundColor(Paper.plum)
                             }
                             
                             Text(feast.meaning(for: language))
@@ -869,7 +869,7 @@ struct FeastMeaningSheetView: View {
                                 Image(systemName: "calendar.badge.plus")
                                 Text("export_calendar_btn".localized(for: language))
                             }
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(Paper.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)

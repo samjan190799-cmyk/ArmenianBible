@@ -156,7 +156,7 @@ struct BibleBookListView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "books.vertical.fill")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 14, weight: .semibold))
                         Text(manager.appLanguage.displayName)
                             .font(PaperFont.font(size: 14, weight: .semibold))
                     }

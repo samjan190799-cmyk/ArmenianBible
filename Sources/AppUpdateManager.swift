@@ -226,7 +226,7 @@ struct ForceUpdateOverlayView: View {
     
     private var accentGradient: LinearGradient {
         LinearGradient(
-            colors: [Color(hex: "3B82F6"), Color(hex: "1D4ED8")],
+            colors: [Paper.lapis, Paper.lapis],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -247,14 +247,14 @@ struct ForceUpdateOverlayView: View {
                 // Анимированная иконка обновления
                 ZStack {
                     Circle()
-                        .fill(Color(hex: "3B82F6").opacity(0.18))
+                        .fill(Paper.lapis.opacity(0.18))
                         .frame(width: 100, height: 100)
                         .scaleEffect(isPulsing ? 1.15 : 0.95)
                     
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "60A5FA"), Color(hex: "2563EB")],
+                                colors: [Paper.lapis, Paper.lapis],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -263,7 +263,7 @@ struct ForceUpdateOverlayView: View {
                         .shadow(color: Paper.shadow, radius: 16, y: 6)
                     
                     Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.system(size: 34, weight: .semibold))
                         .foregroundColor(.white)
                         .rotationEffect(.degrees(isPulsing ? 360 : 0))
                 }
@@ -272,14 +272,14 @@ struct ForceUpdateOverlayView: View {
                 // Бейдж версии
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 11, weight: .semibold))
                     Text(versionBadgeText)
                         .font(PaperFont.font(size: 12, weight: .semibold))
                 }
-                .foregroundColor(Color(hex: "60A5FA"))
+                .foregroundColor(Paper.lapis)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 5)
-                .background(Color(hex: "3B82F6").opacity(0.15))
+                .background(Paper.lapis.opacity(0.15))
                 .clipShape(Capsule())
                 
                 // Заголовок и описание
@@ -309,16 +309,16 @@ struct ForceUpdateOverlayView: View {
                     }
                     
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color(hex: "60A5FA"))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Paper.lapis)
                     
                     VStack(spacing: 2) {
                         Text(newVersionLabel)
                             .font(PaperFont.font(size: 11, weight: .medium))
-                            .foregroundColor(Color(hex: "60A5FA"))
+                            .foregroundColor(Paper.lapis)
                         Text(updateManager.availableVersion.isEmpty ? "2.4+" : updateManager.availableVersion)
                             .font(PaperFont.font(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: "60A5FA"))
+                            .foregroundColor(Paper.lapis)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -332,7 +332,7 @@ struct ForceUpdateOverlayView: View {
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "arrow.down.circle.fill")
-                            .font(.system(size: 17, weight: .bold))
+                            .font(.system(size: 17, weight: .semibold))
                         Text(updateButtonText)
                             .font(PaperFont.font(size: 16, weight: .semibold))
                     }
@@ -341,7 +341,7 @@ struct ForceUpdateOverlayView: View {
                     .frame(height: 52)
                     .background(
                         LinearGradient(
-                            colors: [Color(hex: "2563EB"), Color(hex: "1D4ED8")],
+                            colors: [Paper.lapis, Paper.lapis],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )

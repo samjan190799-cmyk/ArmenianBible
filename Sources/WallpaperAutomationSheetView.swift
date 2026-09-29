@@ -125,7 +125,7 @@ struct WallpaperAutomationSheetView: View {
                     .shadow(color: Paper.shadow, radius: 16, y: 6)
                 
                 Image(systemName: selectedMode == .photoShuffle ? "sparkles.rectangle.stack.fill" : "photo.stack.fill")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 32, weight: .semibold))
                     .foregroundColor(.black)
             }
             .padding(.top, 8)
@@ -223,12 +223,12 @@ struct WallpaperAutomationSheetView: View {
                             .tint(.black)
                     } else {
                         Image(systemName: "photo.badge.plus.fill")
-                            .font(.system(size: 17, weight: .bold))
+                            .font(.system(size: 17, weight: .semibold))
                     }
                     Text("\(generateBatchButtonText) (\(selectedBatchCount))")
                         .font(PaperFont.font(size: 16, weight: .semibold))
                 }
-                .foregroundColor(.black)
+                .foregroundColor(Paper.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(Paper.gold)
@@ -259,7 +259,7 @@ struct WallpaperAutomationSheetView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(Paper.moss)
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 18, weight: .semibold))
                         Text(batchSuccessMessage)
                             .font(PaperFont.font(size: 14, weight: .semibold))
                             .foregroundColor(.white)
@@ -321,7 +321,7 @@ struct WallpaperAutomationSheetView: View {
                     title: step2Title,
                     subtitle: step2Desc,
                     icon: "wand.and.stars",
-                    color: Color(hex: "38BDF8")
+                    color: Paper.lapis
                 )
                 
                 stepRow(
@@ -347,11 +347,11 @@ struct WallpaperAutomationSheetView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.up.forward.app.fill")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 16, weight: .semibold))
                     Text(openShortcutsButtonText)
                         .font(PaperFont.font(size: 16, weight: .semibold))
                 }
-                .foregroundColor(.black)
+                .foregroundColor(Paper.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(Paper.gold)
@@ -414,7 +414,7 @@ struct WallpaperAutomationSheetView: View {
         HStack(alignment: .top, spacing: 8) {
             Text(num)
                 .font(PaperFont.font(size: 11, weight: .semibold))
-                .foregroundColor(.black)
+                .foregroundColor(Paper.onAccent)
                 .frame(width: 20, height: 20)
                 .background(Paper.gold)
                 .clipShape(Circle())
@@ -436,7 +436,7 @@ struct WallpaperAutomationSheetView: View {
                     .frame(width: 36, height: 36)
                 
                 Image(systemName: icon)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(color)
             }
             

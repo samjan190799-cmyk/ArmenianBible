@@ -1057,7 +1057,7 @@ struct VerseCardExportView: View {
             .frame(width: 960, height: 960)
             .background(
                 RoundedRectangle(cornerRadius: 48, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.02) : Color.white.opacity(0.8))
+                    .fill(Paper.sheet)
                     .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.06), radius: 30, x: 0, y: 15)
             )
             .overlay(

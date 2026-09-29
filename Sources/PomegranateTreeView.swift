@@ -288,7 +288,7 @@ struct PomegranateSeedView: View {
                     
                     // Рубиновое семечко граната в форме капли
                     Image(systemName: "drop.fill")
-                        .font(.system(size: seedSize, weight: .bold))
+                        .font(.system(size: seedSize, weight: .semibold))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [Paper.cinnabar, Paper.cinnabar, Color(hex: "7F1D1D")],

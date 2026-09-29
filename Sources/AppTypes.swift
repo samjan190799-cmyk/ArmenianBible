@@ -178,22 +178,22 @@ enum AccentColorTheme: String, CaseIterable, Identifiable, Codable {
     var colorHex: String {
         switch self {
         case .cinnabar: return "B03F2F"
-        case .indigo: return "6366F1"
-        case .gold: return "D97706"
-        case .blue: return "0EA5E9"
-        case .green: return "10B981"
-        case .purple: return "8B5CF6"
+        case .indigo: return "4B4F8F"
+        case .gold: return "8F6B2A"
+        case .blue: return "3D5A8C"
+        case .green: return "4F6B45"
+        case .purple: return "6E4B73"
         }
     }
     
     var secondaryColorHex: String {
         switch self {
         case .cinnabar: return "C96A55"
-        case .indigo: return "818CF8"
-        case .gold: return "FBBF24"
-        case .blue: return "38BDF8"
-        case .green: return "34D399"
-        case .purple: return "A78BFA"
+        case .indigo: return "7A7FC4"
+        case .gold: return "B8893A"
+        case .blue: return "5F7FB5"
+        case .green: return "6F9060"
+        case .purple: return "93709A"
         }
     }
 }

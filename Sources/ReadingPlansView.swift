@@ -28,7 +28,7 @@ struct ReadingPlansCatalogView: View {
     }
     
     private var cardBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
+        Paper.fillMuted
     }
     
     var filteredPlans: [ReadingPlan] {
@@ -115,7 +115,7 @@ struct ReadingPlansCatalogView: View {
                         .shadow(color: Paper.shadow, radius: 8, y: 3)
                     
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 26, weight: .semibold))
                         .foregroundColor(.white)
                 }
                 
@@ -159,7 +159,7 @@ struct ReadingPlansCatalogView: View {
                 .cornerRadius(10)
                 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(Paper.inkSecondary.opacity(0.6))
             }
             .padding(16)
@@ -242,7 +242,7 @@ struct ReadingPlansCatalogView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "book.fill")
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 13, weight: .semibold))
                             Text("read_today_button".localized(for: language))
                                 .font(PaperFont.font(size: 13, weight: .semibold))
                         }
@@ -309,7 +309,7 @@ struct ReadingPlansCatalogView: View {
                 .font(PaperFont.font(size: 13, weight: isSelected ? .semibold : .medium))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
-                .background(isSelected ? primaryTextColor : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05)))
+                .background(isSelected ? primaryTextColor : (Paper.fillMuted))
                 .foregroundColor(isSelected ? (colorScheme == .dark ? .black : .white) : primaryTextColor)
                 .scaleEffect(isSelected ? 1.04 : 1.0)
                 .cornerRadius(20)
@@ -413,7 +413,7 @@ struct ReadingPlanDetailView: View {
     }
     
     private var cardBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
+        Paper.fillMuted
     }
     
     var isCurrentPlan: Bool {
@@ -471,7 +471,7 @@ struct ReadingPlanDetailView: View {
                         .frame(width: 58, height: 58)
                     
                     Image(systemName: plan.icon)
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 26, weight: .semibold))
                         .foregroundColor(.white)
                 }
                 
@@ -543,12 +543,12 @@ struct ReadingPlanDetailView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: isCurrentPlan ? "xmark.circle" : "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .semibold))
                 
                 Text(isCurrentPlan ?
                      "abandon_plan_button".localized(for: language) :
                      "start_plan_button".localized(for: language))
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .semibold))
             }
             .foregroundColor(isCurrentPlan ? .red : .white)
             .frame(maxWidth: .infinity)
@@ -585,13 +585,13 @@ struct ReadingPlanDetailView: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(isDone ? Paper.moss : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)))
+                                .fill(isDone ? Paper.moss : (Paper.fillMuted))
                                 .frame(width: 32, height: 32)
                                 .scaleEffect(isDone ? 1.05 : 1.0)
                             
                             if isDone {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 13, weight: .bold))
+                                    .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white)
                                     .transition(.scale.combined(with: .opacity))
                             } else {
@@ -608,7 +608,7 @@ struct ReadingPlanDetailView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\("day_label".localized(for: language)) \(day.dayNumber): \(day.title(for: language))")
                             .font(PaperFont.font(size: 14, weight: .semibold))
-                            .foregroundColor(isDone ? .secondary : primaryTextColor)
+                            .foregroundColor(isDone ? Paper.inkSecondary : primaryTextColor)
                             .strikethrough(isDone, color: .secondary)
                         
                         Text(day.desc(for: language))
@@ -628,12 +628,12 @@ struct ReadingPlanDetailView: View {
                             Text("read_button".localized(for: language))
                                 .font(PaperFont.font(size: 12, weight: .semibold))
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 10, weight: .semibold))
                         }
-                        .foregroundColor(Color(hex: "3B82F6"))
+                        .foregroundColor(Paper.lapis)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Color(hex: "3B82F6").opacity(0.1))
+                        .background(Paper.lapis.opacity(0.1))
                         .cornerRadius(8)
                     }
                     .buttonStyle(ScaleButtonStyle())

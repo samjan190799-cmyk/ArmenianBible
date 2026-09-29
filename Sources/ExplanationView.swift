@@ -100,7 +100,7 @@ struct ExplanationView: View {
                                 Text("button_generate_explanation".localized(for: manager.appLanguage))
                             }
                         }
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)

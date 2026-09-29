@@ -39,7 +39,7 @@ struct PrayerSanctuaryView: View {
                                     .frame(width: 72, height: 72)
                                 
                                 Image(systemName: "cross.fill")
-                                    .font(.system(size: 32, weight: .bold))
+                                    .font(.system(size: 32, weight: .semibold))
                                     .foregroundStyle(
                                         LinearGradient(
                                             colors: [Paper.gold.opacity(0.18), Paper.gold, Paper.gold],
@@ -78,7 +78,7 @@ struct PrayerSanctuaryView: View {
                                 Spacer()
                                 
                                 Image(systemName: "sparkles")
-                                    .font(.system(size: 16, weight: .bold))
+                                    .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.black.opacity(0.7))
                             }
                             .padding(16)
@@ -309,11 +309,11 @@ struct CandleStandCellView: View {
                     if isSelectedForWidget {
                         HStack(spacing: 3) {
                             Image(systemName: "apps.iphone")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 8, weight: .semibold))
                             Text(language == .armenian ? "ՎԻՋԵԹՈՒՄ" : (language == .russian ? "НА ВИДЖЕТЕ" : "ON WIDGET"))
                                 .font(PaperFont.font(size: 8, weight: .semibold))
                         }
-                        .foregroundColor(Paper.gold.opacity(0.18))
+                        .foregroundColor(Paper.gold)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2.5)
                         .background(Paper.gold.opacity(0.35))
@@ -402,7 +402,7 @@ struct LightCandleFormSheetView: View {
                                     } label: {
                                         HStack(spacing: 8) {
                                             Image(systemName: intent.icon)
-                                                .font(.system(size: 13, weight: .bold))
+                                                .font(.system(size: 13, weight: .semibold))
                                             Text(intent.title(for: language))
                                                 .font(PaperFont.font(size: 12, weight: .semibold))
                                                 .lineLimit(1)
@@ -411,7 +411,7 @@ struct LightCandleFormSheetView: View {
                                         .padding(.vertical, 12)
                                         .padding(.horizontal, 8)
                                         .background(selectedIntention == intent ? Paper.gold.opacity(0.2) : Color.white.opacity(0.05))
-                                        .foregroundColor(selectedIntention == intent ? Paper.gold.opacity(0.18) : .white)
+                                        .foregroundColor(selectedIntention == intent ? Paper.gold : .white)
                                         .cornerRadius(12)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 12)
@@ -481,7 +481,7 @@ struct LightCandleFormSheetView: View {
                                         Text(canonicalPrayerButtonTitle)
                                             .font(PaperFont.font(size: 11, weight: .semibold))
                                     }
-                                    .foregroundColor(Paper.gold.opacity(0.18))
+                                    .foregroundColor(Paper.gold)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
                                     .background(Paper.gold.opacity(0.15))
@@ -580,7 +580,7 @@ struct LightCandleFormSheetView: View {
                                     } else {
                                         if selectedTier == .rewarded && !SubscriptionManager.shared.isPremium {
                                             Image(systemName: "play.rectangle.fill")
-                                                .font(.system(size: 18, weight: .bold))
+                                                .font(.system(size: 18, weight: .semibold))
                                                 .foregroundColor(.black)
                                         } else {
                                             FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
@@ -613,7 +613,7 @@ struct LightCandleFormSheetView: View {
                                         .foregroundColor(Paper.gold)
                                     Text(error)
                                         .font(PaperFont.font(size: 12, weight: .medium))
-                                        .foregroundColor(Paper.gold.opacity(0.18))
+                                        .foregroundColor(Paper.gold)
                                         .multilineTextAlignment(.center)
                                 }
                                 .padding(.top, 4)
@@ -689,7 +689,7 @@ struct LightCandleFormSheetView: View {
             HStack(spacing: 12) {
                 Image(systemName: selectedTier == tier ? "checkmark.circle.fill" : "circle")
                     .foregroundColor(selectedTier == tier ? Paper.gold : .white.opacity(0.3))
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 18, weight: .semibold))
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(tier.title(for: language))
@@ -904,7 +904,7 @@ struct CandleDetailPrayerSheetView: View {
                             Image(systemName: candle.intention.icon)
                             Text(candle.intention.title(for: language))
                         }
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(Paper.gold)
                         
                         // Панель таяния свечи
@@ -949,7 +949,7 @@ struct CandleDetailPrayerSheetView: View {
                                 } label: {
                                     HStack(spacing: 5) {
                                         Image(systemName: isSimulatingMelting ? "sparkles" : "play.fill")
-                                            .font(.system(size: 10, weight: .bold))
+                                            .font(.system(size: 10, weight: .semibold))
                                         Text(watchMeltingText)
                                             .font(PaperFont.font(size: 11, weight: .semibold))
                                     }
@@ -971,7 +971,7 @@ struct CandleDetailPrayerSheetView: View {
                                     } label: {
                                         HStack(spacing: 4) {
                                             Image(systemName: "arrow.counterclockwise")
-                                                .font(.system(size: 10, weight: .bold))
+                                                .font(.system(size: 10, weight: .semibold))
                                             Text(resetText)
                                                 .font(PaperFont.font(size: 11, weight: .semibold))
                                         }
@@ -1038,13 +1038,13 @@ struct CandleDetailPrayerSheetView: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: isCurrentWidgetCandle ? "checkmark.circle.fill" : "apps.iphone")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.system(size: 15, weight: .semibold))
                                 Text(isCurrentWidgetCandle
                                      ? (language == .armenian ? "✓ Ցուցադրվում է վիջեթում" : (language == .russian ? "✓ Выбрана для виджета" : "✓ Active on Widget"))
                                      : (language == .armenian ? "Տեղադրել վիջեթում" : (language == .russian ? "Поставить на виджет" : "Set for Widget")))
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 14, weight: .semibold))
                             }
-                            .foregroundColor(isCurrentWidgetCandle ? Paper.gold.opacity(0.18) : .white)
+                            .foregroundColor(isCurrentWidgetCandle ? Paper.gold : .white)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
                             .background(
@@ -1075,11 +1075,7 @@ struct CandleDetailPrayerSheetView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(
-                                    LinearGradient(
-                                        colors: [Paper.gold.opacity(0.18), Paper.gold],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                    Paper.gold
                                 )
                                 .cornerRadius(14)
                         }

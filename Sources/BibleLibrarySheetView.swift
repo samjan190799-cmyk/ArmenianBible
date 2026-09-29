@@ -138,7 +138,7 @@ struct BibleLibrarySheetView: View {
                             Text("button_read_bible".localized(for: manager.appLanguage))
                                 .font(PaperFont.font(size: 15, weight: .semibold))
                             Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.system(size: 14, weight: .semibold))
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 36)

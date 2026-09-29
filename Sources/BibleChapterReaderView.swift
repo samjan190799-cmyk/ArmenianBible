@@ -89,7 +89,7 @@ struct BibleChapterReaderView: View {
                         Text("\(book.name) \(currentChapterIndex + 1)")
                             .font(PaperFont.font(size: 17, weight: .semibold))
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundColor(Paper.ink)
                 }
@@ -148,7 +148,7 @@ struct BibleChapterReaderView: View {
                         }
                     } label: {
                         Image(systemName: "character.book.closed.fill")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(accentColor)
                     }
                     
@@ -182,7 +182,7 @@ struct BibleChapterReaderView: View {
                         }
                     } label: {
                         Image(systemName: "textformat.size")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(accentColor)
                     }
                 }

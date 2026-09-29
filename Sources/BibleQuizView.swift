@@ -191,7 +191,7 @@ struct BibleQuizView: View {
                                 if manager.quizTimerDuration > 0 && !showAnswerDetails {
                                     HStack(spacing: 8) {
                                         Image(systemName: "timer")
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(.system(size: 13, weight: .semibold))
                                             .foregroundColor(timeRemaining <= 5 ? .red : secondaryAccentColor)
                                         
                                         GeometryReader { geo in
@@ -226,7 +226,7 @@ struct BibleQuizView: View {
                                     HStack(spacing: 6) {
                                         if question.isAIGenerated {
                                             Image(systemName: "sparkles")
-                                                .font(.system(size: 11, weight: .bold))
+                                                .font(.system(size: 11, weight: .semibold))
                                                 .foregroundColor(Paper.gold)
                                             Text("\("quiz_badge_ai_generated".localized(for: manager.appLanguage)) • \(question.aiProviderName ?? QuizAIEngine.shared.currentProviderDisplayName)")
                                                 .font(PaperFont.font(size: 11, weight: .semibold))
@@ -315,17 +315,7 @@ struct BibleQuizView: View {
                                                 }
                                             }
                                             .padding(16)
-                                            .background(
-                                                ZStack {
-                                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                        .fill(optionBgColor(isSelected: isSelected, isCorrect: isCorrect))
-                                                }
-                                            )
-                                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                    .stroke(optionBorderColor(isSelected: isSelected, isCorrect: isCorrect), lineWidth: 1.2)
-                                            )
+                                            .paperSheet(cornerRadius: 16)
                                         }
                                         .disabled(selectedAnswerIndex != nil)
                                         .buttonStyle(ScaleButtonStyle())
@@ -349,7 +339,7 @@ struct BibleQuizView: View {
                                                     Text(question.verseRef(for: manager.appLanguage))
                                                         .font(PaperFont.font(size: 13, weight: .semibold).monospacedDigit())
                                                     Image(systemName: "arrow.up.right")
-                                                        .font(.system(size: 10, weight: .bold))
+                                                        .font(.system(size: 10, weight: .semibold))
                                                 }
                                                 .foregroundColor(secondaryAccentColor)
                                                 .padding(.horizontal, 10)

@@ -11,7 +11,7 @@ extension SettingsView {
             // Заголовок
             HStack(spacing: 8) {
                 Image(systemName: "headphones")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(selectedTheme.color)
                 
                 Text("narek_audio_settings_title".localized(for: selectedLanguage))
@@ -84,11 +84,11 @@ extension SettingsView {
                                     .padding(.vertical, 8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(isSelected ? selectedTheme.color : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                            .fill(isSelected ? selectedTheme.color : (Paper.fillMuted))
                                     )
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .stroke(isSelected ? Color.clear : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)), lineWidth: 1)
+                                            .stroke(isSelected ? Color.clear : (Paper.fillMuted), lineWidth: 1)
                                     )
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -152,11 +152,11 @@ extension SettingsView {
                                         .padding(.vertical, 8)
                                         .background(
                                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .fill(isSelected ? Paper.gold : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.04)))
+                                                .fill(isSelected ? Paper.gold : (Paper.fillMuted))
                                         )
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .stroke(isSelected ? Color.clear : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)), lineWidth: 1)
+                                                .stroke(isSelected ? Color.clear : (Paper.fillMuted), lineWidth: 1)
                                         )
                                 }
                                 .buttonStyle(ScaleButtonStyle())

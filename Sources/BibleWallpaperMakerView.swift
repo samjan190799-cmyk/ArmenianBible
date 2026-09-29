@@ -247,7 +247,7 @@ struct BibleWallpaperMakerView: View {
                             VStack {
                                 HStack(spacing: 10) {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 18, weight: .bold))
+                                        .font(.system(size: 18, weight: .semibold))
                                         .foregroundColor(Paper.moss)
                                     Text("wallpaper_saved_success".localized(for: manager.appLanguage))
                                         .font(PaperFont.font(size: 13, weight: .semibold))
@@ -333,8 +333,8 @@ struct BibleWallpaperMakerView: View {
                                                     
                                                     if isPro && !subscriptionManager.isPremium {
                                                         Image(systemName: "crown.fill")
-                                                            .font(.system(size: 10, weight: .bold))
-                                                            .foregroundColor(.black)
+                                                            .font(.system(size: 10, weight: .semibold))
+                                                            .foregroundColor(Paper.gold)
                                                             .padding(4)
                                                             .background(Paper.gold.opacity(0.18))
                                                             .clipShape(Circle())
@@ -447,7 +447,7 @@ struct BibleWallpaperMakerView: View {
                                         .tint(.black)
                                 } else {
                                     Image(systemName: "arrow.down.to.line.circle.fill")
-                                        .font(.system(size: 18, weight: .bold))
+                                        .font(.system(size: 18, weight: .semibold))
                                     Text("save_wallpaper_button".localized(for: manager.appLanguage))
                                         .font(PaperFont.font(size: 16, weight: .semibold))
                                 }
@@ -730,7 +730,7 @@ struct WallpaperArtBackground: View {
                     VStack(spacing: 0) {
                         Image(systemName: "cross.fill")
                             .font(.system(size: 80, weight: .ultraLight))
-                            .foregroundColor(Paper.gold.opacity(0.18))
+                            .foregroundColor(Paper.gold)
                     }
                 }
                 
@@ -756,7 +756,7 @@ struct WallpaperArtBackground: View {
                     
                     VStack {
                         Image(systemName: "sparkle")
-                            .font(.system(size: 38, weight: .bold))
+                            .font(.system(size: 38, weight: .semibold))
                             .foregroundColor(Color(hex: "E0E7FF"))
                             .shadow(color: Color(hex: "818CF8"), radius: 12)
                             .padding(.top, 40)
@@ -865,7 +865,7 @@ struct WallpaperCanvasView: View {
                 VStack(spacing: 8) {
                     if decor != .minimal {
                         Image(systemName: decor.icon)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(theme.accentColor)
                             .shadow(color: .black.opacity(0.9), radius: 4, x: 0, y: 2)
                     }
@@ -966,7 +966,7 @@ struct FullResolutionWallpaperView: View {
                 VStack(spacing: 28) {
                     if decor != .minimal {
                         Image(systemName: decor.icon)
-                            .font(.system(size: 64, weight: .bold))
+                            .font(.system(size: 64, weight: .semibold))
                             .foregroundColor(theme.accentColor)
                             .shadow(color: .black.opacity(0.95), radius: 14, x: 0, y: 6)
                     }

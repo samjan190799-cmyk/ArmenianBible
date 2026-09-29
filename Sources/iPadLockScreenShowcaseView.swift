@@ -139,7 +139,7 @@ struct iPadLockScreenShowcaseView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "cross.fill")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(Paper.gold)
                         Text("Armenian Bible • Օրվա Համար")
                             .font(PaperFont.font(size: 13, weight: .semibold))

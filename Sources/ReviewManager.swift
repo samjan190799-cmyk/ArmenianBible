@@ -172,7 +172,7 @@ public struct ReviewPromptSheetView: View {
                         .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: isPulsing)
                     
                     Image(systemName: "star.circle.fill")
-                        .font(.system(size: 64, weight: .bold))
+                        .font(.system(size: 64, weight: .semibold))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [Paper.gold, Paper.gold],
@@ -228,7 +228,7 @@ public struct ReviewPromptSheetView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "heart.fill")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.system(size: 14, weight: .semibold))
                             Text(rateButtonText)
                                 .font(PaperFont.font(size: 16, weight: .semibold))
                         }

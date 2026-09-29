@@ -32,24 +32,8 @@ struct PaywallView: View {
     
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            // MARK: - Премиальный Темный Фон с Градиентом
-            Color(hex: "08090E").ignoresSafeArea()
-            
-            // Динамические световые пятна (Glow Orbs)
-            ZStack {
-                Circle()
-                    .fill(accentColor.opacity(0.18))
-                    .frame(width: 320, height: 320)
-                    .blur(radius: 80)
-                    .offset(x: -80, y: animateGlow ? -200 : -160)
-                
-                Circle()
-                    .fill(Paper.gold.opacity(0.12)) // Золотое свечение
-                    .frame(width: 280, height: 280)
-                    .blur(radius: 90)
-                    .offset(x: 100, y: animateGlow ? -100 : -140)
-            }
-            .ignoresSafeArea()
+            // MARK: - Фон: тёплая бумага
+            PaperBackground()
             
             ScrollView(showsIndicators: true) {
                 VStack(spacing: 22) {
@@ -57,13 +41,7 @@ struct PaywallView: View {
                     VStack(spacing: 12) {
                         ZStack {
                             Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Paper.gold.opacity(0.3), accentColor.opacity(0.2)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .fill(Paper.gold.opacity(0.10))
                                 .frame(width: 84, height: 84)
                                 .overlay(
                                     Circle().stroke(Paper.gold.opacity(0.4), lineWidth: 1.5)
@@ -71,24 +49,17 @@ struct PaywallView: View {
                             
                             Image(systemName: "crown.fill")
                                 .font(.system(size: 40))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [Paper.gold.opacity(0.18), Paper.gold, Paper.gold],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .shadow(color: Paper.shadow, radius: 10, y: 3)
+                                .foregroundColor(Paper.gold)
                         }
                         
                         Text(headerTitle)
                             .font(PaperFont.font(size: 28, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.ink)
                             .multilineTextAlignment(.center)
                         
                         Text(headerSubtitle)
                             .font(PaperFont.font(size: 14))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(Paper.inkSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
@@ -109,19 +80,19 @@ struct PaywallView: View {
                         )
                         featureRow(
                             icon: "brain.head.profile",
-                            iconColor: Color(hex: "8B5CF6"),
+                            iconColor: Paper.plum,
                             title: featureTitleQuiz,
                             subtitle: featureDescQuiz
                         )
                         featureRow(
                             icon: "headphones",
-                            iconColor: Color(hex: "38BDF8"),
+                            iconColor: Paper.lapis,
                             title: featureTitle1,
                             subtitle: featureDesc1
                         )
                         featureRow(
                             icon: "sparkles",
-                            iconColor: Color(hex: "A855F7"),
+                            iconColor: Paper.plum,
                             title: featureTitle2,
                             subtitle: featureDesc2
                         )
@@ -139,20 +110,13 @@ struct PaywallView: View {
                         )
                         featureRow(
                             icon: "heart.fill",
-                            iconColor: Color(hex: "EC4899"),
+                            iconColor: Paper.plum,
                             title: featureTitle5,
                             subtitle: featureDesc5
                         )
                     }
                     .padding(18)
-                    .background(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(Color.white.opacity(0.04))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                    )
+                    .paperSheet(cornerRadius: 22)
                     .padding(.horizontal, 20)
                     
                     // MARK: - Выбор Тарифного Плана
@@ -172,24 +136,18 @@ struct PaywallView: View {
                         } label: {
                             HStack(spacing: 10) {
                                 if isPurchasing {
-                                    ProgressView().tint(.white)
+                                    ProgressView().tint(Paper.onAccent)
                                 } else {
                                     Image(systemName: "sparkles")
-                                        .font(.system(size: 16, weight: .bold))
+                                        .font(.system(size: 16, weight: .semibold))
                                     Text(ctaButtonTitle)
                                         .font(PaperFont.font(size: 17, weight: .semibold))
                                 }
                             }
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    colors: [Paper.gold, Paper.gold, accentColor],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .background(accentColor)
                             .cornerRadius(18)
                             .shadow(color: Paper.shadow, radius: 12, y: 4)
                         }
@@ -198,7 +156,7 @@ struct PaywallView: View {
                         
                         Text(trialDisclaimer)
                             .font(PaperFont.font(size: 11))
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(Paper.inkTertiary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, 20)
@@ -212,22 +170,22 @@ struct PaywallView: View {
                         } label: {
                             Text(restoreTitle)
                                 .font(PaperFont.font(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(Paper.inkSecondary)
                         }
                         
                         Text("•")
-                            .foregroundColor(.white.opacity(0.3))
+                            .foregroundColor(Paper.inkTertiary)
                         
                         Link(termsTitle, destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
+                            .font(PaperFont.font(size: 12, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                         
                         Text("•")
-                            .foregroundColor(.white.opacity(0.3))
+                            .foregroundColor(Paper.inkTertiary)
                         
                         Link(privacyTitle, destination: URL(string: "https://samjan190799-cmyk.github.io/ArmenianBible/privacy.html")!)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
+                            .font(PaperFont.font(size: 12, weight: .medium))
+                            .foregroundColor(Paper.inkSecondary)
                     }
                     .padding(.bottom, 36)
                     .padding(.top, 6)
@@ -245,10 +203,10 @@ struct PaywallView: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 32, weight: .semibold))
                     .symbolRenderingMode(.palette)
-                    .foregroundStyle(Color.white.opacity(0.9), Color.white.opacity(0.25))
-                    .background(Circle().fill(Color(hex: "08090E").opacity(0.8)))
+                    .foregroundStyle(Paper.inkSecondary, Paper.fillMuted)
+                    .background(Circle().fill(Paper.page.opacity(0.9)))
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
+                    .overlay(Circle().stroke(Paper.hairline, lineWidth: 1))
             }
             .frame(width: 44, height: 44)
             .padding(.top, 14)
@@ -298,11 +256,11 @@ struct PaywallView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(PaperFont.font(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                
+                    .foregroundColor(Paper.ink)
+
                 Text(subtitle)
                     .font(PaperFont.font(size: 12))
-                    .foregroundColor(.white.opacity(0.65))
+                    .foregroundColor(Paper.inkSecondary)
             }
             
             Spacer()
@@ -321,7 +279,7 @@ struct PaywallView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .stroke(isSelected ? Paper.gold : Color.white.opacity(0.2), lineWidth: 2)
+                        .stroke(isSelected ? Paper.gold : Paper.inkTertiary, lineWidth: 1.5)
                         .frame(width: 22, height: 22)
                     
                     if isSelected {
@@ -336,13 +294,13 @@ struct PaywallView: View {
                     HStack(spacing: 8) {
                         Text(plan.localizedTitle(for: language))
                             .font(PaperFont.font(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.ink)
                         
                         let product = subscriptionManager.products.first(where: { $0.id == plan.rawValue })
                         if let badge = plan.localizedBadge(for: language, product: product) {
                             Text(badge)
                                 .font(PaperFont.font(size: 10, weight: .semibold))
-                                .foregroundColor(.black)
+                                .foregroundColor(Paper.gold)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(Paper.gold.opacity(0.18))
@@ -355,18 +313,18 @@ struct PaywallView: View {
                 
                 Text(displayPrice(for: plan))
                     .font(PaperFont.font(size: 15, weight: .semibold).monospacedDigit())
-                    .foregroundColor(isSelected ? Paper.gold.opacity(0.18) : .white.opacity(0.85))
+                    .foregroundColor(isSelected ? Paper.gold : Paper.ink)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .scaleEffect(isSelected ? 1.02 : 1.0)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isSelected ? Paper.gold.opacity(0.12) : Color.white.opacity(0.04))
+                    .fill(isSelected ? Paper.gold.opacity(0.10) : Paper.sheet)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(isSelected ? Paper.gold : Color.white.opacity(0.08), lineWidth: isSelected ? 1.8 : 1)
+                    .stroke(isSelected ? Paper.gold : Paper.hairline, lineWidth: isSelected ? 1.5 : 1)
             )
         }
         .buttonStyle(ScaleButtonStyle())

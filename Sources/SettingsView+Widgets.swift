@@ -126,7 +126,7 @@ extension SettingsView {
                 // Заголовок секции предпросмотра
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(selectedTheme.color)
                     Text("standby_preview_title".localized(for: selectedLanguage))
                         .font(PaperFont.font(size: 14, weight: .semibold))
@@ -162,7 +162,7 @@ extension SettingsView {
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                                 .fill(
                                                     LinearGradient(
-                                                        colors: [selectedTheme.color, Color(hex: selectedTheme.secondaryColorHex)],
+                                                        colors: [selectedTheme.color, selectedTheme.color],
                                                         startPoint: .topLeading,
                                                         endPoint: .bottomTrailing
                                                     )
@@ -211,7 +211,7 @@ extension SettingsView {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "shuffle")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 11, weight: .semibold))
                             Text("button_random_verse".localized(for: selectedLanguage))
                                 .font(PaperFont.font(size: 11.5, weight: .semibold))
                         }
@@ -241,7 +241,7 @@ extension SettingsView {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Image(systemName: "quote.opening")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(selectedWidgetStyle.quoteIconColor(for: colorScheme, accentHex: selectedTheme.colorHex))
                                 
                                 Spacer()
@@ -275,7 +275,7 @@ extension SettingsView {
                                 Spacer()
                                 
                                 Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.system(size: 11, weight: .semibold))
                                     .padding(6)
                                     .background(selectedWidgetStyle.buttonBackground(for: colorScheme))
                                     .foregroundColor(selectedWidgetStyle.secondaryTextColor(for: colorScheme, accentHex: selectedTheme.colorHex))
@@ -295,7 +295,7 @@ extension SettingsView {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Image(systemName: "quote.opening")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(selectedWidgetStyle.quoteIconColor(for: colorScheme, accentHex: selectedTheme.colorHex))
                                 
                                 Spacer()
@@ -318,7 +318,7 @@ extension SettingsView {
                             HStack(spacing: 6) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "arrow.clockwise")
-                                        .font(.system(size: 10, weight: .bold))
+                                        .font(.system(size: 10, weight: .semibold))
                                     Text("widget_next_verse_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                         .font(.system(size: 11, weight: .bold, design: selectedWidgetStyle.fontDesign))
                                         .lineLimit(1)
@@ -331,7 +331,7 @@ extension SettingsView {
                                 
                                 HStack(spacing: 4) {
                                     Image(systemName: "heart")
-                                        .font(.system(size: 10, weight: .bold))
+                                        .font(.system(size: 10, weight: .semibold))
                                     Text("widget_fav_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                         .font(.system(size: 11, weight: .bold, design: selectedWidgetStyle.fontDesign))
                                         .lineLimit(1)
@@ -344,7 +344,7 @@ extension SettingsView {
                                 
                                 HStack(spacing: 4) {
                                     Image(systemName: "hands.sparkles.fill")
-                                        .font(.system(size: 10, weight: .bold))
+                                        .font(.system(size: 10, weight: .semibold))
                                     Text("widget_pray_todo_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                         .font(.system(size: 11, weight: .bold, design: selectedWidgetStyle.fontDesign))
                                         .lineLimit(1)
@@ -369,7 +369,7 @@ extension SettingsView {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Image(systemName: "quote.opening")
-                                    .font(.system(size: 18, weight: .bold))
+                                    .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(selectedWidgetStyle.quoteIconColor(for: colorScheme, accentHex: selectedTheme.colorHex))
                                 
                                 Spacer()
@@ -392,7 +392,7 @@ extension SettingsView {
                             HStack(spacing: 8) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "arrow.clockwise")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.system(size: 11, weight: .semibold))
                                     Text("widget_next_verse_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                         .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
                                         .lineLimit(1)
@@ -405,7 +405,7 @@ extension SettingsView {
                                 
                                 HStack(spacing: 4) {
                                     Image(systemName: "heart")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.system(size: 11, weight: .semibold))
                                     Text("widget_fav_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                         .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
                                         .lineLimit(1)
@@ -418,7 +418,7 @@ extension SettingsView {
                                 
                                 HStack(spacing: 4) {
                                     Image(systemName: "hands.sparkles.fill")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.system(size: 11, weight: .semibold))
                                     Text("widget_pray_todo_btn".localized(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                         .font(.system(size: 12, weight: .bold, design: selectedWidgetStyle.fontDesign))
                                         .lineLimit(1)
@@ -543,7 +543,7 @@ extension SettingsView {
                                                 .foregroundColor(isSelected ? selectedTheme.color : primaryTextColor)
                                             Text(design.title(for: selectedLanguage))
                                                 .font(PaperFont.font(size: 9, weight: .medium))
-                                                .foregroundColor(isSelected ? selectedTheme.color : .secondary)
+                                                .foregroundColor(isSelected ? selectedTheme.color : Paper.inkSecondary)
                                         }
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 7)
@@ -647,7 +647,7 @@ extension SettingsView {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 6) {
                             Image(systemName: "flame.fill")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(Paper.gold)
                             Text(selectedLanguage == .armenian ? "«Աղոթքի մոմ» վիջեթի ընտրություն" : (selectedLanguage == .russian ? "Свеча для виджета «Молитвенная свеча»" : "Candle for 'Prayer Candle' Widget"))
                                 .font(PaperFont.font(size: 13, weight: .semibold))
@@ -662,14 +662,14 @@ extension SettingsView {
                                 } label: {
                                     HStack(spacing: 6) {
                                         Image(systemName: isAutoSelected ? "checkmark.circle.fill" : "sparkles")
-                                            .font(.system(size: 11, weight: .bold))
+                                            .font(.system(size: 11, weight: .semibold))
                                         Text(selectedLanguage == .armenian ? "🔥 Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "🔥 Последняя (Авто)" : "🔥 Latest (Auto)"))
                                             .font(PaperFont.font(size: 12, weight: isAutoSelected ? .semibold : .medium))
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
                                     .background(isAutoSelected ? Paper.gold.opacity(0.25) : inputFieldBgColor)
-                                    .foregroundColor(isAutoSelected ? Paper.gold.opacity(0.18) : .secondary)
+                                    .foregroundColor(isAutoSelected ? Paper.gold : Paper.inkSecondary)
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
@@ -686,7 +686,7 @@ extension SettingsView {
                                     } label: {
                                         HStack(spacing: 6) {
                                             Image(systemName: isSelected ? "checkmark.circle.fill" : candle.intention.icon)
-                                                .font(.system(size: 11, weight: .bold))
+                                                .font(.system(size: 11, weight: .semibold))
                                             Text(name)
                                                 .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                                 .lineLimit(1)
@@ -697,7 +697,7 @@ extension SettingsView {
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(isSelected ? Paper.gold.opacity(0.25) : inputFieldBgColor)
-                                        .foregroundColor(isSelected ? Paper.gold.opacity(0.18) : primaryTextColor)
+                                        .foregroundColor(isSelected ? Paper.gold : primaryTextColor)
                                         .cornerRadius(10)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 10)
@@ -734,13 +734,13 @@ extension SettingsView {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: isWidgetsUpdatedSuccess ? "checkmark.circle.fill" : "arrow.triangle.2.circlepath")
-                            .font(.system(size: 14.5, weight: .bold))
+                            .font(.system(size: 14.5, weight: .semibold))
                         Text(isWidgetsUpdatedSuccess ?
                              (selectedLanguage == .armenian ? "✓ Բոլոր վիջեթները թարմացված են" :
                               selectedLanguage == .russian ? "✓ Все виджеты успешно обновлены" :
                               "✓ All Widgets Updated Successfully") :
                              "update_widgets_now_button".localized(for: selectedLanguage))
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 14, weight: .semibold))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -748,7 +748,7 @@ extension SettingsView {
                     .background(
                         isWidgetsUpdatedSuccess ?
                             LinearGradient(colors: [Paper.moss, Paper.moss], startPoint: .leading, endPoint: .trailing) :
-                            LinearGradient(colors: [selectedTheme.color, Color(hex: selectedTheme.secondaryColorHex)], startPoint: .leading, endPoint: .trailing)
+                            LinearGradient(colors: [selectedTheme.color, selectedTheme.color], startPoint: .leading, endPoint: .trailing)
                     )
                     .cornerRadius(13)
                     .shadow(color: (isWidgetsUpdatedSuccess ? Paper.moss : selectedTheme.color).opacity(0.35), radius: 8, y: 3)
@@ -770,7 +770,7 @@ extension SettingsView {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "38BDF8").opacity(0.3), Color(hex: "0284C7").opacity(0.15)],
+                                colors: [Paper.lapis.opacity(0.3), Paper.lapis.opacity(0.15)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -778,8 +778,8 @@ extension SettingsView {
                         .frame(width: 44, height: 44)
                     
                     Image(systemName: "photo.on.rectangle.angled")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Color(hex: "38BDF8"))
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(Paper.lapis)
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -793,7 +793,7 @@ extension SettingsView {
                             .foregroundColor(.white)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
-                            .background(Color(hex: "0284C7"))
+                            .background(Paper.lapis)
                             .cornerRadius(5)
                     }
                     
@@ -811,12 +811,12 @@ extension SettingsView {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .semibold))
                     Text("auto_wallpaper_nav_button".localized(for: selectedLanguage))
                         .font(PaperFont.font(size: 14, weight: .semibold))
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Paper.inkSecondary)
                 }
                 .foregroundColor(primaryTextColor)

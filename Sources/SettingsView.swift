@@ -96,19 +96,19 @@ struct SettingsView: View {
     }
     
     var inputFieldBgColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
+        Paper.fillMuted
     }
     
     var inputFieldBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.08)
+        Paper.hairline
     }
     
     var aboutBlockBgColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.02) : Color.black.opacity(0.015)
+        Paper.fillSubtle
     }
     
     var aboutBlockBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)
+        Paper.fillMuted
     }
     
     var cardBackgroundColor: Color {
@@ -116,19 +116,7 @@ struct SettingsView: View {
     }
     
     var cardBorderColor: LinearGradient {
-        if colorScheme == .dark {
-            return LinearGradient(
-                colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color.black.opacity(0.08), Color.black.opacity(0.02)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        LinearGradient(colors: [Paper.hairline, Paper.hairline], startPoint: .top, endPoint: .bottom)
     }
     
     // MARK: - Элемент секции со стиранием типа (Type Erasure) для защиты от переполнения стека рантайма
@@ -332,7 +320,7 @@ struct SettingsView: View {
                         .frame(width: 44, height: 44)
                     
                     Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(Paper.gold)
                 }
                 
@@ -345,7 +333,7 @@ struct SettingsView: View {
                         if subscriptionManager.isPremium {
                             Text("PRO")
                                 .font(PaperFont.font(size: 10, weight: .semibold))
-                                .foregroundColor(.black)
+                                .foregroundColor(Paper.gold)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(Paper.gold.opacity(0.18))
@@ -370,11 +358,11 @@ struct SettingsView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 13, weight: .semibold))
                         Text(subscriptionManager.isPremium ?
                              (selectedLanguage == .armenian ? "Կառավարել" : "Управление") :
                              (selectedLanguage == .armenian ? "Ստանալ Premium" : "Оформить Premium"))
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
@@ -402,26 +390,7 @@ struct SettingsView: View {
             }
         }
         .padding(16)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(cardBackgroundColor)
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Paper.gold.opacity(0.04))
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [Paper.gold.opacity(0.4), Color.clear],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.2
-                )
-        )
+        .paperSheet(cornerRadius: 18)
     }
     
     // MARK: - Секция Храмовых Молитвенных Свечей
@@ -456,7 +425,7 @@ struct SettingsView: View {
                         if !CandleManager.shared.activeCandles.isEmpty {
                             Text("🔥 \(CandleManager.shared.activeCandles.count)")
                                 .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
-                                .foregroundColor(Paper.gold.opacity(0.18))
+                                .foregroundColor(Paper.gold)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(Paper.gold.opacity(0.2))
@@ -491,7 +460,7 @@ struct SettingsView: View {
                     title: selectedLanguage == .armenian ? "Աղոթքի Մոմ" : (selectedLanguage == .russian ? "Молитвенная свеча" : "Prayer Candle"),
                     subtitle: selectedLanguage == .armenian ? "24 ժամ • 1 տեսանյութի դիտմամբ" : (selectedLanguage == .russian ? "24 часа • За 1 видео (без оплаты)" : "24 hrs • Watch 1 video (free)"),
                     badge: selectedLanguage == .armenian ? "🎬 ՏԵՍԱՆՅՈՒԹ" : (selectedLanguage == .russian ? "🎬 1 ВИДЕО" : "🎬 1 VIDEO"),
-                    badgeColor: Color(hex: "3B82F6"),
+                    badgeColor: Paper.lapis,
                     icon: "play.circle.fill"
                 )
             }
@@ -504,24 +473,18 @@ struct SettingsView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "building.columns.fill")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 13, weight: .semibold))
                     Text(selectedLanguage == .armenian ? "Մտնել Տաճար • Տեսնել բոլոր մոմերը" : (selectedLanguage == .russian ? "Войти в притвор • Все горящие свечи" : "Enter Sanctuary • View All Candles"))
                         .font(PaperFont.font(size: 13, weight: .semibold))
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 12, weight: .semibold))
                         .opacity(0.7)
                 }
-                .foregroundColor(.black)
+                .foregroundColor(Paper.onAccent)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
-                .background(
-                    LinearGradient(
-                        colors: [Paper.gold.opacity(0.18), Paper.gold],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background(Paper.gold)
                 .cornerRadius(12)
             }
             .buttonStyle(ScaleButtonStyle())
@@ -531,7 +494,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
                         Image(systemName: "apps.iphone")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(Paper.gold)
                         Text(selectedLanguage == .armenian ? "Վիջեթի մոմը" : (selectedLanguage == .russian ? "Свеча на виджете" : "Candle on Widget"))
                             .font(PaperFont.font(size: 13, weight: .semibold))
@@ -557,14 +520,14 @@ struct SettingsView: View {
                             } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: isAutoSelected ? "checkmark.circle.fill" : "sparkles")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.system(size: 11, weight: .semibold))
                                     Text(selectedLanguage == .armenian ? "🔥 Վերջին մոմը (Ավտո)" : (selectedLanguage == .russian ? "🔥 Последняя (Авто)" : "🔥 Latest (Auto)"))
                                         .font(PaperFont.font(size: 12, weight: isAutoSelected ? .semibold : .medium))
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
                                 .background(isAutoSelected ? Paper.gold.opacity(0.25) : inputFieldBgColor)
-                                .foregroundColor(isAutoSelected ? Paper.gold.opacity(0.18) : .secondary)
+                                .foregroundColor(isAutoSelected ? Paper.gold : Paper.inkSecondary)
                                 .cornerRadius(10)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
@@ -582,7 +545,7 @@ struct SettingsView: View {
                                 } label: {
                                     HStack(spacing: 6) {
                                         Image(systemName: isSelected ? "checkmark.circle.fill" : candle.intention.icon)
-                                            .font(.system(size: 11, weight: .bold))
+                                            .font(.system(size: 11, weight: .semibold))
                                         Text(name)
                                             .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                                             .lineLimit(1)
@@ -593,7 +556,7 @@ struct SettingsView: View {
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
                                     .background(isSelected ? Paper.gold.opacity(0.25) : inputFieldBgColor)
-                                    .foregroundColor(isSelected ? Paper.gold.opacity(0.18) : primaryTextColor)
+                                    .foregroundColor(isSelected ? Paper.gold : primaryTextColor)
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
@@ -628,26 +591,7 @@ struct SettingsView: View {
             .padding(.top, 2)
         }
         .padding(16)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(cardBackgroundColor)
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Paper.gold.opacity(0.35),
-                            colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
+        .paperSheet(cornerRadius: 16)
     }
     
     @ViewBuilder
@@ -671,7 +615,7 @@ struct SettingsView: View {
                         .frame(width: 36, height: 36)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(badgeColor)
                 }
                 
@@ -881,7 +825,7 @@ struct SettingsView: View {
                     Button("OK") {
                         appIconManager.clearError()
                     }
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(selectedTheme.color)
                 }
                 .padding(10)
@@ -925,7 +869,7 @@ struct SettingsView: View {
                                                 .fill(selectedTheme.color)
                                                 .frame(width: 22, height: 22)
                                             Image(systemName: "checkmark")
-                                                .font(.system(size: 11, weight: .black))
+                                                .font(.system(size: 11, weight: .semibold))
                                                 .foregroundColor(.white)
                                         }
                                         .offset(x: 6, y: -6)
@@ -936,8 +880,8 @@ struct SettingsView: View {
                                                 .fill(Paper.gold)
                                                 .frame(width: 22, height: 22)
                                             Image(systemName: "lock.fill")
-                                                .font(.system(size: 10, weight: .bold))
-                                                .foregroundColor(.black)
+                                                .font(.system(size: 10, weight: .semibold))
+                                                .foregroundColor(Paper.onAccent)
                                         }
                                         .offset(x: 6, y: -6)
                                     }
@@ -953,7 +897,7 @@ struct SettingsView: View {
                                         if option.isPremium {
                                             Text("PRO")
                                                 .font(PaperFont.font(size: 8, weight: .semibold))
-                                                .foregroundColor(.black)
+                                                .foregroundColor(Paper.gold)
                                                 .padding(.horizontal, 4)
                                                 .padding(.vertical, 1)
                                                 .background(Paper.gold.opacity(0.18))

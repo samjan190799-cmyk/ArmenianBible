@@ -208,7 +208,7 @@ struct BadgeCardView: View {
                             .shadow(color: Color(hex: badge.gradientColors.first ?? "#F59E0B").opacity(0.4), radius: 8, y: 4)
                         
                         Image(systemName: badge.icon)
-                            .font(.system(size: 26, weight: .bold))
+                            .font(.system(size: 26, weight: .semibold))
                             .foregroundColor(.white)
                     } else {
                         Circle()
@@ -225,7 +225,7 @@ struct BadgeCardView: View {
                 VStack(spacing: 4) {
                     Text(badge.title(for: language))
                         .font(PaperFont.font(size: 13, weight: .semibold))
-                        .foregroundColor(badge.isUnlocked ? primaryTextColor : .secondary)
+                        .foregroundColor(badge.isUnlocked ? primaryTextColor : Paper.inkSecondary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .frame(height: 34)
@@ -255,17 +255,7 @@ struct BadgeCardView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(cardBackgroundColor)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(badge.isUnlocked ? Paper.gold.opacity(0.3) : Paper.ink.opacity(0.06), lineWidth: 1.2)
-            )
+            .paperSheet(cornerRadius: 18)
         }
         .buttonStyle(ScaleButtonStyle())
     }
@@ -297,7 +287,7 @@ struct BadgeDetailSheet: View {
                         .shadow(color: Color(hex: badge.gradientColors.first ?? "#F59E0B").opacity(0.4), radius: 10, y: 4)
                     
                     Image(systemName: badge.icon)
-                        .font(.system(size: 32, weight: .bold))
+                        .font(.system(size: 32, weight: .semibold))
                         .foregroundColor(.white)
                 } else {
                     Circle()

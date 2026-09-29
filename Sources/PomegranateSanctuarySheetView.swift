@@ -68,7 +68,7 @@ struct PomegranateSanctuarySheetView: View {
                                 .offset(y: -60)
                             
                             // Рябь омовения росой
-                            DewRippleView(isTriggered: dewAnimationPulse, color: Color(hex: "38BDF8"))
+                            DewRippleView(isTriggered: dewAnimationPulse, color: Paper.lapis)
                                 .offset(y: -50)
                             
                             // Подсказка нажать на плод
@@ -144,7 +144,7 @@ struct PomegranateSanctuarySheetView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 14, weight: .semibold))
                                 Text(language == .armenian ? "Կիսվել" : (language == .russian ? "Поделиться" : "Share"))
                                     .font(PaperFont.font(size: 13, weight: .semibold))
                             }
@@ -213,11 +213,11 @@ struct PomegranateSanctuarySheetView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "questionmark.circle.fill")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 12, weight: .semibold))
                     Text(language == .armenian ? "Ինչպե՞ս է աճում ծառը" : (language == .russian ? "Как растёт дерево?" : "How does the tree grow?"))
                         .font(PaperFont.font(size: 12, weight: .semibold))
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 10, weight: .semibold))
                 }
                 .foregroundColor(Paper.cinnabar)
                 .padding(.horizontal, 14)
@@ -239,8 +239,8 @@ struct PomegranateSanctuarySheetView: View {
                     .fill(
                         LinearGradient(
                             colors: treeManager.isWateredToday ? [
-                                Color(hex: "38BDF8"),
-                                Color(hex: "0284C7")
+                                Paper.lapis,
+                                Paper.lapis
                             ] : [
                                 Paper.gold,
                                 Paper.gold
@@ -250,10 +250,10 @@ struct PomegranateSanctuarySheetView: View {
                         )
                     )
                     .frame(width: 48, height: 48)
-                    .shadow(color: (treeManager.isWateredToday ? Color(hex: "0284C7") : Paper.gold).opacity(0.35), radius: 6)
+                    .shadow(color: (treeManager.isWateredToday ? Paper.lapis : Paper.gold).opacity(0.35), radius: 6)
                 
                 Image(systemName: treeManager.isWateredToday ? "drop.fill" : "drop.triangle.fill")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.white)
             }
             
@@ -262,7 +262,7 @@ struct PomegranateSanctuarySheetView: View {
                     Text(treeManager.isWateredToday ?
                          (language == .armenian ? "Օրհնված է երկնային ցողով" : (language == .russian ? "Омыто небесной росой" : "Blessed with Heavenly Dew")) :
                          (language == .armenian ? "Սպասում է առավոտյան ցողի" : (language == .russian ? "Жаждет утренней росы" : "Awaiting Morning Dew")))
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(Paper.ink)
                     
                     if treeManager.isWateredToday {
@@ -301,7 +301,7 @@ struct PomegranateSanctuarySheetView: View {
                     .padding(.vertical, 8)
                     .background(
                         LinearGradient(
-                            colors: [Color(hex: "38BDF8"), Color(hex: "0284C7")],
+                            colors: [Paper.lapis, Paper.lapis],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -309,7 +309,7 @@ struct PomegranateSanctuarySheetView: View {
                     .clipShape(Capsule())
                     .shadow(color: Paper.shadow, radius: 5, y: 2)
                     .overlay(
-                        Capsule().stroke(Color(hex: "7DD3FC").opacity(0.6), lineWidth: 1.2)
+                        Capsule().stroke(Paper.lapis.opacity(0.6), lineWidth: 1.2)
                     )
                 }
                 .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.92))
@@ -323,7 +323,7 @@ struct PomegranateSanctuarySheetView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(treeManager.isWateredToday ? Color(hex: "38BDF8").opacity(0.45) : Paper.gold.opacity(0.45), lineWidth: 1.2)
+                .stroke(treeManager.isWateredToday ? Paper.lapis.opacity(0.45) : Paper.gold.opacity(0.45), lineWidth: 1.2)
         )
     }
     
@@ -396,7 +396,7 @@ struct PomegranateSanctuarySheetView: View {
                             Text(language == .armenian ? "Կանոններ" : (language == .russian ? "Правила" : "Rules"))
                                 .font(PaperFont.font(size: 11, weight: .semibold))
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: 9, weight: .semibold))
                         }
                         .foregroundColor(Paper.cinnabar)
                     }
@@ -418,13 +418,13 @@ struct PomegranateSanctuarySheetView: View {
                                         Circle()
                                             .fill(
                                                 isCurrent ? Paper.cinnabar :
-                                                (isCompleted ? Paper.moss : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)))
+                                                (isCompleted ? Paper.moss : (Paper.fillMuted))
                                             )
                                             .frame(width: 36, height: 36)
                                         
                                         if isCompleted {
                                             Image(systemName: "checkmark")
-                                                .font(.system(size: 13, weight: .bold))
+                                                .font(.system(size: 13, weight: .semibold))
                                                 .foregroundColor(.white)
                                         } else {
                                             Text(stageIcon(for: stage))
@@ -529,8 +529,8 @@ struct PomegranateSanctuarySheetView: View {
                                     .shadow(color: isUnlocked ? Paper.cinnabar.opacity(0.4) : Color.clear, radius: 4)
                                 
                                 Image(systemName: fruit.icon)
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(isUnlocked ? .white : .secondary)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(isUnlocked ? .white : Paper.inkSecondary)
                             }
                             
                             Text(fruit.name(for: language))
@@ -671,7 +671,7 @@ struct SpiritualFruitDetailSheetView: View {
                     .shadow(color: Paper.shadow, radius: 10, y: 4)
                 
                 Image(systemName: fruit.icon)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .semibold))
                     .foregroundColor(.white)
             }
             .padding(.top, 14)
@@ -839,7 +839,7 @@ struct PomegranateGrowthGuideSheetView: View {
                     VStack(spacing: 12) {
                         guideRuleCard(
                             icon: "book.fill",
-                            iconColor: Color(hex: "3B82F6"),
+                            iconColor: Paper.lapis,
                             title: language == .armenian ? "1. Ամենօրյա ընթերցում" : (language == .russian ? "1. Ежедневное чтение Слова" : "1. Daily Word Reading"),
                             text: language == .armenian ?
                             "Ամեն օր կարդացեք Աստվածաշունչը կամ օրվա համարը: Յուրաքանչյուր օր ձեր стрик-ը մեծանում է 1-ով:" :
@@ -850,7 +850,7 @@ struct PomegranateGrowthGuideSheetView: View {
                         
                         guideRuleCard(
                             icon: "drop.fill",
-                            iconColor: Color(hex: "0284C7"),
+                            iconColor: Paper.lapis,
                             title: language == .armenian ? "2. Երկնային առավոտյան ցող" : (language == .russian ? "2. Небесная утренняя роса" : "2. Morning Heavenly Dew"),
                             text: language == .armenian ?
                             "Յուրաքանչյուր նոր օր ծառը ստանում է երկնային ցող: Սեղմեք «Ցողել» կամ կարդացեք համարը՝ ծառը սնելու համար:" :
@@ -903,7 +903,7 @@ struct PomegranateGrowthGuideSheetView: View {
                     Button(language == .armenian ? "Փակել" : (language == .russian ? "Понятно" : "Done")) {
                         dismiss()
                     }
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(Paper.cinnabar)
                 }
             }
@@ -917,7 +917,7 @@ struct PomegranateGrowthGuideSheetView: View {
                     .fill(iconColor.opacity(0.12))
                     .frame(width: 42, height: 42)
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(iconColor)
             }
             

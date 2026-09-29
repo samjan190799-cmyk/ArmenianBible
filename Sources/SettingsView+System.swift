@@ -13,7 +13,7 @@ extension SettingsView {
             // Шапка секции
             HStack(spacing: 8) {
                 Image(systemName: "gearshape.2.fill")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(selectedTheme.color)
                 
                 Text("system_storage_section_title".localized(for: selectedLanguage))
@@ -31,12 +31,12 @@ extension SettingsView {
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color(hex: "3B82F6").opacity(0.15))
+                            .fill(Paper.lapis.opacity(0.15))
                             .frame(width: 34, height: 34)
                         
                         Image(systemName: "hand.tap.fill")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(Color(hex: "3B82F6"))
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Paper.lapis)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -75,7 +75,7 @@ extension SettingsView {
                             .frame(width: 34, height: 34)
                         
                         Image(systemName: "faceid")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(Paper.moss)
                     }
                     
@@ -114,7 +114,7 @@ extension SettingsView {
                             .frame(width: 34, height: 34)
                         
                         Image(systemName: "trash.fill")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(Paper.cinnabar)
                     }
                     
@@ -191,12 +191,12 @@ extension SettingsView {
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color(hex: "8B5CF6").opacity(0.15))
+                            .fill(Paper.plum.opacity(0.15))
                             .frame(width: 34, height: 34)
                         
                         Image(systemName: "square.and.arrow.up.fill")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(Color(hex: "8B5CF6"))
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Paper.plum)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -366,7 +366,7 @@ extension SettingsView {
         if subscriptionManager.isPremium {
             HStack(spacing: 10) {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(Paper.gold)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ARMENIAN BIBLE PREMIUM")
@@ -392,7 +392,7 @@ extension SettingsView {
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(Paper.gold)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ARMENIAN BIBLE PREMIUM")
@@ -449,7 +449,7 @@ extension SettingsView {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "star.fill")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Paper.gold)
                 Text(rateAppButtonTitle)
                     .font(PaperFont.font(size: 13, weight: .semibold))
@@ -468,7 +468,7 @@ extension SettingsView {
     private var devToastOverlay: some View {
         HStack(spacing: 12) {
             Image(systemName: devToastIcon)
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.white)
             VStack(alignment: .leading, spacing: 2) {
                 Text(devToastMessage)
@@ -514,7 +514,7 @@ extension SettingsView {
                 devToastIcon = "hammer.fill"
                 devToastMessage = "🧪 Free-режим включен!"
                 devToastSubtitle = "Реклама Luys включена, лимиты активны для теста."
-                devToastColor = [Color(hex: "3B82F6"), Color(hex: "1D4ED8")]
+                devToastColor = [Paper.lapis, Paper.lapis]
             }
             
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {

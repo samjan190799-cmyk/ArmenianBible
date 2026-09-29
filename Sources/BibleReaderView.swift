@@ -63,7 +63,7 @@ struct BibleReaderView: View {
                             showingSearch = true
                         } label: {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(accentColor)
                         }
                     }

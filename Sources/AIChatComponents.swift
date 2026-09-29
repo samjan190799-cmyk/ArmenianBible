@@ -38,7 +38,7 @@ struct AIChatBubbleRow: View {
                     // Заголовок карточки ответа
                     HStack(spacing: 6) {
                         Image(systemName: "sparkles")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(accentColor)
                         Text("ai_guide_title".localized(for: manager.appLanguage))
                             .font(PaperFont.font(size: 12, weight: .semibold))

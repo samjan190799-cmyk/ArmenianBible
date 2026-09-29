@@ -45,7 +45,7 @@ struct QuizResultView: View {
                         ForEach(newlyUnlockedBadges) { badge in
                             HStack(spacing: 12) {
                                 Image(systemName: badge.icon)
-                                    .font(.system(size: 20, weight: .bold))
+                                    .font(.system(size: 20, weight: .semibold))
                                     .foregroundColor(Paper.gold)
                                 
                                 VStack(alignment: .leading, spacing: 2) {

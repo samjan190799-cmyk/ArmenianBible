@@ -130,7 +130,7 @@ struct VerseActionSheetView: View {
                                     
                                     Image(systemName: "slash.circle")
                                         .font(.system(size: 20, weight: .medium))
-                                        .foregroundColor(selectedColorHex == nil ? .secondary : .red)
+                                        .foregroundColor(selectedColorHex == nil ? Paper.inkSecondary : .red)
                                 }
                             }
                             .buttonStyle(ScaleButtonStyle())

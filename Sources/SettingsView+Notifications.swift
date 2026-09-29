@@ -10,7 +10,7 @@ extension SettingsView {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: "bell.badge.fill")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(selectedTheme.color)
                 
                 Text("notification_section_title".localized(for: selectedLanguage))
@@ -58,7 +58,7 @@ extension SettingsView {
                 // 2. Вечерняя молитва и покой
                 notificationItemRow(
                     icon: "moon.stars.fill",
-                    iconColor: Color(hex: "818CF8"),
+                    iconColor: Paper.lapis,
                     title: "notification_evening_title".localized(for: selectedLanguage),
                     subtitle: "notification_evening_desc".localized(for: selectedLanguage),
                     isOn: $eveningNotificationsEnabled,
@@ -101,7 +101,7 @@ extension SettingsView {
                 // 4. План чтения и стрик
                 notificationItemRow(
                     icon: "flame.fill",
-                    iconColor: Color(hex: "EC4899"),
+                    iconColor: Paper.plum,
                     title: "notification_reading_plan_title".localized(for: selectedLanguage),
                     subtitle: "notification_reading_plan_desc".localized(for: selectedLanguage),
                     isOn: $readingPlanNotificationsEnabled,
@@ -156,7 +156,7 @@ extension SettingsView {
                         .frame(width: 34, height: 34)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(iconColor)
                 }
                 
@@ -343,7 +343,7 @@ extension SettingsView {
                         HStack(spacing: 12) {
                             Image(systemName: scope.icon)
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(selectedScope == scope ? selectedTheme.color : .secondary)
+                                .foregroundColor(selectedScope == scope ? selectedTheme.color : Paper.inkSecondary)
                                 .frame(width: 24)
                             
                             Text(scope.title(for: selectedLanguage))

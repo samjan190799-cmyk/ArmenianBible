@@ -16,7 +16,7 @@ struct InstructionRow: View {
     
     private var numberTextColor: Color {
         let accentColor = Color(hex: BibleManager.shared.accentTheme.colorHex)
-        let secondaryAccentColor = Color(hex: BibleManager.shared.accentTheme.secondaryColorHex)
+        let secondaryAccentColor = Paper.inkSecondary
         return colorScheme == .dark ? secondaryAccentColor : accentColor
     }
     
@@ -229,17 +229,7 @@ struct WidgetInstructionSheetView: View {
                     InstructionRow(number: "4", text: "widget_step_4".localized(for: language))
                 }
                 .padding(20)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                    }
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(cardBorderColor, lineWidth: 1)
-                )
+                .paperSheet(cornerRadius: 18)
                 .padding(.horizontal, 20)
                 
                 Spacer()
@@ -286,7 +276,7 @@ struct LockCategoryChipView: View {
                 
                 if isLocked {
                     Image(systemName: "crown.fill")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(Paper.gold)
                 }
             }
@@ -328,7 +318,7 @@ struct HomeCategoryChipView: View {
                 
                 if isLocked {
                     Image(systemName: "crown.fill")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(Paper.gold)
                 }
             }
@@ -389,7 +379,7 @@ struct WidgetStyleCardButton: View {
                     if isLocked {
                         HStack(spacing: 3) {
                             Image(systemName: "crown.fill")
-                                .font(.system(size: 8.5, weight: .bold))
+                                .font(.system(size: 8.5, weight: .semibold))
                             Text("PRO")
                                 .font(PaperFont.font(size: 8, weight: .semibold))
                         }

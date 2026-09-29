@@ -19,6 +19,7 @@ enum Paper {
     static let uiMoss = dynamic(light: 0x4F6B45, dark: 0x9DBB8E)
     static let uiOnAccent = dynamic(light: 0xFCF9F3, dark: 0x17130F)
     static let uiLapis = dynamic(light: 0x3D5A8C, dark: 0x8FA9D6)
+    static let uiIndigo = dynamic(light: 0x4B4F8F, dark: 0xA5A9E0)
     static let uiPlum = dynamic(light: 0x6E4B73, dark: 0xC1A0C6)
     static let uiOchre = dynamic(light: 0xA4622A, dark: 0xE0A26B)
     static let uiUmber = dynamic(light: 0x6B5238, dark: 0xC8AC8B)
@@ -49,6 +50,7 @@ enum Paper {
     static let onAccent = Color(uiColor: uiOnAccent)
     // Пигменты рукописи: приглушённые цвета для категорий (теги, праздники, ИИ)
     static let lapis = Color(uiColor: uiLapis)
+    static let indigo = Color(uiColor: uiIndigo)
     static let plum = Color(uiColor: uiPlum)
     static let ochre = Color(uiColor: uiOchre)
     static let umber = Color(uiColor: uiUmber)
@@ -85,12 +87,17 @@ private extension UIColor {
 // MARK: - Акцент темы с учётом «Бумаги»
 extension AccentColorTheme {
     /// Акцентный цвет. Для киновари — адаптивный к светлой/тёмной теме.
-    var color: Color {
-        self == .cinnabar ? Paper.cinnabar : Color(hex: colorHex)
-    }
+    var color: Color { Color(uiColor: uiColor) }
 
     var uiColor: UIColor {
-        self == .cinnabar ? Paper.uiCinnabar : UIColor(Color(hex: colorHex))
+        switch self {
+        case .cinnabar: return Paper.uiCinnabar
+        case .indigo: return Paper.uiIndigo
+        case .gold: return Paper.uiGold
+        case .blue: return Paper.uiLapis
+        case .green: return Paper.uiMoss
+        case .purple: return Paper.uiPlum
+        }
     }
 }
 

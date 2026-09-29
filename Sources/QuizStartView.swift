@@ -145,7 +145,7 @@ struct QuizStartView: View {
                     // Подсказка о выбранном движке
                     HStack(spacing: 6) {
                         Image(systemName: isAIGenerationEnabled ? "sparkles" : "internaldrive.fill")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(isAIGenerationEnabled ? Paper.gold : secondaryAccentColor)
                         Text(isAIGenerationEnabled ?
                              "\("quiz_mode_ai_hint".localized(for: language)) • \(QuizAIEngine.shared.currentProviderDisplayName)" :
@@ -203,7 +203,7 @@ struct QuizStartView: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: cat.icon)
                                         .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(selectedCategory == cat ? accentColor : .secondary)
+                                        .foregroundColor(selectedCategory == cat ? accentColor : Paper.inkSecondary)
                                         .frame(width: 24)
                                     
                                     Text(cat.title(for: language))
@@ -218,17 +218,7 @@ struct QuizStartView: View {
                                     }
                                 }
                                 .padding(12)
-                                .background(
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .fill(selectedCategory == cat ? accentColor.opacity(0.1) : cardBackgroundColor)
-                                    }
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(selectedCategory == cat ? accentColor : Paper.ink.opacity(0.06), lineWidth: 1.2)
-                                )
+                                .paperSheet(cornerRadius: 14)
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }

@@ -30,7 +30,7 @@ extension SettingsView {
     var aiHeaderView: some View {
         HStack(spacing: 8) {
             Image(systemName: "sparkles")
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(providerAccentColor(for: selectedProvider))
             
             Text("ai_provider".localized(for: selectedLanguage))
@@ -60,7 +60,7 @@ extension SettingsView {
     func aiPillBackground(for provider: AIProvider, isSelected: Bool) -> some View {
         let pColor = providerAccentColor(for: provider)
         let sColor = providerSecondaryColor(for: provider)
-        let unselectedFill = colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
+        let unselectedFill = Paper.fillMuted
         
         if isSelected {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -93,7 +93,7 @@ extension SettingsView {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: providerIconName(for: provider))
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 11, weight: .semibold))
                         Text(provider.displayName)
                             .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .medium))
                     }
@@ -180,7 +180,7 @@ extension SettingsView {
     func aiTheologicalToneCard(for tone: AITheologicalTone) -> some View {
         let isSelected = selectedTheologicalTone == tone
         let tColor = tone.color
-        let strokeColor = isSelected ? tColor : (colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+        let strokeColor = isSelected ? tColor : (Paper.fillMuted)
         
         Button {
             let generator = UIImpactFeedbackGenerator(style: .light)
@@ -331,7 +331,7 @@ extension SettingsView {
                         )
                         .frame(width: 36, height: 36)
                     Image(systemName: providerIconName(for: provider))
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(pColor)
                 }
                 
@@ -439,7 +439,7 @@ extension SettingsView {
                                 .scaleEffect(0.65)
                         } else {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 10, weight: .semibold))
                         }
                         Text(isCheckingModels ? "checking_models".localized(for: selectedLanguage) : "check_models".localized(for: selectedLanguage))
                             .font(PaperFont.font(size: 11, weight: .semibold))
@@ -488,17 +488,17 @@ extension SettingsView {
     // MARK: - Вспомогательные методы для ИИ-карусели
     func providerAccentColor(for provider: AIProvider) -> Color {
         switch provider {
-        case .gemini: return Color(hex: "4E80EE")
-        case .chatgpt: return Color(hex: "10A37F")
-        case .claude: return Color(hex: "E07A5F")
+        case .gemini: return Paper.lapis
+        case .chatgpt: return Paper.teal
+        case .claude: return Paper.ochre
         }
     }
     
     func providerSecondaryColor(for provider: AIProvider) -> Color {
         switch provider {
-        case .gemini: return Color(hex: "8E55EA")
-        case .chatgpt: return Paper.moss
-        case .claude: return Paper.gold
+        case .gemini: return Paper.lapis
+        case .chatgpt: return Paper.teal
+        case .claude: return Paper.ochre
         }
     }
     
