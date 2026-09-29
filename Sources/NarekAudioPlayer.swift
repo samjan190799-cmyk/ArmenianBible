@@ -198,9 +198,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             targetUrl = Bundle.main.url(forResource: resourceName, withExtension: "mp3", subdirectory: "Audio")
         }
         if targetUrl == nil {
-            targetUrl = Bundle.main.url(forResource: "narek_russian_prayers", withExtension: "mp3")
-        }
-        if targetUrl == nil {
             let urlString: String? = (language == .armenian) ? prayer.audioUrlHy : (prayer.audioUrlRu ?? prayer.audioUrlHy)
             if let validUrlString = urlString {
                 targetUrl = URL(string: validUrlString)
