@@ -1,17 +1,5 @@
-- Armenian Bible Premium: StoreKit 2 subscriptions & Grandfathering for early adopters
-- Saint Gregory of Narek: Complete 95 audio chapters with studio narrations
-- AI Spiritual Guide: Deep biblical reflections & interpretations
-- Lock Screen & Home Screen widgets: High-legibility typography and independent verse rotation
-- Spiritual Wallpapers: Exclusive Armenian Christian wallpapers & khachkars
-
-- Armenian Bible Premium: Բաժանորդագրություն և անվճար հասանելիություն նախկին գնորդների համար
-- Գրիգոր Նարեկացի «Մատյան Ողբերգության»՝ Բոլոր 95 գլուխները ստուդիական աուդիոյով
-- ԱԲ Հոգևոր Օգնական՝ Աստվածաշնչի մեկնաբանություններ և պատասխաններ
-- Կողպեքրանի և Գլխավոր էկրանի վիդջեթների խոշոր տառատեսակներ և անկախ ռոտացիա
-- Հոգևոր Պաստառներ՝ Բացառիկ հայկական խաչքարեր և ֆոներ
-
-- Armenian Bible Premium: Подписки StoreKit 2 и пожизненный Premium для ранних покупателей
-- Григор Нарекаци «Книга скорбных песнопений»: Все 95 глав со студийной озвучкой
-- Духовный ИИ-помощник: Ответы на вопросы веры и толкования Священного Писания
-- Виджеты экрана блокировки и Главного экрана: Крупный четкий шрифт и независимая ротация
-- Духовные обои: Эксклюзивные армянские фоны с древними хачкарами и стихом дня
+A new look and calmer reading
+• New "Paper & Ink" design: warm paper, a classic book typeface for Scripture and one consistent style on every screen.
+• Narek audio remembers where you stopped and continues from the exact second.
+• Gentler animations and haptics. The app respects the "Reduce Motion" and vibration settings.
+• Fixes and stability improvements.

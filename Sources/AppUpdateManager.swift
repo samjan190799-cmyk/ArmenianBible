@@ -55,7 +55,7 @@ final class AppUpdateManager: ObservableObject {
     
     /// Текущая установленная версия
     var currentVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.5"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.6"
     }
     
     /// Заголовок окна обновления в зависимости от языка

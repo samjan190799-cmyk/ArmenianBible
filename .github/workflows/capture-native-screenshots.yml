@@ -163,7 +163,7 @@ jobs:
           fi
 
           if [ "$TARGET_DEVICE" = "iphone_6_9" ] || [ "$TARGET_DEVICE" = "all" ]; then
-            capture_device "iPhone 16 Pro Max|iPhone 15 Pro Max" "iphone_6_9" "iPhone 16 Pro Max (6.9\")"
+            capture_device "iPhone 17 Pro Max|iPhone 16 Pro Max|iPhone 15 Pro Max" "iphone_6_9" "iPhone 16 Pro Max (6.9\")"
           fi
 
           if [ "$TARGET_DEVICE" = "iphone_6_5" ] || [ "$TARGET_DEVICE" = "all" ]; then

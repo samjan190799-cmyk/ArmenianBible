@@ -1,5 +1,5 @@
-- Armenian Bible Premium: StoreKit 2 Abonnements und lebenslanger Zugriff für frühe Käufer
-- Hl. Gregor von Narek: Alle 95 Audiokapitel in Studioqualität
-- KI-Seelsorger: Antworten auf Glaubensfragen und Bibelinterpretationen
-- Widgets für Sperr- und Home-Bildschirm: Große Typografie und unabhängige Versrotation
-- Geistliche Wallpaper: Exklusive armenische Chatschkare und Tagesverse
+Ein neues Aussehen und ruhigeres Lesen
+• Neues Design „Papier & Tinte": warmes Papier, eine klassische Buchschrift für die Heilige Schrift und ein einheitlicher Stil auf allen Bildschirmen.
+• Das Narek-Audio merkt sich, wo Sie aufgehört haben, und setzt sekundengenau fort.
+• Sanftere Animationen und Haptik. Die App beachtet die Einstellungen „Bewegung reduzieren" und Vibration.
+• Fehlerbehebungen und mehr Stabilität.

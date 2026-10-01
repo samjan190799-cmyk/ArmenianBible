@@ -1,5 +1,5 @@
-- Armenian Bible Premium : Abonnements StoreKit 2 et accès à vie pour les premiers acheteurs
-- Saint Grégoire de Narek : 95 chapitres audio en studio et Livre des Lamentations
-- Guide Spirituel IA : Réponses et interprétations des textes sacrés
-- Widgets d'écran de verrouillage et d'accueil : Typographie haute lisibilité et rotation indépendante
-- Fonds d'écran spirituels : Khatchkars arméniens exclusifs et verset du jour
+Un nouveau style et une lecture plus paisible
+• Nouveau design « Papier et encre » : papier chaleureux, une typographie de livre classique pour les Écritures et un style cohérent sur tous les écrans.
+• L'audio de Narek se souvient de l'endroit où vous vous êtes arrêté et reprend à la seconde près.
+• Animations et vibrations plus douces. L'app respecte les réglages « Réduire les animations » et vibration.
+• Corrections et améliorations de stabilité.

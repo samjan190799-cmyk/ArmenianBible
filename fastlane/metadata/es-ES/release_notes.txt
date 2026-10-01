@@ -1,5 +1,5 @@
-- Armenian Bible Premium: Suscripciones StoreKit 2 y acceso vitalicio para primeros compradores
-- San Gregorio de Narek: 95 capítulos completos con audio de estudio
-- Guía Espiritual IA: Respuestas y reflexiones sobre las Sagradas Escrituras
-- Widgets de pantalla de bloqueo e inicio: Tipografía clara y rotación independiente
-- Fondos de pantalla espirituales: Exclusivos jachkares armenios y versículo diario
+Un nuevo aspecto y una lectura más serena
+• Nuevo diseño «Papel y tinta»: papel cálido, una tipografía clásica de libro para las Escrituras y un estilo coherente en todas las pantallas.
+• El audio de Narek recuerda dónde lo dejó y continúa desde el segundo exacto.
+• Animaciones y vibración más suaves. La app respeta los ajustes «Reducir movimiento» y vibración.
+• Correcciones y mejoras de estabilidad.
