@@ -82,20 +82,24 @@ struct FlickeringCandleFlame: View {
     let baseColor: Color
     let iconSize: CGFloat
     let randomDelay: Double
+    /// Ореол вокруг пламени. На светлой бумаге у маленьких иконок он выглядит пятном — там отключаем.
+    let showsAura: Bool
     
     @State private var breathePhase: CGFloat = 1.0
     @State private var swayAngle: Double = 0.0
     @State private var microFlicker: CGFloat = 1.0
     
-    init(baseColor: Color = Color(hex: "F59E0B"), iconSize: CGFloat = 20, randomDelay: Double = 0.0) {
+    init(baseColor: Color = Color(hex: "F59E0B"), iconSize: CGFloat = 20, randomDelay: Double = 0.0, showsAura: Bool = true) {
         self.baseColor = baseColor
         self.iconSize = iconSize
         self.randomDelay = randomDelay
+        self.showsAura = showsAura
     }
     
     var body: some View {
         ZStack(alignment: .bottom) {
             // 1. Мягкая теплая радиальная аура (свет свечи в храме)
+            if showsAura {
             Circle()
                 .fill(
                     RadialGradient(
@@ -113,6 +117,7 @@ struct FlickeringCandleFlame: View {
                 .scaleEffect(breathePhase * microFlicker)
                 .blur(radius: iconSize * 0.35)
                 .offset(y: -iconSize * 0.3)
+            }
             
             // 2. Хлопковый фитилек свечи
             Capsule()

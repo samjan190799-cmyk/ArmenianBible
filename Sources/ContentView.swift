@@ -732,7 +732,7 @@ struct NarekatsiBannerCardView: View {
         } label: {
             HStack(spacing: 16) {
                 PaperIconBadge(tint: accentColor) {
-                    FlickeringCandleFlame(baseColor: accentColor, iconSize: 20)
+                    FlickeringCandleFlame(baseColor: accentColor, iconSize: 20, showsAura: false)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -784,7 +784,7 @@ struct PrayerSanctuaryBannerCardView: View {
         } label: {
             HStack(spacing: 16) {
                 PaperIconBadge(tint: Paper.gold) {
-                    FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
+                    FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20, showsAura: false)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -854,7 +854,7 @@ struct ChurchFeastsBannerCardView: View {
                 // Иконка
                 PaperIconBadge(tint: Paper.gold) {
                     if todayFeast != nil {
-                        FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
+                        FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20, showsAura: false)
                     } else {
                         Image(systemName: "calendar")
                             .font(.system(size: 19, weight: .regular))

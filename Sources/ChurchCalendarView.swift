@@ -95,14 +95,14 @@ struct ChurchCalendarView: View {
                             // Переключатель года
                             Menu {
                                 ForEach(2025...2030, id: \.self) { y in
-                                    Button("\(y)") {
+                                    Button(String(y)) {
                                         triggerHaptic(.light)
                                         selectedYear = y
                                     }
                                 }
                             } label: {
                                 HStack(spacing: 5) {
-                                    Text("\(selectedYear)")
+                                    Text(String(selectedYear))
                                         .font(PaperFont.font(size: 16, weight: .semibold).monospacedDigit())
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 11, weight: .semibold))

@@ -401,7 +401,7 @@ struct SettingsView: View {
                         )
                         .frame(width: 44, height: 44)
                     
-                    FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
+                    FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20, showsAura: false)
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {

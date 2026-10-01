@@ -63,7 +63,7 @@ struct PrayerSanctuaryView: View {
                             isShowingLightSheet = true
                         } label: {
                             HStack(spacing: 12) {
-                                FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 22)
+                                FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 22, showsAura: false)
                                 
                                 Text(lightCandleButtonText)
                                     .font(PaperFont.font(size: 16, weight: .semibold))
@@ -548,7 +548,7 @@ struct LightCandleFormSheetView: View {
                                                 .font(.system(size: 18, weight: .semibold))
                                                 .foregroundColor(Paper.onAccent)
                                         } else {
-                                            FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20)
+                                            FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20, showsAura: false)
                                         }
                                         Text(submitButtonText)
                                             .font(PaperFont.font(size: 16, weight: .semibold))
