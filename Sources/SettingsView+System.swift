@@ -297,7 +297,7 @@ extension SettingsView {
     
     @ViewBuilder
     private var aboutAppHeaderBlock: some View {
-        // 🔐 Секретная зона разработчика: 5 быстрых тапов → диалог PIN-кода
+        // 🔐 Секретная зона тестировщика: 5 быстрых тапов → диалог переключения Premium/Free (только TestFlight/DEBUG)
         HStack(spacing: 6) {
             Text("about_app_title".localized(for: selectedLanguage))
                 .font(PaperFont.font(size: 15, weight: .semibold))
@@ -306,7 +306,7 @@ extension SettingsView {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            // Панель разработчика есть только в DEBUG-сборках
+            // Панель тестировщика есть только в TestFlight и DEBUG-сборках
             guard SubscriptionManager.devToolsAvailable else { return }
             let now = Date()
             if now.timeIntervalSince(secretLastTap) > 2.5 {

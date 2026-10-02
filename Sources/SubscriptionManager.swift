@@ -90,14 +90,10 @@ final class SubscriptionManager: ObservableObject {
         AppGroupConstants.sharedBool(forKey: "is_premium_active")
     }
 
-    /// Инструменты разработчика (принудительный Premium/Free) существуют ТОЛЬКО в DEBUG-сборках.
-    /// В TestFlight и App Store их нет: код панели лежит в открытом репозитории.
+    /// Панель тестировщика (принудительный Premium/Free) доступна ТОЛЬКО в сборках TestFlight и DEBUG.
+    /// В App Store её нет: там флаги стираются при запуске, а статус определяет только StoreKit.
     nonisolated static var devToolsAvailable: Bool {
-        #if DEBUG
-        return true
-        #else
-        return false
-        #endif
+        Bundle.isTestFlightOrDebug
     }
 
     /// Стирает следы панели разработчика, включённой в прежних версиях приложения.

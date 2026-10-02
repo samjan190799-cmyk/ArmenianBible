@@ -73,7 +73,7 @@ struct SettingsView: View {
     @State var isShowingWidgetInstruction = false
     @State var isShowingWallpaperAutomation = false
     
-    // 🔐 Панель разработчика (переключение Premium/Free по PIN-коду)
+    // 🔐 Панель тестировщика: 5 быстрых тапов по «О приложении», только TestFlight/DEBUG
     @State var secretTapCount = 0
     @State var secretLastTap = Date.distantPast
     @State var isShowingDevPasscodeAlert = false
@@ -241,7 +241,7 @@ struct SettingsView: View {
                     ActivityView(activityItems: [url])
                 }
             }
-            .alert("Панель разработчика (DEBUG)", isPresented: $isShowingDevPasscodeAlert) {
+            .alert("Панель тестировщика (TestFlight)", isPresented: $isShowingDevPasscodeAlert) {
                 Button("Включить Free (для теста рекламы)") {
                     handleDevToggle(enablePremium: false)
                 }
