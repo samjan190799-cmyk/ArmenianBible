@@ -4,6 +4,8 @@ struct BibleReaderView: View {
     @ObservedObject var manager = BibleManager.shared
     @State private var navigationPath: [BibleNavigationState] = []
     @State private var showingSearch = false
+    /// Место из ссылки (чтение дня, избранное, виджет), которое ещё не показано на экране
+    @State private var pendingDeepLink: BibleNavigationState? = nil
     
     private var accentColor: Color {
         manager.accentTheme.color
@@ -11,6 +13,18 @@ struct BibleReaderView: View {
     
     private var backgroundColor: Color {
         Paper.page
+    }
+    
+    /// Возврат к каталогу книг. Если перед этим пришла ссылка на конкретное место и оно ещё не показано,
+    /// остаёмся на нём: переход на вкладку Библии вызывает этот сброс уже ПОСЛЕ того, как путь выставлен,
+    /// и без этой проверки пользователь попадал в каталог вместо текста.
+    private func resetToCatalogRoot() {
+        if let pending = pendingDeepLink {
+            navigationPath = [pending]
+        } else {
+            navigationPath = []
+        }
+        manager.selectedReaderSection = 0
     }
     
     var body: some View {
@@ -43,15 +57,19 @@ struct BibleReaderView: View {
                 }
             }
             .onAppear {
-                // При входе на экран Библии всегда открываем каталог книг
-                navigationPath = []
-                manager.selectedReaderSection = 0
+                // При входе на экран Библии открываем каталог книг (если нет ссылки на конкретное место)
+                resetToCatalogRoot()
             }
             .onChange(of: manager.activeTabSelection) { newTab in
                 if newTab == 3 {
-                    // Пользователь нажал на таб Библии — сразу сбрасываем в корень каталога книг
-                    navigationPath = []
-                    manager.selectedReaderSection = 0
+                    // Пользователь нажал на таб Библии — сбрасываем в корень каталога книг
+                    resetToCatalogRoot()
+                }
+            }
+            .onChange(of: navigationPath) { path in
+                // Пользователь вернулся к каталогу — ссылка больше не ждёт показа
+                if path.isEmpty {
+                    pendingDeepLink = nil
                 }
             }
             .navigationTitle(manager.selectedReaderSection == 0 ? "tab_bible".localized(for: manager.appLanguage) : "narekatsi_title".localized(for: manager.appLanguage))
@@ -76,6 +94,10 @@ struct BibleReaderView: View {
                 switch state {
                 case .reader(let book, let chapter, let targetVerse):
                     BibleChapterReaderView(book: book, initialChapter: chapter, targetVerse: targetVerse)
+                        .onAppear {
+                            // Текст показан — ссылка выполнена
+                            pendingDeepLink = nil
+                        }
                 }
             }
             .onReceive(manager.$deepLinkBookId) { bookId in
@@ -89,9 +111,9 @@ struct BibleReaderView: View {
                     manager.deepLinkChapter = nil
                     manager.deepLinkVerse = nil
                     
-                    navigationPath = [
-                        .reader(book: book, chapter: chapter, targetVerse: verse)
-                    ]
+                    let target = BibleNavigationState.reader(book: book, chapter: chapter, targetVerse: verse)
+                    pendingDeepLink = target
+                    navigationPath = [target]
                 }
             }
         }
