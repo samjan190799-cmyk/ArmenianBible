@@ -1,52 +1,8 @@
 import Foundation
 
-// MARK: - Конфигурация Рекламы Google AdMob & VK
+// MARK: - Конфигурация Рекламы Meta Audience Network & VK
 /// Централизованное хранилище идентификаторов рекламных блоков и настроек показа.
 public enum AdConfig {
-    
-    // MARK: - Идентификаторы Google AdMob
-    /// AdMob Publisher ID: pub-2894315025786699
-    /// Официальный App ID для iOS: ca-app-pub-2894315025786699~1008604498
-    public static var admobAppID: String = "ca-app-pub-2894315025786699~1008604498"
-    
-    // MARK: - Режим тестирования
-    public static var isTestMode: Bool = false
-    
-    // MARK: - Тестовые идентификаторы Google AdMob (Официальные от Google)
-    public static let googleTestBannerUnitID: String = "ca-app-pub-3940256099942544/2934735716"
-    public static let googleTestInterstitialUnitID: String = "ca-app-pub-3940256099942544/4411468910"
-    public static let googleTestRewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
-    
-    // MARK: - Рабочие Placement ID Google AdMob
-    public static var productionAdmobBannerUnitID: String = "ca-app-pub-2894315025786699/5035479415"
-    public static var productionAdmobInterstitialUnitID: String = "ca-app-pub-2894315025786699/4860219591"
-    public static var productionAdmobRewardedUnitID: String = "ca-app-pub-2894315025786699/7566273984"
-    
-    // MARK: - Активные Ad Unit ID Google AdMob
-    public static var admobBannerUnitID: String {
-        if isTestMode || productionAdmobBannerUnitID.isEmpty {
-            return googleTestBannerUnitID
-        }
-        return productionAdmobBannerUnitID
-    }
-    
-    public static var admobInterstitialUnitID: String {
-        if isTestMode || productionAdmobInterstitialUnitID.isEmpty {
-            return googleTestInterstitialUnitID
-        }
-        return productionAdmobInterstitialUnitID
-    }
-    
-    public static var admobRewardedUnitID: String {
-        if isTestMode || productionAdmobRewardedUnitID.isEmpty {
-            return googleTestRewardedUnitID
-        }
-        return productionAdmobRewardedUnitID
-    }
-    
-    public static var hasAdMobPlacements: Bool {
-        !admobAppID.isEmpty
-    }
     
     // MARK: - Идентификаторы Meta Audience Network
     /// Monetization Manager → Luys: Armenian Bible & AI (iOS) → Ad Space for ios
