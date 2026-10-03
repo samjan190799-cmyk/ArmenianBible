@@ -62,7 +62,8 @@ enum ScriptureReferenceParser {
     }()
 
     static func book(id: Int) -> BibleBook? {
-        booksById[id]
+        // Если база не успела открыться при первом обращении, кэш пуст: берём книгу напрямую
+        booksById[id] ?? BibleDatabase.shared.getBook(id: id)
     }
 
     /// «Ղուկաս 1:26-38, Մատթեոս 2:1-12» → две ссылки. Нераспознанные куски остаются текстом.

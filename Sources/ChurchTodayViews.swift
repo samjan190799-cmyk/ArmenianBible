@@ -42,6 +42,7 @@ struct ScriptureReadingsListView: View {
             }
         }
         .padding(.vertical, 6)
+        .frame(minHeight: opensInReader ? 44 : nil)
         .contentShape(Rectangle())
     }
 }
@@ -125,13 +126,13 @@ struct ChurchTodayPanelView: View {
                 if fast != nil {
                     Text("church_fast_disclaimer".localized(for: language))
                         .font(PaperFont.font(size: 11))
-                        .foregroundColor(Paper.inkTertiary)
+                        .foregroundColor(Paper.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if !readingText.isEmpty {
                     Text("church_readings_disclaimer".localized(for: language))
                         .font(PaperFont.font(size: 11))
-                        .foregroundColor(Paper.inkTertiary)
+                        .foregroundColor(Paper.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

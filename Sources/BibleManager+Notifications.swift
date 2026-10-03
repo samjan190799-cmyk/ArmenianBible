@@ -226,6 +226,17 @@ extension BibleManager {
         if churchFeastsNotificationsEnabled {
             let fastStarts = ChurchCalendarService.shared.fastReminderDays(from: now, horizonDays: 10)
             for (idx, item) in fastStarts.prefix(7).enumerated() {
+                // Начало Великого поста уже напоминает праздничный блок выше, а каждый понедельник
+                // поста повторял бы «Завтра: Великий пост»
+                if item.fast.kind == .greatLent { continue }
+                
+                // Праздник-пост (Передовой пост и т. п.) уже получил своё напоминание в блоке праздников
+                let itemYear = calendar.component(.year, from: item.date)
+                let hasFastingFeastReminder = ChurchCalendarService.shared.feasts(for: itemYear).contains {
+                    $0.isFasting && calendar.isDate($0.date, inSameDayAs: item.date)
+                }
+                if hasFastingFeastReminder { continue }
+                
                 guard let eveDate = calendar.date(byAdding: .day, value: -1, to: item.date) else { continue }
                 var components = calendar.dateComponents([.year, .month, .day], from: eveDate)
                 components.hour = 19

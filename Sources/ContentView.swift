@@ -891,7 +891,9 @@ struct ChurchFeastsBannerCardView: View {
                             .foregroundColor(Paper.gold)
                             .lineLimit(1)
                     } else if let fast = todayFast {
-                        HStack(spacing: 6) {
+                        // Названия постов длинные («Սուրբ Ծննդյան և Աստվածահայտնության պահք»):
+                        // плашка над названием, название в две строки
+                        VStack(alignment: .leading, spacing: 3) {
                             Text("today_badge".localized(for: language))
                                 .font(PaperFont.font(size: 9, weight: .semibold))
                                 .tracking(0.8)
@@ -905,7 +907,9 @@ struct ChurchFeastsBannerCardView: View {
                             Text(fast.kind.title(for: language))
                                 .font(PaperFont.font(size: 17, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
-                                .lineLimit(1)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.85)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
                         if let next = nextDaghavar {

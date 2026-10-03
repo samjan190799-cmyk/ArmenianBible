@@ -17,16 +17,21 @@ import Foundation
 //    отдельным периодом; субботы и воскресенья Великого поста → nil.
 //  • Конец поста Рождества и Богоявления: 4 января (6 дней) либо вечер 5 января (7 дней).
 //    Утверждается 30 декабря…4 января, 5 января → nil.
+//  • Передовой пост: пять дней (пн–пт), по другим источникам три дня (пн–ср) или пн–чт.
+//    Утверждаются только пн–ср; четверг → nil, пятница считается обычным еженедельным постом.
 //  • Недели поста Хисначка (начало «в понедельник после воскресенья, ближайшего к 18 ноября»
 //    расходится с другой формулой), пост св. Иакова Мцбинского и пост Варагского Креста
 //    не утверждаются: источники не сходятся в датах.
-//  • Послабления в попразднства Успения, Преображения и Пятидесятницы упомянуты единственным
-//    источником и не учтены; учтены только Пасха…Вознесение и 6–13 января.
+//  • Послабления в попразднства Богоявления (6–13 или 6–14 января), Преображения и Успения
+//    (девять дней) упомянуты не всеми источниками: среды и пятницы в эти окна → nil,
+//    то есть день не называется постным. Пятидесятница покрыта неделей поста Илии.
+//  • Господский праздник в среду или пятницу празднуется без поста (один русскоязычный
+//    источник) — такой день тоже → nil.
 
 // MARK: - Вид поста
 enum ChurchFastKind: String, CaseIterable, Sendable {
     case weekly                // Օրապահք: среда и пятница
-    case catechumens           // Առաջավորաց պահք: пн–пт за три недели до Великого поста
+    case catechumens           // Առաջավորաց պահք: пн–ср за три недели до Великого поста
     case greatLent             // Մեծ պահք
     case holyWeek              // Ավագ շաբաթ
     case elijah                // Եղիայի պահք: неделя после Пятидесятницы
@@ -176,8 +181,8 @@ enum ChurchFastRules {
 
         // Периоды, привязанные к Пасхе
         switch delta {
-        case -69 ... -65:
-            return .catechumens                                      // пн–пт
+        case -69 ... -67:
+            return .catechumens                                      // пн–ср: входит во все варианты (3, 4 и 5 дней)
         case -48 ... -9 where (1 ... 5).contains(weekday):
             return .greatLent                                        // будни до пятницы перед Лазаревой субботой
         case -6 ... -1:
@@ -205,7 +210,9 @@ enum ChurchFastRules {
         // Еженедельный пост: среда и пятница
         guard weekday == 3 || weekday == 5 else { return nil }
         if (0 ... 49).contains(delta) { return nil }                 // Пасха…Пятидесятница: отмена / спорные дни
-        if month == 1 && (6 ... 13).contains(day) { return nil }     // октава Богоявления
+        if month == 1 && (6 ... 14).contains(day) { return nil }     // попразднство Богоявления (6–13 или 6–14)
+        if (98 ... 108).contains(delta) { return nil }               // попразднство Преображения: длина не названа
+        if (assumptionSunday ... assumptionSunday + 10).contains(today) { return nil }   // попразднство Успения (9 дней)
         return .weekly
     }
 }
@@ -239,8 +246,8 @@ extension ChurchCalendarService {
         return ChurchFastDay(kind: kind)
     }
 
-    /// Постные дни, перед началом которых (накануне вечером) стоит напомнить:
-    /// день постный, а предыдущий день — нет. Неделя поста даёт одно напоминание, а не пять.
+    /// Постные дни, перед началом которых (накануне вечером) стоит напомнить: предыдущий день
+    /// не был постом того же вида. Неделя поста даёт одно напоминание, а не пять.
     func fastReminderDays(from start: Date, horizonDays: Int) -> [(date: Date, fast: ChurchFastDay)] {
         let calendar = gregorianLocalCalendar
         let base = calendar.startOfDay(for: start)
@@ -250,7 +257,7 @@ extension ChurchCalendarService {
             guard let day = calendar.date(byAdding: .day, value: offset, to: base),
                   let previous = calendar.date(byAdding: .day, value: -1, to: day),
                   let fast = fastDay(on: day),
-                  fastDay(on: previous) == nil else { continue }
+                  fastDay(on: previous)?.kind != fast.kind else { continue }
             result.append((date: day, fast: fast))
         }
         return result

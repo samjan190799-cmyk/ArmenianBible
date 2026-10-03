@@ -77,7 +77,7 @@
 "notification_evening_title" = "Evening Prayer & Peace";
 "notification_evening_desc" = "Peaceful psalms and prayers before sleep";
 "notification_church_calendar_title" = "AAC Feasts & Fasting";
-"notification_church_calendar_desc" = "Reminders on the eve of major feasts and fasts at 7:30 PM";
+"notification_church_calendar_desc" = "Reminders the evening before feasts and fast days (including Wednesdays and Fridays) at 7:30 PM";
 "notification_reading_plan_title" = "Reading Plan & Streak";
 "notification_reading_plan_desc" = "Gentle reminder to keep your daily reading streak alive";
 "notification_time_title" = "Reminder Time";
@@ -350,8 +350,8 @@
 "days_left_format" = "days left";
 "scripture_readings_title" = "Scripture Readings";
 "church_today_panel_title" = "Today in the Church";
-"church_fast_disclaimer" = "Fast days follow the general rules of the Armenian Church. Where sources disagree the app makes no claim, so please check your parish calendar.";
-"church_readings_disclaimer" = "Feast readings follow the church calendar; the order in your parish may differ.";
+"church_fast_disclaimer" = "Fast days are compiled from published Armenian Church sources and have not been checked against an official calendar. Only days on which the sources agree are marked, so a day without a mark may still be a fast. Practice differs between parishes, so please check your parish calendar.";
+"church_readings_disclaimer" = "Feast readings are given for reference and may differ in your parish.";
 "prayer_title" = "Feast Prayer";
 "expand_details" = "More details";
 "collapse_details" = "Hide details";
