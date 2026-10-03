@@ -221,6 +221,35 @@ extension BibleManager {
             }
         }
         
+        // 3.1. Накануне постных дней (до 7 напоминаний на 10 дней вперед, в 19:30).
+        // Неделя поста даёт одно напоминание — в канун её первого дня. Включается тем же переключателем.
+        if churchFeastsNotificationsEnabled {
+            let fastStarts = ChurchCalendarService.shared.fastReminderDays(from: now, horizonDays: 10)
+            for (idx, item) in fastStarts.prefix(7).enumerated() {
+                guard let eveDate = calendar.date(byAdding: .day, value: -1, to: item.date) else { continue }
+                var components = calendar.dateComponents([.year, .month, .day], from: eveDate)
+                components.hour = 19
+                components.minute = 30
+                
+                if let scheduledDate = calendar.date(from: components), scheduledDate <= now {
+                    continue
+                }
+                
+                let content = UNMutableNotificationContent()
+                content.title = appLanguage == .armenian ? "ՀԱԵ Տոնացույց" : (appLanguage == .russian ? "Церковный календарь ААЦ" : "Armenian Church Calendar")
+                content.body = item.fast.kind.reminderBody(for: appLanguage)
+                content.sound = .default
+                
+                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                let request = UNNotificationRequest(
+                    identifier: "fast_\(idx)_\(item.fast.kind.rawValue)",
+                    content: content,
+                    trigger: trigger
+                )
+                UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+            }
+        }
+        
         // 4. План чтения Библии и сохранение стрика (7 дней вперед)
         if readingPlanNotificationsEnabled {
             let timeComponents = calendar.dateComponents([.hour, .minute], from: readingPlanNotificationTime)

@@ -228,6 +228,13 @@ struct ChurchCalendarView: View {
                     // MARK: - Список карточек праздников
                     ScrollView(showsIndicators: false) {
                         LazyVStack(spacing: 12) {
+                            // Сегодня: постный день и чтения праздника
+                            ChurchTodayPanelView(
+                                language: manager.appLanguage,
+                                primaryTextColor: primaryTextColor,
+                                onOpenReading: openReading
+                            )
+
                             ForEach(feasts) { feast in
                                 ChurchFeastCardView(
                                     feast: feast,
@@ -255,7 +262,8 @@ struct ChurchCalendarView: View {
                                     },
                                     onCopyPrayer: {
                                         copyFeastInfo(feast)
-                                    }
+                                    },
+                                    onOpenReading: openReading
                                 )
                             }
                         }
@@ -317,7 +325,8 @@ struct ChurchCalendarView: View {
                     },
                     onCopy: {
                         copyFeastInfo(feast)
-                    }
+                    },
+                    onOpenReading: openReading
                 )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
@@ -329,6 +338,14 @@ struct ChurchCalendarView: View {
                 ActivityView(activityItems: [item.image])
             }
         }
+    }
+    
+    /// Закрывает календарь (и шит смысла праздника) и открывает место Писания в читалке
+    private func openReading(_ reference: ScriptureReference) {
+        triggerHaptic(.soft)
+        selectedFeastForMeaning = nil
+        dismiss()
+        ScriptureReferenceParser.open(reference)
     }
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
@@ -424,6 +441,7 @@ struct ChurchFeastCardView: View {
     let onExportSingle: () -> Void
     let onShareCard: () -> Void
     let onCopyPrayer: () -> Void
+    var onOpenReading: (ScriptureReference) -> Void = { _ in }
     
     private var countdown: (text: String, isToday: Bool, isUpcoming: Bool) {
         feast.countdownBadge(for: language)
@@ -540,16 +558,21 @@ struct ChurchFeastCardView: View {
                     }
                     
                     if !feast.scriptureReading.isEmpty {
-                        HStack(spacing: 6) {
-                            Image(systemName: "book.pages.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(Paper.lapis)
-                            Text("scripture_readings_title".localized(for: language) + ":")
-                                .font(PaperFont.font(size: 12, weight: .semibold))
-                                .foregroundColor(Paper.lapis)
-                            Text(feast.scriptureReading)
-                                .font(PaperFont.font(size: 12, weight: .semibold))
-                                .foregroundColor(primaryTextColor)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "book.pages.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Paper.lapis)
+                                Text("scripture_readings_title".localized(for: language) + ":")
+                                    .font(PaperFont.font(size: 12, weight: .semibold))
+                                    .foregroundColor(Paper.lapis)
+                            }
+                            ScriptureReadingsListView(
+                                readingText: feast.scriptureReading,
+                                language: language,
+                                primaryTextColor: primaryTextColor,
+                                onOpen: onOpenReading
+                            )
                         }
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -657,6 +680,7 @@ struct FeastMeaningSheetView: View {
     let onExport: () -> Void
     let onShare: () -> Void
     let onCopy: () -> Void
+    var onOpenReading: (ScriptureReference) -> Void = { _ in }
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -795,9 +819,12 @@ struct FeastMeaningSheetView: View {
                                     .foregroundColor(Paper.moss)
                             }
                             
-                            Text(feast.scriptureReading)
-                                .font(PaperFont.font(size: 14, weight: .medium))
-                                .foregroundColor(primaryTextColor)
+                            ScriptureReadingsListView(
+                                readingText: feast.scriptureReading,
+                                language: language,
+                                primaryTextColor: primaryTextColor,
+                                onOpen: onOpenReading
+                            )
                         }
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)

@@ -349,6 +349,9 @@
 "fasting_day_badge" = "Fast";
 "days_left_format" = "days left";
 "scripture_readings_title" = "Scripture Readings";
+"church_today_panel_title" = "Today in the Church";
+"church_fast_disclaimer" = "Fast days follow the general rules of the Armenian Church. Where sources disagree the app makes no claim, so please check your parish calendar.";
+"church_readings_disclaimer" = "Feast readings follow the church calendar; the order in your parish may differ.";
 "prayer_title" = "Feast Prayer";
 "expand_details" = "More details";
 "collapse_details" = "Hide details";

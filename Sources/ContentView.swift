@@ -846,6 +846,11 @@ struct ChurchFeastsBannerCardView: View {
         ChurchCalendarService.shared.nextDaghavarFeast()
     }
     
+    /// Постный день сегодня (nil — обычный или спорный день: ничего не утверждаем)
+    private var todayFast: ChurchFastDay? {
+        ChurchCalendarService.shared.fastDay(on: Date())
+    }
+    
     var body: some View {
         Button {
             onOpenCalendar()
@@ -881,10 +886,39 @@ struct ChurchFeastsBannerCardView: View {
                                 .lineLimit(1)
                         }
 
-                        Text(today.formattedDate(for: language) + (today.isFasting ? " • " + "fasting_day_badge".localized(for: language) : ""))
+                        Text(today.formattedDate(for: language) + ((today.isFasting || todayFast != nil) ? " • " + "fasting_day_badge".localized(for: language) : ""))
                             .font(PaperFont.font(size: 13))
                             .foregroundColor(Paper.gold)
                             .lineLimit(1)
+                    } else if let fast = todayFast {
+                        HStack(spacing: 6) {
+                            Text("today_badge".localized(for: language))
+                                .font(PaperFont.font(size: 9, weight: .semibold))
+                                .tracking(0.8)
+                                .foregroundColor(Paper.plum)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .overlay(
+                                    Capsule().strokeBorder(Paper.plum.opacity(0.6), lineWidth: 0.8)
+                                )
+
+                            Text(fast.kind.title(for: language))
+                                .font(PaperFont.font(size: 17, weight: .semibold))
+                                .foregroundColor(primaryTextColor)
+                                .lineLimit(1)
+                        }
+
+                        if let next = nextDaghavar {
+                            Text("\(next.feast.title(for: language)) • \(next.daysLeft) " + "days_left_format".localized(for: language))
+                                .font(PaperFont.font(size: 13))
+                                .foregroundColor(Paper.gold)
+                                .lineLimit(1)
+                        } else {
+                            Text("church_calendar_subtitle".localized(for: language))
+                                .font(PaperFont.font(size: 13))
+                                .foregroundColor(secondaryAccentColor)
+                                .lineLimit(1)
+                        }
                     } else if let next = nextDaghavar {
                         Text("church_calendar_title".localized(for: language))
                             .font(PaperFont.font(size: 17, weight: .semibold))
