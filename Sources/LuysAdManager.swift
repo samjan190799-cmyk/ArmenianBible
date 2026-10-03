@@ -521,7 +521,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
             #if DEBUG
             print("🎬 [Meta Rewarded] Запуск показа видео Meta...")
             #endif
-            metaAd.show(fromRootViewController: presenter)
+            metaAd.show(fromRootViewController: presenter, animated: true)
             return true
         }
         #endif
