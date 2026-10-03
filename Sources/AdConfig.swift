@@ -48,6 +48,12 @@ public enum AdConfig {
         !admobAppID.isEmpty
     }
     
+    // MARK: - Идентификаторы Meta Audience Network
+    /// Monetization Manager → Luys: Armenian Bible & AI (iOS) → Ad Space for ios
+    public static let metaBannerPlacementID: String = "965349189941367_965349289941357"
+    public static let metaInterstitialPlacementID: String = "965349189941367_965349296608023"
+    public static let metaRewardedInterstitialPlacementID: String = "965349189941367_965349299941356"
+
     // MARK: - Идентификаторы VK Рекламы / myTarget (ads.vk.com)
     /// Официальные стабильные демо/тестовые Slot ID для MyTarget SDK
     public static let vkDemoBannerSlotId: UInt = 794557

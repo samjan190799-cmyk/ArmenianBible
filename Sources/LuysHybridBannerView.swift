@@ -159,12 +159,29 @@ public struct LuysHybridBannerView: View {
             let creative = sponsorCreatives[currentCreativeIndex]
             
             VStack(spacing: 6) {
-                // Живой баннер (VK / Google AdMob) с мягким фолбеком на спонсорскую карточку Luys
+                // Живой баннер (Meta / VK / Google AdMob) с мягким фолбеком на спонсорскую карточку Luys
                 ZStack {
                     if adManager.activeProviderType == .vk {
                         VKBannerContainerView(
                             slotId: slotId,
                             isVisible: isVisibleOnScreen,
+                            onAdLoaded: { height in
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    liveBannerHeight = height
+                                    isLiveAdLoaded = true
+                                }
+                            },
+                            onAdFailed: { _ in
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    isLiveAdLoaded = false
+                                }
+                            }
+                        )
+                        .frame(height: liveBannerHeight)
+                        .opacity(isLiveAdLoaded ? 1 : 0)
+                        .allowsHitTesting(isLiveAdLoaded)
+                    } else if adManager.activeProviderType == .meta {
+                        MetaBannerContainerView(
                             onAdLoaded: { height in
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                     liveBannerHeight = height

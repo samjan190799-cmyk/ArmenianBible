@@ -12,6 +12,10 @@ import MyTargetSDK
 import GoogleMobileAds
 #endif
 
+#if canImport(FBAudienceNetwork)
+import FBAudienceNetwork
+#endif
+
 // MARK: - Плейсменты баннерных блоков Luys
 public enum LuysBannerPlacement: String, CaseIterable, Identifiable, Sendable {
     case home = "home"
@@ -37,20 +41,22 @@ public enum LuysBannerPlacement: String, CaseIterable, Identifiable, Sendable {
 public enum LuysAdNetworkType: String, CaseIterable, Identifiable, Sendable {
     case vk = "VK Реклама"
     case admob = "Google AdMob"
+    case meta = "Meta Audience Network"
     case houseAd = "Luys House Ad"
-    
+
     public var id: String { rawValue }
-    
+
     public var icon: String {
         switch self {
         case .vk: return "v.circle.fill"
+        case .meta: return "m.circle.fill"
         case .admob: return "g.circle.fill"
         case .houseAd: return "cross.fill"
         }
     }
 }
 
-// MARK: - Центральный менеджер рекламы Luys (Google AdMob + VK Ads)
+// MARK: - Центральный менеджер рекламы Luys (Meta Audience Network + VK Ads, Google AdMob в резерве)
 /// Построен строго по архитектурным стандартам 2026 года: Swift 6 Strict Concurrency,
 /// изоляция `@MainActor`, гео-роутинг и безопасное управление жизненным циклом памяти.
 @MainActor
@@ -79,7 +85,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     @Published public private(set) var isRewardedReady: Bool = false
     @Published public private(set) var isInterstitialReady: Bool = false
     @Published public private(set) var isTrackingAuthorized: Bool = false
-    @Published public private(set) var activeProviderType: LuysAdNetworkType = .admob
+    @Published public private(set) var activeProviderType: LuysAdNetworkType = .meta
     @Published public private(set) var detectedRegionCode: String = "AM"
     
     // MARK: - Внутренние свойства
@@ -97,6 +103,15 @@ public final class LuysAdManager: NSObject, ObservableObject {
     private var isAdMobInterstitialLoading: Bool = false
     #endif
     
+    #if canImport(FBAudienceNetwork)
+    private var metaRewardedAd: FBRewardedInterstitialAd?
+    private var metaInterstitialAd: FBInterstitialAd?
+    private var currentlyShowingMetaRewarded: FBRewardedInterstitialAd?
+    private var currentlyShowingMetaInterstitial: FBInterstitialAd?
+    private var isMetaRewardedLoading: Bool = false
+    private var isMetaInterstitialLoading: Bool = false
+    #endif
+
     #if canImport(MyTargetSDK)
     private var vkRewardedAd: MTRGRewardedAd?
     /// КРИТИЧЕСКИЙ SWIFT 6 БАГФИКС: Сохраняем сильную ссылку на показываемое объявление,
@@ -111,16 +126,16 @@ public final class LuysAdManager: NSObject, ObservableObject {
     
     // MARK: - Гео-маршрутизация (Geo-Routing)
     /// В РФ и Беларуси используется VK Реклама (myTarget).
-    /// В Армении и по всему миру используется Google AdMob.
+    /// В Армении и по всему миру используется Meta Audience Network (AdMob-аккаунт заблокирован).
     public func determineActiveNetworkByGeo() {
         let region = Locale.current.region?.identifier.uppercased() ?? "AM"
         self.detectedRegionCode = region
-        
+
         let vkOnlyRegions: Set<String> = ["RU", "BY"]
         if vkOnlyRegions.contains(region) {
             self.activeProviderType = .vk
         } else {
-            self.activeProviderType = .admob
+            self.activeProviderType = .meta
         }
     }
     
@@ -151,13 +166,24 @@ public final class LuysAdManager: NSObject, ObservableObject {
         determineActiveNetworkByGeo()
         
         #if canImport(GoogleMobileAds)
-        GADMobileAds.sharedInstance().start { status in
-            #if DEBUG
-            print("✅ [AdMob] Google Mobile Ads инициализирован: \(status.adapterStatusesByClassName)")
-            #endif
+        // AdMob инициализируется только когда он активный провайдер: аккаунт заблокирован.
+        if activeProviderType == .admob {
+            GADMobileAds.sharedInstance().start { status in
+                #if DEBUG
+                print("✅ [AdMob] Google Mobile Ads инициализирован: \(status.adapterStatusesByClassName)")
+                #endif
+            }
         }
         #endif
-        
+
+        #if canImport(FBAudienceNetwork)
+        FBAudienceNetworkAds.initialize(with: nil, completionHandler: { result in
+            #if DEBUG
+            print("✅ [Meta] Audience Network инициализирован: \(result.isSuccess) \(result.message)")
+            #endif
+        })
+        #endif
+
         #if canImport(MyTargetSDK)
         MTRGManager.setDebugMode(isTestMode)
         #endif
@@ -186,6 +212,9 @@ public final class LuysAdManager: NSObject, ObservableObject {
                 Task { @MainActor in
                     let authorized = (status == .authorized)
                     self?.isTrackingAuthorized = authorized
+                    #if canImport(FBAudienceNetwork)
+                    FBAdSettings.setAdvertiserTrackingEnabled(authorized)
+                    #endif
                 }
             }
         }
@@ -209,6 +238,13 @@ public final class LuysAdManager: NSObject, ObservableObject {
                 }
                 #endif
                 
+                #if canImport(FBAudienceNetwork)
+                if self.activeProviderType == .meta {
+                    if !self.isRewardedReady { self.preloadMetaRewarded() }
+                    if !self.isInterstitialReady { self.preloadMetaInterstitial() }
+                }
+                #endif
+
                 #if canImport(MyTargetSDK)
                 if self.activeProviderType == .vk && !self.isRewardedReady {
                     #if DEBUG
@@ -236,9 +272,43 @@ public final class LuysAdManager: NSObject, ObservableObject {
         preloadAdMobRewarded()
         preloadAdMobInterstitial()
         #endif
-        
+
+        #if canImport(FBAudienceNetwork)
+        preloadMetaRewarded()
+        preloadMetaInterstitial()
+        #endif
+
         #if canImport(MyTargetSDK)
         preloadVkRewarded()
+        #endif
+    }
+
+    // MARK: - Предзагрузка Meta Audience Network
+    public func preloadMetaRewarded() {
+        #if canImport(FBAudienceNetwork)
+        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
+        guard activeProviderType == .meta else { return }
+        guard metaRewardedAd == nil, !isMetaRewardedLoading else { return }
+        isMetaRewardedLoading = true
+
+        let ad = FBRewardedInterstitialAd(placementID: AdConfig.metaRewardedInterstitialPlacementID)
+        ad.delegate = self
+        metaRewardedAd = ad
+        ad.load()
+        #endif
+    }
+
+    public func preloadMetaInterstitial() {
+        #if canImport(FBAudienceNetwork)
+        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
+        guard activeProviderType == .meta else { return }
+        guard metaInterstitialAd == nil, !isMetaInterstitialLoading else { return }
+        isMetaInterstitialLoading = true
+
+        let ad = FBInterstitialAd(placementID: AdConfig.metaInterstitialPlacementID)
+        ad.delegate = self
+        metaInterstitialAd = ad
+        ad.load()
         #endif
     }
     
@@ -345,7 +415,13 @@ public final class LuysAdManager: NSObject, ObservableObject {
             return true
         }
         #endif
-        
+
+        #if canImport(FBAudienceNetwork)
+        if activeProviderType == .meta, let ad = metaInterstitialAd, ad.isAdValid {
+            return true
+        }
+        #endif
+
         return false
     }
     
@@ -378,7 +454,22 @@ public final class LuysAdManager: NSObject, ObservableObject {
             return true
         }
         #endif
-        
+
+        #if canImport(FBAudienceNetwork)
+        if activeProviderType == .meta, let interstitial = self.metaInterstitialAd, interstitial.isAdValid {
+            self.currentlyShowingMetaInterstitial = interstitial
+            self.metaInterstitialAd = nil
+            self.isInterstitialReady = false
+            self.lastInterstitialTime = Date()
+            self.actionCounter = 0
+            #if DEBUG
+            print("🎬 [Meta Interstitial] Показ полноэкранного объявления Meta...")
+            #endif
+            interstitial.show(fromRootViewController: presenter)
+            return true
+        }
+        #endif
+
         return false
     }
     
@@ -421,6 +512,20 @@ public final class LuysAdManager: NSObject, ObservableObject {
         }
         #endif
         
+        #if canImport(FBAudienceNetwork)
+        if activeProviderType == .meta, let metaAd = self.metaRewardedAd, metaAd.isAdValid, let presenter = rootVC {
+            self.onRewardCompletion = onReward
+            self.currentlyShowingMetaRewarded = metaAd
+            self.metaRewardedAd = nil
+            self.isRewardedReady = false
+            #if DEBUG
+            print("🎬 [Meta Rewarded] Запуск показа видео Meta...")
+            #endif
+            metaAd.show(fromRootViewController: presenter)
+            return true
+        }
+        #endif
+
         #if canImport(MyTargetSDK)
         if isRewardedReady, let vkAd = self.vkRewardedAd, let presenter = rootVC {
             self.onRewardCompletion = onReward
@@ -482,6 +587,113 @@ public final class LuysAdManager: NSObject, ObservableObject {
         return root
     }
 }
+
+// MARK: - Делегаты Meta Audience Network (Interstitial + Rewarded Interstitial)
+#if canImport(FBAudienceNetwork)
+extension LuysAdManager: FBInterstitialAdDelegate {
+    nonisolated public func interstitialAdDidLoad(_ interstitialAd: FBInterstitialAd) {
+        Task { @MainActor in
+            let manager = LuysAdManager.shared
+            manager.isMetaInterstitialLoading = false
+            if manager.activeProviderType == .meta {
+                manager.isInterstitialReady = true
+            }
+            #if DEBUG
+            print("✅ [Meta Interstitial] Межстраничная реклама готова к показу!")
+            #endif
+        }
+    }
+
+    nonisolated public func interstitialAd(_ interstitialAd: FBInterstitialAd, didFailWithError error: Error) {
+        Task { @MainActor in
+            let manager = LuysAdManager.shared
+            manager.isMetaInterstitialLoading = false
+            manager.metaInterstitialAd = nil
+            manager.isInterstitialReady = false
+            #if DEBUG
+            print("⚠️ [Meta Interstitial] Ошибка: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    nonisolated public func interstitialAdWillLogImpression(_ interstitialAd: FBInterstitialAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.logImpression()
+        }
+    }
+
+    nonisolated public func interstitialAdDidClick(_ interstitialAd: FBInterstitialAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.logClick()
+        }
+    }
+
+    nonisolated public func interstitialAdDidClose(_ interstitialAd: FBInterstitialAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.currentlyShowingMetaInterstitial = nil
+            LuysAdManager.shared.preloadAds()
+        }
+    }
+}
+
+extension LuysAdManager: FBRewardedInterstitialAdDelegate {
+    nonisolated public func rewardedInterstitialAdDidLoad(_ rewardedInterstitialAd: FBRewardedInterstitialAd) {
+        Task { @MainActor in
+            let manager = LuysAdManager.shared
+            manager.isMetaRewardedLoading = false
+            if manager.activeProviderType == .meta {
+                manager.isRewardedReady = true
+            }
+            #if DEBUG
+            print("✅ [Meta Rewarded] Видео успешно загружено и готово к показу!")
+            #endif
+        }
+    }
+
+    nonisolated public func rewardedInterstitialAd(_ rewardedInterstitialAd: FBRewardedInterstitialAd, didFailWithError error: Error) {
+        Task { @MainActor in
+            let manager = LuysAdManager.shared
+            manager.isMetaRewardedLoading = false
+            manager.metaRewardedAd = nil
+            manager.isRewardedReady = false
+            #if DEBUG
+            print("⚠️ [Meta Rewarded] Ошибка: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    nonisolated public func rewardedInterstitialAdWillLogImpression(_ rewardedInterstitialAd: FBRewardedInterstitialAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.logImpression()
+        }
+    }
+
+    nonisolated public func rewardedInterstitialAdDidClick(_ rewardedInterstitialAd: FBRewardedInterstitialAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.logClick()
+        }
+    }
+
+    nonisolated public func rewardedInterstitialAdVideoComplete(_ rewardedInterstitialAd: FBRewardedInterstitialAd) {
+        Task { @MainActor in
+            LuysAdManager.shared.completeRewardedAdAndGrantReward()
+        }
+    }
+
+    nonisolated public func rewardedInterstitialAdDidClose(_ rewardedInterstitialAd: FBRewardedInterstitialAd) {
+        Task { @MainActor in
+            let manager = LuysAdManager.shared
+            manager.currentlyShowingMetaRewarded = nil
+            if manager.onRewardCompletion != nil {
+                manager.onDismissWithoutReward?()
+                manager.onRewardCompletion = nil
+                manager.onDismissWithoutReward = nil
+            }
+            manager.preloadAds()
+        }
+    }
+}
+#endif
 
 // MARK: - Делегаты Google AdMob (FullScreen Content)
 #if canImport(GoogleMobileAds)

@@ -8,7 +8,9 @@ packages:
   GoogleMobileAds:
     url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
     from: 11.2.0
-
+  FBAudienceNetwork:
+    url: https://github.com/facebook/FBAudienceNetwork
+    from: 6.22.0
 
 targets:
   ArmenianBible:
@@ -96,6 +98,8 @@ targets:
         product: MyTargetSDK
       - package: GoogleMobileAds
         product: GoogleMobileAds
+      - package: FBAudienceNetwork
+        product: FBAudienceNetwork
       - sdk: AppTrackingTransparency.framework
       - sdk: AdSupport.framework
       - target: BibleWidget
