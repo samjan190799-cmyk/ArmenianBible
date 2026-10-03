@@ -4,7 +4,9 @@ struct BibleReaderView: View {
     @ObservedObject var manager = BibleManager.shared
     @State private var navigationPath: [BibleNavigationState] = []
     @State private var showingSearch = false
-    /// Место из ссылки (чтение дня, избранное, виджет), которое ещё не показано на экране
+    /// Место из ссылки (чтение дня, избранное, виджет). Живёт, пока пользователь на этом тексте:
+    /// сбрасывается, когда он вернулся к каталогу или ушёл с вкладки Библии. Так результат не зависит
+    /// от того, в каком порядке SwiftUI вызовет onAppear корня и экрана чтения.
     @State private var pendingDeepLink: BibleNavigationState? = nil
     
     private var accentColor: Color {
@@ -64,6 +66,9 @@ struct BibleReaderView: View {
                 if newTab == 3 {
                     // Пользователь нажал на таб Библии — сбрасываем в корень каталога книг
                     resetToCatalogRoot()
+                } else {
+                    // Ушли с вкладки: ссылка устарела, при возвращении снова открываем каталог
+                    pendingDeepLink = nil
                 }
             }
             .onChange(of: navigationPath) { path in
@@ -94,10 +99,6 @@ struct BibleReaderView: View {
                 switch state {
                 case .reader(let book, let chapter, let targetVerse):
                     BibleChapterReaderView(book: book, initialChapter: chapter, targetVerse: targetVerse)
-                        .onAppear {
-                            // Текст показан — ссылка выполнена
-                            pendingDeepLink = nil
-                        }
                 }
             }
             .onReceive(manager.$deepLinkBookId) { bookId in
