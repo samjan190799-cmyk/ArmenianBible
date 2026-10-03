@@ -70,16 +70,22 @@ struct AdMobBannerContainerView: UIViewRepresentable {
         
         private var readyCancellable: AnyCancellable?
         private var retryAttempt: Int = 0
+        private var pendingRetry: DispatchWorkItem?
+        private var hasReceivedAd: Bool = false
         
         init(onAdLoaded: ((CGFloat) -> Void)?, onAdFailed: ((Error) -> Void)?) {
             self.onAdLoaded = onAdLoaded
             self.onAdFailed = onAdFailed
         }
         
-        /// Загружает баннер сразу, если SDK запущен, иначе ждёт его запуска
+        deinit {
+            pendingRetry?.cancel()
+        }
+        
+        /// Загружает баннер сразу, если SDK запущен и согласие действует, иначе ждёт запуска SDK
         @MainActor
         func loadWhenSdkReady() {
-            if LuysAdManager.shared.isSdkReady {
+            if LuysAdManager.shared.canRequestGoogleAds {
                 bannerView?.load(Request())
                 return
             }
@@ -88,19 +94,35 @@ struct AdMobBannerContainerView: UIViewRepresentable {
                 .first()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
+                    guard LuysAdManager.shared.canRequestGoogleAds else { return }
                     self?.bannerView?.load(Request())
                 }
         }
         
-        /// Повтор после неудачи (например, no-fill на новом блоке): 30, 60, 120, затем каждые 300 секунд
+        /// Повтор после неудачи (например, no-fill на новом блоке): 30, 60, 120, затем каждые 300 секунд.
+        /// Одна отложенная попытка за раз и только пока не показано ни одного объявления: после первого
+        /// показа баннер обновляет сам SDK, и собственные повторы только множили бы запросы.
         @MainActor
         private func scheduleRetry() {
+            guard !hasReceivedAd, pendingRetry == nil else { return }
             let delay = min(30.0 * pow(2.0, Double(retryAttempt)), 300.0)
             retryAttempt += 1
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                guard let banner = self?.bannerView else { return }
-                banner.load(Request())
+            let work = DispatchWorkItem { [weak self] in
+                Task { @MainActor in
+                    self?.performRetry()
+                }
             }
+            pendingRetry = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+        }
+        
+        @MainActor
+        private func performRetry() {
+            pendingRetry = nil
+            // Баннер уже убран с экрана или согласие отозвано: не запрашиваем
+            guard let banner = bannerView, banner.window != nil,
+                  LuysAdManager.shared.canRequestGoogleAds else { return }
+            banner.load(Request())
         }
         
         nonisolated func bannerViewDidReceiveAd(_ bannerView: BannerView) {
@@ -108,7 +130,10 @@ struct AdMobBannerContainerView: UIViewRepresentable {
                 #if DEBUG
                 print("✅ [AdMob Banner] Баннер успешно загружен!")
                 #endif
+                self?.hasReceivedAd = true
                 self?.retryAttempt = 0
+                self?.pendingRetry?.cancel()
+                self?.pendingRetry = nil
                 LuysAdManager.shared.clearAdError("Баннер")
                 self?.onAdLoaded?(50)
             }

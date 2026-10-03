@@ -99,6 +99,13 @@ public final class LuysAdManager: NSObject, ObservableObject {
     private var adapterStatusSummary: String = "SDK ещё не запущен"
     private var isSdkStarting: Bool = false
     
+    // MARK: - Цепочка запуска «согласие → ATT → SDK»
+    private var isStartupRunning: Bool = false
+    /// Согласие и ATT пройдены (или не требуются): только после этого запускаются SDK и загрузка рекламы
+    private var isStartupFlowComplete: Bool = false
+    private var consentGatherFailed: Bool = false
+    private var cancellables = Set<AnyCancellable>()
+    
     /// Тестовый режим VK действует только в TestFlight и DEBUG: в App Store он невозможен
     private var effectiveTestMode: Bool {
         isTestMode && Bundle.isTestFlightOrDebug
@@ -133,12 +140,23 @@ public final class LuysAdManager: NSObject, ObservableObject {
         let region = Locale.current.region?.identifier.uppercased() ?? "AM"
         self.detectedRegionCode = region
         
+        // Регион в настройках телефона — не местоположение. Если Google UMP считает пользователя жителем ЕС,
+        // Великобритании или Швейцарии (там нужно согласие), его не отправляем на VK, даже при регионе RU/BY
         let vkOnlyRegions: Set<String> = ["RU", "BY"]
-        if vkOnlyRegions.contains(region) {
+        if vkOnlyRegions.contains(region) && !AdConsentManager.shared.isInRegulatedRegion {
             self.activeProviderType = .vk
         } else {
             self.activeProviderType = .admob
         }
+    }
+    
+    /// Можно ли обращаться к рекламе Google: SDK запущен и согласие не отозвано
+    public var canRequestGoogleAds: Bool {
+        #if canImport(GoogleMobileAds)
+        return isSdkReady && AdConsentManager.shared.canRequestAds
+        #else
+        return false
+        #endif
     }
     
     /// Получение индивидуального Slot ID для экрана для избежания No-Fill при параллельных запросах
@@ -161,7 +179,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     }
     
     // MARK: - Инициализация рекламных SDK
-    /// Порядок запуска: согласие (ЕС/Великобритания/Швейцария) → запрос ATT → запуск Google Mobile Ads SDK →
+    /// Порядок запуска: согласие (ЕС/Великобритания/Швейцария) → запрос ATT → Google Mobile Ads SDK →
     /// загрузка объявлений. Раньше SDK стартовал сразу, а ATT спрашивался через 3 секунды: первые запросы
     /// уходили без IDFA и до готовности адаптеров, что снижает ставки.
     @MainActor
@@ -176,15 +194,55 @@ public final class LuysAdManager: NSObject, ObservableObject {
         
         startPeriodicAdCheck()
         
+        // Premium → Free позже (например, подписка закончилась): цепочка запускается тогда
+        SubscriptionManager.shared.$isPremium
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isPremium in
+                guard let self = self, !isPremium else { return }
+                self.runAdStartupIfNeeded()
+            }
+            .store(in: &cancellables)
+        
+        runAdStartupIfNeeded()
+    }
+    
+    /// Запускает цепочку «согласие → ATT → SDK». Для Premium и при выключенной рекламе ничего не делает
+    /// (подписчику не показываем окно согласия и не запускаем рекламные SDK). Повторный вызов безопасен:
+    /// им же таймер повторяет попытку после сбоя запроса согласия (например, без интернета).
+    private func runAdStartupIfNeeded() {
+        guard isInitialized, !isStartupRunning, !isStartupFlowComplete else { return }
+        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
+        isStartupRunning = true
+        
         AdConsentManager.shared.gatherConsent { [weak self] error in
             guard let self = self else { return }
+            self.consentGatherFailed = (error != nil)
             if let error = error {
                 self.recordAdError("Согласие", error)
             }
+            // Теперь известно, в какой юрисдикции пользователь: пересчитываем сеть
+            self.determineActiveNetworkByGeo()
+            
+            // Отказ от всех вариантов в форме Google: ATT сверх этого не показываем (рекомендация Apple),
+            // рекламу Google не запускаем
+            if self.activeProviderType == .admob && AdConsentManager.shared.hasDeclinedConsent {
+                self.finishAdStartup()
+                return
+            }
             self.requestTrackingPermission { [weak self] in
-                self?.startAdSdksIfAllowed()
+                self?.finishAdStartup()
             }
         }
+    }
+    
+    private func finishAdStartup() {
+        isStartupRunning = false
+        // Запрос согласия не удался и разрешения из прошлого запуска нет: цепочка не завершена, таймер повторит
+        // (для VK согласие Google не требуется, повторять незачем)
+        let consentUnresolved = activeProviderType == .admob && consentGatherFailed && !AdConsentManager.shared.canRequestAds
+        isStartupFlowComplete = !consentUnresolved
+        startAdSdksIfAllowed()
     }
     
     /// Запускает Google Mobile Ads SDK, когда это разрешено, и затем предзагружает рекламу.
@@ -194,7 +252,8 @@ public final class LuysAdManager: NSObject, ObservableObject {
         preloadAds()
         
         #if canImport(GoogleMobileAds)
-        guard !isSdkReady, !isSdkStarting else { return }
+        guard activeProviderType == .admob, isStartupFlowComplete, !isSdkReady, !isSdkStarting else { return }
+        guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
         guard AdConsentManager.shared.canRequestAds else {
             adapterStatusSummary = "SDK не запущен: согласие не получено"
             return
@@ -265,6 +324,12 @@ public final class LuysAdManager: NSObject, ObservableObject {
                 guard let self = self else { return }
                 guard !SubscriptionManager.shared.isPremium, self.isAdsEnabled else { return }
                 
+                // Сбой запроса согласия (например, без интернета): повторяем всю цепочку
+                if !self.isStartupFlowComplete {
+                    self.runAdStartupIfNeeded()
+                    return
+                }
+                
                 #if canImport(GoogleMobileAds)
                 if self.activeProviderType == .admob {
                     // Повторные попытки: первая неудача (например, no-fill на новом блоке) больше не навсегда
@@ -311,7 +376,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     public func preloadAdMobRewarded() {
         #if canImport(GoogleMobileAds)
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
-        guard activeProviderType == .admob, isSdkReady else { return }
+        guard activeProviderType == .admob, canRequestGoogleAds else { return }
         guard admobRewardedAd == nil, !isAdMobRewardedLoading else { return }
         isAdMobRewardedLoading = true
         
@@ -347,7 +412,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
     public func preloadAdMobInterstitial() {
         #if canImport(GoogleMobileAds)
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
-        guard activeProviderType == .admob, isSdkReady else { return }
+        guard activeProviderType == .admob, canRequestGoogleAds else { return }
         guard admobInterstitialAd == nil, !isAdMobInterstitialLoading else { return }
         isAdMobInterstitialLoading = true
         
@@ -385,7 +450,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         #if canImport(MyTargetSDK)
         guard !SubscriptionManager.shared.isPremium, isAdsEnabled else { return }
         // VK только для РФ и Беларуси: иначе его SDK запрашивал данные устройства у всех (в том числе в ЕС) без согласия
-        guard activeProviderType == .vk else { return }
+        guard activeProviderType == .vk, isStartupFlowComplete else { return }
         guard !isRewardedReady, !isVkRewardedLoading else { return }
         
         let slotId = effectiveTestMode ? AdConfig.vkDemoRewardedSlotId : UInt(max(0, vkRewardedSlotId))
@@ -551,7 +616,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         var lines: [String] = []
         lines.append("Сеть: \(activeProviderType.rawValue) · регион \(detectedRegionCode)")
         lines.append("Google SDK: \(isSdkReady ? "запущен" : "не запущен") · ATT: \(trackingStatusText)")
-        lines.append("Согласие: \(AdConsentManager.shared.canRequestAds ? "реклама разрешена" : "не получено")")
+        lines.append("Согласие: \(AdConsentManager.shared.canRequestAds ? "реклама разрешена" : "не получено") · зона ЕС/Великобритании: \(AdConsentManager.shared.isInRegulatedRegion ? "да" : "нет") · цепочка запуска: \(isStartupFlowComplete ? "завершена" : "не завершена")")
         lines.append("Premium: \(SubscriptionManager.shared.isPremium ? "да, рекламы нет" : "нет") · показ рекламы \(isAdsEnabled ? "включён" : "выключен")")
         lines.append("Адаптеры: \(adapterStatusSummary)")
         lines.append("Готово: награда \(isRewardedReady ? "да" : "нет"), интерстициал \(isInterstitialReady ? "да" : "нет")")

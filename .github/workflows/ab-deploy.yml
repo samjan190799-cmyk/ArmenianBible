@@ -20,12 +20,9 @@ jobs:
 
       - name: Select Xcode
         run: |
+          # Берём самый новый Xcode: Google Mobile Ads 13.4+ и Meta SDK 6.22 требуют Xcode 26.2 и новее,
+          # поэтому жёсткий выбор 26.0 больше не подходит (как и в build.yml)
           XCODE_PATH=$(ls -d /Applications/Xcode_*.app | sort -V | tail -n 1)
-          if [ -d "/Applications/Xcode_26.0.app" ]; then
-            XCODE_PATH="/Applications/Xcode_26.0.app"
-          elif [ -d "/Applications/Xcode_26.app" ]; then
-            XCODE_PATH="/Applications/Xcode_26.app"
-          fi
           echo "Selected Xcode: $XCODE_PATH"
           sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
           xcodebuild -version

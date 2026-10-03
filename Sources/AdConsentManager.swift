@@ -33,6 +33,18 @@ final class AdConsentManager {
         #endif
     }
 
+    /// Пользователь из зоны согласия (ЕС/Великобритания/Швейцария) отказался от всех вариантов:
+    /// рекламу Google запускать нельзя, а запрос ATT сверх этого Apple показывать не рекомендует
+    var hasDeclinedConsent: Bool {
+        isPrivacyOptionsRequired && !canRequestAds
+    }
+
+    /// Пользователь в зоне, где требуется согласие. Такого пользователя не отправляем на VK,
+    /// даже если в настройках телефона выбран регион RU/BY
+    var isInRegulatedRegion: Bool {
+        isPrivacyOptionsRequired
+    }
+
     /// Обновляет сведения о согласии (при каждом запуске) и при необходимости показывает форму.
     /// Повторяет порядок вызовов из официального примера Google (BannerExample).
     func gatherConsent(
