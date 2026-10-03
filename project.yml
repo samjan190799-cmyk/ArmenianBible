@@ -30,7 +30,7 @@ targets:
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSFaceIDUsageDescription: "Protect your personal bookmarks, prayer journal, and notes with Face ID."
-        NSUserTrackingUsageDescription: "Разрешите отслеживание для персонализации рекомендаций и полезных предложений"
+        NSUserTrackingUsageDescription: "Идентификатор устройства нужен, чтобы показывать более подходящую рекламу. Вы можете отказаться: реклама останется, но будет менее персонализированной."
         SKAdNetworkItems:
           - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
           - SKAdNetworkIdentifier: 4fzdc2evr5.skadnetwork

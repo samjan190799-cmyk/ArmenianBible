@@ -67,7 +67,7 @@
     <key>NSFaceIDUsageDescription</key>
     <string>Protect your personal bookmarks, prayer journal, and notes with Face ID.</string>
     <key>NSUserTrackingUsageDescription</key>
-    <string>Разрешите отслеживание для персонализации рекомендаций и полезных предложений</string>
+    <string>Идентификатор устройства нужен, чтобы показывать более подходящую рекламу. Вы можете отказаться: реклама останется, но будет менее персонализированной.</string>
     <key>SKAdNetworkItems</key>
     <array>
         <dict>
