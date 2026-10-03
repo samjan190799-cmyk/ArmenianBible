@@ -351,6 +351,24 @@ extension SettingsView {
                 .foregroundColor(Paper.inkSecondary)
         }
         .font(.system(size: 14))
+        
+        // Требование Google UMP: пользователь из ЕС/Великобритании/Швейцарии может изменить решение о рекламе
+        if AdConsentManager.shared.isPrivacyOptionsRequired {
+            Button {
+                Task { try? await AdConsentManager.shared.presentPrivacyOptionsForm() }
+            } label: {
+                HStack {
+                    Text("ad_privacy_options".localized(for: selectedLanguage))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Paper.inkTertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 14))
+        }
     }
     
 

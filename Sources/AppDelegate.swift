@@ -10,9 +10,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         application.beginReceivingRemoteControlEvents()
         PaperAppearance.apply()
         
-        Task { @MainActor in
-            LuysAdManager.shared.initialize()
-        }
+        // Реклама запускается из ArmenianBibleApp после появления сцены: окно согласия и запрос ATT
+        // нельзя показать до появления окна приложения
         return true
     }
 }

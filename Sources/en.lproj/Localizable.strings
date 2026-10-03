@@ -352,6 +352,7 @@
 "church_today_panel_title" = "Today in the Church";
 "church_fast_disclaimer" = "Fast days are compiled from published Armenian Church sources and have not been checked against an official calendar. Only days on which the sources agree are marked, so a day without a mark may still be a fast. Practice differs between parishes, so please check your parish calendar.";
 "church_readings_disclaimer" = "Feast readings are given for reference and may differ in your parish.";
+"ad_privacy_options" = "Ad privacy options";
 "prayer_title" = "Feast Prayer";
 "expand_details" = "More details";
 "collapse_details" = "Hide details";
