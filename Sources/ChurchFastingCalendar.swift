@@ -212,9 +212,17 @@ enum ChurchFastRules {
 
 // MARK: - Публичный интерфейс календаря
 extension ChurchCalendarService {
+    /// Правила заданы по григорианским датам, поэтому считаем в григорианском календаре в часовом
+    /// поясе пользователя — даже если системный календарь у него буддийский, еврейский и т. п.
+    private var gregorianLocalCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = Calendar.current.timeZone
+        return calendar
+    }
+
     /// Постный статус дня. nil — обычный либо спорный день: приложение ничего не утверждает.
     func fastDay(on date: Date) -> ChurchFastDay? {
-        let calendar = Calendar.current
+        let calendar = gregorianLocalCalendar
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
         guard let year = parts.year, let month = parts.month, let day = parts.day,
               let kind = ChurchFastRules.fastKind(year: year, month: month, day: day) else { return nil }
@@ -234,7 +242,7 @@ extension ChurchCalendarService {
     /// Постные дни, перед началом которых (накануне вечером) стоит напомнить:
     /// день постный, а предыдущий день — нет. Неделя поста даёт одно напоминание, а не пять.
     func fastReminderDays(from start: Date, horizonDays: Int) -> [(date: Date, fast: ChurchFastDay)] {
-        let calendar = Calendar.current
+        let calendar = gregorianLocalCalendar
         let base = calendar.startOfDay(for: start)
         var result: [(date: Date, fast: ChurchFastDay)] = []
         guard horizonDays > 0 else { return result }
