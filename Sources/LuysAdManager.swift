@@ -118,7 +118,7 @@ public final class LuysAdManager: NSObject, ObservableObject {
         adDiagnostics[key] = text
     }
 
-    public static func describe(_ error: Error) -> String {
+    nonisolated public static func describe(_ error: Error) -> String {
         let nsError = error as NSError
         return "ошибка \(nsError.code): \(nsError.localizedDescription)"
     }
