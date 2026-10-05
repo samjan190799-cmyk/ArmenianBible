@@ -254,7 +254,7 @@ struct SettingsView: View {
                     devPasscodeInput = ""
                 }
             } message: {
-                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")")
+                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")\n\n\(LuysAdManager.shared.diagnosticsSummary)")
             }
             .alert("ai_clear_chat_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingClearAIChatAlert) {
                 Button("ai_clear_chat_btn".localized(for: selectedLanguage), role: .destructive) {

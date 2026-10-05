@@ -82,6 +82,8 @@ public final class LuysAdManager: NSObject, ObservableObject {
     @Published public private(set) var isTrackingAuthorized: Bool = false
     @Published public private(set) var activeProviderType: LuysAdNetworkType = .meta
     @Published public private(set) var detectedRegionCode: String = "AM"
+    /// Последнее событие по каждому формату (banner / interstitial / rewarded / sdk) для панели тестировщика
+    @Published public private(set) var adDiagnostics: [String: String] = [:]
     
     // MARK: - Внутренние свойства
     private var lastInterstitialTime: Date? = nil
@@ -111,6 +113,27 @@ public final class LuysAdManager: NSObject, ObservableObject {
         determineActiveNetworkByGeo()
     }
     
+    // MARK: - Диагностика рекламы (панель тестировщика)
+    public func recordAdEvent(_ key: String, _ text: String) {
+        adDiagnostics[key] = text
+    }
+
+    public static func describe(_ error: Error) -> String {
+        let nsError = error as NSError
+        return "ошибка \(nsError.code): \(nsError.localizedDescription)"
+    }
+
+    public var diagnosticsSummary: String {
+        var lines = [
+            "Провайдер: \(activeProviderType.rawValue), регион \(detectedRegionCode)",
+            "Реклама включена: \(isAdsEnabled ? "да" : "нет"), ATT: \(isTrackingAuthorized ? "разрешён" : "нет")"
+        ]
+        for key in ["sdk", "banner", "interstitial", "rewarded"] {
+            lines.append("\(key): \(adDiagnostics[key] ?? "событий нет")")
+        }
+        return lines.joined(separator: "\n")
+    }
+
     // MARK: - Гео-маршрутизация (Geo-Routing)
     /// В РФ и Беларуси используется VK Реклама (myTarget).
     /// В Армении и по всему миру используется Meta Audience Network.
@@ -155,6 +178,10 @@ public final class LuysAdManager: NSObject, ObservableObject {
 
         #if canImport(FBAudienceNetwork)
         FBAudienceNetworkAds.initialize(with: nil, completionHandler: { result in
+            let summary = "\(result.isSuccess ? "инициализирован" : "не инициализирован"): \(result.message)"
+            Task { @MainActor in
+                LuysAdManager.shared.recordAdEvent("sdk", summary)
+            }
             #if DEBUG
             print("✅ [Meta] Audience Network инициализирован: \(result.isSuccess) \(result.message)")
             #endif
@@ -456,6 +483,7 @@ extension LuysAdManager: FBInterstitialAdDelegate {
         Task { @MainActor in
             let manager = LuysAdManager.shared
             manager.isMetaInterstitialLoading = false
+            manager.recordAdEvent("interstitial", "загружена")
             if manager.activeProviderType == .meta {
                 manager.isInterstitialReady = true
             }
@@ -466,8 +494,10 @@ extension LuysAdManager: FBInterstitialAdDelegate {
     }
 
     nonisolated public func interstitialAd(_ interstitialAd: FBInterstitialAd, didFailWithError error: Error) {
+        let description = LuysAdManager.describe(error)
         Task { @MainActor in
             let manager = LuysAdManager.shared
+            manager.recordAdEvent("interstitial", description)
             manager.isMetaInterstitialLoading = false
             manager.metaInterstitialAd = nil
             manager.isInterstitialReady = false
@@ -502,6 +532,7 @@ extension LuysAdManager: FBRewardedInterstitialAdDelegate {
         Task { @MainActor in
             let manager = LuysAdManager.shared
             manager.isMetaRewardedLoading = false
+            manager.recordAdEvent("rewarded", "загружена")
             if manager.activeProviderType == .meta {
                 manager.isRewardedReady = true
             }
@@ -512,8 +543,10 @@ extension LuysAdManager: FBRewardedInterstitialAdDelegate {
     }
 
     nonisolated public func rewardedInterstitialAd(_ rewardedInterstitialAd: FBRewardedInterstitialAd, didFailWithError error: Error) {
+        let description = LuysAdManager.describe(error)
         Task { @MainActor in
             let manager = LuysAdManager.shared
+            manager.recordAdEvent("rewarded", description)
             manager.isMetaRewardedLoading = false
             manager.metaRewardedAd = nil
             manager.isRewardedReady = false

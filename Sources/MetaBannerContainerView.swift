@@ -70,12 +70,15 @@ struct MetaBannerContainerView: UIViewRepresentable {
                 #if DEBUG
                 print("✅ [Meta Banner] Баннер успешно загружен!")
                 #endif
+                LuysAdManager.shared.recordAdEvent("banner", "загружен")
                 self?.onAdLoaded?(50)
             }
         }
 
         nonisolated func adView(_ adView: FBAdView, didFailWithError error: Error) {
+            let description = LuysAdManager.describe(error)
             Task { @MainActor [weak self] in
+                LuysAdManager.shared.recordAdEvent("banner", description)
                 #if DEBUG
                 print("⚠️ [Meta Banner] Ошибка загрузки баннера: \(error.localizedDescription)")
                 #endif
