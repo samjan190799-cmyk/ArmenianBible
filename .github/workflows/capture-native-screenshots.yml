@@ -107,7 +107,7 @@ jobs:
 
             # 0. Экран блокировки / виджеты
             echo "📸 Снятие 00 Lock Screen / Widgets..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab lockscreen
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab lockscreen -luys_ads_enabled NO
             sleep 6
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/00_Native_LockScreen.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -115,7 +115,7 @@ jobs:
 
             # 1. Главный экран (Home)
             echo "📸 Снятие 01 Home..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home -luys_ads_enabled NO
             sleep 6
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/01_Native_Home.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -123,7 +123,7 @@ jobs:
 
             # 2. Избранное (Favorites)
             echo "📸 Снятие 02 Favorites..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab favorites
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab favorites -luys_ads_enabled NO
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/02_Native_Favorites.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -131,7 +131,7 @@ jobs:
 
             # 3. Чтение Библии (Bible Reader)
             echo "📸 Снятие 03 Bible Reader..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bible
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bible -luys_ads_enabled NO
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/03_Native_BibleReader.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -139,7 +139,7 @@ jobs:
 
             # 4. Церковный Календарь (Calendar)
             echo "📸 Снятие 04 Calendar..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab calendar
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab calendar -luys_ads_enabled NO
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/04_Native_Calendar.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -147,9 +147,25 @@ jobs:
 
             # 5. Викторина (Quiz)
             echo "📸 Снятие 05 Quiz..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab quiz
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab quiz -luys_ads_enabled NO
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/05_Native_Quiz.png"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # 6. ИИ-помощник
+            echo "📸 Снятие 06 AI..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab ai -luys_ads_enabled NO
+            sleep 5
+            xcrun simctl io "$UDID" screenshot "$OUT_DIR/06_Native_AI.png"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            # 7. Духовные обои (Wallpaper Maker)
+            echo "📸 Снятие 07 Wallpaper..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab wallpaper -luys_ads_enabled NO
+            sleep 6
+            xcrun simctl io "$UDID" screenshot "$OUT_DIR/07_Native_Wallpaper.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
 
