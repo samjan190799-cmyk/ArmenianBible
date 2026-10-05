@@ -5,10 +5,9 @@ packages:
   MyTargetSDK:
     url: https://github.com/myTargetSDK/mytarget-ios-spm
     from: 5.46.0
-  GoogleMobileAds:
-    url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
-    from: 11.2.0
-
+  FBAudienceNetwork:
+    url: https://github.com/facebook/FBAudienceNetwork
+    from: 6.22.0
 
 targets:
   ArmenianBible:
@@ -28,11 +27,10 @@ targets:
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
         ITSAppUsesNonExemptEncryption: "NO"
-        GADApplicationIdentifier: "ca-app-pub-2894315025786699~1008604498"
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSFaceIDUsageDescription: "Protect your personal bookmarks, prayer journal, and notes with Face ID."
-        NSUserTrackingUsageDescription: "Разрешите отслеживание для персонализации рекомендаций и полезных предложений"
+        NSUserTrackingUsageDescription: "Идентификатор устройства нужен, чтобы показывать более подходящую рекламу. Вы можете отказаться: реклама останется, но будет менее персонализированной."
         SKAdNetworkItems:
           - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
           - SKAdNetworkIdentifier: 4fzdc2evr5.skadnetwork
@@ -94,8 +92,8 @@ targets:
     dependencies:
       - package: MyTargetSDK
         product: MyTargetSDK
-      - package: GoogleMobileAds
-        product: GoogleMobileAds
+      - package: FBAudienceNetwork
+        product: FBAudienceNetwork
       - sdk: AppTrackingTransparency.framework
       - sdk: AdSupport.framework
       - target: BibleWidget

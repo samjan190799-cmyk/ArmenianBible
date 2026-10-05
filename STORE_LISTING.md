@@ -42,7 +42,7 @@
 • ԱԲ Հոգևոր Օգնական (AI Guide) — Խորը մեկնաբանություններ և պատասխաններ (Gemini, ChatGPT, Claude):
 • Աստվածաշնչյան Վիկտորինա — Ինտերակտիվ թեստեր գիտելիքների ամրապնդման համար:
 • Հոգևոր Պաստառներ և Էջանիշեր — Բացառիկ հայկական խաչքարերով պաստառների ստեղծում:
-• 100% Անցանց և Գաղտնի — Աշխատում է առանց ինտերնետի, առանց տվյալների հավաքագրման: Premium — առանց գովազդի:
+• Անցանց ընթերցում — Սուրբ Գիրքը հասանելի է առանց ինտերնետի և գրանցման: Անվճար տարբերակում կա գովազդ (Meta, VK), Premium՝ առանց գովազդի:
 
 ─────────────────────────
 🇬🇧 ENGLISH:
@@ -55,7 +55,7 @@
 • AI Spiritual Guide — Deep biblical reflections powered by Gemini, ChatGPT, and Claude.
 • Bible Quiz & Trivia — Strengthen your faith with interactive knowledge tests.
 • Spiritual Wallpapers & Bookmarks — Create elegant quote cards with ancient Armenian khachkars.
-• 100% Offline & Private — No tracking, works fully offline. Premium — ad-free experience.
+• Offline Reading — The Bible works without internet or an account. The free version shows ads (Meta Audience Network, VK); Premium is ad-free.
 
 ─────────────────────────
 🇷🇺 РУССКИЙ:
@@ -68,7 +68,7 @@
 • ИИ-помощник (AI Guide) — Духовные ответы и толкования (Gemini, ChatGPT, Claude).
 • Библейская викторина — Интерактивные тесты на знание Священного Писания.
 • Духовные обои и открытки — Создание премиальных карточек со стихами дня и древними хачкарами.
-• 100% Оффлайн и Конфиденциальность — Без интернета и сбора данных. Premium — без рекламы.
+• Чтение без интернета — Библия работает без интернета и регистрации. В бесплатной версии есть реклама (Meta Audience Network, VK); Premium — без рекламы.
 ```
 
 ---

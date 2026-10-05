@@ -1,6 +1,3 @@
-# Google AdMob
-google.com, pub-2894315025786699, DIRECT, f08c47fec0942fa0
-
 # Meta Audience Network
 facebook.com, 1095947166419291, DIRECT, c3e20eee3f780d68
 facebook.com, 1473100044658181, DIRECT, c3e20eee3f780d68
