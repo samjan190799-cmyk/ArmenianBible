@@ -207,6 +207,8 @@ final class CloudSyncManager: ObservableObject {
                 return try? encoder().encode(items)
             },
             write: { data in
+                // Не затираем локальные данные, если формат из iCloud нам неизвестен
+                guard (try? JSONDecoder().decode([FavoriteItem].self, from: data)) != nil else { return }
                 AppGroupConstants.syncToAll { $0.set(data, forKey: favoritesKey) }
             },
             merge: { l, r in
@@ -235,6 +237,7 @@ final class CloudSyncManager: ObservableObject {
                 return try? encoder().encode(map)
             },
             write: { data in
+                guard (try? JSONDecoder().decode([String: VerseAnnotation].self, from: data)) != nil else { return }
                 AppGroupConstants.syncToAll { $0.set(data, forKey: annotationsKey) }
             },
             merge: { l, r in
