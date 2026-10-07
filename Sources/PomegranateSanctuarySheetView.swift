@@ -397,21 +397,22 @@ struct PomegranateSanctuarySheetView: View {
                                 showingStageDetail = stage
                             } label: {
                                 VStack(spacing: 4) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(
-                                                isCurrent ? Paper.cinnabar :
-                                                (isCompleted ? Paper.moss : (Paper.fillMuted))
+                                    ZStack(alignment: .topTrailing) {
+                                        PomegranateTreeView(stage: stage, style: .compact(height: 44))
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                                    .fill(Paper.page)
                                             )
-                                            .frame(width: 36, height: 36)
-                                        
+                                            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                            .saturation(stage > treeManager.currentStage ? 0 : 1)
+                                            .opacity(stage > treeManager.currentStage ? 0.45 : 1)
+
                                         if isCompleted {
-                                            Image(systemName: "checkmark")
+                                            Image(systemName: "checkmark.circle.fill")
                                                 .font(.system(size: 13, weight: .semibold))
-                                                .foregroundColor(Paper.ink)
-                                        } else {
-                                            Text(stageIcon(for: stage))
-                                                .font(PaperFont.font(size: 16))
+                                                .symbolRenderingMode(.palette)
+                                            .foregroundStyle(Paper.onAccent, Paper.moss)
+                                                .offset(x: 4, y: -4)
                                         }
                                     }
                                     
@@ -493,27 +494,15 @@ struct PomegranateSanctuarySheetView: View {
                         }
                     } label: {
                         VStack(spacing: 8) {
-                            ZStack {
-                                Circle()
-                                    .fill(
-                                        isUnlocked ?
-                                        LinearGradient(
-                                            colors: [Paper.cinnabar, Paper.cinnabar],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ) :
-                                        LinearGradient(
-                                            colors: [Paper.fillMuted, Paper.fillMuted],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 44, height: 44)
-                                    .shadow(color: isUnlocked ? Paper.cinnabar.opacity(0.4) : Color.clear, radius: 4)
-                                
-                                Image(systemName: fruit.icon)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(isUnlocked ? Paper.onAccent : Paper.inkSecondary)
+                            ZStack(alignment: .bottomTrailing) {
+                                PomegranateFruitGlyph(size: 46, isLocked: !isUnlocked)
+
+                                Image(systemName: isUnlocked ? fruit.icon : "lock.fill")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(isUnlocked ? Paper.cinnabar : Paper.inkTertiary)
+                                    .frame(width: 18, height: 18)
+                                    .background(Circle().fill(Paper.sheet))
+                                    .overlay(Circle().strokeBorder(Paper.hairline, lineWidth: 0.8))
                             }
                             
                             Text(fruit.name(for: language))
@@ -581,17 +570,6 @@ struct PomegranateSanctuarySheetView: View {
         )
     }
     
-    // MARK: - Иконка стадии для Roadmap
-    private func stageIcon(for stage: PomegranateStage) -> String {
-        switch stage {
-        case .seed: return "🌱"
-        case .sprout: return "🌿"
-        case .youngTree: return "🌳"
-        case .bloomingTree: return "🌺"
-        case .fruitfulTree: return "🍎"
-        case .treeOfLife: return "✨"
-        }
-    }
     
     // MARK: - Обработка тапа на плод
     private func handleFruitTap(index: Int) {
@@ -640,29 +618,20 @@ struct SpiritualFruitDetailSheetView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Иконка плода в короне
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Paper.cinnabar, Paper.cinnabar, Paper.cinnabar],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
-                    .shadow(color: Paper.shadow, radius: 10, y: 4)
-                
-                Image(systemName: fruit.icon)
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundColor(Paper.ink)
-            }
-            .padding(.top, 14)
-            
+            // Раскрытый плод граната
+            PomegranateFruitGlyph(size: 104, isOpen: true)
+                .shadow(color: Paper.shadow, radius: 10, y: 4)
+                .padding(.top, 14)
+
             VStack(spacing: 6) {
-                Text(fruit.name(for: language))
-                    .font(PaperFont.font(size: 26, weight: .semibold))
-                    .foregroundColor(Paper.ink)
+                HStack(spacing: 8) {
+                    Image(systemName: fruit.icon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Paper.cinnabar)
+                    Text(fruit.name(for: language))
+                        .font(PaperFont.font(size: 26, weight: .semibold))
+                        .foregroundColor(Paper.ink)
+                }
                 
                 Text(fruit.scriptureRef)
                     .font(PaperFont.font(size: 13, weight: .semibold))
@@ -793,14 +762,12 @@ struct PomegranateGrowthGuideSheetView: View {
                 VStack(spacing: 20) {
                     // 1. Верхняя карточка-интро
                     VStack(spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(Paper.cinnabar.opacity(0.12))
-                                .frame(width: 64, height: 64)
-                            Image(systemName: "tree.fill")
-                                .font(.system(size: 30))
-                                .foregroundColor(Paper.cinnabar)
-                        }
+                        PomegranateTreeView(stage: .treeOfLife, style: .compact(height: 84))
+                            .background(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .fill(Paper.page)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                         
                         Text(language == .armenian ? "Ինչպե՞ս է աճում ծառը" : (language == .russian ? "Как растёт Древо веры?" : "How does the Tree grow?"))
                             .font(PaperFont.font(size: 22, weight: .semibold))
@@ -944,18 +911,19 @@ struct PomegranateStageDetailSheetView: View {
     var body: some View {
         VStack(spacing: 20) {
             // Иконка стадии
-            ZStack {
-                Circle()
-                    .fill(
-                        isCurrent ? Paper.cinnabar.opacity(0.15) :
-                        (isCompleted ? Paper.moss.opacity(0.15) : Paper.fillMuted)
-                    )
-                    .frame(width: 76, height: 76)
-                
-                Text(stageEmoji(for: stage))
-                    .font(PaperFont.font(size: 38))
-            }
-            .padding(.top, 20)
+            PomegranateTreeView(stage: stage, style: .compact(height: 96))
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Paper.page)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(isCurrent ? Paper.cinnabar.opacity(0.5) : Paper.hairline, lineWidth: 1)
+                )
+                .saturation(isLocked ? 0 : 1)
+                .opacity(isLocked ? 0.5 : 1)
+                .padding(.top, 20)
             
             VStack(spacing: 6) {
                 Text(stage.title(for: language))
@@ -1049,16 +1017,6 @@ struct PomegranateStageDetailSheetView: View {
         }
     }
     
-    private func stageEmoji(for stage: PomegranateStage) -> String {
-        switch stage {
-        case .seed: return "🌱"
-        case .sprout: return "🌿"
-        case .youngTree: return "🌳"
-        case .bloomingTree: return "🌺"
-        case .fruitfulTree: return "🍎"
-        case .treeOfLife: return "✨"
-        }
-    }
     
     private func fruitsUnlocked(for stage: PomegranateStage) -> Int {
         switch stage {

@@ -515,6 +515,10 @@ struct HomeView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         isShowingWallpaperMaker = true
                     }
+                } else if tabArg == "tree" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingPomegranateSanctuary = true
+                    }
                 }
                 UserDefaults.standard.removeObject(forKey: "openTab")
             }
