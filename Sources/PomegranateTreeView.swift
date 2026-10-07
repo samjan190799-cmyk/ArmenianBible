@@ -329,17 +329,17 @@ struct PomegranateTreeLayout {
             let n = (level >= 1 && rng.next() < 0.30) ? 3 : 2
             var kids: [CGFloat] = []
             if n == 2 {
-                kids.append(-(0.30 + rng.next() * 0.24))
-                kids.append(0.28 + rng.next() * 0.26)
+                kids.append(-(0.26 + rng.next() * 0.20))
+                kids.append(0.24 + rng.next() * 0.22)
             } else {
-                kids.append(-(0.52 + rng.next() * 0.14))
-                kids.append((rng.next() - 0.5) * 0.20)
-                kids.append(0.52 + rng.next() * 0.14)
+                kids.append(-(0.46 + rng.next() * 0.12))
+                kids.append((rng.next() - 0.5) * 0.18)
+                kids.append(0.46 + rng.next() * 0.12)
             }
             for da in kids {
                 var na = a + da - sign(a + da) * 0.045 * CGFloat(level)
                 na = max(-1.50, min(1.50, na))
-                let childLength = len * (0.72 + rng.next() * 0.12)
+                let childLength = len * (0.76 + rng.next() * 0.12)
                 grow(ex, ey, na, childLength, w * 0.66, depth - 1, level + 1)
             }
             // Боковая веточка с листьями
@@ -357,8 +357,8 @@ struct PomegranateTreeLayout {
         if p.stems > 1 {
             for i in 0..<p.stems {
                 let f = (CGFloat(i) / CGFloat(p.stems - 1) - 0.5) * 2
-                let ang = f * 0.34 + (rng.next() - 0.5) * 0.10
-                let x0 = f * H * 0.030
+                let ang = f * 0.26 + (rng.next() - 0.5) * 0.08
+                let x0 = f * H * 0.026
                 let length = H * p.trunk * (0.92 + rng.next() * 0.18)
                 let width = H * p.width * (0.9 + rng.next() * 0.25)
                 grow(x0, 0, ang, length, width, p.depth, 0)
