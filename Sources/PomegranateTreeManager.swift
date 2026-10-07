@@ -372,13 +372,14 @@ final class PomegranateTreeManager: ObservableObject {
         if self.totalSeeds == 0 {
             self.totalSeeds = max(1, self.daysStreak)
         }
-        #if DEBUG
-        // Для скриншотов в CI: `-pomegranate_debug_days 45` показывает нужную стадию дерева
-        let debugDays = UserDefaults.standard.integer(forKey: "pomegranate_debug_days")
-        if debugDays > 0 {
+        // Для скриншотов в CI: аргумент запуска `-pomegranate_debug_days 45` показывает нужную стадию дерева.
+        // Аргументы запуска пользователь App Store задать не может, поэтому в обычной работе это не срабатывает.
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "-pomegranate_debug_days"),
+           flag + 1 < arguments.count,
+           let debugDays = Int(arguments[flag + 1]), debugDays > 0 {
             self.daysStreak = debugDays
         }
-        #endif
     }
 
     // MARK: - Проверка статуса росы и стрика (Закон Милосердия)
