@@ -169,6 +169,18 @@ jobs:
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
 
+            # 8. Гранатовое древо на всех стадиях (параметр дней работает только в DEBUG-сборке)
+            for DAYS in 1 4 10 20 45 70; do
+              echo "📸 Снятие 08 Tree ${DAYS}d..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home -luys_ads_enabled NO -pomegranate_debug_days $DAYS
+              sleep 5
+              xcrun simctl openurl "$UDID" "armenianbible://tree" || true
+              sleep 4
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/08_Tree_${DAYS}d.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              sleep 2
+            done
+
             # Выключение симулятора
             xcrun simctl shutdown "$UDID" || true
             echo "✅ Скриншоты для $DEV_LABEL успешно сняты!"

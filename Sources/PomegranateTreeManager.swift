@@ -372,6 +372,13 @@ final class PomegranateTreeManager: ObservableObject {
         if self.totalSeeds == 0 {
             self.totalSeeds = max(1, self.daysStreak)
         }
+        #if DEBUG
+        // Для скриншотов в CI: `-pomegranate_debug_days 45` показывает нужную стадию дерева
+        let debugDays = UserDefaults.standard.integer(forKey: "pomegranate_debug_days")
+        if debugDays > 0 {
+            self.daysStreak = debugDays
+        }
+        #endif
     }
 
     // MARK: - Проверка статуса росы и стрика (Закон Милосердия)
