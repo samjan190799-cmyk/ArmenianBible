@@ -225,6 +225,69 @@ extension SettingsView {
                     }
                     .buttonStyle(ScaleButtonStyle())
                 }
+
+                Divider().opacity(0.3)
+
+                // 5. Синхронизация через iCloud (по умолчанию выключена)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Paper.teal.opacity(0.15))
+                                .frame(width: 34, height: 34)
+
+                            Image(systemName: "icloud.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Paper.teal)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(iCloudSyncTitle)
+                                .font(PaperFont.font(size: 14, weight: .semibold))
+                                .foregroundColor(primaryTextColor)
+
+                            Text(iCloudSyncDescription)
+                                .font(PaperFont.font(size: 11.5))
+                                .foregroundColor(Paper.inkSecondary)
+                                .lineLimit(3)
+                        }
+
+                        Spacer()
+
+                        Toggle("", isOn: Binding(
+                            get: { cloudSync.isEnabled },
+                            set: { newValue in
+                                Haptics.impact(.light)
+                                cloudSync.setEnabled(newValue)
+                            }
+                        ))
+                        .labelsHidden()
+                        .tint(selectedTheme.color)
+                    }
+
+                    if cloudSync.isEnabled {
+                        HStack(spacing: 6) {
+                            Image(systemName: iCloudStatusIcon)
+                                .font(.system(size: 12))
+                                .foregroundColor(iCloudStatusColor)
+                            Text(iCloudStatusText)
+                                .font(PaperFont.font(size: 12, weight: .medium))
+                                .foregroundColor(iCloudStatusColor)
+
+                            Spacer()
+
+                            Button {
+                                Haptics.impact(.soft)
+                                cloudSync.syncNow()
+                            } label: {
+                                Text(iCloudSyncNowTitle)
+                                    .font(PaperFont.font(size: 12, weight: .semibold))
+                                    .foregroundColor(selectedTheme.color)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                }
             }
             .padding(14)
             .background(inputFieldBgColor)
@@ -265,6 +328,90 @@ extension SettingsView {
         }
     }
     
+    // MARK: iCloud: подписи и статус
+    private var iCloudSyncTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Համաժամեցում iCloud-ով"
+        case .russian:  return "Синхронизация через iCloud"
+        case .english:  return "iCloud Sync"
+        }
+    }
+
+    private var iCloudSyncDescription: String {
+        switch selectedLanguage {
+        case .armenian: return "Ընտրյալները, նշումները, ընթերցանության առաջընթացը և կարգավորումները՝ ձեր բոլոր սարքերում։ ԱԲ-ի բանալիները և գնումները չեն փոխանցվում։"
+        case .russian:  return "Избранное, заметки, прогресс чтения и настройки — на всех ваших устройствах. Ключи ИИ и покупки не передаются."
+        case .english:  return "Favorites, notes, reading progress and settings on all your devices. AI keys and purchases are not sent."
+        }
+    }
+
+    private var iCloudSyncNowTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Համաժամեցնել"
+        case .russian:  return "Синхронизировать"
+        case .english:  return "Sync now"
+        }
+    }
+
+    private var iCloudStatusIcon: String {
+        switch cloudSync.status {
+        case .unavailable, .tooLarge: return "exclamationmark.icloud.fill"
+        case .syncing: return "arrow.triangle.2.circlepath.icloud"
+        case .idle: return "checkmark.icloud.fill"
+        case .off: return "icloud"
+        }
+    }
+
+    private var iCloudStatusColor: Color {
+        switch cloudSync.status {
+        case .unavailable, .tooLarge: return Paper.cinnabar
+        case .syncing, .off: return Paper.inkSecondary
+        case .idle: return Paper.moss
+        }
+    }
+
+    private var iCloudStatusText: String {
+        switch cloudSync.status {
+        case .off:
+            return ""
+        case .syncing:
+            switch selectedLanguage {
+            case .armenian: return "Համաժամեցում…"
+            case .russian:  return "Синхронизация…"
+            case .english:  return "Syncing…"
+            }
+        case .unavailable:
+            switch selectedLanguage {
+            case .armenian: return "Մուտք գործեք iCloud iPhone-ի կարգավորումներում"
+            case .russian:  return "Войдите в iCloud в настройках iPhone"
+            case .english:  return "Sign in to iCloud in iPhone Settings"
+            }
+        case .tooLarge:
+            switch selectedLanguage {
+            case .armenian: return "Տվյալները չափազանց շատ են iCloud-ի համար"
+            case .russian:  return "Слишком много данных для iCloud"
+            case .english:  return "Too much data for iCloud"
+            }
+        case .idle(let date):
+            guard let date else {
+                switch selectedLanguage {
+                case .armenian: return "Պատրաստ է համաժամեցման"
+                case .russian:  return "Готово к синхронизации"
+                case .english:  return "Ready to sync"
+                }
+            }
+            let formatter = RelativeDateTimeFormatter()
+            formatter.locale = Locale(identifier: selectedLanguage.localeCode)
+            formatter.unitsStyle = .short
+            let relative = formatter.localizedString(for: date, relativeTo: Date())
+            switch selectedLanguage {
+            case .armenian: return "Համաժամեցվել է՝ \(relative)"
+            case .russian:  return "Синхронизировано: \(relative)"
+            case .english:  return "Synced \(relative)"
+            }
+        }
+    }
+
     private var rateAppButtonTitle: String {
         switch selectedLanguage {
         case .armenian: return "Գնահատել Luys-ը App Store-ում ⭐⭐⭐⭐⭐"

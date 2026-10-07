@@ -9,7 +9,8 @@ struct SettingsView: View {
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
     @ObservedObject var appIconManager = AppIconManager.shared
     @ObservedObject var candleManager = CandleManager.shared
-    
+    @ObservedObject var cloudSync = CloudSyncManager.shared
+
     @State var isShowingPaywall = false
     @State var isShowingSanctuarySheet = false
     @State var selectedCandleTierForDirectLight: CandleTier? = nil

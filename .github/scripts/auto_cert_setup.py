@@ -259,6 +259,26 @@ if cer_b64:
                 })
                 print(f"  Результат привязки App Group к {bid_name}: {link_res}")
 
+        # iCloud (хранилище «ключ-значение») для синхронизации данных пользователя между устройствами
+        if main_b_id:
+            icloud_caps = api_request("GET", f"/bundleIds/{main_b_id}/bundleIdCapabilities")
+            has_icloud = any(c.get("attributes", {}).get("capabilityType") == "ICLOUD" for c in icloud_caps.get("data", []))
+            if not has_icloud:
+                print("⚙️ Включение возможности ICLOUD для Main App...")
+                add_icloud_res = api_request("POST", "/bundleIdCapabilities", {
+                    "data": {
+                        "type": "bundleIdCapabilities",
+                        "attributes": {
+                            "capabilityType": "ICLOUD",
+                            "settings": [{"key": "ICLOUD_VERSION", "options": [{"key": "XCODE_6", "enabled": True}]}]
+                        },
+                        "relationships": {"bundleId": {"data": {"type": "bundleIds", "id": main_b_id}}}
+                    }
+                })
+                print(f"  Результат добавления ICLOUD для Main App: {add_icloud_res}")
+            else:
+                print("✅ ICLOUD уже включён для Main App")
+
         p_list = api_request("GET", "/profiles?filter[profileType]=IOS_APP_STORE&limit=100")
         for p_item in p_list.get("data", []):
             p_id = p_item["id"]

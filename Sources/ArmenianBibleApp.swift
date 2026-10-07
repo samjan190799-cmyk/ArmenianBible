@@ -17,6 +17,7 @@ struct ArmenianBibleApp: App {
                     // как сцена приложения (UIWindowScene) полностью активна и отрисована.
                     try? await Task.sleep(nanoseconds: 600_000_000)
                     LuysAdManager.shared.initialize()
+                    CloudSyncManager.shared.start()
                 }
         }
     }
