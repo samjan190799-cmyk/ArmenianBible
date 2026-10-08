@@ -4,6 +4,8 @@ extension ChurchCalendarService {
     // MARK: - Список абсолютно всех праздников на указанный год
     func feasts(for year: Int) -> [ArmenianChurchFeast] {
         let easter = calculateEaster(for: year)
+        // Начало Адвента (Хисначк): воскресенье, ближайшее к 18 ноября. От него считаются святители декабря.
+        let adventEve = sundayNearest(toMonth: 11, day: 18, inYear: year)
         var list: [ArmenianChurchFeast] = []
         
         // --- 1. ЯНВАРЬ (ՀՈՒՆՎԱՐ) ---
@@ -104,11 +106,11 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Рождество св. Иоанна Предтечи (Ծնունդ Սուրբ Հովհաննու Կարապետի — 15 января)
+        // Рождество св. Иоанна Предтечи (Ծնունդ Սուրբ Հովհաննու Կարապետի — 15 января; с воскресенья, среды и пятницы — на день раньше)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_john_baptist",
             type: .saints,
-            date: createDate(year: year, month: 1, day: 15),
+            date: fixedDate(year: year, month: 1, day: 15, sundayShift: -1, wednesdayShift: -1, fridayShift: -1),
             titleHy: "Ծնունդ Սուրբ Հովհաննու Կարապետի",
             titleRu: "Рождество святого Иоанна Предтечи",
             titleEn: "Nativity of St. John the Forerunner",
@@ -128,11 +130,11 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Преподобный Антоний Великий (Սուրբ Անտոն Անապատական — 18 января)
+        // Преподобный Антоний Великий (Սուրբ Անտոն Անապատական — 18 января; с воскресенья на понедельник, со среды и пятницы на день раньше)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_anthony",
             type: .saints,
-            date: createDate(year: year, month: 1, day: 18),
+            date: fixedDate(year: year, month: 1, day: 18, sundayShift: 1, wednesdayShift: -1, fridayShift: -1),
             titleHy: "Սուրբ Անտոն Անապատական",
             titleRu: "Преподобный Антоний Великий",
             titleEn: "St. Anthony the Great",
@@ -179,8 +181,8 @@ extension ChurchCalendarService {
             isFasting: true
         ))
         
-        // 3. Սուրբ Սարգիս զորավար (за 63 дня до Пасхи — суббота)
-        let stSarkisDate = dateByAdding(days: -63, to: easter)
+        // 3. Սուրբ Սարգիս զորավար (за 64 дня до Пасхи — суббота после Передового поста)
+        let stSarkisDate = dateByAdding(days: -64, to: easter)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_sarkis",
             type: .saints,
@@ -330,8 +332,8 @@ extension ChurchCalendarService {
         
         // --- 3. МАРТ И АПРЕЛЬ (ՄԱՐՏ - ԱՊՐԻԼ) ---
         
-        // Мичинк (Միջինք — 24-й день Великого Поста)
-        let michinkDate = dateByAdding(days: -24, to: easter)
+        // Мичинк (Միջինք — четвёртая среда Великого Поста, за 25 дней до Пасхи)
+        let michinkDate = dateByAdding(days: -25, to: easter)
         list.append(ArmenianChurchFeast(
             id: "\(year)_michink",
             type: .fasting,
@@ -827,8 +829,8 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Обретение мощей св. Григория Просветителя (суббота за 21 день до Вардавара)
-        let relicsGregoryDate = dateByAdding(days: 77, to: easter)
+        // Обретение мощей св. Григория Просветителя (суббота за 22 дня до Вардавара)
+        let relicsGregoryDate = dateByAdding(days: 76, to: easter)
         list.append(ArmenianChurchFeast(
             id: "\(year)_relics_st_gregory",
             type: .saints,
@@ -852,8 +854,8 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Святой царь Трдат, царица Ашхен и Хосровидухт (суббота за 14 дней до Вардавара)
-        let kingTrdatDate = dateByAdding(days: 84, to: easter)
+        // Святой царь Трдат, царица Ашхен и Хосровидухт (суббота за 15 дней до Вардавара)
+        let kingTrdatDate = dateByAdding(days: 83, to: easter)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_trdat",
             type: .saints,
@@ -929,8 +931,8 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Святые апостолы Фаддей и Варфоломей (суббота через 2 недели после Вардавара)
-        let apostlesThaddeusBartholomew = dateByAdding(days: 111, to: easter)
+        // Святые апостолы Фаддей и Варфоломей (суббота, 13 дней после начала Адвента: 28 ноября – 4 декабря)
+        let apostlesThaddeusBartholomew = dateByAdding(days: 13, to: adventEve)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_thaddeus_bartholomew",
             type: .saints,
@@ -1006,28 +1008,28 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Обретение Пояса Пресвятой Богородицы (3-е воскресенье после Успения)
-        let beltOfMaryDate = dateByAdding(days: 21, to: asdvadzadzinDate)
+        // Обретение ковчега Пресвятой Богородицы (Ս. Աստվածածնի Տուփի գյուտ — 5-е воскресенье после Пятидесятницы, Пасха + 84 дня)
+        let boxOfMaryDate = dateByAdding(days: 84, to: easter)
         list.append(ArmenianChurchFeast(
-            id: "\(year)_belt_of_theotokos",
+            id: "\(year)_box_of_theotokos",
             type: .dominical,
-            date: beltOfMaryDate,
-            titleHy: "Գյուտ Գոտու Սուրբ Աստվածածնի",
-            titleRu: "Обретение Пояса Пресвятой Богородицы",
-            titleEn: "Discovery of the Belt of the Holy Theotokos",
-            descriptionHy: "Աստվածամոր սուրբ Գոտու հայտնաբերման և Եկեղեցում մեծարման հիշատակը:",
-            descriptionRu: "Празднование обретения честного Пояса Божией Матери, врученного апостолу Фоме при Ее Успении.",
-            descriptionEn: "Commemoration of the discovery of the Holy Belt of the Theotokos given to Apostle Thomas.",
-            meaningHy: "Աստվածամոր մայրական հոգածության և պաշտպանության խորհրդանիշը:",
-            meaningRu: "Пояс Богородицы — символ Ее непрестанной материнской защиты и покрова над верующими.",
-            meaningEn: "The Belt of the Virgin Mary represents her maternal protection and prayers for the faithful.",
-            traditionsHy: "Բարեխոսական աղոթքներ հիվանդությունների բժշկության և մայրության պարգևի համար:",
-            traditionsRu: "Молитвы об исцелении недугов и даровании чадородия.",
-            traditionsEn: "Prayers for healing and blessings of childbirth.",
+            date: boxOfMaryDate,
+            titleHy: "Գյուտ Սուրբ Աստվածածնի Տուփի",
+            titleRu: "Обретение ковчега Пресвятой Богородицы",
+            titleEn: "Discovery of the Holy Mother of God's Box",
+            descriptionHy: "Ըստ ավանդության՝ երկու հույն իշխաններ Երուսաղեմ ուխտի գնալիս Գալիլիայում գտել են Աստվածածնին պատկանած տուփը, որի զորությամբ հիվանդներ էին բժշկվում: Տոնը Հայ Եկեղեցում հաստատվել է Սիմեոն Երևանցի կաթողիկոսի հրամանով 18-րդ դարի վերջին:",
+            descriptionRu: "По преданию, двое греческих князей, отправившись на поклонение в Иерусалим, нашли в Галилее ковчег (ларец), принадлежавший Богородице: силой этого ларца исцелялись больные. В Армянской Церкви праздник утвердил католикос Симеон Ереванский в конце XVIII века, переняв его от Греческой Церкви.",
+            descriptionEn: "According to tradition, two Greek princes on a pilgrimage to Jerusalem found in Galilee a box that had belonged to the Virgin Mary; the sick were healed by its power. The Armenian Church adopted the feast from the Greek Church by order of Catholicos Simeon of Yerevan in the late 18th century.",
+            meaningHy: "Աստվածածնի երկրավոր մարմնի մասունք չկա, քանի որ նա վերափոխվեց երկինք, ուստի նրա անձնական իրերը դարձան հավատացյալների մեծարանքի առարկա:",
+            meaningRu: "У Богородицы нет мощей: Она взята на небо, поэтому Её личные вещи стали предметом почитания верующих.",
+            meaningEn: "There are no relics of the Virgin Mary's earthly body, for she was assumed into Heaven; her personal belongings therefore became objects of the faithful's veneration.",
+            traditionsHy: "Տոնը նշվում է Հոգեգալստից հետո հինգերորդ կիրակի օրը՝ Սուրբ Պատարագով:",
+            traditionsRu: "Праздник совершается в пятое воскресенье после Пятидесятницы торжественной Литургией.",
+            traditionsEn: "The feast is kept on the fifth Sunday after Pentecost with the Divine Liturgy.",
             scriptureReading: "Ղուկաս 1:46-55",
-            prayerHy: "Սուրբ Գօտիդ Աստուածածնի եղիցի մեզ պահապան յամենայն չարէ:",
-            prayerRu: "Честный Пояс Твой, Пречистая Дева, да оградит нас от всякого зла и искушения!",
-            prayerEn: "May the Holy Belt of the Theotokos be our shield and protection from all harm!",
+            prayerHy: "",
+            prayerRu: "",
+            prayerEn: "",
             isFasting: false
         ))
         
@@ -1184,8 +1186,8 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Обретение Креста царицей Еленой (Գյուտ Խաչի — 7-е воскресенье после Хачвераца)
-        let discoveryCrossDate = dateByAdding(days: 49, to: khachveratsDate)
+        // Обретение Креста царицей Еленой (Գյուտ Խաչի — 6-е воскресенье после Хачвераца, воскресенье 23–29 октября)
+        let discoveryCrossDate = dateByAdding(days: 42, to: khachveratsDate)
         list.append(ArmenianChurchFeast(
             id: "\(year)_discovery_cross",
             type: .dominical,
@@ -1209,8 +1211,8 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Святые 4 Евангелиста (Մատթեոս, Մարկոս, Ղուկաս, Հովհաննես — конец октября)
-        let evangelistsDate = dateByAdding(days: 41, to: khachveratsDate)
+        // Святые 4 Евангелиста (Մատթեոս, Մարկոս, Ղուկաս, Հովհաննես — суббота за 34 дня после Хачвераца)
+        let evangelistsDate = dateByAdding(days: 34, to: khachveratsDate)
         list.append(ArmenianChurchFeast(
             id: "\(year)_evangelists",
             type: .saints,
@@ -1236,8 +1238,8 @@ extension ChurchCalendarService {
         
         // --- 8. НОЯБРЬ (ՆՈՅԵՄԲԵՐ) & АРХАНГЕЛЫ ---
         
-        // Святые Архангелы Михаил и Гавриил (суббота в начале ноября)
-        let archangelsDate = createDate(year: year, month: 11, day: 7)
+        // Святые Архангелы Михаил и Гавриил (суббота 5–11 ноября)
+        let archangelsDate = saturdayOnOrAfter(month: 11, day: 5, inYear: year)
         list.append(ArmenianChurchFeast(
             id: "\(year)_archangels",
             type: .saints,
@@ -1261,18 +1263,17 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Начало 50-дневного Рождественского поста / Иснакац (Յիսնակաց պահք — за 50 дней до Рождества, около 18 ноября)
-        let adventFastDate = createDate(year: year, month: 11, day: 18)
+        // Начало Адвента / Иснакац (Յիսնակաց պահք — воскресенье, ближайшее к 18 ноября; канун Рождественского поста)
         list.append(ArmenianChurchFeast(
             id: "\(year)_advent_fast",
             type: .fasting,
-            date: adventFastDate,
+            date: adventEve,
             titleHy: "Յիսնակաց պահքի սկիզբ",
-            titleRu: "Начало Рождественского поста (Иснакац)",
-            titleEn: "Beginning of the 50-Day Fast of Advent (Yisnagats)",
+            titleRu: "Начало Адвента — канун Рождественского поста (Иснакац)",
+            titleEn: "Beginning of Advent — Eve of the Advent Fast (Yisnagats)",
             descriptionHy: "Հիսնօրյա պահքի շրջան, որով հավատացյալները պատրաստվում են դիմավորելու Քրիստոսի Սուրբ Ծնունդը:",
-            descriptionRu: "Начало 50-дневного периода поста и молитвенного приготовления к великому празднику Рождества Христова.",
-            descriptionEn: "The beginning of the 50-day period of fasting and prayer preparing the faithful for the Holy Nativity.",
+            descriptionRu: "Начало 50-дневного периода Адвента — молитвенного приготовления к великому празднику Рождества и Богоявления. Отмечается в воскресенье, ближайшее к 18 ноября.",
+            descriptionEn: "The beginning of the 50-day period of Advent, a time of prayer preparing the faithful for the Holy Nativity and Theophany. It is kept on the Sunday nearest to November 18.",
             meaningHy: "Ինչպես մարգարեները սպասում էին Մեսիայի գալստյանը, այնպես էլ մենք սրբում ենք մեր սրտերը Փրկչին ընդունելու համար:",
             meaningRu: "Время духовного ожидания и очищения души перед пришествием в мир Спасителя.",
             meaningEn: "A season of joyful anticipation and spiritual preparation for the coming of Christ.",
@@ -1336,8 +1337,11 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Святитель Николай Чудотворец (Սուրբ Նիկողայոս Հայրապետ — суббота в начале декабря)
-        let stNicholasDate = createDate(year: year, month: 12, day: 6)
+        // Святитель Николай Чудотворец (Սուրբ Նիկողայոս Հայրապետ — суббота через 20 дней после начала Адвента;
+        // если она попадает на 9 декабря (Зачатие Богородицы), память переносится на 14 дней раньше)
+        let adventStartsNov19 = ChurchFastRules.sundayNearest(year: year, month: 11, day: 18)
+            == ChurchFastRules.dayNumber(year: year, month: 11, day: 19)
+        let stNicholasDate = dateByAdding(days: adventStartsNov19 ? 6 : 20, to: adventEve)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_nicholas",
             type: .saints,
@@ -1361,8 +1365,8 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Святой Иаков Низибийский (Սուրբ Հակոբ Մծբնա Հայրապետ — суббота в середине декабря)
-        let stJamesDate = createDate(year: year, month: 12, day: 13)
+        // Святой Иаков Низибийский (Սուրբ Հակոբ Մծբնա Հայրապետ — суббота через 27 дней после начала Адвента: 12–18 декабря)
+        let stJamesDate = dateByAdding(days: 27, to: adventEve)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_james_nisibis",
             type: .saints,
@@ -1386,11 +1390,11 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Святой первомученик Стефан (Սուրբ Ստեփանոս Նախավկա — 25 декабря)
+        // Святой первомученик Стефан (Սուրբ Ստեփանոս Նախավկա — 25 декабря; с воскресенья на понедельник, с пятницы на субботу, со среды на вторник)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_stephen",
             type: .saints,
-            date: createDate(year: year, month: 12, day: 25),
+            date: fixedDate(year: year, month: 12, day: 25, sundayShift: 1, wednesdayShift: -1, fridayShift: 1),
             titleHy: "Սուրբ Ստեփանոս Նախավկա",
             titleRu: "Святой первомученик архидиакон Стефан",
             titleEn: "Feast of St. Stephen the Protomartyr",
@@ -1410,11 +1414,11 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Святые апостолы Петр и Павел (Սուրբ Պետրոս և Պողոս — 27 декабря)
+        // Святые апостолы Петр и Павел (Սուրբ Պետրոս և Պողոս — 27 декабря; с воскресенья на понедельник, со среды и пятницы на день раньше)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_peter_paul",
             type: .saints,
-            date: createDate(year: year, month: 12, day: 27),
+            date: fixedDate(year: year, month: 12, day: 27, sundayShift: 1, wednesdayShift: -1, fridayShift: -1),
             titleHy: "Սուրբ Պետրոս և Պողոս առաքյալներ",
             titleRu: "Святые первоверховные апостолы Петр и Павел",
             titleEn: "Feast of Holy Apostles Peter and Paul",
@@ -1434,11 +1438,11 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
-        // Святые апостолы Иаков Заведеев и Иоанн Богослов (Սուրբ Հակոբոս և Հովհաննես — 29 декабря)
+        // Святые апостолы Иаков Заведеев и Иоанн Богослов (Սուրբ Հակոբոս և Հովհաննես — 29 декабря; с воскресенья, среды и пятницы на день раньше)
         list.append(ArmenianChurchFeast(
             id: "\(year)_st_james_john",
             type: .saints,
-            date: createDate(year: year, month: 12, day: 29),
+            date: fixedDate(year: year, month: 12, day: 29, sundayShift: -1, wednesdayShift: -1, fridayShift: -1),
             titleHy: "Սուրբ Հակոբոս և Հովհաննես առաքյալներ",
             titleRu: "Святые апостолы Иаков и Иоанн Богослов",
             titleEn: "Feast of Apostles James and John (Sons of Thunder)",
@@ -1458,6 +1462,9 @@ extension ChurchCalendarService {
             isFasting: false
         ))
         
+        // Праздники, добавленные по сверке с календарём Эчмиадзина (см. ChurchCalendarService+MoreFeasts.swift)
+        list.append(contentsOf: additionalFeasts(for: year, easter: easter, assumptionSunday: asdvadzadzinDate))
+
         return list.sorted { $0.date < $1.date }
     }
 }
