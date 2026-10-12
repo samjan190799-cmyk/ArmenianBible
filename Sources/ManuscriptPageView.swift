@@ -150,7 +150,7 @@ final class ManuscriptTextLayout {
         let exclusion = ManuscriptGeometry.exclusion
         let isShort = (body as NSString).length < 60
 
-        func setLines(_ size: CGFloat) -> (lines: [Line], height: CGFloat) {
+        func setLines(_ size: CGFloat) -> (lines: [Line], height: CGFloat, breaksWord: Bool) {
             typeset(body: body, size: size, palette: palette, isShort: isShort, width: rect.width, exclusion: exclusion)
         }
 
@@ -164,7 +164,9 @@ final class ManuscriptTextLayout {
         var best = low
         for _ in 0..<10 {
             let mid = (low + high) / 2
-            if setLines(mid).height <= height {
+            // Кегль подходит, если текст влез по высоте и ни одно слово не разорвано посередине
+            let attempt = setLines(mid)
+            if attempt.height <= height && !attempt.breaksWord {
                 best = mid
                 low = mid
             } else {
@@ -183,10 +185,10 @@ final class ManuscriptTextLayout {
     }
 
     private static func typeset(body: String, size: CGFloat, palette: ManuscriptPalette, isShort: Bool,
-                                width: CGFloat, exclusion: CGSize) -> (lines: [Line], height: CGFloat) {
+                                width: CGFloat, exclusion: CGSize) -> (lines: [Line], height: CGFloat, breaksWord: Bool) {
         let text = attributed(body: body, size: size, palette: palette, isShort: isShort)
         let total = text.length
-        guard total > 0 else { return ([], 0) }
+        guard total > 0 else { return ([], 0, false) }
         let typesetter = CTTypesetterCreateWithAttributedString(text as CFAttributedString)
         let font = PaperFont.uiFont(size: size)
         let lineHeight = font.lineHeight * 1.1
@@ -195,6 +197,7 @@ final class ManuscriptTextLayout {
         var lines: [Line] = []
         var start = 0
         var top: CGFloat = 0
+        var breaksWord = false
         while start < total {
             // Строка, которая хоть немного заходит на высоту буквицы, начинается правее неё
             let x: CGFloat = top < exclusion.height ? exclusion.width : 0
@@ -204,6 +207,15 @@ final class ManuscriptTextLayout {
             var line = CTTypesetterCreateLine(typesetter, range)
 
             let isLast = start + count >= total
+            // Слово не влезло в строку целиком и разорвано посередине
+            if !isLast {
+                let before = string.character(at: start + count - 1)
+                let after = string.character(at: start + count)
+                let isBreakable: (unichar) -> Bool = { $0 == 32 || $0 == 0x00A0 || $0 == 10 || $0 == 45 || $0 == 0x2013 || $0 == 0x2014 }
+                if !isBreakable(before) && !isBreakable(after) {
+                    breaksWord = true
+                }
+            }
             let natural = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil) - CTLineGetTrailingWhitespaceWidth(line))
             let spaces = string.substring(with: NSRange(location: start, length: count))
                 .trimmingCharacters(in: .whitespaces)
@@ -221,7 +233,7 @@ final class ManuscriptTextLayout {
             start += count
         }
         let height = lines.last.map { $0.baseline + $0.descent } ?? 0
-        return (lines, height)
+        return (lines, height, breaksWord)
     }
 
     private static func attributed(body: String, size: CGFloat, palette: ManuscriptPalette, isShort: Bool) -> NSAttributedString {
