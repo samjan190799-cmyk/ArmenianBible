@@ -101,6 +101,8 @@ final class ManuscriptTextLayout {
     struct Line {
         let line: CTLine
         let range: CFRange
+        /// Строка набрана заново из своего куска текста: её индексы начинаются с range.location
+        let indexBase: Int
         /// Левый край строки от левого края области текста
         let x: CGFloat
         /// Базовая линия от верха области текста (ось Y вниз)
@@ -157,7 +159,9 @@ final class ManuscriptTextLayout {
         // Длинному стиху разрешаем занять чуть больше места вниз
         var height = rect.height
         var low: CGFloat = 11.5
-        var high: CGFloat = 40
+        // Крупный кегль только у короткого стиха: в длинном строка должна вмещать несколько слов
+        let bodyLength = (body as NSString).length
+        var high: CGFloat = bodyLength < 60 ? 40 : (bodyLength < 130 ? 28 : 22)
         if setLines(low).height > height {
             height = rect.height + 24
         }
@@ -205,6 +209,7 @@ final class ManuscriptTextLayout {
             let count = max(1, CTTypesetterSuggestLineBreak(typesetter, start, Double(available)))
             let range = CFRange(location: start, length: count)
             var line = CTTypesetterCreateLine(typesetter, range)
+            var indexBase = 0
 
             let isLast = start + count >= total
             // Слово не влезло в строку целиком и разорвано посередине
@@ -221,14 +226,30 @@ final class ManuscriptTextLayout {
                 .trimmingCharacters(in: .whitespaces)
                 .filter { $0 == " " }
                 .count
-            if !isLast, spaces >= 2, natural > available * 0.78,
-               let justified = CTLineCreateJustifiedLine(line, 1.0, Double(available)) {
-                line = justified
+            // По ширине — только за счёт пробелов между словами и только если они не станут дырами;
+            // буквы не разгоняются (CTLineCreateJustifiedLine растягивал бы и их)
+            let extra = available - natural
+            if !isLast, spaces >= 2, extra > 0, extra / CGFloat(spaces) <= size * 0.55 {
+                let piece = NSMutableAttributedString(attributedString: text.attributedSubstring(from: NSRange(location: start, length: count)))
+                let pieceString = piece.string as NSString
+                var lastLetter = pieceString.length - 1
+                while lastLetter >= 0 && pieceString.character(at: lastLetter) == 32 { lastLetter -= 1 }
+                let kernKey = NSAttributedString.Key(kCTKernAttributeName as String)
+                let perGap = extra / CGFloat(spaces)
+                var index = 0
+                while index < lastLetter {
+                    if pieceString.character(at: index) == 32 {
+                        piece.addAttribute(kernKey, value: perGap, range: NSRange(location: index, length: 1))
+                    }
+                    index += 1
+                }
+                line = CTLineCreateWithAttributedString(piece as CFAttributedString)
+                indexBase = start
             }
 
             var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
             _ = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
-            lines.append(Line(line: line, range: range, x: x, baseline: top + font.ascender, ascent: ascent, descent: descent))
+            lines.append(Line(line: line, range: range, indexBase: indexBase, x: x, baseline: top + font.ascender, ascent: ascent, descent: descent))
             top += lineHeight
             start += count
         }
@@ -758,8 +779,8 @@ enum ManuscriptRenderer {
                 // Строка пишется прямо сейчас: открываем её до кончика пера
                 let character = Int(written)
                 let fraction = written - CGFloat(character)
-                let x0 = CTLineGetOffsetForStringIndex(item.line, character, nil)
-                let x1 = CTLineGetOffsetForStringIndex(item.line, min(character + 1, item.range.location + item.range.length), nil)
+                let x0 = CTLineGetOffsetForStringIndex(item.line, character - item.indexBase, nil)
+                let x1 = CTLineGetOffsetForStringIndex(item.line, min(character + 1, item.range.location + item.range.length) - item.indexBase, nil)
                 let tipX = x0 + (x1 - x0) * fraction
                 let band = CGRect(x: -2, y: -item.descent - 2, width: max(0, tipX + 2), height: item.ascent + item.descent + 4)
 
