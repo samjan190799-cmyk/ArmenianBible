@@ -1,0 +1,959 @@
+import SwiftUI
+import CoreText
+
+// MARK: - Ход анимации: какая часть страницы уже «написана»
+/// Каждое поле — от 0 (ещё нет) до 1 (готово). Порядок как у переписчика: пергамент, рамка,
+/// заставка, буквица, текст пером, украшение на полях и в конце памятная запись.
+struct ManuscriptReveal {
+    var parchment: CGFloat = 1
+    var frame: CGFloat = 1
+    var headpiece: CGFloat = 1
+    var initial: CGFloat = 1
+    var text: CGFloat = 1
+    var margin: CGFloat = 1
+    var colophon: CGFloat = 1
+
+    static let complete = ManuscriptReveal()
+
+    static func textDuration(for length: Int) -> Double {
+        min(4.6, max(1.8, Double(length) * 0.032))
+    }
+
+    static func totalDuration(textLength: Int) -> Double {
+        2.2 + textDuration(for: textLength) + 1.4
+    }
+
+    static func at(time t: Double, textLength: Int) -> ManuscriptReveal {
+        let writing = textDuration(for: textLength)
+        func phase(_ start: Double, _ duration: Double) -> CGFloat {
+            CGFloat(min(1, max(0, (t - start) / duration)))
+        }
+        return ManuscriptReveal(
+            parchment: ManuscriptRenderer.smooth(phase(0, 0.7)),
+            frame: ManuscriptRenderer.smooth(phase(0.25, 1.0)),
+            headpiece: phase(0.6, 1.6),
+            initial: phase(1.4, 1.1),
+            text: phase(2.2, writing),
+            margin: phase(2.2 + writing * 0.45, 1.6),
+            colophon: phase(2.2 + writing, 1.2)
+        )
+    }
+}
+
+// MARK: - Разметка страницы
+/// Страница рисуется в постоянных координатах 360×640 (9:16) и масштабируется целиком,
+/// поэтому на экране и в экспортированной картинке переносы строк совпадают.
+enum ManuscriptGeometry {
+    static let size = CGSize(width: 360, height: 640)
+    static let frameInset: CGFloat = 16
+    static let headpiece = CGRect(x: 44, y: 66, width: 272, height: 60)
+    static let initialBox = CGRect(x: 44, y: 150, width: 70, height: 70)
+    static let textRect = CGRect(x: 44, y: 150, width: 262, height: 318)
+    static let exclusion = CGSize(width: 80, height: 76)
+    static let marginX: CGFloat = 326
+    static let marginTop: CGFloat = 178
+    static let marginBottom: CGFloat = 442
+    static let colophonDividerY: CGFloat = 532
+}
+
+// MARK: - Золото, которое бликует
+/// Светлая полоса идёт по диагонали страницы; наклон телефона двигает её по всем золотым
+/// деталям сразу, как блик лампы на сусальном золоте.
+struct ManuscriptGold {
+    let palette: ManuscriptPalette
+    let sheen: CGPoint
+
+    var center: CGFloat {
+        min(0.96, max(0.04, 0.5 + 0.38 * sheen.x + 0.2 * sheen.y))
+    }
+
+    var shading: GraphicsContext.Shading {
+        let c = center
+        let P = palette
+        let stops: [Gradient.Stop] = [
+            .init(color: ManuscriptPalette.color(P.goldDark), location: 0),
+            .init(color: ManuscriptPalette.color(P.gold), location: max(0.01, c - 0.30)),
+            .init(color: ManuscriptPalette.color(P.goldLight), location: max(0.02, c - 0.08)),
+            .init(color: ManuscriptPalette.color(P.goldHighlight), location: c),
+            .init(color: ManuscriptPalette.color(P.goldLight), location: min(0.98, c + 0.08)),
+            .init(color: ManuscriptPalette.color(P.gold), location: min(0.99, c + 0.30)),
+            .init(color: ManuscriptPalette.color(P.goldDark), location: 1)
+        ]
+        return .linearGradient(
+            Gradient(stops: stops),
+            startPoint: .zero,
+            endPoint: CGPoint(x: ManuscriptGeometry.size.width, y: ManuscriptGeometry.size.height)
+        )
+    }
+
+    /// Яркость искры в точке: вспыхивает, когда через неё проходит блик
+    func glint(at point: CGPoint) -> CGFloat {
+        let w = ManuscriptGeometry.size.width, h = ManuscriptGeometry.size.height
+        let t = (point.x * w + point.y * h) / (w * w + h * h)
+        return max(0, 1 - abs(t - center) / 0.07)
+    }
+}
+
+// MARK: - Вёрстка текста (CoreText): обтекание буквицы, перо идёт по строкам
+final class ManuscriptTextLayout {
+    let lines: [CTLine]
+    /// Начала строк в системе CoreText (ось Y вверх) от низа области текста
+    let origins: [CGPoint]
+    let ranges: [CFRange]
+    let ascents: [CGFloat]
+    let descents: [CGFloat]
+    let length: Int
+    let height: CGFloat
+    /// Низ последней строки в координатах страницы
+    let bottomY: CGFloat
+
+    private init(lines: [CTLine], origins: [CGPoint], ranges: [CFRange], ascents: [CGFloat],
+                 descents: [CGFloat], length: Int, height: CGFloat, bottomY: CGFloat) {
+        self.lines = lines
+        self.origins = origins
+        self.ranges = ranges
+        self.ascents = ascents
+        self.descents = descents
+        self.length = length
+        self.height = height
+        self.bottomY = bottomY
+    }
+
+    // Подбор кегля — до десятка пробных вёрсток, поэтому результат кэшируется
+    private static let cacheLock = NSLock()
+    private static var cache: [String: ManuscriptTextLayout] = [:]
+
+    static func cached(for page: ManuscriptPage) -> ManuscriptTextLayout {
+        let key = "\(page.style.rawValue)|\(page.language.rawValue)|\(page.text)"
+        cacheLock.lock()
+        if let hit = cache[key] {
+            cacheLock.unlock()
+            return hit
+        }
+        cacheLock.unlock()
+        let made = make(for: page)
+        cacheLock.lock()
+        if cache.count > 48 { cache.removeAll() }
+        cache[key] = made
+        cacheLock.unlock()
+        return made
+    }
+
+    private static func make(for page: ManuscriptPage) -> ManuscriptTextLayout {
+        let body = page.initialAndBody.body
+        let palette = page.style.palette
+        let rect = ManuscriptGeometry.textRect
+        let exclusion = ManuscriptGeometry.exclusion
+
+        func frame(size: CGFloat, height: CGFloat) -> (frame: CTFrame, fits: Bool, length: Int) {
+            let text = attributed(body: body, size: size, palette: palette)
+            let setter = CTFramesetterCreateWithAttributedString(text as CFAttributedString)
+            let path = lShapedPath(width: rect.width, height: height, exclusion: exclusion)
+            let ctFrame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0), path, nil)
+            let visible = CTFrameGetVisibleStringRange(ctFrame)
+            return (ctFrame, visible.length >= text.length, text.length)
+        }
+
+        // Длинному стиху разрешаем занять чуть больше места вниз
+        var height = rect.height
+        var low: CGFloat = 11.5
+        var high: CGFloat = 30
+        if !frame(size: low, height: height).fits {
+            height = rect.height + 24
+        }
+        var best = low
+        for _ in 0..<9 {
+            let mid = (low + high) / 2
+            if frame(size: mid, height: height).fits {
+                best = mid
+                low = mid
+            } else {
+                high = mid
+            }
+        }
+
+        let result = frame(size: best, height: height)
+        let lines = (CTFrameGetLines(result.frame) as? [CTLine]) ?? []
+        var origins = [CGPoint](repeating: .zero, count: lines.count)
+        if !lines.isEmpty {
+            CTFrameGetLineOrigins(result.frame, CFRange(location: 0, length: 0), &origins)
+        }
+        var ranges: [CFRange] = []
+        var ascents: [CGFloat] = []
+        var descents: [CGFloat] = []
+        for line in lines {
+            var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
+            _ = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            ranges.append(CTLineGetStringRange(line))
+            ascents.append(ascent)
+            descents.append(descent)
+        }
+
+        var bottomY = ManuscriptGeometry.initialBox.maxY + 4
+        if let lastOrigin = origins.last, let lastDescent = descents.last {
+            bottomY = max(bottomY, rect.minY + height - (lastOrigin.y - lastDescent))
+        }
+        return ManuscriptTextLayout(
+            lines: lines, origins: origins, ranges: ranges, ascents: ascents, descents: descents,
+            length: result.length, height: height, bottomY: bottomY
+        )
+    }
+
+    /// Область текста с вырезом под буквицу в левом верхнем углу (ось Y вверх)
+    private static func lShapedPath(width w: CGFloat, height h: CGFloat, exclusion e: CGSize) -> CGPath {
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: 0, y: 0))
+        path.addLine(to: CGPoint(x: w, y: 0))
+        path.addLine(to: CGPoint(x: w, y: h))
+        path.addLine(to: CGPoint(x: e.width, y: h))
+        path.addLine(to: CGPoint(x: e.width, y: h - e.height))
+        path.addLine(to: CGPoint(x: 0, y: h - e.height))
+        path.closeSubpath()
+        return path
+    }
+
+    private static func attributed(body: String, size: CGFloat, palette: ManuscriptPalette) -> NSAttributedString {
+        let colorKey = NSAttributedString.Key(kCTForegroundColorAttributeName as String)
+        let paragraphKey = NSAttributedString.Key(kCTParagraphStyleAttributeName as String)
+        let result = NSMutableAttributedString(string: body, attributes: [
+            .font: PaperFont.uiFont(size: size, weight: .regular),
+            colorKey: ManuscriptPalette.uiColor(palette.ink).cgColor,
+            paragraphKey: paragraphStyle()
+        ])
+        // Слова сразу после буквицы — киноварью, как рубрика в рукописи
+        let rubric = rubricLength(in: body)
+        if rubric > 0 {
+            result.addAttributes([
+                .font: PaperFont.uiFont(size: size, weight: .medium),
+                colorKey: ManuscriptPalette.uiColor(palette.rubric).cgColor
+            ], range: NSRange(location: 0, length: rubric))
+        }
+        return result
+    }
+
+    /// Остаток первого слова и следующее слово, но не длиннее 28 знаков
+    private static func rubricLength(in body: String) -> Int {
+        let ns = body as NSString
+        var end = 0
+        var spaces = 0
+        while end < ns.length && end < 28 {
+            if ns.character(at: end) == 32 {
+                spaces += 1
+                if spaces == 2 || (spaces == 1 && end >= 14) { break }
+            }
+            end += 1
+        }
+        return end
+    }
+
+    private static func paragraphStyle() -> CTParagraphStyle {
+        var alignment = CTTextAlignment.justified
+        var lineHeight: CGFloat = 1.12
+        return withUnsafePointer(to: &alignment) { alignmentPointer in
+            withUnsafePointer(to: &lineHeight) { lineHeightPointer in
+                let settings = [
+                    CTParagraphStyleSetting(spec: .alignment, valueSize: MemoryLayout<CTTextAlignment>.size, value: alignmentPointer),
+                    CTParagraphStyleSetting(spec: .lineHeightMultiple, valueSize: MemoryLayout<CGFloat>.size, value: lineHeightPointer)
+                ]
+                return CTParagraphStyleCreate(settings, settings.count)
+            }
+        }
+    }
+}
+
+// MARK: - Страница рукописи
+struct ManuscriptPageView: View {
+    let page: ManuscriptPage
+    var reveal: ManuscriptReveal = .complete
+    /// Наклон телефона в диапазоне −1…1 по обеим осям
+    var sheen: CGPoint = CGPoint(x: 0.2, y: -0.1)
+    /// Подпись Luys внизу — только в картинке для соцсетей
+    var showsWatermark = false
+
+    var body: some View {
+        let layout = ManuscriptTextLayout.cached(for: page)
+        let initial = page.initialAndBody.initial
+        ZStack {
+            ManuscriptParchment(seed: page.seed, style: page.style)
+                .equatable()
+                .opacity(Double(reveal.parchment))
+            Canvas { context, _ in
+                let gold = ManuscriptGold(palette: page.style.palette, sheen: sheen)
+                ManuscriptRenderer.drawFrame(progress: reveal.frame, palette: page.style.palette, gold: gold, in: context)
+                ManuscriptRenderer.drawHeadpiece(progress: reveal.headpiece, style: page.style, gold: gold, in: context)
+                ManuscriptRenderer.drawInitial(initial, progress: reveal.initial, style: page.style, gold: gold, in: context)
+                ManuscriptRenderer.drawText(layout, progress: reveal.text, palette: page.style.palette, in: context)
+                ManuscriptRenderer.drawMarginOrnament(progress: reveal.margin, style: page.style, gold: gold, in: context)
+                ManuscriptRenderer.drawEnding(page: page, layout: layout, progress: reveal.colophon, gold: gold, in: context)
+                ManuscriptRenderer.drawGlints(reveal: reveal, gold: gold, in: context)
+                if showsWatermark {
+                    ManuscriptRenderer.drawWatermark(palette: page.style.palette, in: context)
+                }
+            }
+        }
+        .frame(width: ManuscriptGeometry.size.width, height: ManuscriptGeometry.size.height)
+        .clipped()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(page.text) — \(page.reference)"))
+    }
+}
+
+// MARK: - Пергамент: рисуется один раз, а не каждый кадр анимации
+struct ManuscriptParchment: View, Equatable {
+    let seed: UInt32
+    let style: ManuscriptStyle
+
+    var body: some View {
+        Canvas { context, size in
+            ManuscriptRenderer.drawParchment(seed: seed, palette: style.palette, size: size, in: context)
+        }
+    }
+}
+
+// MARK: - Рисование
+enum ManuscriptRenderer {
+    static func smooth(_ x: CGFloat) -> CGFloat {
+        let t = min(1, max(0, x))
+        return t * t * (3 - 2 * t)
+    }
+
+    static func clamp(_ x: CGFloat) -> CGFloat {
+        min(1, max(0, x))
+    }
+
+    private static func c(_ hex: UInt32, _ alpha: Double = 1) -> Color {
+        ManuscriptPalette.color(hex, alpha)
+    }
+
+    private static func circle(_ center: CGPoint, _ radius: CGFloat) -> CGRect {
+        CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+    }
+
+    // MARK: Пергамент
+    static func drawParchment(seed: UInt32, palette P: ManuscriptPalette, size: CGSize, in ctx: GraphicsContext) {
+        let rect = CGRect(origin: .zero, size: size)
+        ctx.fill(Path(rect), with: .color(c(P.parchment)))
+        // Края темнее, как у старого листа
+        ctx.fill(Path(rect), with: .radialGradient(
+            Gradient(colors: [c(P.parchmentEdge, 0), c(P.parchmentEdge, 0.2), c(P.parchmentEdge, 0.8)]),
+            center: CGPoint(x: size.width / 2, y: size.height * 0.46),
+            startRadius: size.width * 0.32,
+            endRadius: size.height * 0.64
+        ))
+
+        var rng = PomegranateRandom(seed: seed)
+        // Рыжие пятна времени
+        ctx.drawLayer { layer in
+            layer.addFilter(.blur(radius: 7))
+            for _ in 0..<6 {
+                let r = 6 + rng.next() * 18
+                let center = CGPoint(x: rng.next() * size.width, y: rng.next() * size.height)
+                layer.fill(Path(ellipseIn: circle(center, r)), with: .color(c(P.parchmentEdge, 0.28)))
+            }
+        }
+        // Крапинки
+        for _ in 0..<380 {
+            let center = CGPoint(x: rng.next() * size.width, y: rng.next() * size.height)
+            let r = 0.25 + rng.next() * 0.7
+            let isDark = rng.next() > 0.72
+            let alpha = isDark ? 0.05 + Double(rng.next()) * 0.05 : 0.22 + Double(rng.next()) * 0.22
+            ctx.fill(Path(ellipseIn: circle(center, r)), with: .color(c(isDark ? P.ink : P.parchmentEdge, alpha)))
+        }
+        // Волокна
+        for _ in 0..<36 {
+            let start = CGPoint(x: rng.next() * size.width, y: rng.next() * size.height)
+            let length = 8 + rng.next() * 30
+            let angle = (rng.next() - 0.5) * 0.9
+            let end = CGPoint(x: start.x + cos(angle) * length, y: start.y + sin(angle) * length)
+            var fiber = Path()
+            fiber.move(to: start)
+            fiber.addQuadCurve(
+                to: end,
+                control: CGPoint(x: (start.x + end.x) / 2 + (rng.next() - 0.5) * 6, y: (start.y + end.y) / 2 + (rng.next() - 0.5) * 6)
+            )
+            ctx.stroke(fiber, with: .color(c(P.ink, 0.05)), lineWidth: 0.35)
+        }
+        ctx.stroke(Path(rect.insetBy(dx: 0.5, dy: 0.5)), with: .color(c(P.parchmentEdge, 0.9)), lineWidth: 1)
+    }
+
+    // MARK: Рамка страницы
+    static func drawFrame(progress p: CGFloat, palette P: ManuscriptPalette, gold: ManuscriptGold, in ctx: GraphicsContext) {
+        guard p > 0 else { return }
+        let page = CGRect(origin: .zero, size: ManuscriptGeometry.size)
+        let outer = page.insetBy(dx: ManuscriptGeometry.frameInset, dy: ManuscriptGeometry.frameInset)
+        let inner = outer.insetBy(dx: 4.5, dy: 4.5)
+        ctx.stroke(Path(outer).trimmedPath(from: 0, to: p), with: gold.shading, lineWidth: 2.2)
+        ctx.stroke(Path(inner).trimmedPath(from: 0, to: p), with: .color(c(P.rubric, 0.8)), lineWidth: 0.7)
+
+        let cornerAlpha = clamp((p - 0.85) / 0.15)
+        guard cornerAlpha > 0 else { return }
+        var layer = ctx
+        layer.opacity = cornerAlpha
+        for corner in [CGPoint(x: outer.minX, y: outer.minY), CGPoint(x: outer.maxX, y: outer.minY),
+                       CGPoint(x: outer.minX, y: outer.maxY), CGPoint(x: outer.maxX, y: outer.maxY)] {
+            var quatrefoil = Path()
+            for offset in [CGPoint(x: 2.7, y: 0), CGPoint(x: -2.7, y: 0), CGPoint(x: 0, y: 2.7), CGPoint(x: 0, y: -2.7)] {
+                quatrefoil.addEllipse(in: circle(CGPoint(x: corner.x + offset.x, y: corner.y + offset.y), 2.4))
+            }
+            layer.fill(quatrefoil, with: gold.shading)
+            layer.fill(Path(ellipseIn: circle(corner, 1.2)), with: .color(c(P.rubric)))
+        }
+    }
+
+    // MARK: Жемчуг по золотой раме (белые точки армянских заставок)
+    private static func drawPearls(along r: CGRect, spacing: CGFloat, radius: CGFloat, palette P: ManuscriptPalette, in ctx: GraphicsContext) {
+        let perimeter = 2 * (r.width + r.height)
+        let count = max(4, Int(perimeter / spacing))
+        var path = Path()
+        for i in 0..<count {
+            let point = pointOnRect(r, distance: CGFloat(i) * perimeter / CGFloat(count))
+            path.addEllipse(in: circle(point, radius))
+        }
+        ctx.fill(path, with: .color(c(P.pearl, 0.92)))
+    }
+
+    private static func pointOnRect(_ r: CGRect, distance: CGFloat) -> CGPoint {
+        var d = distance
+        if d < r.width { return CGPoint(x: r.minX + d, y: r.minY) }
+        d -= r.width
+        if d < r.height { return CGPoint(x: r.maxX, y: r.minY + d) }
+        d -= r.height
+        if d < r.width { return CGPoint(x: r.maxX - d, y: r.maxY) }
+        d -= r.width
+        return CGPoint(x: r.minX, y: r.maxY - d)
+    }
+
+    // MARK: Лист: миндалевидный, с золотой жилкой
+    private static func leafPath(at base: CGPoint, angle: CGFloat, length: CGFloat, width: CGFloat) -> Path {
+        let tip = CGPoint(x: base.x + cos(angle) * length, y: base.y + sin(angle) * length)
+        let normal = CGPoint(x: -sin(angle) * width, y: cos(angle) * width)
+        let mid = CGPoint(x: (base.x + tip.x) / 2, y: (base.y + tip.y) / 2)
+        var path = Path()
+        path.move(to: base)
+        path.addQuadCurve(to: tip, control: CGPoint(x: mid.x + normal.x, y: mid.y + normal.y))
+        path.addQuadCurve(to: base, control: CGPoint(x: mid.x - normal.x, y: mid.y - normal.y))
+        return path
+    }
+
+    private static func drawLeaf(at base: CGPoint, angle: CGFloat, length: CGFloat, width: CGFloat,
+                                 color: Color, gold: ManuscriptGold, in ctx: GraphicsContext) {
+        let leaf = leafPath(at: base, angle: angle, length: length, width: width)
+        ctx.fill(leaf, with: .color(color))
+        var vein = Path()
+        vein.move(to: base)
+        vein.addLine(to: CGPoint(x: base.x + cos(angle) * length * 0.85, y: base.y + sin(angle) * length * 0.85))
+        ctx.stroke(vein, with: gold.shading, lineWidth: 0.5)
+    }
+
+    // MARK: Армянский «цветущий» крест: раздвоенные концы и розетка в центре
+    static func blossomCross(center c0: CGPoint, size s: CGFloat) -> Path {
+        var path = Path()
+        let t = s * 0.15
+        let half = s / 2
+        path.addRect(CGRect(x: c0.x - t / 2, y: c0.y - half + t * 0.6, width: t, height: s - t * 1.2))
+        path.addRect(CGRect(x: c0.x - half + t * 0.6, y: c0.y - t / 2, width: s - t * 1.2, height: t))
+        let r = t * 0.62
+        let ends: [(CGPoint, CGPoint)] = [
+            (CGPoint(x: c0.x, y: c0.y - half + r), CGPoint(x: 1, y: 0)),
+            (CGPoint(x: c0.x, y: c0.y + half - r), CGPoint(x: 1, y: 0)),
+            (CGPoint(x: c0.x - half + r, y: c0.y), CGPoint(x: 0, y: 1)),
+            (CGPoint(x: c0.x + half - r, y: c0.y), CGPoint(x: 0, y: 1))
+        ]
+        for (end, normal) in ends {
+            path.addEllipse(in: circle(CGPoint(x: end.x + normal.x * r * 0.85, y: end.y + normal.y * r * 0.85), r))
+            path.addEllipse(in: circle(CGPoint(x: end.x - normal.x * r * 0.85, y: end.y - normal.y * r * 0.85), r))
+        }
+        path.addEllipse(in: circle(c0, t * 0.9))
+        return path
+    }
+
+    // MARK: Заставка (хоран): золотая рама, поле, лоза, крест с павлинами
+    static func drawHeadpiece(progress p: CGFloat, style: ManuscriptStyle, gold: ManuscriptGold, in ctx: GraphicsContext) {
+        guard p > 0 else { return }
+        let P = style.palette
+        let band = ManuscriptGeometry.headpiece
+        let outline = Path(roundedRect: band, cornerRadius: 3)
+
+        // 1. Контур золотом
+        ctx.stroke(outline.trimmedPath(from: 0, to: smooth(p / 0.3)), with: gold.shading, lineWidth: 1.2)
+
+        // 2. Рама и поле
+        let fill = smooth((p - 0.2) / 0.25)
+        if fill > 0 {
+            var layer = ctx
+            layer.opacity = fill
+            layer.fill(outline, with: gold.shading)
+            layer.fill(Path(roundedRect: band.insetBy(dx: 5, dy: 5), cornerRadius: 1.5), with: .color(c(P.field)))
+            layer.stroke(Path(roundedRect: band.insetBy(dx: 7.5, dy: 7.5), cornerRadius: 1), with: gold.shading, lineWidth: 0.6)
+            drawPearls(along: band.insetBy(dx: 2.5, dy: 2.5), spacing: 5.5, radius: 0.75, palette: P, in: layer)
+        }
+
+        // 3. Лоза с розетками и листьями
+        let vine = clamp((p - 0.35) / 0.35)
+        if vine > 0 {
+            drawVine(in: band.insetBy(dx: 9, dy: 8), progress: vine, palette: P, gold: gold, in: ctx)
+        }
+
+        // 4. Навершия, купол с крестом, павлины или гранаты
+        let crown = smooth((p - 0.62) / 0.38)
+        guard crown > 0 else { return }
+        var layer = ctx
+        layer.opacity = crown
+        for corner in [CGPoint(x: band.minX + 1, y: band.minY), CGPoint(x: band.maxX - 1, y: band.minY)] {
+            for angle in [-CGFloat.pi / 2, -CGFloat.pi / 2 - 0.55, -CGFloat.pi / 2 + 0.55] {
+                layer.fill(leafPath(at: corner, angle: angle, length: 11, width: 3), with: gold.shading)
+            }
+            layer.fill(Path(ellipseIn: circle(CGPoint(x: corner.x, y: corner.y - 1), 1.3)), with: .color(c(P.rubric)))
+        }
+
+        let cx = band.midX
+        var dome = Path()
+        dome.addArc(center: CGPoint(x: cx, y: band.minY), radius: 8, startAngle: .degrees(180), endAngle: .degrees(360), clockwise: false)
+        dome.closeSubpath()
+        layer.fill(dome, with: gold.shading)
+        let lift = (1 - crown) * 6
+        let cross = blossomCross(center: CGPoint(x: cx, y: 45 + lift), size: 26)
+        layer.fill(cross, with: gold.shading)
+        layer.stroke(cross, with: .color(c(P.goldDark, 0.55)), lineWidth: 0.5)
+        layer.fill(Path(ellipseIn: circle(CGPoint(x: cx, y: 45 + lift), 1.4)), with: .color(c(P.rubric)))
+
+        if style.hasBirds {
+            drawPeacock(foot: CGPoint(x: cx - 38, y: band.minY), facingRight: true, palette: P, gold: gold, in: layer)
+            drawPeacock(foot: CGPoint(x: cx + 38, y: band.minY), facingRight: false, palette: P, gold: gold, in: layer)
+        } else {
+            for side in [-1.0, 1.0] as [CGFloat] {
+                let x = cx + side * 40
+                drawLeaf(at: CGPoint(x: x, y: band.minY), angle: -CGFloat.pi / 2 - side * 1.0, length: 12, width: 3.4,
+                         color: c(P.leaf), gold: gold, in: layer)
+                let fruit = PomegranateTreeLayout.Fruit(x: x, y: band.minY - 13, r: 9, stemX: x, stemY: band.minY - 22, isOpen: true)
+                PomegranateRenderer.drawFruit(fruit, palette: .light, lineWidth: 0.6, withStem: false, in: layer)
+            }
+        }
+    }
+
+    private static func drawVine(in field: CGRect, progress p: CGFloat, palette P: ManuscriptPalette,
+                                 gold: ManuscriptGold, in ctx: GraphicsContext) {
+        let waves: CGFloat = 6
+        let period = field.width / waves
+        let amplitude = field.height * 0.2
+        let mid = field.midY
+        func y(at x: CGFloat) -> CGFloat {
+            mid + amplitude * sin((x - field.minX) / period * 2 * .pi)
+        }
+        var path = Path()
+        var x = field.minX
+        path.move(to: CGPoint(x: x, y: y(at: x)))
+        while x < field.maxX {
+            x = min(field.maxX, x + 2)
+            path.addLine(to: CGPoint(x: x, y: y(at: x)))
+        }
+        ctx.stroke(path.trimmedPath(from: 0, to: p), with: gold.shading, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+
+        let reach = field.minX + field.width * p
+        for k in 0..<Int(waves) {
+            // Под гребнем волны (лоза внизу) — розетка сверху
+            let lowX = field.minX + period * (CGFloat(k) + 0.25)
+            if lowX < reach {
+                drawRosette(at: CGPoint(x: lowX, y: field.minY + field.height * 0.27), radius: 4.4, palette: P, gold: gold, in: ctx)
+            }
+            // Под верхней точкой лозы свисает пара листьев
+            let highX = field.minX + period * (CGFloat(k) + 0.75)
+            if highX < reach {
+                let base = CGPoint(x: highX, y: y(at: highX))
+                drawLeaf(at: base, angle: .pi / 2 + 0.6, length: 11, width: 3.1, color: c(P.leaf), gold: gold, in: ctx)
+                drawLeaf(at: base, angle: .pi / 2 - 0.6, length: 11, width: 3.1, color: c(P.leaf), gold: gold, in: ctx)
+            }
+        }
+    }
+
+    private static func drawRosette(at center: CGPoint, radius r: CGFloat, palette P: ManuscriptPalette,
+                                    gold: ManuscriptGold, in ctx: GraphicsContext) {
+        let disc = Path(ellipseIn: circle(center, r))
+        ctx.fill(disc, with: .color(c(P.fieldAccent)))
+        ctx.stroke(disc, with: gold.shading, lineWidth: 0.9)
+        var dots = Path()
+        for i in 0..<6 {
+            let angle = CGFloat(i) / 6 * 2 * .pi
+            dots.addEllipse(in: circle(CGPoint(x: center.x + cos(angle) * r * 0.62, y: center.y + sin(angle) * r * 0.62), 0.7))
+        }
+        ctx.fill(dots, with: .color(c(P.pearl, 0.95)))
+        ctx.fill(Path(ellipseIn: circle(center, r * 0.3)), with: gold.shading)
+    }
+
+    // MARK: Павлин у креста (повёрнут к центру)
+    private static func drawPeacock(foot: CGPoint, facingRight: Bool, palette P: ManuscriptPalette,
+                                    gold: ManuscriptGold, in ctx: GraphicsContext) {
+        var bird = ctx
+        bird.translateBy(x: foot.x, y: foot.y)
+        if !facingRight { bird.scaleBy(x: -1, y: 1) }
+
+        var tail = Path()
+        tail.move(to: CGPoint(x: -4, y: -9))
+        tail.addCurve(to: CGPoint(x: -31, y: -3), control1: CGPoint(x: -12, y: -17), control2: CGPoint(x: -27, y: -15))
+        tail.addCurve(to: CGPoint(x: -3, y: -4), control1: CGPoint(x: -26, y: 3), control2: CGPoint(x: -12, y: 1))
+        tail.closeSubpath()
+        bird.fill(tail, with: gold.shading)
+        bird.stroke(tail, with: .color(c(P.goldDark, 0.6)), lineWidth: 0.4)
+        for eye in [CGPoint(x: -25, y: -6), CGPoint(x: -18, y: -8.5), CGPoint(x: -11, y: -6)] {
+            bird.fill(Path(ellipseIn: circle(eye, 1.9)), with: .color(c(P.fieldAccent)))
+            bird.fill(Path(ellipseIn: circle(eye, 0.8)), with: .color(c(P.field)))
+        }
+
+        var legs = Path()
+        legs.move(to: CGPoint(x: 0, y: -6))
+        legs.addLine(to: CGPoint(x: -1, y: 0))
+        legs.move(to: CGPoint(x: 3, y: -6))
+        legs.addLine(to: CGPoint(x: 3.5, y: 0))
+        bird.stroke(legs, with: .color(c(P.goldDark)), lineWidth: 0.8)
+
+        let body = Path(ellipseIn: CGRect(x: -8, y: -16, width: 17, height: 11))
+        bird.fill(body, with: .color(c(P.field)))
+        bird.stroke(body, with: .color(c(P.goldDark, 0.55)), lineWidth: 0.5)
+
+        var wing = Path()
+        wing.move(to: CGPoint(x: -6, y: -11.5))
+        wing.addQuadCurve(to: CGPoint(x: 4, y: -12), control: CGPoint(x: -1, y: -17))
+        wing.addQuadCurve(to: CGPoint(x: -6, y: -11.5), control: CGPoint(x: -1, y: -8))
+        bird.fill(wing, with: .color(c(P.fieldAccent)))
+        bird.stroke(wing, with: gold.shading, lineWidth: 0.5)
+
+        var neck = Path()
+        neck.move(to: CGPoint(x: 5, y: -14))
+        neck.addQuadCurve(to: CGPoint(x: 9, y: -27), control: CGPoint(x: 10.5, y: -19))
+        bird.stroke(neck, with: .color(c(P.field)), style: StrokeStyle(lineWidth: 3.4, lineCap: .round))
+        bird.fill(Path(ellipseIn: circle(CGPoint(x: 9.5, y: -28), 3)), with: .color(c(P.field)))
+
+        var beak = Path()
+        beak.move(to: CGPoint(x: 12, y: -29.2))
+        beak.addLine(to: CGPoint(x: 15.6, y: -27.8))
+        beak.addLine(to: CGPoint(x: 12, y: -26.8))
+        beak.closeSubpath()
+        bird.fill(beak, with: gold.shading)
+        bird.fill(Path(ellipseIn: circle(CGPoint(x: 10.4, y: -28.7), 0.75)), with: .color(c(P.pearl)))
+
+        var crest = Path()
+        var crestDots = Path()
+        for i in 0..<3 {
+            let tip = CGPoint(x: 7 + CGFloat(i) * 2.2, y: -36 + abs(CGFloat(i) - 1) * 0.8)
+            crest.move(to: CGPoint(x: 9, y: -31))
+            crest.addLine(to: tip)
+            crestDots.addEllipse(in: circle(tip, 0.85))
+        }
+        bird.stroke(crest, with: .color(c(P.goldDark)), lineWidth: 0.5)
+        bird.fill(crestDots, with: gold.shading)
+    }
+
+    // MARK: Буквица: золотая буква на цветном поле в золотой раме
+    static func drawInitial(_ letter: String, progress p: CGFloat, style: ManuscriptStyle,
+                            gold: ManuscriptGold, in ctx: GraphicsContext) {
+        guard p > 0 else { return }
+        let P = style.palette
+        let box = ManuscriptGeometry.initialBox
+        let appear = smooth(p / 0.4)
+
+        var layer = ctx
+        layer.opacity = appear
+        let scale = 0.7 + 0.3 * appear
+        layer.translateBy(x: box.midX, y: box.midY)
+        layer.scaleBy(x: scale, y: scale)
+        layer.translateBy(x: -box.midX, y: -box.midY)
+
+        layer.fill(Path(roundedRect: box, cornerRadius: 3), with: gold.shading)
+        let field = box.insetBy(dx: 4, dy: 4)
+        layer.fill(Path(roundedRect: field, cornerRadius: 1.5), with: .color(c(P.field)))
+        layer.stroke(Path(roundedRect: box.insetBy(dx: 6.5, dy: 6.5), cornerRadius: 1), with: gold.shading, lineWidth: 0.6)
+        drawPearls(along: box.insetBy(dx: 2, dy: 2), spacing: 5, radius: 0.7, palette: P, in: layer)
+        let inset = field.insetBy(dx: 5.5, dy: 5.5)
+        for corner in [CGPoint(x: inset.minX, y: inset.minY), CGPoint(x: inset.maxX, y: inset.minY),
+                       CGPoint(x: inset.minX, y: inset.maxY), CGPoint(x: inset.maxX, y: inset.maxY)] {
+            layer.fill(Path(ellipseIn: circle(corner, 1.7)), with: .color(c(P.fieldAccent)))
+            layer.fill(Path(ellipseIn: circle(corner, 0.6)), with: .color(c(P.pearl)))
+        }
+
+        let letterAppear = smooth((p - 0.3) / 0.5)
+        if letterAppear > 0, !letter.isEmpty {
+            let center = CGPoint(x: box.midX, y: box.midY + 1.5)
+            let font = PaperFont.font(size: 50, weight: .semibold)
+            var glyph = layer
+            glyph.opacity = appear * letterAppear
+            let shadow = ctx.resolve(Text(letter).font(font).foregroundColor(c(P.goldDark)))
+            glyph.draw(shadow, at: CGPoint(x: center.x + 0.9, y: center.y + 1.1), anchor: .center)
+            let mask = ctx.resolve(Text(letter).font(font).foregroundColor(.white))
+            glyph.drawLayer { gilded in
+                gilded.clipToLayer { clip in
+                    clip.draw(mask, at: center, anchor: .center)
+                }
+                gilded.fill(Path(box), with: gold.shading)
+            }
+        }
+
+        // Веточка на левом поле под буквицей
+        let sprig = clamp((p - 0.55) / 0.45)
+        guard sprig > 0 else { return }
+        let x: CGFloat = 32
+        var stem = Path()
+        stem.move(to: CGPoint(x: x, y: box.maxY - 8))
+        stem.addQuadCurve(to: CGPoint(x: x + 1, y: box.maxY + 36), control: CGPoint(x: x - 4, y: box.maxY + 14))
+        ctx.stroke(stem.trimmedPath(from: 0, to: sprig), with: gold.shading, style: StrokeStyle(lineWidth: 0.9, lineCap: .round))
+        let leaves: [(CGFloat, CGFloat, CGFloat)] = [(0.3, -2.4, 0.35), (0.55, 2.1, 0.6), (0.8, -2.4, 0.85)]
+        for (yFactor, side, threshold) in leaves where sprig > threshold {
+            let base = CGPoint(x: x - 1, y: box.maxY - 8 + 44 * yFactor)
+            drawLeaf(at: base, angle: side > 0 ? -0.5 : .pi + 0.5, length: 7.5, width: 2.3, color: c(P.leaf), gold: gold, in: ctx)
+        }
+        if sprig > 0.97 {
+            ctx.fill(Path(ellipseIn: circle(CGPoint(x: x + 1, y: box.maxY + 38), 2.2)), with: .color(c(P.rubric)))
+        }
+    }
+
+    // MARK: Текст: перо проходит строку за строкой
+    static func drawText(_ layout: ManuscriptTextLayout, progress p: CGFloat, palette P: ManuscriptPalette,
+                         in ctx: GraphicsContext) {
+        guard p > 0, !layout.lines.isEmpty else { return }
+        let rect = ManuscriptGeometry.textRect
+        let written = p * CGFloat(layout.length)
+        var pen: CGPoint?
+
+        ctx.withCGContext { cg in
+            cg.saveGState()
+            cg.translateBy(x: rect.minX, y: rect.minY + layout.height)
+            cg.scaleBy(x: 1, y: -1)
+            cg.textMatrix = .identity
+            for (index, line) in layout.lines.enumerated() {
+                let range = layout.ranges[index]
+                let start = CGFloat(range.location)
+                let end = CGFloat(range.location + range.length)
+                if written <= start { break }
+                let origin = layout.origins[index]
+                if written >= end {
+                    cg.textPosition = origin
+                    CTLineDraw(line, cg)
+                    continue
+                }
+                // Строка пишется прямо сейчас: открываем её до кончика пера
+                let character = Int(written)
+                let fraction = written - CGFloat(character)
+                let x0 = CTLineGetOffsetForStringIndex(line, character, nil)
+                let x1 = CTLineGetOffsetForStringIndex(line, min(character + 1, range.location + range.length), nil)
+                let tipX = origin.x + x0 + (x1 - x0) * fraction
+                let top = origin.y + layout.ascents[index] + 2
+                let bottom = origin.y - layout.descents[index] - 2
+
+                cg.saveGState()
+                cg.clip(to: CGRect(x: 0, y: bottom, width: max(0, tipX), height: top - bottom))
+                cg.textPosition = origin
+                CTLineDraw(line, cg)
+                cg.restoreGState()
+
+                // Мягкий край: чернила ещё не впитались
+                cg.saveGState()
+                cg.clip(to: CGRect(x: tipX, y: bottom, width: 5, height: top - bottom))
+                cg.setAlpha(0.3)
+                cg.textPosition = origin
+                CTLineDraw(line, cg)
+                cg.restoreGState()
+
+                pen = CGPoint(
+                    x: rect.minX + tipX + 1.5,
+                    y: rect.minY + layout.height - (origin.y + layout.ascents[index] * 0.32)
+                )
+                break
+            }
+            cg.restoreGState()
+        }
+
+        if let pen, p < 1 {
+            ctx.fill(Path(ellipseIn: circle(pen, 1.8)), with: .color(c(P.ink, 0.8)))
+            ctx.fill(Path(ellipseIn: circle(pen, 3.6)), with: .color(c(P.ink, 0.12)))
+        }
+    }
+
+    // MARK: Украшение на внешнем поле: стебель растёт снизу вверх, наверху крест
+    static func drawMarginOrnament(progress p: CGFloat, style: ManuscriptStyle, gold: ManuscriptGold, in ctx: GraphicsContext) {
+        guard p > 0 else { return }
+        let P = style.palette
+        let x0 = ManuscriptGeometry.marginX
+        let top = ManuscriptGeometry.marginTop
+        let bottom = ManuscriptGeometry.marginBottom
+        func x(at y: CGFloat) -> CGFloat {
+            x0 + 2.2 * sin((bottom - y) / 26)
+        }
+
+        var stem = Path()
+        stem.move(to: CGPoint(x: x0, y: bottom))
+        var y = bottom
+        while y > top {
+            y = max(top, y - 3)
+            stem.addLine(to: CGPoint(x: x(at: y), y: y))
+        }
+        ctx.stroke(stem.trimmedPath(from: 0, to: p), with: gold.shading, style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+
+        // Основание: золотой трилистник
+        var base = Path()
+        for offset in [CGPoint(x: -3, y: 2), CGPoint(x: 3, y: 2), CGPoint(x: 0, y: 5)] {
+            base.addEllipse(in: circle(CGPoint(x: x0 + offset.x, y: bottom + offset.y), 2.3))
+        }
+        ctx.fill(base, with: gold.shading)
+
+        let reachY = bottom - (bottom - top) * p
+        var node = 0
+        var nodeY = bottom - 16
+        while nodeY > top + 14 {
+            if nodeY > reachY {
+                let stemX = x(at: nodeY)
+                let side: CGFloat = node % 2 == 0 ? 1 : -1
+                if node % 3 == 2 {
+                    let bud = CGPoint(x: stemX + side * 5.5, y: nodeY - 3)
+                    var calyx = Path()
+                    calyx.move(to: CGPoint(x: stemX, y: nodeY))
+                    calyx.addLine(to: bud)
+                    ctx.stroke(calyx, with: gold.shading, lineWidth: 0.7)
+                    ctx.fill(Path(ellipseIn: circle(bud, 2.5)), with: .color(c(P.rubric)))
+                    ctx.fill(Path(ellipseIn: circle(CGPoint(x: bud.x - side * 0.6, y: bud.y - 0.8), 0.8)), with: .color(c(P.pearl, 0.85)))
+                } else {
+                    drawLeaf(at: CGPoint(x: stemX, y: nodeY), angle: side > 0 ? -0.5 : .pi + 0.5,
+                             length: 9, width: 2.8, color: c(node % 4 == 0 ? P.leaf : P.field), gold: gold, in: ctx)
+                }
+            }
+            nodeY -= 20
+            node += 1
+        }
+
+        let finial = clamp((p - 0.92) / 0.08)
+        guard finial > 0 else { return }
+        var layer = ctx
+        layer.opacity = finial
+        let topX = x(at: top)
+        layer.fill(Path(ellipseIn: circle(CGPoint(x: topX, y: top - 2), 3.6)), with: .color(c(P.field)))
+        layer.stroke(Path(ellipseIn: circle(CGPoint(x: topX, y: top - 2), 3.6)), with: gold.shading, lineWidth: 0.7)
+        layer.fill(blossomCross(center: CGPoint(x: topX, y: top - 13), size: 14), with: gold.shading)
+    }
+
+    // MARK: Ссылка, концовка и памятная запись
+    static func drawEnding(page: ManuscriptPage, layout: ManuscriptTextLayout, progress p: CGFloat,
+                           gold: ManuscriptGold, in ctx: GraphicsContext) {
+        guard p > 0 else { return }
+        let P = page.style.palette
+        let cx = ManuscriptGeometry.textRect.midX
+        let dividerY = ManuscriptGeometry.colophonDividerY
+
+        // Ссылка киноварью сразу под текстом, по бокам золотые ромбы
+        var refLayer = ctx
+        refLayer.opacity = smooth(p / 0.5)
+        let refY = min(layout.bottomY + 18, 500)
+        let reference = ctx.resolve(Text(page.reference).font(PaperFont.font(size: 13, weight: .semibold)).foregroundColor(c(P.rubric)))
+        let refWidth = reference.measure(in: CGSize(width: 280, height: 40)).width
+        refLayer.draw(reference, at: CGPoint(x: cx, y: refY), anchor: .center)
+        for side in [-1.0, 1.0] as [CGFloat] {
+            let center = CGPoint(x: cx + side * (refWidth / 2 + 10), y: refY)
+            var diamond = Path()
+            diamond.move(to: CGPoint(x: center.x, y: center.y - 3.2))
+            diamond.addLine(to: CGPoint(x: center.x + 2.4, y: center.y))
+            diamond.addLine(to: CGPoint(x: center.x, y: center.y + 3.2))
+            diamond.addLine(to: CGPoint(x: center.x - 2.4, y: center.y))
+            diamond.closeSubpath()
+            refLayer.fill(diamond, with: gold.shading)
+        }
+
+        // Концовка: гранат с лозами — если под текстом осталось место
+        let tailTop = refY + 16
+        let tailBottom = dividerY - 16
+        if tailBottom - tailTop >= 64 {
+            var tail = ctx
+            tail.opacity = smooth((p - 0.15) / 0.5)
+            drawTailpiece(center: CGPoint(x: cx, y: (tailTop + tailBottom) / 2), palette: P, gold: gold, in: tail)
+        }
+
+        // Памятная запись
+        var colophon = ctx
+        colophon.opacity = smooth((p - 0.3) / 0.6)
+        var rule = Path()
+        rule.move(to: CGPoint(x: cx - 58, y: dividerY))
+        rule.addLine(to: CGPoint(x: cx - 13, y: dividerY))
+        rule.move(to: CGPoint(x: cx + 13, y: dividerY))
+        rule.addLine(to: CGPoint(x: cx + 58, y: dividerY))
+        colophon.stroke(rule, with: gold.shading, lineWidth: 0.8)
+        colophon.fill(blossomCross(center: CGPoint(x: cx, y: dividerY), size: 13), with: gold.shading)
+
+        let lines = page.colophonLines
+        var y = dividerY + 21
+        let opening = ctx.resolve(Text(lines.opening).font(PaperFont.font(size: 12.5, weight: .medium)).foregroundColor(c(P.rubric)))
+        colophon.draw(opening, at: CGPoint(x: cx, y: y), anchor: .center)
+        y += 19
+        if !lines.name.isEmpty {
+            let name = ctx.resolve(Text(lines.name).font(PaperFont.font(size: 16, weight: .semibold)).foregroundColor(c(P.ink)))
+            colophon.draw(name, at: CGPoint(x: cx, y: y), anchor: .center)
+            y += 20
+        }
+        let date = ctx.resolve(Text(lines.date).font(PaperFont.font(size: 11.5)).foregroundColor(c(P.ink, 0.72)))
+        colophon.draw(date, at: CGPoint(x: cx, y: y), anchor: .center)
+    }
+
+    private static func drawTailpiece(center: CGPoint, palette P: ManuscriptPalette, gold: ManuscriptGold, in ctx: GraphicsContext) {
+        for side in [-1.0, 1.0] as [CGFloat] {
+            var vine = Path()
+            vine.move(to: CGPoint(x: center.x + side * 9, y: center.y + 2))
+            vine.addCurve(
+                to: CGPoint(x: center.x + side * 64, y: center.y + 1),
+                control1: CGPoint(x: center.x + side * 26, y: center.y + 14),
+                control2: CGPoint(x: center.x + side * 44, y: center.y - 12)
+            )
+            ctx.stroke(vine, with: gold.shading, style: StrokeStyle(lineWidth: 1.1, lineCap: .round))
+            drawLeaf(at: CGPoint(x: center.x + side * 26, y: center.y + 8), angle: side > 0 ? 0.9 : .pi - 0.9,
+                     length: 9, width: 2.7, color: c(P.leaf), gold: gold, in: ctx)
+            drawLeaf(at: CGPoint(x: center.x + side * 44, y: center.y - 4), angle: side > 0 ? -0.9 : .pi + 0.9,
+                     length: 9, width: 2.7, color: c(P.leaf), gold: gold, in: ctx)
+            drawRosette(at: CGPoint(x: center.x + side * 68, y: center.y + 1), radius: 3.6, palette: P, gold: gold, in: ctx)
+        }
+        let fruit = PomegranateTreeLayout.Fruit(x: center.x, y: center.y, r: 8.5, stemX: center.x, stemY: center.y - 9, isOpen: true)
+        PomegranateRenderer.drawFruit(fruit, palette: .light, lineWidth: 0.6, withStem: false, in: ctx)
+    }
+
+    // MARK: Искры на золоте
+    static func drawGlints(reveal: ManuscriptReveal, gold: ManuscriptGold, in ctx: GraphicsContext) {
+        var points: [(CGPoint, CGFloat)] = []
+        let band = ManuscriptGeometry.headpiece
+        if reveal.headpiece > 0.5 {
+            points.append((CGPoint(x: band.midX, y: 45), 4.5))
+            points.append((CGPoint(x: band.minX + 4, y: band.minY + 4), 3))
+            points.append((CGPoint(x: band.maxX - 4, y: band.maxY - 4), 3))
+            points.append((CGPoint(x: band.midX - 52, y: band.maxY - 2), 2.6))
+            points.append((CGPoint(x: band.midX + 70, y: band.minY + 2), 2.6))
+        }
+        if reveal.initial > 0.6 {
+            let box = ManuscriptGeometry.initialBox
+            points.append((CGPoint(x: box.midX - 6, y: box.midY - 10), 4))
+            points.append((CGPoint(x: box.maxX - 2, y: box.minY + 2), 2.8))
+        }
+        if reveal.frame > 0.95 {
+            let inset = ManuscriptGeometry.frameInset
+            points.append((CGPoint(x: inset, y: inset), 3.2))
+            points.append((CGPoint(x: ManuscriptGeometry.size.width - inset, y: ManuscriptGeometry.size.height - inset), 3.2))
+        }
+        if reveal.margin > 0.95 {
+            points.append((CGPoint(x: ManuscriptGeometry.marginX, y: ManuscriptGeometry.marginTop - 13), 3))
+        }
+        for (point, size) in points {
+            let intensity = gold.glint(at: point)
+            guard intensity > 0.03 else { continue }
+            let s = size * (0.55 + 0.45 * intensity)
+            var star = Path()
+            star.move(to: CGPoint(x: point.x, y: point.y - s))
+            star.addLine(to: CGPoint(x: point.x + s * 0.15, y: point.y - s * 0.15))
+            star.addLine(to: CGPoint(x: point.x + s, y: point.y))
+            star.addLine(to: CGPoint(x: point.x + s * 0.15, y: point.y + s * 0.15))
+            star.addLine(to: CGPoint(x: point.x, y: point.y + s))
+            star.addLine(to: CGPoint(x: point.x - s * 0.15, y: point.y + s * 0.15))
+            star.addLine(to: CGPoint(x: point.x - s, y: point.y))
+            star.addLine(to: CGPoint(x: point.x - s * 0.15, y: point.y - s * 0.15))
+            star.closeSubpath()
+            ctx.fill(Path(ellipseIn: circle(point, s * 0.45)), with: .color(Color.white.opacity(0.3 * intensity)))
+            ctx.fill(star, with: .color(Color.white.opacity(0.9 * intensity)))
+        }
+    }
+
+    // MARK: Подпись для соцсетей
+    static func drawWatermark(palette P: ManuscriptPalette, in ctx: GraphicsContext) {
+        let mark = ctx.resolve(Text("Luys · Armenian Bible").font(PaperFont.font(size: 8.5, weight: .semibold)).foregroundColor(c(P.ink, 0.45)))
+        ctx.draw(mark, at: CGPoint(x: ManuscriptGeometry.size.width / 2, y: ManuscriptGeometry.size.height - 8), anchor: .center)
+    }
+}

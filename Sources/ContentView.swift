@@ -180,7 +180,8 @@ struct HomeView: View {
     @State private var isShowingSanctuary = false
     @State private var isShowingPomegranateSanctuary = false
     @State private var isShowingPaywall = false
-    
+    @State private var manuscriptPage: ManuscriptPage? = nil
+
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
@@ -383,7 +384,19 @@ struct HomeView: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 2)
                         .staggeredEntrance(index: 1)
-                    
+
+                    // MARK: - Карточка «Рукописи»: стих дня на странице армянского манускрипта
+                    ManuscriptBannerCardView(
+                        language: manager.appLanguage,
+                        primaryTextColor: primaryTextColor,
+                        previewPage: ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage),
+                        onOpen: {
+                            triggerHaptic(.soft)
+                            manuscriptPage = ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)
+                        }
+                    )
+                    .staggeredEntrance(index: 2)
+
                     // MARK: - Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
                     NarekatsiBannerCardView(
                         language: manager.appLanguage,
@@ -519,6 +532,10 @@ struct HomeView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         isShowingPomegranateSanctuary = true
                     }
+                } else if tabArg == "manuscript" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        manuscriptPage = ManuscriptPage.debugPage(fallbackLanguage: manager.appLanguage)
+                    }
                 }
                 UserDefaults.standard.removeObject(forKey: "openTab")
             }
@@ -558,6 +575,9 @@ struct HomeView: View {
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
+        }
+        .fullScreenCover(item: $manuscriptPage) { page in
+            ManuscriptStudioView(page: page)
         }
         .onReceive(PomegranateTreeManager.shared.$isShowingSanctuarySheet) { show in
             if show {

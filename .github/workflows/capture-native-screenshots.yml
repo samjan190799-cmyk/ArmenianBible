@@ -13,6 +13,14 @@ on:
           - ipad_13
           - iphone_6_9
           - iphone_6_5
+      scope:
+        description: 'Что снимать: all — все экраны, manuscript — только «Рукопись»'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - manuscript
 
 jobs:
   capture-screenshots:
@@ -50,6 +58,7 @@ jobs:
       - name: Capture Native Screenshots
         env:
           TARGET_DEVICE: ${{ github.event.inputs.device || 'all' }}
+          SCOPE: ${{ github.event.inputs.scope || 'all' }}
         run: |
           set -e
           mkdir -p ./Real_Screenshots_Output
@@ -104,6 +113,35 @@ jobs:
             sleep 8
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
+
+            # 9. «Рукопись»: кадры анимации (секунда задаётся аргументом), языки и стили
+            for SPEC in "russian roslin 1.3 Самвел" "russian roslin 2.4 Самвел" "russian roslin 3.6 Самвел" \
+                        "russian roslin 30 Самвел" "armenian roslin 30 Սամվել" "english cilicia 30 Samvel" "armenian narek 30 Սամվել"; do
+              set -- $SPEC
+              echo "📸 Снятие 09 Manuscript $1 $2 t=$3..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript -luys_ads_enabled NO \
+                -manuscript_language "$1" -manuscript_style "$2" -manuscript_time "$3" -manuscript_name "$4"
+              sleep 7
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/09_Manuscript_${1}_${2}_t${3}.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              sleep 2
+            done
+
+            # 10. Картинка для «Поделиться» (ImageRenderer): приложение кладёт её в Documents
+            echo "📸 Снятие 10 Manuscript export..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript -luys_ads_enabled NO \
+              -manuscript_language russian -manuscript_style roslin -manuscript_time 30 -manuscript_name "Самвел" -manuscript_export_test YES
+            sleep 9
+            CONTAINER=$(xcrun simctl get_app_container "$UDID" com.samvel.armenianbible data)
+            cp "$CONTAINER/Documents/manuscript_export_test.png" "$OUT_DIR/10_Manuscript_Export.png" || echo "⚠️ Экспортная картинка не найдена"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            if [ "$SCOPE" = "manuscript" ]; then
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты «Рукописи» для $DEV_LABEL сняты"
+              return 0
+            fi
 
             # 0. Экран блокировки / виджеты
             echo "📸 Снятие 00 Lock Screen / Widgets..."
