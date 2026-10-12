@@ -67,19 +67,19 @@ struct ManuscriptPalette {
     static let roslin = ManuscriptPalette(
         parchment: 0xF2E8CF, parchmentEdge: 0xD3BB8E, ink: 0x2A1C12, rubric: 0xA8291F,
         field: 0x1E3F7C, fieldAccent: 0xA8291F, leaf: 0x3C6B4B,
-        goldDark: 0x7A5616, gold: 0xC1902F, goldLight: 0xEDD17F, goldHighlight: 0xFFF7DA, pearl: 0xFBF5E6
+        goldDark: 0x7A5616, gold: 0xC1902F, goldLight: 0xEDD17F, goldHighlight: 0xFAE6A6, pearl: 0xFBF5E6
     )
 
     static let cilicia = ManuscriptPalette(
         parchment: 0xF3E6CB, parchmentEdge: 0xD6BA88, ink: 0x2B1A12, rubric: 0x9E2420,
         field: 0x7A1A22, fieldAccent: 0x1E3F7C, leaf: 0x2F5E52,
-        goldDark: 0x7A5616, gold: 0xC1902F, goldLight: 0xEDD17F, goldHighlight: 0xFFF7DA, pearl: 0xFBF5E6
+        goldDark: 0x7A5616, gold: 0xC1902F, goldLight: 0xEDD17F, goldHighlight: 0xFAE6A6, pearl: 0xFBF5E6
     )
 
     static let narek = ManuscriptPalette(
         parchment: 0xEEE3C8, parchmentEdge: 0xC9B286, ink: 0x2C2217, rubric: 0x8E3A22,
         field: 0x24483A, fieldAccent: 0x8A2A22, leaf: 0x5B7A3A,
-        goldDark: 0x7A5616, gold: 0xC1902F, goldLight: 0xEDD17F, goldHighlight: 0xFFF7DA, pearl: 0xFBF5E6
+        goldDark: 0x7A5616, gold: 0xC1902F, goldLight: 0xEDD17F, goldHighlight: 0xFAE6A6, pearl: 0xFBF5E6
     )
 
     static func color(_ hex: UInt32, _ alpha: Double = 1) -> Color {

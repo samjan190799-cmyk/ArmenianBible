@@ -95,31 +95,35 @@ struct ManuscriptGold {
 }
 
 // MARK: - Вёрстка текста (CoreText): обтекание буквицы, перо идёт по строкам
+/// Строки набираются вручную через CTTypesetter: первые строки уже, рядом с буквицей;
+/// по ширине выравниваются только полные строки, поэтому короткий стих не растягивается по буквам.
 final class ManuscriptTextLayout {
-    let lines: [CTLine]
-    /// Начала строк в системе CoreText (ось Y вверх) от низа области текста
-    let origins: [CGPoint]
-    let ranges: [CFRange]
-    let ascents: [CGFloat]
-    let descents: [CGFloat]
+    struct Line {
+        let line: CTLine
+        let range: CFRange
+        /// Левый край строки от левого края области текста
+        let x: CGFloat
+        /// Базовая линия от верха области текста (ось Y вниз)
+        let baseline: CGFloat
+        let ascent: CGFloat
+        let descent: CGFloat
+    }
+
+    let lines: [Line]
     let length: Int
-    let height: CGFloat
-    /// Низ последней строки в координатах страницы
+    /// Сдвиг всего блока (буквица и текст) вниз, чтобы короткий стих не прилипал к заставке
+    let offsetY: CGFloat
+    /// Низ текста в координатах страницы
     let bottomY: CGFloat
 
-    private init(lines: [CTLine], origins: [CGPoint], ranges: [CFRange], ascents: [CGFloat],
-                 descents: [CGFloat], length: Int, height: CGFloat, bottomY: CGFloat) {
+    private init(lines: [Line], length: Int, offsetY: CGFloat, bottomY: CGFloat) {
         self.lines = lines
-        self.origins = origins
-        self.ranges = ranges
-        self.ascents = ascents
-        self.descents = descents
         self.length = length
-        self.height = height
+        self.offsetY = offsetY
         self.bottomY = bottomY
     }
 
-    // Подбор кегля — до десятка пробных вёрсток, поэтому результат кэшируется
+    // Подбор кегля — десяток пробных вёрсток, поэтому результат кэшируется
     private static let cacheLock = NSLock()
     private static var cache: [String: ManuscriptTextLayout] = [:]
 
@@ -144,27 +148,23 @@ final class ManuscriptTextLayout {
         let palette = page.style.palette
         let rect = ManuscriptGeometry.textRect
         let exclusion = ManuscriptGeometry.exclusion
+        let isShort = (body as NSString).length < 60
 
-        func frame(size: CGFloat, height: CGFloat) -> (frame: CTFrame, fits: Bool, length: Int) {
-            let text = attributed(body: body, size: size, palette: palette)
-            let setter = CTFramesetterCreateWithAttributedString(text as CFAttributedString)
-            let path = lShapedPath(width: rect.width, height: height, exclusion: exclusion)
-            let ctFrame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0), path, nil)
-            let visible = CTFrameGetVisibleStringRange(ctFrame)
-            return (ctFrame, visible.length >= text.length, text.length)
+        func setLines(_ size: CGFloat) -> (lines: [Line], height: CGFloat) {
+            typeset(body: body, size: size, palette: palette, isShort: isShort, width: rect.width, exclusion: exclusion)
         }
 
         // Длинному стиху разрешаем занять чуть больше места вниз
         var height = rect.height
         var low: CGFloat = 11.5
-        var high: CGFloat = 30
-        if !frame(size: low, height: height).fits {
+        var high: CGFloat = 40
+        if setLines(low).height > height {
             height = rect.height + 24
         }
         var best = low
-        for _ in 0..<9 {
+        for _ in 0..<10 {
             let mid = (low + high) / 2
-            if frame(size: mid, height: height).fits {
+            if setLines(mid).height <= height {
                 best = mid
                 low = mid
             } else {
@@ -172,56 +172,66 @@ final class ManuscriptTextLayout {
             }
         }
 
-        let result = frame(size: best, height: height)
-        let lines = (CTFrameGetLines(result.frame) as? [CTLine]) ?? []
-        var origins = [CGPoint](repeating: .zero, count: lines.count)
-        if !lines.isEmpty {
-            CTFrameGetLineOrigins(result.frame, CFRange(location: 0, length: 0), &origins)
-        }
-        var ranges: [CFRange] = []
-        var ascents: [CGFloat] = []
-        var descents: [CGFloat] = []
-        for line in lines {
+        // Строки, которые не поместились даже мелким кеглем, отбрасываются
+        let visible = setLines(best).lines.filter { $0.baseline + $0.descent <= height + 2 }
+        let length = visible.last.map { $0.range.location + $0.range.length } ?? 0
+        let textBottom = max(exclusion.height, visible.last.map { $0.baseline + $0.descent } ?? 0)
+        // Короткий стих: блок опускается ближе к середине свободного места под заставкой
+        let free = (500 - rect.minY) - (textBottom + 30)
+        let offsetY = free > 0 ? free * 0.42 : 0
+        return ManuscriptTextLayout(lines: visible, length: length, offsetY: offsetY, bottomY: rect.minY + offsetY + textBottom)
+    }
+
+    private static func typeset(body: String, size: CGFloat, palette: ManuscriptPalette, isShort: Bool,
+                                width: CGFloat, exclusion: CGSize) -> (lines: [Line], height: CGFloat) {
+        let text = attributed(body: body, size: size, palette: palette, isShort: isShort)
+        let total = text.length
+        guard total > 0 else { return ([], 0) }
+        let typesetter = CTTypesetterCreateWithAttributedString(text as CFAttributedString)
+        let font = PaperFont.uiFont(size: size)
+        let lineHeight = font.lineHeight * 1.1
+        let string = text.string as NSString
+
+        var lines: [Line] = []
+        var start = 0
+        var top: CGFloat = 0
+        while start < total {
+            // Строка, которая хоть немного заходит на высоту буквицы, начинается правее неё
+            let x: CGFloat = top < exclusion.height ? exclusion.width : 0
+            let available = width - x
+            let count = max(1, CTTypesetterSuggestLineBreak(typesetter, start, Double(available)))
+            let range = CFRange(location: start, length: count)
+            var line = CTTypesetterCreateLine(typesetter, range)
+
+            let isLast = start + count >= total
+            let natural = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil) - CTLineGetTrailingWhitespaceWidth(line))
+            let spaces = string.substring(with: NSRange(location: start, length: count))
+                .trimmingCharacters(in: .whitespaces)
+                .filter { $0 == " " }
+                .count
+            if !isLast, spaces >= 2, natural > available * 0.78,
+               let justified = CTLineCreateJustifiedLine(line, 1.0, Double(available)) {
+                line = justified
+            }
+
             var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
             _ = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
-            ranges.append(CTLineGetStringRange(line))
-            ascents.append(ascent)
-            descents.append(descent)
+            lines.append(Line(line: line, range: range, x: x, baseline: top + font.ascender, ascent: ascent, descent: descent))
+            top += lineHeight
+            start += count
         }
-
-        var bottomY = ManuscriptGeometry.initialBox.maxY + 4
-        if let lastOrigin = origins.last, let lastDescent = descents.last {
-            bottomY = max(bottomY, rect.minY + height - (lastOrigin.y - lastDescent))
-        }
-        return ManuscriptTextLayout(
-            lines: lines, origins: origins, ranges: ranges, ascents: ascents, descents: descents,
-            length: result.length, height: height, bottomY: bottomY
-        )
+        let height = lines.last.map { $0.baseline + $0.descent } ?? 0
+        return (lines, height)
     }
 
-    /// Область текста с вырезом под буквицу в левом верхнем углу (ось Y вверх)
-    private static func lShapedPath(width w: CGFloat, height h: CGFloat, exclusion e: CGSize) -> CGPath {
-        let path = CGMutablePath()
-        path.move(to: CGPoint(x: 0, y: 0))
-        path.addLine(to: CGPoint(x: w, y: 0))
-        path.addLine(to: CGPoint(x: w, y: h))
-        path.addLine(to: CGPoint(x: e.width, y: h))
-        path.addLine(to: CGPoint(x: e.width, y: h - e.height))
-        path.addLine(to: CGPoint(x: 0, y: h - e.height))
-        path.closeSubpath()
-        return path
-    }
-
-    private static func attributed(body: String, size: CGFloat, palette: ManuscriptPalette) -> NSAttributedString {
+    private static func attributed(body: String, size: CGFloat, palette: ManuscriptPalette, isShort: Bool) -> NSAttributedString {
         let colorKey = NSAttributedString.Key(kCTForegroundColorAttributeName as String)
-        let paragraphKey = NSAttributedString.Key(kCTParagraphStyleAttributeName as String)
         let result = NSMutableAttributedString(string: body, attributes: [
             .font: PaperFont.uiFont(size: size, weight: .regular),
-            colorKey: ManuscriptPalette.uiColor(palette.ink).cgColor,
-            paragraphKey: paragraphStyle()
+            colorKey: ManuscriptPalette.uiColor(palette.ink).cgColor
         ])
         // Слова сразу после буквицы — киноварью, как рубрика в рукописи
-        let rubric = rubricLength(in: body)
+        let rubric = rubricLength(in: body, words: isShort ? 1 : 2)
         if rubric > 0 {
             result.addAttributes([
                 .font: PaperFont.uiFont(size: size, weight: .medium),
@@ -231,33 +241,24 @@ final class ManuscriptTextLayout {
         return result
     }
 
-    /// Остаток первого слова и следующее слово, но не длиннее 28 знаков
-    private static func rubricLength(in body: String) -> Int {
-        let ns = body as NSString
+    /// Остаток первого слова (и следующее слово у длинного стиха), не длиннее 28 знаков
+    private static func rubricLength(in body: String, words: Int) -> Int {
+        let string = body as NSString
         var end = 0
         var spaces = 0
-        while end < ns.length && end < 28 {
-            if ns.character(at: end) == 32 {
-                spaces += 1
-                if spaces == 2 || (spaces == 1 && end >= 14) { break }
+        var seenLetter = false
+        while end < string.length && end < 28 {
+            if string.character(at: end) == 32 {
+                if seenLetter {
+                    spaces += 1
+                    if spaces >= words || end >= 14 { break }
+                }
+            } else {
+                seenLetter = true
             }
             end += 1
         }
         return end
-    }
-
-    private static func paragraphStyle() -> CTParagraphStyle {
-        var alignment = CTTextAlignment.justified
-        var lineHeight: CGFloat = 1.12
-        return withUnsafePointer(to: &alignment) { alignmentPointer in
-            withUnsafePointer(to: &lineHeight) { lineHeightPointer in
-                let settings = [
-                    CTParagraphStyleSetting(spec: .alignment, valueSize: MemoryLayout<CTTextAlignment>.size, value: alignmentPointer),
-                    CTParagraphStyleSetting(spec: .lineHeightMultiple, valueSize: MemoryLayout<CGFloat>.size, value: lineHeightPointer)
-                ]
-                return CTParagraphStyleCreate(settings, settings.count)
-            }
-        }
     }
 }
 
@@ -281,11 +282,11 @@ struct ManuscriptPageView: View {
                 let gold = ManuscriptGold(palette: page.style.palette, sheen: sheen)
                 ManuscriptRenderer.drawFrame(progress: reveal.frame, palette: page.style.palette, gold: gold, in: context)
                 ManuscriptRenderer.drawHeadpiece(progress: reveal.headpiece, style: page.style, gold: gold, in: context)
-                ManuscriptRenderer.drawInitial(initial, progress: reveal.initial, style: page.style, gold: gold, in: context)
+                ManuscriptRenderer.drawInitial(initial, progress: reveal.initial, offsetY: layout.offsetY, style: page.style, gold: gold, in: context)
                 ManuscriptRenderer.drawText(layout, progress: reveal.text, palette: page.style.palette, in: context)
                 ManuscriptRenderer.drawMarginOrnament(progress: reveal.margin, style: page.style, gold: gold, in: context)
                 ManuscriptRenderer.drawEnding(page: page, layout: layout, progress: reveal.colophon, gold: gold, in: context)
-                ManuscriptRenderer.drawGlints(reveal: reveal, gold: gold, in: context)
+                ManuscriptRenderer.drawGlints(reveal: reveal, initialOffsetY: layout.offsetY, gold: gold, in: context)
                 if showsWatermark {
                     ManuscriptRenderer.drawWatermark(palette: page.style.palette, in: context)
                 }
@@ -327,6 +328,18 @@ enum ManuscriptRenderer {
 
     private static func circle(_ center: CGPoint, _ radius: CGFloat) -> CGRect {
         CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+    }
+
+    // Золото прямо на пергаменте обводится тёмной охрой, как в рукописях: иначе в момент блика
+    // светлое золото сливается с листом
+    private static func strokeGold(_ path: Path, width: CGFloat, gold: ManuscriptGold, in ctx: GraphicsContext) {
+        ctx.stroke(path, with: .color(c(gold.palette.goldDark, 0.5)), style: StrokeStyle(lineWidth: width + 0.9, lineCap: .round))
+        ctx.stroke(path, with: gold.shading, style: StrokeStyle(lineWidth: width, lineCap: .round))
+    }
+
+    private static func fillGold(_ path: Path, gold: ManuscriptGold, in ctx: GraphicsContext) {
+        ctx.fill(path, with: gold.shading)
+        ctx.stroke(path, with: .color(c(gold.palette.goldDark, 0.75)), lineWidth: 0.5)
     }
 
     // MARK: Пергамент
@@ -382,7 +395,7 @@ enum ManuscriptRenderer {
         let page = CGRect(origin: .zero, size: ManuscriptGeometry.size)
         let outer = page.insetBy(dx: ManuscriptGeometry.frameInset, dy: ManuscriptGeometry.frameInset)
         let inner = outer.insetBy(dx: 4.5, dy: 4.5)
-        ctx.stroke(Path(outer).trimmedPath(from: 0, to: p), with: gold.shading, lineWidth: 2.2)
+        strokeGold(Path(outer).trimmedPath(from: 0, to: p), width: 2.2, gold: gold, in: ctx)
         ctx.stroke(Path(inner).trimmedPath(from: 0, to: p), with: .color(c(P.rubric, 0.8)), lineWidth: 0.7)
 
         let cornerAlpha = clamp((p - 0.85) / 0.15)
@@ -395,7 +408,7 @@ enum ManuscriptRenderer {
             for offset in [CGPoint(x: 2.7, y: 0), CGPoint(x: -2.7, y: 0), CGPoint(x: 0, y: 2.7), CGPoint(x: 0, y: -2.7)] {
                 quatrefoil.addEllipse(in: circle(CGPoint(x: corner.x + offset.x, y: corner.y + offset.y), 2.4))
             }
-            layer.fill(quatrefoil, with: gold.shading)
+            fillGold(quatrefoil, gold: gold, in: layer)
             layer.fill(Path(ellipseIn: circle(corner, 1.2)), with: .color(c(P.rubric)))
         }
     }
@@ -475,7 +488,7 @@ enum ManuscriptRenderer {
         let outline = Path(roundedRect: band, cornerRadius: 3)
 
         // 1. Контур золотом
-        ctx.stroke(outline.trimmedPath(from: 0, to: smooth(p / 0.3)), with: gold.shading, lineWidth: 1.2)
+        strokeGold(outline.trimmedPath(from: 0, to: smooth(p / 0.3)), width: 1.2, gold: gold, in: ctx)
 
         // 2. Рама и поле
         let fill = smooth((p - 0.2) / 0.25)
@@ -501,7 +514,7 @@ enum ManuscriptRenderer {
         layer.opacity = crown
         for corner in [CGPoint(x: band.minX + 1, y: band.minY), CGPoint(x: band.maxX - 1, y: band.minY)] {
             for angle in [-CGFloat.pi / 2, -CGFloat.pi / 2 - 0.55, -CGFloat.pi / 2 + 0.55] {
-                layer.fill(leafPath(at: corner, angle: angle, length: 11, width: 3), with: gold.shading)
+                fillGold(leafPath(at: corner, angle: angle, length: 11, width: 3), gold: gold, in: layer)
             }
             layer.fill(Path(ellipseIn: circle(CGPoint(x: corner.x, y: corner.y - 1), 1.3)), with: .color(c(P.rubric)))
         }
@@ -510,7 +523,7 @@ enum ManuscriptRenderer {
         var dome = Path()
         dome.addArc(center: CGPoint(x: cx, y: band.minY), radius: 8, startAngle: .degrees(180), endAngle: .degrees(360), clockwise: false)
         dome.closeSubpath()
-        layer.fill(dome, with: gold.shading)
+        fillGold(dome, gold: gold, in: layer)
         let lift = (1 - crown) * 6
         let cross = blossomCross(center: CGPoint(x: cx, y: 45 + lift), size: 26)
         layer.fill(cross, with: gold.shading)
@@ -644,11 +657,11 @@ enum ManuscriptRenderer {
     }
 
     // MARK: Буквица: золотая буква на цветном поле в золотой раме
-    static func drawInitial(_ letter: String, progress p: CGFloat, style: ManuscriptStyle,
+    static func drawInitial(_ letter: String, progress p: CGFloat, offsetY: CGFloat, style: ManuscriptStyle,
                             gold: ManuscriptGold, in ctx: GraphicsContext) {
         guard p > 0 else { return }
         let P = style.palette
-        let box = ManuscriptGeometry.initialBox
+        let box = ManuscriptGeometry.initialBox.offsetBy(dx: 0, dy: offsetY)
         let appear = smooth(p / 0.4)
 
         var layer = ctx
@@ -694,7 +707,7 @@ enum ManuscriptRenderer {
         var stem = Path()
         stem.move(to: CGPoint(x: x, y: box.maxY - 8))
         stem.addQuadCurve(to: CGPoint(x: x + 1, y: box.maxY + 36), control: CGPoint(x: x - 4, y: box.maxY + 14))
-        ctx.stroke(stem.trimmedPath(from: 0, to: sprig), with: gold.shading, style: StrokeStyle(lineWidth: 0.9, lineCap: .round))
+        strokeGold(stem.trimmedPath(from: 0, to: sprig), width: 0.9, gold: gold, in: ctx)
         let leaves: [(CGFloat, CGFloat, CGFloat)] = [(0.3, -2.4, 0.35), (0.55, 2.1, 0.6), (0.8, -2.4, 0.85)]
         for (yFactor, side, threshold) in leaves where sprig > threshold {
             let base = CGPoint(x: x - 1, y: box.maxY - 8 + 44 * yFactor)
@@ -710,55 +723,52 @@ enum ManuscriptRenderer {
                          in ctx: GraphicsContext) {
         guard p > 0, !layout.lines.isEmpty else { return }
         let rect = ManuscriptGeometry.textRect
+        let top = rect.minY + layout.offsetY
         let written = p * CGFloat(layout.length)
         var pen: CGPoint?
 
         ctx.withCGContext { cg in
-            cg.saveGState()
-            cg.translateBy(x: rect.minX, y: rect.minY + layout.height)
-            cg.scaleBy(x: 1, y: -1)
-            cg.textMatrix = .identity
-            for (index, line) in layout.lines.enumerated() {
-                let range = layout.ranges[index]
-                let start = CGFloat(range.location)
-                let end = CGFloat(range.location + range.length)
+            for item in layout.lines {
+                let start = CGFloat(item.range.location)
+                let end = CGFloat(item.range.location + item.range.length)
                 if written <= start { break }
-                let origin = layout.origins[index]
+                // Начало координат — на базовой линии строки, ось Y вверх (как ждёт CoreText)
+                cg.saveGState()
+                cg.translateBy(x: rect.minX + item.x, y: top + item.baseline)
+                cg.scaleBy(x: 1, y: -1)
+                cg.textMatrix = .identity
                 if written >= end {
-                    cg.textPosition = origin
-                    CTLineDraw(line, cg)
+                    cg.textPosition = .zero
+                    CTLineDraw(item.line, cg)
+                    cg.restoreGState()
                     continue
                 }
                 // Строка пишется прямо сейчас: открываем её до кончика пера
                 let character = Int(written)
                 let fraction = written - CGFloat(character)
-                let x0 = CTLineGetOffsetForStringIndex(line, character, nil)
-                let x1 = CTLineGetOffsetForStringIndex(line, min(character + 1, range.location + range.length), nil)
-                let tipX = origin.x + x0 + (x1 - x0) * fraction
-                let top = origin.y + layout.ascents[index] + 2
-                let bottom = origin.y - layout.descents[index] - 2
+                let x0 = CTLineGetOffsetForStringIndex(item.line, character, nil)
+                let x1 = CTLineGetOffsetForStringIndex(item.line, min(character + 1, item.range.location + item.range.length), nil)
+                let tipX = x0 + (x1 - x0) * fraction
+                let band = CGRect(x: -2, y: -item.descent - 2, width: max(0, tipX + 2), height: item.ascent + item.descent + 4)
 
                 cg.saveGState()
-                cg.clip(to: CGRect(x: 0, y: bottom, width: max(0, tipX), height: top - bottom))
-                cg.textPosition = origin
-                CTLineDraw(line, cg)
+                cg.clip(to: band)
+                cg.textPosition = .zero
+                CTLineDraw(item.line, cg)
                 cg.restoreGState()
 
                 // Мягкий край: чернила ещё не впитались
                 cg.saveGState()
-                cg.clip(to: CGRect(x: tipX, y: bottom, width: 5, height: top - bottom))
+                cg.clip(to: CGRect(x: tipX, y: band.minY, width: 5, height: band.height))
                 cg.setAlpha(0.3)
-                cg.textPosition = origin
-                CTLineDraw(line, cg)
+                cg.textPosition = .zero
+                CTLineDraw(item.line, cg)
                 cg.restoreGState()
 
-                pen = CGPoint(
-                    x: rect.minX + tipX + 1.5,
-                    y: rect.minY + layout.height - (origin.y + layout.ascents[index] * 0.32)
-                )
+                cg.restoreGState()
+                pen = CGPoint(x: rect.minX + item.x + tipX + 1.5, y: top + item.baseline - item.ascent * 0.32)
                 break
             }
-            cg.restoreGState()
         }
 
         if let pen, p < 1 {
@@ -785,14 +795,14 @@ enum ManuscriptRenderer {
             y = max(top, y - 3)
             stem.addLine(to: CGPoint(x: x(at: y), y: y))
         }
-        ctx.stroke(stem.trimmedPath(from: 0, to: p), with: gold.shading, style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+        strokeGold(stem.trimmedPath(from: 0, to: p), width: 1.2, gold: gold, in: ctx)
 
         // Основание: золотой трилистник
         var base = Path()
         for offset in [CGPoint(x: -3, y: 2), CGPoint(x: 3, y: 2), CGPoint(x: 0, y: 5)] {
             base.addEllipse(in: circle(CGPoint(x: x0 + offset.x, y: bottom + offset.y), 2.3))
         }
-        ctx.fill(base, with: gold.shading)
+        fillGold(base, gold: gold, in: ctx)
 
         let reachY = bottom - (bottom - top) * p
         var node = 0
@@ -825,7 +835,7 @@ enum ManuscriptRenderer {
         let topX = x(at: top)
         layer.fill(Path(ellipseIn: circle(CGPoint(x: topX, y: top - 2), 3.6)), with: .color(c(P.field)))
         layer.stroke(Path(ellipseIn: circle(CGPoint(x: topX, y: top - 2), 3.6)), with: gold.shading, lineWidth: 0.7)
-        layer.fill(blossomCross(center: CGPoint(x: topX, y: top - 13), size: 14), with: gold.shading)
+        fillGold(blossomCross(center: CGPoint(x: topX, y: top - 13), size: 14), gold: gold, in: layer)
     }
 
     // MARK: Ссылка, концовка и памятная запись
@@ -851,7 +861,7 @@ enum ManuscriptRenderer {
             diamond.addLine(to: CGPoint(x: center.x, y: center.y + 3.2))
             diamond.addLine(to: CGPoint(x: center.x - 2.4, y: center.y))
             diamond.closeSubpath()
-            refLayer.fill(diamond, with: gold.shading)
+            fillGold(diamond, gold: gold, in: refLayer)
         }
 
         // Концовка: гранат с лозами — если под текстом осталось место
@@ -871,8 +881,8 @@ enum ManuscriptRenderer {
         rule.addLine(to: CGPoint(x: cx - 13, y: dividerY))
         rule.move(to: CGPoint(x: cx + 13, y: dividerY))
         rule.addLine(to: CGPoint(x: cx + 58, y: dividerY))
-        colophon.stroke(rule, with: gold.shading, lineWidth: 0.8)
-        colophon.fill(blossomCross(center: CGPoint(x: cx, y: dividerY), size: 13), with: gold.shading)
+        strokeGold(rule, width: 0.8, gold: gold, in: colophon)
+        fillGold(blossomCross(center: CGPoint(x: cx, y: dividerY), size: 13), gold: gold, in: colophon)
 
         let lines = page.colophonLines
         var y = dividerY + 21
@@ -897,7 +907,7 @@ enum ManuscriptRenderer {
                 control1: CGPoint(x: center.x + side * 26, y: center.y + 14),
                 control2: CGPoint(x: center.x + side * 44, y: center.y - 12)
             )
-            ctx.stroke(vine, with: gold.shading, style: StrokeStyle(lineWidth: 1.1, lineCap: .round))
+            strokeGold(vine, width: 1.1, gold: gold, in: ctx)
             drawLeaf(at: CGPoint(x: center.x + side * 26, y: center.y + 8), angle: side > 0 ? 0.9 : .pi - 0.9,
                      length: 9, width: 2.7, color: c(P.leaf), gold: gold, in: ctx)
             drawLeaf(at: CGPoint(x: center.x + side * 44, y: center.y - 4), angle: side > 0 ? -0.9 : .pi + 0.9,
@@ -909,7 +919,7 @@ enum ManuscriptRenderer {
     }
 
     // MARK: Искры на золоте
-    static func drawGlints(reveal: ManuscriptReveal, gold: ManuscriptGold, in ctx: GraphicsContext) {
+    static func drawGlints(reveal: ManuscriptReveal, initialOffsetY: CGFloat, gold: ManuscriptGold, in ctx: GraphicsContext) {
         var points: [(CGPoint, CGFloat)] = []
         let band = ManuscriptGeometry.headpiece
         if reveal.headpiece > 0.5 {
@@ -920,7 +930,7 @@ enum ManuscriptRenderer {
             points.append((CGPoint(x: band.midX + 70, y: band.minY + 2), 2.6))
         }
         if reveal.initial > 0.6 {
-            let box = ManuscriptGeometry.initialBox
+            let box = ManuscriptGeometry.initialBox.offsetBy(dx: 0, dy: initialOffsetY)
             points.append((CGPoint(x: box.midX - 6, y: box.midY - 10), 4))
             points.append((CGPoint(x: box.maxX - 2, y: box.minY + 2), 2.8))
         }

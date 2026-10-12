@@ -456,7 +456,10 @@ extension ManuscriptPage {
         let defaults = UserDefaults.standard
         let language = defaults.string(forKey: "manuscript_language").flatMap(AppLanguage.init(rawValue:)) ?? fallbackLanguage
         let style = defaults.string(forKey: "manuscript_style").flatMap(ManuscriptStyle.init(rawValue:)) ?? .roslin
-        let verse = BibleVerse.shortPearls.first ?? BibleManager.shared.currentVerse
+        // -manuscript_verse long — длинный стих, чтобы проверить плотную страницу
+        let wantsLong = defaults.string(forKey: "manuscript_verse") == "long"
+        let longVerse = BibleVerse.database.first { (180...320).contains($0.text(for: language).count) }
+        let verse = (wantsLong ? longVerse : nil) ?? BibleVerse.shortPearls.first ?? BibleManager.shared.currentVerse
         var page = ManuscriptPage.from(verse: verse, language: language)
         page.style = style
         if let name = defaults.string(forKey: "manuscript_name") {
