@@ -22,6 +22,7 @@ on:
           - all
           - manuscript
           - features
+          - candles
 
 jobs:
   capture-screenshots:
@@ -114,6 +115,31 @@ jobs:
             sleep 8
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
+
+            # 14. Свечи: притвор, лист свечи на разных стадиях горения, зажжение
+            if [ "$SCOPE" = "candles" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@" -luys_ads_enabled NO -luys_debug_language russian
+                sleep 8
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "14_Candles_stand_t3.2" -openTab sanctuary -candle_seed YES -candle_time 3.2
+              shoot "14_Candles_stand_t5.9" -openTab sanctuary -candle_seed YES -candle_time 5.9
+              shoot "14_Candle_hero_burn0.05" -openTab sanctuary -candle_seed YES -candle_detail 3 -candle_burn 0.05 -candle_time 4.1
+              shoot "14_Candle_hero_burn0.5" -openTab sanctuary -candle_seed YES -candle_detail 3 -candle_burn 0.5 -candle_time 7.7
+              shoot "14_Candle_hero_burn0.9" -openTab sanctuary -candle_seed YES -candle_detail 3 -candle_burn 0.9 -candle_time 9.4
+              shoot "14_Candle_hero_out" -openTab sanctuary -candle_seed YES -candle_detail 3 -candle_burn 1.0 -candle_time 1.6
+              shoot "14_Candle_ignite_0.5" -openTab sanctuary -candle_seed YES -candle_detail 1 -candle_burn 0.0 -candle_time 2.5 -candle_ignite_age 0.5
+              shoot "14_Candle_ignite_0.9" -openTab sanctuary -candle_seed YES -candle_detail 1 -candle_burn 0.0 -candle_time 2.5 -candle_ignite_age 0.9
+              shoot "14_Candle_ignite_1.4" -openTab sanctuary -candle_seed YES -candle_detail 1 -candle_burn 0.0 -candle_time 2.5 -candle_ignite_age 1.4
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты свечей для $DEV_LABEL сняты"
+              return 0
+            fi
 
             # 11. Листание «Рукописи», «Нарек утешает», «Карта святынь»
             if [ "$SCOPE" = "features" ]; then

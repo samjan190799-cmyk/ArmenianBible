@@ -588,6 +588,10 @@ struct HomeView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         isShowingSanctuaryMap = true
                     }
+                } else if tabArg == "sanctuary" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingSanctuary = true
+                    }
                 } else if tabArg == "manuscript" {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         manuscriptLaunch = ManuscriptLaunch(source: ManuscriptPage.debugSource(fallbackLanguage: manager.appLanguage))
