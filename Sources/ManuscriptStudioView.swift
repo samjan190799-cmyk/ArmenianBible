@@ -138,13 +138,14 @@ struct ManuscriptStudioView: View {
                 topBar
                 GeometryReader { geo in
                     let scale = min(geo.size.width / ManuscriptGeometry.size.width, geo.size.height / ManuscriptGeometry.size.height)
-                    TabView(selection: $currentId) {
-                        ForEach(pages) { raw in
-                            pagerCell(raw, scale: scale, turned: turned, started: started, look: look)
-                                .tag(raw.id)
-                        }
+                    // Лист перелистывается, как страница книги: загибается у края, под ним следующий
+                    ManuscriptCurlPager(ids: pages.map(\.id), currentId: $currentId) { id, isCurrent in
+                        guard let raw = pages.first(where: { $0.id == id }) else { return AnyView(Color.clear) }
+                        return AnyView(pageContent(raw, isCurrent: isCurrent, scale: scale, turned: turned, started: started, look: look))
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .frame(width: ManuscriptGeometry.size.width * scale, height: ManuscriptGeometry.size.height * scale)
+                    .shadow(color: Color.black.opacity(0.6), radius: 18, x: 0, y: 10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .padding(.vertical, 6)
 
@@ -231,15 +232,11 @@ struct ManuscriptStudioView: View {
         }
     }
 
-    // MARK: Лист в пролистываемой ленте
+    // MARK: Лист книги
     @ViewBuilder
-    private func pagerCell(_ raw: ManuscriptPage, scale: CGFloat, turned: Bool, started: Date,
-                           look: (style: ManuscriptStyle, name: String)) -> some View {
-        let index = pages.firstIndex { $0.id == raw.id } ?? 0
-        if abs(index - currentIndex) > 1 {
-            // Дальние листы не рисуем: лента остаётся лёгкой
-            Color.clear
-        } else if raw.id == currentId {
+    private func pageContent(_ raw: ManuscriptPage, isCurrent: Bool, scale: CGFloat, turned: Bool, started: Date,
+                             look: (style: ManuscriptStyle, name: String)) -> some View {
+        if isCurrent {
             TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
                 let page = styled(raw, look: look)
                 let length = ManuscriptTextLayout.cached(for: page, pen: activePen).length
@@ -250,7 +247,7 @@ struct ManuscriptStudioView: View {
             .contentShape(Rectangle())
             .onTapGesture { restart() }
         } else {
-            // Соседний лист виден уже при свайпе: чистый пергамент с рамкой, текст допишется после остановки
+            // Следующий лист виден под загибом: чистый пергамент с рамкой, текст допишется после остановки
             pageFrame(
                 page: styled(raw, look: look),
                 reveal: reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.leaf,
@@ -264,8 +261,6 @@ struct ManuscriptStudioView: View {
         ManuscriptPageView(page: page, reveal: reveal, sheen: sheen, pen: activePen)
             .scaleEffect(scale)
             .frame(width: ManuscriptGeometry.size.width * scale, height: ManuscriptGeometry.size.height * scale)
-            .shadow(color: Color.black.opacity(0.6), radius: 18, x: 0, y: 10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: Шапка
