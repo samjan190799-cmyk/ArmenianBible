@@ -263,7 +263,7 @@ struct RealisticArmenianCandleView: View {
     var body: some View {
         CandleBurnAnimator(burn: burnProgress) { burn in
             TimelineView(.animation(minimumInterval: 1.0 / quality.framesPerSecond, paused: reduceMotion || Self.frozenTime != nil)) { timeline in
-                Canvas { context, size in
+                Canvas(rendersAsynchronously: true) { context, size in
                     let time = Self.frozenTime
                         ?? (reduceMotion ? 2.0 : timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
                     CandleRenderer.draw(
