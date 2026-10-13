@@ -329,7 +329,7 @@ struct ManuscriptPageView: View {
                 ManuscriptRenderer.drawFrame(progress: reveal.frame, palette: page.style.palette, gold: gold, in: context)
                 ManuscriptRenderer.drawHeadpiece(progress: reveal.headpiece, style: page.style, gold: gold, in: context)
                 ManuscriptRenderer.drawInitial(initial, progress: reveal.initial, offsetY: layout.offsetY, style: page.style, gold: gold, in: context)
-                ManuscriptRenderer.drawText(layout, progress: reveal.text, palette: page.style.palette, in: context)
+                ManuscriptRenderer.drawText(layout, progress: reveal.text, lift: reveal.colophon, palette: page.style.palette, in: context)
                 ManuscriptRenderer.drawMarginOrnament(progress: reveal.margin, style: page.style, gold: gold, in: context)
                 ManuscriptRenderer.drawEnding(page: page, layout: layout, progress: reveal.colophon, gold: gold, in: context)
                 ManuscriptRenderer.drawGlints(reveal: reveal, initialOffsetY: layout.offsetY, gold: gold, in: context)
@@ -765,13 +765,15 @@ enum ManuscriptRenderer {
     }
 
     // MARK: Текст: перо проходит строку за строкой
-    static func drawText(_ layout: ManuscriptTextLayout, progress p: CGFloat, palette P: ManuscriptPalette,
-                         in ctx: GraphicsContext) {
+    /// `lift` — отрыв пера от листа после последней строки: 0 — перо ещё на странице, 1 — улетело
+    static func drawText(_ layout: ManuscriptTextLayout, progress p: CGFloat, lift: CGFloat = 1,
+                         palette P: ManuscriptPalette, in ctx: GraphicsContext) {
         guard p > 0, !layout.lines.isEmpty else { return }
         let rect = ManuscriptGeometry.textRect
         let top = rect.minY + layout.offsetY
         let written = p * CGFloat(layout.length)
         var pen: CGPoint?
+        var lastLineEnd: CGPoint?
 
         ctx.withCGContext { cg in
             for item in layout.lines {
@@ -787,6 +789,9 @@ enum ManuscriptRenderer {
                     cg.textPosition = .zero
                     CTLineDraw(item.line, cg)
                     cg.restoreGState()
+                    let lineWidth = CGFloat(CTLineGetTypographicBounds(item.line, nil, nil, nil))
+                    lastLineEnd = CGPoint(x: rect.minX + item.x + lineWidth + 1.5,
+                                          y: top + item.baseline - item.ascent * 0.32)
                     continue
                 }
                 // Строка пишется прямо сейчас: открываем её до кончика пера
@@ -820,7 +825,85 @@ enum ManuscriptRenderer {
         if let pen, p < 1 {
             ctx.fill(Path(ellipseIn: circle(pen, 1.8)), with: .color(c(P.ink, 0.8)))
             ctx.fill(Path(ellipseIn: circle(pen, 3.6)), with: .color(c(P.ink, 0.12)))
+            // Рука чуть покачивает перо в такт письму
+            let sway = Double(sin(written * 0.9)) * 2.5
+            drawQuill(tip: pen, sway: sway, lift: 0, palette: P, in: ctx)
+        } else if p >= 1, lift < 1, let lastLineEnd {
+            drawQuill(tip: lastLineEnd, sway: 0, lift: lift, palette: P, in: ctx)
         }
+    }
+
+    // MARK: Перо: гусиное перо, кончик которого стоит в точке письма
+    /// Рисуется в локальных координатах: кончик в (0, 0), ось пера идёт вверх (−Y), затем
+    /// весь рисунок поворачивается так, чтобы перо наклонялось вправо, как в руке писца.
+    private static func drawQuill(tip: CGPoint, sway: Double, lift: CGFloat, palette P: ManuscriptPalette,
+                                  in ctx: GraphicsContext) {
+        let length: CGFloat = 66
+        let leftStart = CGPoint(x: 0, y: -17)
+        let leftControl = CGPoint(x: -18, y: -36)
+        let end = CGPoint(x: 1.5, y: -length)
+        let rightControl = CGPoint(x: 15, y: -40)
+
+        func edgePoint(_ from: CGPoint, _ control: CGPoint, _ to: CGPoint, _ t: CGFloat) -> CGPoint {
+            let u = 1 - t
+            let x = u * u * from.x + 2 * u * t * control.x + t * t * to.x
+            let y = u * u * from.y + 2 * u * t * control.y + t * t * to.y
+            return CGPoint(x: x, y: y)
+        }
+
+        // Опахало: две дуги от основания к острию, справа шире
+        var vane = Path()
+        vane.move(to: leftStart)
+        vane.addQuadCurve(to: end, control: leftControl)
+        vane.addQuadCurve(to: leftStart, control: rightControl)
+        vane.closeSubpath()
+
+        // Бородки идут от стержня к краям, скошены к острию
+        var barbs = Path()
+        for i in 1 ... 8 {
+            let t = CGFloat(i) / 9
+            let left = edgePoint(leftStart, leftControl, end, t)
+            let right = edgePoint(end, rightControl, leftStart, 1 - t)
+            barbs.move(to: CGPoint(x: 0.5 * t, y: left.y + 5))
+            barbs.addLine(to: left)
+            barbs.move(to: CGPoint(x: 0.5 * t, y: right.y + 5))
+            barbs.addLine(to: right)
+        }
+
+        var shaft = Path()
+        shaft.move(to: CGPoint(x: 0, y: -8))
+        shaft.addLine(to: end)
+
+        var barrel = Path()
+        barrel.move(to: CGPoint(x: 0, y: -5))
+        barrel.addLine(to: CGPoint(x: 0, y: -21))
+
+        // Срез кончика: тёмный клин, в него «стекают» чернила
+        var nib = Path()
+        nib.move(to: CGPoint(x: 0.2, y: 0))
+        nib.addLine(to: CGPoint(x: -1.6, y: -6))
+        nib.addLine(to: CGPoint(x: 1.8, y: -6.5))
+        nib.closeSubpath()
+
+        var quill = ctx
+        quill.opacity = Double(1 - lift)
+        quill.translateBy(x: tip.x + 14 * lift, y: tip.y - 34 * lift)
+        quill.rotate(by: .degrees(30 + sway))
+
+        // Мягкая тень на пергаменте: то же перо, смещённое вниз и вправо
+        var shadow = quill
+        shadow.translateBy(x: 2.5, y: 3.5)
+        shadow.fill(vane, with: .color(Color.black.opacity(0.14)))
+        shadow.stroke(barrel, with: .color(Color.black.opacity(0.14)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+
+        quill.fill(vane, with: .color(c(P.pearl, 0.97)))
+        quill.fill(vane, with: .color(c(P.parchmentEdge, 0.28)))
+        quill.stroke(barbs, with: .color(c(P.parchmentEdge, 0.95)), lineWidth: 0.5)
+        quill.stroke(vane, with: .color(c(P.goldDark, 0.55)), lineWidth: 0.6)
+        quill.stroke(barrel, with: .color(c(P.goldDark, 0.65)), style: StrokeStyle(lineWidth: 3.6, lineCap: .round))
+        quill.stroke(barrel, with: .color(c(P.pearl)), style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
+        quill.stroke(shaft, with: .color(c(P.goldDark, 0.85)), style: StrokeStyle(lineWidth: 1, lineCap: .round))
+        quill.fill(nib, with: .color(c(P.ink)))
     }
 
     // MARK: Украшение на внешнем поле: стебель растёт снизу вверх, наверху крест
