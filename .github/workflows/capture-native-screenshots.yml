@@ -100,6 +100,13 @@ jobs:
             local APP_PATH=$(find ./DerivedData -name "ArmenianBible.app" | head -1)
             # Для сцены «island» расширение виджетов нужно: именно оно рисует свечу в острове
             if [ "$SCOPE" != "island" ]; then rm -rf "$APP_PATH/PlugIns"; fi
+            if [ "$SCOPE" = "island" ]; then
+              echo "--- Info.plist расширения"
+              plutil -p "$APP_PATH/PlugIns/BibleWidget.appex/Info.plist" | head -40 || true
+              # Без подписи симулятор не создаёт заглушку расширения («Invalid placeholder attributes»)
+              codesign --force --sign - "$APP_PATH/PlugIns/BibleWidget.appex" || true
+              codesign --force --sign - "$APP_PATH" || true
+            fi
             xcrun simctl install "$UDID" "$APP_PATH"
 
             # Настройка: скрываем экранную клавиатуру, ставим эталонный статус-бар Apple (9:41 AM, 100% батарея)
