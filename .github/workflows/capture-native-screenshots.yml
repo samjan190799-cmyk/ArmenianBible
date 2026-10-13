@@ -128,11 +128,12 @@ jobs:
               }
               shoot "11_Deck_chapter_John3_16" -openTab manuscript -manuscript_source chapter -manuscript_language russian -manuscript_time 30 -manuscript_name "Самвел"
               shoot "11_Deck_turned_t1.2" -openTab manuscript -manuscript_source chapter -manuscript_language russian -manuscript_time 1.2 -manuscript_turned YES -manuscript_name "Самвел"
+              shoot "11_Deck_autoswipe_t1.2" -openTab manuscript -manuscript_source chapter -manuscript_language russian -manuscript_time 1.2 -manuscript_autoswipe YES -manuscript_name "Самвел"
               shoot "12_Consolation_empty_ru" -openTab consolation -luys_debug_language russian
-              shoot "12_Consolation_fear_ru" -openTab consolation -luys_debug_language russian -consolation_text "Мне страшно за близкого, и очень тяжело на душе" -consolation_chips fear,weariness
-              shoot "12_Consolation_sorrow_full_ru" -openTab consolation -luys_debug_language russian -consolation_text "Я потерял близкого человека и не нахожу себе места" -consolation_chips sorrow -consolation_full YES
-              shoot "12_Consolation_guilt_en" -openTab consolation -luys_debug_language english -consolation_text "I feel guilty and ashamed about what I did" -consolation_chips guilt
-              shoot "12_Consolation_hy" -openTab consolation -luys_debug_language armenian -consolation_text "Ես մենակ եմ և վախենում եմ" -consolation_chips loneliness
+              shoot "12_Consolation_fear_ru" -openTab consolation -luys_debug_language russian -consolation_reset YES -consolation_text "Мне страшно за близкого, и очень тяжело на душе" -consolation_chips fear,weariness
+              shoot "12_Consolation_sorrow_full_ru" -openTab consolation -luys_debug_language russian -consolation_reset YES -consolation_text "Я потерял близкого человека и не нахожу себе места" -consolation_chips sorrow -consolation_full YES
+              shoot "12_Consolation_guilt_en" -openTab consolation -luys_debug_language english -consolation_reset YES -consolation_text "I feel guilty and ashamed about what I did" -consolation_chips guilt
+              shoot "12_Consolation_hy" -openTab consolation -luys_debug_language armenian -consolation_reset YES -consolation_text "Ես մենակ եմ և վախենում եմ" -consolation_chips loneliness
               shoot "13_Map_ru" -openTab map -luys_debug_language russian
               shoot "13_Map_khor_virap_ru" -openTab map -luys_debug_language russian -sanctuary_select khor_virap
               shoot "13_Map_tatev_locked_ru" -openTab map -luys_debug_language russian -sanctuary_select tatev

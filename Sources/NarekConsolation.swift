@@ -225,6 +225,13 @@ enum PremiumTaste {
         SubscriptionManager.shared.isPremium || usesToday(feature) < freePerDay
     }
 
+    /// Только для скриншотов в CI (-consolation_reset YES)
+    static func reset(_ feature: String) {
+        let k = keys(feature)
+        UserDefaults.standard.removeObject(forKey: k.date)
+        UserDefaults.standard.removeObject(forKey: k.count)
+    }
+
     static func record(_ feature: String) {
         let k = keys(feature)
         let count = usesToday(feature) + 1

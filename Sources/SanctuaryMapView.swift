@@ -204,8 +204,7 @@ struct SanctuaryMapView: View {
                 } label: {
                     SanctuaryPin(
                         title: site.name(language),
-                        isSelected: selected?.id == site.id,
-                        isLocked: isLocked(site)
+                        isSelected: selected?.id == site.id
                     )
                 }
                 .buttonStyle(.plain)
@@ -227,7 +226,7 @@ struct SanctuaryMapView: View {
                         HStack(spacing: 12) {
                             ZStack {
                                 Circle().fill(Paper.gold.opacity(0.12))
-                                Image(systemName: isLocked(site) ? "lock" : "cross")
+                                Image(systemName: "cross")
                                     .font(.system(size: 14, weight: .light))
                                     .foregroundColor(Paper.gold)
                             }
@@ -245,6 +244,11 @@ struct SanctuaryMapView: View {
                             if let distance = distanceText(site) {
                                 Text(distance)
                                     .font(PaperFont.font(size: 12, weight: .medium))
+                                    .foregroundColor(Paper.inkTertiary)
+                            }
+                            if isLocked(site) {
+                                Image(systemName: "lock")
+                                    .font(.system(size: 11))
                                     .foregroundColor(Paper.inkTertiary)
                             }
                             Image(systemName: "chevron.right")
@@ -337,7 +341,7 @@ struct SanctuaryMapView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 250)
+                .frame(maxHeight: UIScreen.main.bounds.height * 0.36)
 
                 HStack(spacing: 10) {
                     cardButton(icon: "map", title: language.pick(hy: "Երթուղի", ru: "Маршрут", en: "Directions")) {
@@ -377,9 +381,9 @@ struct SanctuaryMapView: View {
                 .font(.system(size: 22))
                 .foregroundColor(Paper.gold)
             Text(language.pick(
-                hy: "Այս սրբավայրը բաց է Premium-ով: Անվճար են Էջմիածինը և Խոր Վիրապը:",
-                ru: "Эта святыня открыта с Premium. Бесплатно доступны Эчмиадзин и Хор Вирап.",
-                en: "This sanctuary opens with Premium. Etchmiadzin and Khor Virap are free."
+                hy: "Այս սրբավայրը բաց է Premium-ով: Անվճար են Էջմիածինը, Խոր Վիրապը, Գեղարդը և Տաթևը:",
+                ru: "Эта святыня открыта с Premium. Бесплатно доступны Эчмиадзин, Хор Вирап, Гегард и Татев.",
+                en: "This sanctuary opens with Premium. Etchmiadzin, Khor Virap, Geghard and Tatev are free."
             ))
             .font(PaperFont.font(size: 14))
             .foregroundColor(Paper.inkSecondary)
@@ -425,7 +429,8 @@ struct SanctuaryMapView: View {
         withAnimation(PaperMotion.appear) {
             selected = site
             region = MKCoordinateRegion(
-                center: CLLocationCoordinate2D(latitude: site.latitude - 0.03, longitude: site.longitude),
+                // Центр ниже святыни: пин поднимается над карточкой
+                center: CLLocationCoordinate2D(latitude: site.latitude - 0.07, longitude: site.longitude),
                 span: MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35)
             )
         }
@@ -457,7 +462,6 @@ struct SanctuaryMapView: View {
 struct SanctuaryPin: View {
     let title: String
     let isSelected: Bool
-    let isLocked: Bool
 
     var body: some View {
         VStack(spacing: 3) {
@@ -467,7 +471,7 @@ struct SanctuaryPin: View {
                     .frame(width: isSelected ? 36 : 28, height: isSelected ? 36 : 28)
                     .overlay(Circle().strokeBorder(Paper.gold, lineWidth: isSelected ? 2 : 1.5))
                     .shadow(color: Paper.shadow, radius: 4, y: 2)
-                Image(systemName: isLocked && !isSelected ? "lock.fill" : "cross.fill")
+                Image(systemName: "cross.fill")
                     .font(.system(size: isSelected ? 15 : 11, weight: .regular))
                     .foregroundColor(isSelected ? Paper.onAccent : Paper.gold)
             }

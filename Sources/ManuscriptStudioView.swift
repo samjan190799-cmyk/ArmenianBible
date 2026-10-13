@@ -54,7 +54,7 @@ struct ManuscriptStudioView: View {
     @AppStorage("luys_manuscript_name") private var name = ""
 
     @State private var startDate = Date()
-    @State private var isTurned = false
+    @State private var isTurned: Bool
     @State private var isEditingName = false
     @State private var nameDraft = ""
     @State private var shareItem: ShareItem?
@@ -67,10 +67,9 @@ struct ManuscriptStudioView: View {
         let value = UserDefaults.standard.double(forKey: "manuscript_time")
         return value > 0 ? value : nil
     }()
-    /// Для скриншотов в CI: показать лист так, как он пишется после перелистывания
-    private let startsTurned = UserDefaults.standard.bool(forKey: "manuscript_turned")
-
     init(source: ManuscriptSource) {
+        // Для скриншотов в CI: показать лист так, как он пишется после перелистывания (-manuscript_turned YES)
+        _isTurned = State(initialValue: UserDefaults.standard.bool(forKey: "manuscript_turned"))
         switch source {
         case .curated(let first):
             let more = ManuscriptPool.curatedPages(language: first.language, excluding: [first.reference], count: 24)
@@ -96,17 +95,31 @@ struct ManuscriptStudioView: View {
 
     /// Стиль и имя общие для всех страниц: так листы складываются в один кодекс
     private func styled(_ page: ManuscriptPage) -> ManuscriptPage {
+        styled(page, look: (style: style, name: name))
+    }
+
+    private func styled(_ page: ManuscriptPage, look: (style: ManuscriptStyle, name: String)) -> ManuscriptPage {
         var result = page
-        result.style = style
-        result.name = name
+        result.style = look.style
+        result.name = look.name
         return result
+    }
+
+    /// К следующему листу (для CI и на случай кнопки «дальше» в будущем)
+    private func advance() {
+        guard currentIndex + 1 < pages.count else { return }
+        withAnimation { currentId = pages[currentIndex + 1].id }
     }
 
     private static let backdrop = ManuscriptPalette.color(0x15100B)
     private static let parchmentInk = ManuscriptPalette.color(0xF2E8CF)
 
     var body: some View {
-        ZStack {
+        // Всё, от чего зависит рисунок листа, читаем здесь, чтобы лента гарантированно обновлялась
+        let turned = isTurned
+        let started = startDate
+        let look = (style: style, name: name)
+        return ZStack {
             Self.backdrop.ignoresSafeArea()
             RadialGradient(
                 colors: [ManuscriptPalette.color(0xC1902F, 0.22), Color.clear],
@@ -123,7 +136,7 @@ struct ManuscriptStudioView: View {
                     let scale = min(geo.size.width / ManuscriptGeometry.size.width, geo.size.height / ManuscriptGeometry.size.height)
                     TabView(selection: $currentId) {
                         ForEach(pages) { raw in
-                            pagerCell(raw, scale: scale)
+                            pagerCell(raw, scale: scale, turned: turned, started: started, look: look)
                                 .tag(raw.id)
                         }
                     }
@@ -163,10 +176,13 @@ struct ManuscriptStudioView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear {
-            isTurned = startsTurned
             motion.start()
             scheduleHaptics()
             exportForTestsIfNeeded()
+            // Для CI: имитация свайпа к следующему листу (-manuscript_autoswipe YES)
+            if UserDefaults.standard.bool(forKey: "manuscript_autoswipe") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { advance() }
+            }
         }
         .onDisappear {
             motion.stop()
@@ -206,17 +222,18 @@ struct ManuscriptStudioView: View {
 
     // MARK: Лист в пролистываемой ленте
     @ViewBuilder
-    private func pagerCell(_ raw: ManuscriptPage, scale: CGFloat) -> some View {
+    private func pagerCell(_ raw: ManuscriptPage, scale: CGFloat, turned: Bool, started: Date,
+                           look: (style: ManuscriptStyle, name: String)) -> some View {
         let index = pages.firstIndex { $0.id == raw.id } ?? 0
         if abs(index - currentIndex) > 1 {
             // Дальние листы не рисуем: лента остаётся лёгкой
             Color.clear
         } else if raw.id == currentId {
             TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
-                let page = styled(raw)
+                let page = styled(raw, look: look)
                 let length = ManuscriptTextLayout.cached(for: page).length
-                let elapsed = frozenTime ?? timeline.date.timeIntervalSince(startDate)
-                let reveal = reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.at(time: elapsed, textLength: length, turned: isTurned)
+                let elapsed = frozenTime ?? timeline.date.timeIntervalSince(started)
+                let reveal = reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.at(time: elapsed, textLength: length, turned: turned)
                 pageFrame(page: page, reveal: reveal, sheen: sheen(at: timeline.date), scale: scale)
             }
             .contentShape(Rectangle())
@@ -224,7 +241,7 @@ struct ManuscriptStudioView: View {
         } else {
             // Соседний лист виден уже при свайпе: чистый пергамент с рамкой, текст допишется после остановки
             pageFrame(
-                page: styled(raw),
+                page: styled(raw, look: look),
                 reveal: reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.leaf,
                 sheen: CGPoint(x: 0.2, y: -0.1),
                 scale: scale

@@ -531,6 +531,7 @@ struct NarekConsolationView: View {
     /// Аргументы запуска для скриншотов в CI: -consolation_text "..." -consolation_chips sorrow,fear
     private func runLaunchArguments() {
         let defaults = UserDefaults.standard
+        if defaults.bool(forKey: "consolation_reset") { PremiumTaste.reset(Self.feature) }
         let launchText = defaults.string(forKey: "consolation_text")
         let launchChips = defaults.string(forKey: "consolation_chips")
         guard launchText != nil || launchChips != nil else { return }

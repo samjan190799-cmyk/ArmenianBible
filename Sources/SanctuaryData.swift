@@ -140,7 +140,7 @@ enum SanctuaryCatalog {
             ),
             feastIds: [],
             verse: (43, 19, 34),
-            isFree: false
+            isFree: true
         ),
         Sanctuary(
             id: "noravank",
@@ -185,7 +185,7 @@ enum SanctuaryCatalog {
             ),
             feastIds: ["st_peter_paul"],
             verse: (55, 4, 7),
-            isFree: false
+            isFree: true
         ),
         Sanctuary(
             id: "sevanavank",
