@@ -251,6 +251,11 @@ class BibleManager: ObservableObject {
         } else {
             self.appLanguage = .armenian
         }
+        // Язык из аргумента запуска (-luys_debug_language russian): для скриншотов в CI, на устройствах не используется
+        if let override = UserDefaults.standard.string(forKey: "luys_debug_language"),
+           let debugLanguage = AppLanguage(rawValue: override) {
+            self.appLanguage = debugLanguage
+        }
         
         // Загрузка Избранного
         if let defaults = sharedDefaults,

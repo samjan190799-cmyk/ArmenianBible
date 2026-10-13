@@ -180,7 +180,9 @@ struct HomeView: View {
     @State private var isShowingSanctuary = false
     @State private var isShowingPomegranateSanctuary = false
     @State private var isShowingPaywall = false
-    @State private var manuscriptPage: ManuscriptPage? = nil
+    @State private var manuscriptLaunch: ManuscriptLaunch? = nil
+    @State private var isShowingConsolation = false
+    @State private var isShowingSanctuaryMap = false
 
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
@@ -392,7 +394,7 @@ struct HomeView: View {
                         previewPage: ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage),
                         onOpen: {
                             triggerHaptic(.soft)
-                            manuscriptPage = ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)
+                            manuscriptLaunch = ManuscriptLaunch(source: .curated(first: ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)))
                         }
                     )
                     .staggeredEntrance(index: 2)
@@ -411,6 +413,19 @@ struct HomeView: View {
                         }
                     )
                     .staggeredEntrance(index: 2)
+                    
+                    // MARK: - Карточка «Нарек утешает»: глава «Книги скорбных песнопений» под состояние человека
+                    NarekConsolationBannerCardView(
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpen: {
+                            triggerHaptic(.soft)
+                            isShowingConsolation = true
+                        }
+                    )
+                    .staggeredEntrance(index: 3)
                     
                     // MARK: - Карточка Храмовой Молитвы и Свечей (Մոմավառություն)
                     PrayerSanctuaryBannerCardView(
@@ -488,6 +503,18 @@ struct HomeView: View {
                     )
                     .staggeredEntrance(index: 7)
                     
+                    // MARK: - Карточка «Карта святынь»
+                    SanctuaryMapBannerCardView(
+                        language: manager.appLanguage,
+                        secondaryAccentColor: secondaryAccentColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpen: {
+                            triggerHaptic(.soft)
+                            isShowingSanctuaryMap = true
+                        }
+                    )
+                    .staggeredEntrance(index: 8)
+                    
                     // MARK: - Карточка Armenian Bible Premium
                     PremiumPromoBannerCardView(
                         language: manager.appLanguage,
@@ -532,9 +559,17 @@ struct HomeView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         isShowingPomegranateSanctuary = true
                     }
+                } else if tabArg == "consolation" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingConsolation = true
+                    }
+                } else if tabArg == "map" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingSanctuaryMap = true
+                    }
                 } else if tabArg == "manuscript" {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                        manuscriptPage = ManuscriptPage.debugPage(fallbackLanguage: manager.appLanguage)
+                        manuscriptLaunch = ManuscriptLaunch(source: ManuscriptPage.debugSource(fallbackLanguage: manager.appLanguage))
                     }
                 }
                 UserDefaults.standard.removeObject(forKey: "openTab")
@@ -576,8 +611,16 @@ struct HomeView: View {
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
         }
-        .fullScreenCover(item: $manuscriptPage) { page in
-            ManuscriptStudioView(page: page)
+        .fullScreenCover(item: $manuscriptLaunch) { launch in
+            ManuscriptStudioView(source: launch.source)
+        }
+        .sheet(isPresented: $isShowingConsolation) {
+            NarekConsolationView()
+                .preferredColorScheme(manager.appearanceMode.colorScheme)
+        }
+        .sheet(isPresented: $isShowingSanctuaryMap) {
+            SanctuaryMapView()
+                .preferredColorScheme(manager.appearanceMode.colorScheme)
         }
         .onReceive(PomegranateTreeManager.shared.$isShowingSanctuarySheet) { show in
             if show {

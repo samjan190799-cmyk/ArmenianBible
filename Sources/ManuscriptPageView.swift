@@ -15,18 +15,31 @@ struct ManuscriptReveal {
 
     static let complete = ManuscriptReveal()
 
+    /// Чистый лист с заставкой: так выглядит соседняя страница, пока её листают
+    static let leaf = ManuscriptReveal(parchment: 1, frame: 1, headpiece: 1, initial: 0, text: 0, margin: 0, colophon: 0)
+
     static func textDuration(for length: Int) -> Double {
         min(4.6, max(1.8, Double(length) * 0.032))
     }
 
-    static func totalDuration(textLength: Int) -> Double {
-        2.2 + textDuration(for: textLength) + 1.4
+    /// Полная запись начинается с пустого пергамента; на перевёрнутом листе рамка и заставка уже есть
+    static func totalDuration(textLength: Int, turned: Bool = false) -> Double {
+        turned ? 0.5 + textDuration(for: textLength) + 1.4 : 2.2 + textDuration(for: textLength) + 1.4
     }
 
-    static func at(time t: Double, textLength: Int) -> ManuscriptReveal {
+    static func at(time t: Double, textLength: Int, turned: Bool = false) -> ManuscriptReveal {
         let writing = textDuration(for: textLength)
         func phase(_ start: Double, _ duration: Double) -> CGFloat {
             CGFloat(min(1, max(0, (t - start) / duration)))
+        }
+        if turned {
+            return ManuscriptReveal(
+                parchment: 1, frame: 1, headpiece: 1,
+                initial: phase(0, 0.9),
+                text: phase(0.5, writing),
+                margin: phase(0.5 + writing * 0.45, 1.6),
+                colophon: phase(0.5 + writing, 1.2)
+            )
         }
         return ManuscriptReveal(
             parchment: ManuscriptRenderer.smooth(phase(0, 0.7)),

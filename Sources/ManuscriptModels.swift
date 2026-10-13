@@ -129,11 +129,17 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
         UserDefaults.standard.string(forKey: "luys_manuscript_name") ?? ""
     }
 
+    /// Стиль, выбранный в прошлый раз
+    static var preferredStyle: ManuscriptStyle {
+        ManuscriptStyle(rawValue: UserDefaults.standard.string(forKey: "luys_manuscript_style") ?? "") ?? .roslin
+    }
+
     static func from(verse: BibleVerse, language: AppLanguage) -> ManuscriptPage {
         ManuscriptPage(
             text: verse.text(for: language),
             reference: verse.reference(for: language),
             language: language,
+            style: preferredStyle,
             name: rememberedName
         )
     }
@@ -149,6 +155,7 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
             text: verse.text(for: language),
             reference: "\(bookName) \(chapter):\(verse.verseNumber)",
             language: language,
+            style: preferredStyle,
             name: rememberedName
         )
     }
@@ -211,6 +218,64 @@ extension ManuscriptPage {
             en: "In the Armenian year \(letters) (\(gregorianYear))"
         )
         return (opening, name.trimmingCharacters(in: .whitespacesAndNewlines), date)
+    }
+}
+
+// MARK: - Откуда берутся страницы при листании
+enum ManuscriptSource {
+    /// Выбранная страница первой, дальше случайные жемчужины Писания (листать можно бесконечно)
+    case curated(first: ManuscriptPage)
+    /// Все стихи одной главы Библии, открыт выбранный
+    case chapter(pages: [ManuscriptPage], startId: UUID)
+}
+
+/// Обёртка для fullScreenCover(item:)
+struct ManuscriptLaunch: Identifiable {
+    let id = UUID()
+    let source: ManuscriptSource
+}
+
+enum ManuscriptPool {
+    /// Короткие стихи из подборок приложения: на странице они выглядят лучше всего
+    static func curatedPages(language: AppLanguage, excluding references: Set<String>, count: Int) -> [ManuscriptPage] {
+        let verses = BibleVerse.shortPearls + BibleVerse.shortPsalms + BibleVerse.shortLove
+            + BibleVerse.shortFaith + BibleVerse.shortWisdom
+        var seen = references
+        var result: [ManuscriptPage] = []
+        let style = ManuscriptPage.preferredStyle
+        for verse in verses.shuffled() {
+            let text = verse.text(for: language)
+            let reference = verse.reference(for: language)
+            guard !text.isEmpty, text.count <= 220, !seen.contains(reference) else { continue }
+            seen.insert(reference)
+            result.append(ManuscriptPage(text: text, reference: reference, language: language, style: style))
+            if result.count >= count { break }
+        }
+        return result
+    }
+
+    /// Стихи главы подряд: листание влево и вправо переходит к соседним стихам
+    static func chapterSource(book: BibleBook, chapter: Int, startVerse: Int, language: AppLanguage,
+                              style: ManuscriptStyle? = nil) -> ManuscriptSource? {
+        guard let text = BibleDatabase.shared.getChapterText(bookId: book.id, chapter: chapter),
+              !text.verses.isEmpty else { return nil }
+        var pages: [ManuscriptPage] = []
+        var startId: UUID?
+        for verse in text.verses {
+            var page = ManuscriptPage.from(book: book, chapter: chapter, verse: verse, language: language)
+            if let style { page.style = style }
+            if verse.verseNumber == startVerse { startId = page.id }
+            pages.append(page)
+        }
+        guard let startId = startId ?? pages.first?.id else { return nil }
+        return .chapter(pages: pages, startId: startId)
+    }
+}
+
+extension AppLanguage {
+    /// Текст на трёх языках одной строкой
+    func pick(hy: String, ru: String, en: String) -> String {
+        ManuscriptText.pick(self, hy: hy, ru: ru, en: en)
     }
 }
 

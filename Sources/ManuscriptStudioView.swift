@@ -42,14 +42,19 @@ final class ManuscriptMotion: ObservableObject {
 
 // MARK: - Мастерская рукописи
 struct ManuscriptStudioView: View {
-    @State private var page: ManuscriptPage
+    @State private var pages: [ManuscriptPage]
+    @State private var currentId: UUID
+    @State private var style: ManuscriptStyle
+    private let isEndless: Bool
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var library = ManuscriptLibrary.shared
     @StateObject private var motion = ManuscriptMotion()
-    @AppStorage("luys_manuscript_name") private var rememberedName = ""
+    @AppStorage("luys_manuscript_name") private var name = ""
 
     @State private var startDate = Date()
+    @State private var isTurned = false
     @State private var isEditingName = false
     @State private var nameDraft = ""
     @State private var shareItem: ShareItem?
@@ -62,13 +67,40 @@ struct ManuscriptStudioView: View {
         let value = UserDefaults.standard.double(forKey: "manuscript_time")
         return value > 0 ? value : nil
     }()
+    /// Для скриншотов в CI: показать лист так, как он пишется после перелистывания
+    private let startsTurned = UserDefaults.standard.bool(forKey: "manuscript_turned")
 
-    init(page: ManuscriptPage) {
-        _page = State(initialValue: page)
+    init(source: ManuscriptSource) {
+        switch source {
+        case .curated(let first):
+            let more = ManuscriptPool.curatedPages(language: first.language, excluding: [first.reference], count: 24)
+            _pages = State(initialValue: [first] + more)
+            _currentId = State(initialValue: first.id)
+            _style = State(initialValue: first.style)
+            isEndless = true
+        case .chapter(let chapterPages, let startId):
+            _pages = State(initialValue: chapterPages)
+            _currentId = State(initialValue: startId)
+            _style = State(initialValue: chapterPages.first?.style ?? .roslin)
+            isEndless = false
+        }
     }
 
-    private var language: AppLanguage { BibleManager.shared.appLanguage }
-    private var textLength: Int { ManuscriptTextLayout.cached(for: page).length }
+    init(page: ManuscriptPage) {
+        self.init(source: .curated(first: page))
+    }
+
+    private var currentIndex: Int { pages.firstIndex { $0.id == currentId } ?? 0 }
+    private var currentPage: ManuscriptPage { styled(pages[min(currentIndex, pages.count - 1)]) }
+    private var language: AppLanguage { currentPage.language }
+
+    /// Стиль и имя общие для всех страниц: так листы складываются в один кодекс
+    private func styled(_ page: ManuscriptPage) -> ManuscriptPage {
+        var result = page
+        result.style = style
+        result.name = name
+        return result
+    }
 
     private static let backdrop = ManuscriptPalette.color(0x15100B)
     private static let parchmentInk = ManuscriptPalette.color(0xF2E8CF)
@@ -89,24 +121,21 @@ struct ManuscriptStudioView: View {
                 topBar
                 GeometryReader { geo in
                     let scale = min(geo.size.width / ManuscriptGeometry.size.width, geo.size.height / ManuscriptGeometry.size.height)
-                    TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
-                        let elapsed = frozenTime ?? timeline.date.timeIntervalSince(startDate)
-                        let reveal = reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.at(time: elapsed, textLength: textLength)
-                        ManuscriptPageView(page: page, reveal: reveal, sheen: sheen(at: timeline.date))
-                            .scaleEffect(scale)
-                            .frame(width: ManuscriptGeometry.size.width * scale, height: ManuscriptGeometry.size.height * scale)
-                            .shadow(color: Color.black.opacity(0.6), radius: 18, x: 0, y: 10)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    TabView(selection: $currentId) {
+                        ForEach(pages) { raw in
+                            pagerCell(raw, scale: scale)
+                                .tag(raw.id)
+                        }
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture { restart() }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
                 }
-                .padding(.horizontal, 16)
                 .padding(.vertical, 6)
 
                 Text(motionHint)
                     .font(PaperFont.font(size: 12))
                     .foregroundColor(Self.parchmentInk.opacity(0.55))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 10)
 
                 stylePicker
@@ -134,6 +163,7 @@ struct ManuscriptStudioView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear {
+            isTurned = startsTurned
             motion.start()
             scheduleHaptics()
             exportForTestsIfNeeded()
@@ -141,32 +171,73 @@ struct ManuscriptStudioView: View {
         .onDisappear {
             motion.stop()
         }
+        .onChange(of: currentId) { _ in
+            // Новый лист: рамка и заставка остаются, текст пишется заново
+            isTurned = true
+            startDate = Date()
+            scheduleHaptics()
+            extendIfNeeded()
+        }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
         }
         .sheet(isPresented: $isShowingLibrary) {
             ManuscriptLibraryView { opened in
-                page = opened
-                restart()
+                open(opened)
             }
         }
         .alert(
-            ManuscriptText.pick(language, hy: "Անուն հիշատակարանի համար", ru: "Имя для памятной записи", en: "Name for the colophon"),
+            language.pick(hy: "Անուն հիշատակարանի համար", ru: "Имя для памятной записи", en: "Name for the colophon"),
             isPresented: $isEditingName
         ) {
-            TextField(ManuscriptText.pick(language, hy: "Ձեր անունը", ru: "Ваше имя", en: "Your name"), text: $nameDraft)
-            Button(ManuscriptText.pick(language, hy: "Պատրաստ է", ru: "Готово", en: "Done")) {
+            TextField(language.pick(hy: "Ձեր անունը", ru: "Ваше имя", en: "Your name"), text: $nameDraft)
+            Button(language.pick(hy: "Պատրաստ է", ru: "Готово", en: "Done")) {
                 applyName(nameDraft)
             }
-            Button(ManuscriptText.pick(language, hy: "Չեղարկել", ru: "Отмена", en: "Cancel"), role: .cancel) {}
+            Button(language.pick(hy: "Չեղարկել", ru: "Отмена", en: "Cancel"), role: .cancel) {}
         } message: {
-            Text(ManuscriptText.pick(
-                language,
+            Text(language.pick(
                 hy: "Ձեռագրի վերջում գրիչը խնդրում էր հիշել իրեն աղոթքում: Ձեր անունը կգրվի էջի ներքևում:",
                 ru: "В конце армянской рукописи переписчик просил помянуть его в молитве. Ваше имя появится внизу страницы.",
                 en: "Armenian scribes closed a manuscript asking to be remembered in prayer. Your name will appear at the foot of the page."
             ))
         }
+    }
+
+    // MARK: Лист в пролистываемой ленте
+    @ViewBuilder
+    private func pagerCell(_ raw: ManuscriptPage, scale: CGFloat) -> some View {
+        let index = pages.firstIndex { $0.id == raw.id } ?? 0
+        if abs(index - currentIndex) > 1 {
+            // Дальние листы не рисуем: лента остаётся лёгкой
+            Color.clear
+        } else if raw.id == currentId {
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
+                let page = styled(raw)
+                let length = ManuscriptTextLayout.cached(for: page).length
+                let elapsed = frozenTime ?? timeline.date.timeIntervalSince(startDate)
+                let reveal = reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.at(time: elapsed, textLength: length, turned: isTurned)
+                pageFrame(page: page, reveal: reveal, sheen: sheen(at: timeline.date), scale: scale)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { restart() }
+        } else {
+            // Соседний лист виден уже при свайпе: чистый пергамент с рамкой, текст допишется после остановки
+            pageFrame(
+                page: styled(raw),
+                reveal: reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.leaf,
+                sheen: CGPoint(x: 0.2, y: -0.1),
+                scale: scale
+            )
+        }
+    }
+
+    private func pageFrame(page: ManuscriptPage, reveal: ManuscriptReveal, sheen: CGPoint, scale: CGFloat) -> some View {
+        ManuscriptPageView(page: page, reveal: reveal, sheen: sheen)
+            .scaleEffect(scale)
+            .frame(width: ManuscriptGeometry.size.width * scale, height: ManuscriptGeometry.size.height * scale)
+            .shadow(color: Color.black.opacity(0.6), radius: 18, x: 0, y: 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: Шапка
@@ -181,15 +252,15 @@ struct ManuscriptStudioView: View {
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color.white.opacity(0.08)))
             }
-            .accessibilityLabel(Text(ManuscriptText.pick(language, hy: "Փակել", ru: "Закрыть", en: "Close")))
+            .accessibilityLabel(Text(language.pick(hy: "Փակել", ru: "Закрыть", en: "Close")))
 
             Spacer()
 
             VStack(spacing: 1) {
-                Text(ManuscriptText.pick(language, hy: "Ձեռագիր", ru: "Рукопись", en: "Manuscript"))
+                Text(language.pick(hy: "Ձեռագիր", ru: "Рукопись", en: "Manuscript"))
                     .font(PaperFont.font(size: 17, weight: .semibold))
                     .foregroundColor(Self.parchmentInk)
-                Text(page.reference)
+                Text(isEndless ? currentPage.reference : "\(currentPage.reference) · \(currentIndex + 1)/\(pages.count)")
                     .font(PaperFont.font(size: 11))
                     .foregroundColor(Self.parchmentInk.opacity(0.55))
                     .lineLimit(1)
@@ -218,38 +289,38 @@ struct ManuscriptStudioView: View {
                     }
                 }
             }
-            .accessibilityLabel(Text(ManuscriptText.pick(language, hy: "Իմ Մատենադարանը", ru: "Мой Матенадаран", en: "My Matenadaran")))
+            .accessibilityLabel(Text(language.pick(hy: "Իմ Մատենադարանը", ru: "Мой Матенадаран", en: "My Matenadaran")))
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
     }
 
     private var motionHint: String {
-        ManuscriptText.pick(
-            language,
-            hy: "Թեքեք հեռախոսը՝ ոսկին կկենդանանա · հպեք՝ նորից գրելու համար",
-            ru: "Наклоните телефон — золото оживёт · нажмите, чтобы переписать",
-            en: "Tilt your phone — the gold comes alive · tap to write again"
+        language.pick(
+            hy: "Թերթեք՝ նոր համարների համար · թեքեք հեռախոսը՝ ոսկին կկենդանանա · հպեք՝ նորից գրելու համար",
+            ru: "Листайте — новые стихи · наклоните телефон — золото оживёт · нажмите, чтобы переписать",
+            en: "Swipe for new verses · tilt your phone — the gold comes alive · tap to write again"
         )
     }
 
     // MARK: Выбор стиля
     private var stylePicker: some View {
         HStack(spacing: 10) {
-            ForEach(ManuscriptStyle.allCases) { style in
-                let isSelected = style == page.style
+            ForEach(ManuscriptStyle.allCases) { option in
+                let isSelected = option == style
                 Button {
-                    guard style != page.style else { return }
+                    guard option != style else { return }
                     Haptics.selection()
-                    page.style = style
-                    if library.contains(page) { library.save(page) }
+                    style = option
+                    UserDefaults.standard.set(option.rawValue, forKey: "luys_manuscript_style")
+                    if library.contains(currentPage) { library.save(currentPage) }
                 } label: {
                     HStack(spacing: 7) {
                         Circle()
-                            .fill(ManuscriptPalette.color(style.palette.field))
+                            .fill(ManuscriptPalette.color(option.palette.field))
                             .frame(width: 14, height: 14)
-                            .overlay(Circle().strokeBorder(ManuscriptPalette.color(style.palette.goldLight), lineWidth: 1.5))
-                        Text(style.title(for: language))
+                            .overlay(Circle().strokeBorder(ManuscriptPalette.color(option.palette.goldLight), lineWidth: 1.5))
+                        Text(option.title(for: language))
                             .font(PaperFont.font(size: 13, weight: isSelected ? .semibold : .regular))
                             .foregroundColor(Self.parchmentInk.opacity(isSelected ? 1 : 0.7))
                     }
@@ -265,26 +336,26 @@ struct ManuscriptStudioView: View {
 
     // MARK: Действия
     private var actionRow: some View {
-        let isSaved = library.contains(page)
+        let isSaved = library.contains(currentPage)
         return HStack(spacing: 10) {
             actionButton(
                 icon: "signature",
-                title: ManuscriptText.pick(language, hy: "Անուն", ru: "Имя", en: "Name")
+                title: language.pick(hy: "Անուն", ru: "Имя", en: "Name")
             ) {
-                nameDraft = page.name
+                nameDraft = name
                 isEditingName = true
             }
             actionButton(
                 icon: isSaved ? "checkmark" : "books.vertical",
                 title: isSaved
-                    ? ManuscriptText.pick(language, hy: "Պահված է", ru: "Сохранено", en: "Saved")
-                    : ManuscriptText.pick(language, hy: "Պահել", ru: "Сохранить", en: "Save")
+                    ? language.pick(hy: "Պահված է", ru: "Сохранено", en: "Saved")
+                    : language.pick(hy: "Պահել", ru: "Сохранить", en: "Save")
             ) {
                 saveToLibrary()
             }
             actionButton(
                 icon: "square.and.arrow.up",
-                title: ManuscriptText.pick(language, hy: "Կիսվել", ru: "Поделиться", en: "Share")
+                title: language.pick(hy: "Կիսվել", ru: "Поделиться", en: "Share")
             ) {
                 if let image = renderImage() {
                     Haptics.impact(.soft)
@@ -293,7 +364,7 @@ struct ManuscriptStudioView: View {
             }
             actionButton(
                 icon: "square.and.arrow.down",
-                title: ManuscriptText.pick(language, hy: "Լուսանկարներ", ru: "В Фото", en: "Photos")
+                title: language.pick(hy: "Լուսանկարներ", ru: "В Фото", en: "Photos")
             ) {
                 saveToPhotos()
             }
@@ -335,6 +406,7 @@ struct ManuscriptStudioView: View {
     }
 
     private func restart() {
+        isTurned = false
         startDate = Date()
         scheduleHaptics()
     }
@@ -343,39 +415,58 @@ struct ManuscriptStudioView: View {
         guard !reduceMotion, frozenTime == nil else { return }
         let token = UUID()
         animationToken = token
-        let finish = ManuscriptReveal.totalDuration(textLength: textLength) - 0.3
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+        let length = ManuscriptTextLayout.cached(for: currentPage).length
+        let turned = isTurned
+        let finish = ManuscriptReveal.totalDuration(textLength: length, turned: turned) - 0.3
+        let firstTick = turned ? 0.3 : 1.6
+        DispatchQueue.main.asyncAfter(deadline: .now() + firstTick) {
             if animationToken == token { Haptics.impact(.soft) }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-            if animationToken == token { Haptics.impact(.light) }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + finish) {
             if animationToken == token { Haptics.notify(.success) }
         }
     }
 
+    /// Пока листаешь к концу ленты, подкладываем новые стихи
+    private func extendIfNeeded() {
+        guard isEndless, currentIndex >= pages.count - 4 else { return }
+        let existing = Set(pages.map { $0.reference })
+        let more = ManuscriptPool.curatedPages(language: language, excluding: existing, count: 20)
+        guard !more.isEmpty else { return }
+        pages.append(contentsOf: more)
+    }
+
+    /// Страница из «Матенадарана»: открывается первой, дальше снова новые стихи
+    private func open(_ opened: ManuscriptPage) {
+        let more = ManuscriptPool.curatedPages(language: opened.language, excluding: [opened.reference], count: 24)
+        style = opened.style
+        pages = [opened] + more
+        currentId = opened.id
+        isTurned = false
+        startDate = Date()
+        scheduleHaptics()
+    }
+
     private func applyName(_ draft: String) {
-        let name = String(draft.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
-        page.name = name
-        rememberedName = name
-        if library.contains(page) { library.save(page) }
+        let trimmed = String(draft.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
+        name = trimmed
+        if library.contains(currentPage) { library.save(currentPage) }
         Haptics.impact(.soft)
     }
 
     private func saveToLibrary() {
+        let page = currentPage
         let wasSaved = library.contains(page)
         library.save(page)
         guard !wasSaved else { return }
         let count = library.pages.count
         if count == ManuscriptLibrary.codexSize {
             Haptics.notify(.success)
-            showToast(ManuscriptText.pick(language, hy: "Կոդեքսը կազմված է", ru: "Кодекс переплетён!", en: "Your codex is bound!"))
+            showToast(language.pick(hy: "Կոդեքսը կազմված է", ru: "Кодекс переплетён!", en: "Your codex is bound!"))
         } else {
             Haptics.impact(.soft)
             let progress = "\(min(count, ManuscriptLibrary.codexSize))/\(ManuscriptLibrary.codexSize)"
-            showToast(ManuscriptText.pick(
-                language,
+            showToast(language.pick(
                 hy: "Պահվեց Մատենադարանում · \(progress)",
                 ru: "Сохранено в Матенадаран · \(progress)",
                 en: "Saved to your Matenadaran · \(progress)"
@@ -385,9 +476,8 @@ struct ManuscriptStudioView: View {
 
     private func saveToPhotos() {
         guard let image = renderImage() else { return }
-        let savedText = ManuscriptText.pick(language, hy: "Պահվեց Լուսանկարներում", ru: "Сохранено в Фото", en: "Saved to Photos")
-        let deniedText = ManuscriptText.pick(
-            language,
+        let savedText = language.pick(hy: "Պահվեց Լուսանկարներում", ru: "Сохранено в Фото", en: "Saved to Photos")
+        let deniedText = language.pick(
             hy: "Թույլատրեք մուտքը Լուսանկարներ՝ Կարգավորումներում",
             ru: "Разрешите доступ к Фото в Настройках",
             en: "Allow Photos access in Settings"
@@ -420,7 +510,7 @@ struct ManuscriptStudioView: View {
     /// Картинка 1080×1920 для сторис и фотоальбома: готовая страница, золото с бликом, подпись Luys
     @MainActor
     private func renderImage() -> UIImage? {
-        let content = ManuscriptPageView(page: page, reveal: .complete, sheen: CGPoint(x: 0.18, y: -0.12), showsWatermark: true)
+        let content = ManuscriptPageView(page: currentPage, reveal: .complete, sheen: CGPoint(x: 0.18, y: -0.12), showsWatermark: true)
         let renderer = ImageRenderer(content: content)
         renderer.scale = 3
         if let image = renderer.uiImage {
@@ -452,20 +542,26 @@ struct ManuscriptStudioView: View {
 // MARK: - Страница для скриншотов в CI
 extension ManuscriptPage {
     /// Аргументы запуска: -manuscript_language russian -manuscript_style cilicia -manuscript_name Самвел
-    static func debugPage(fallbackLanguage: AppLanguage) -> ManuscriptPage {
+    /// -manuscript_verse long -manuscript_source chapter (Иоанна 3: лента стихов главы)
+    static func debugSource(fallbackLanguage: AppLanguage) -> ManuscriptSource {
         let defaults = UserDefaults.standard
         let language = defaults.string(forKey: "manuscript_language").flatMap(AppLanguage.init(rawValue:)) ?? fallbackLanguage
         let style = defaults.string(forKey: "manuscript_style").flatMap(ManuscriptStyle.init(rawValue:)) ?? .roslin
+        if let name = defaults.string(forKey: "manuscript_name") {
+            defaults.set(name, forKey: "luys_manuscript_name")
+        }
+        if defaults.string(forKey: "manuscript_source") == "chapter",
+           let book = BibleDatabase.shared.getBook(id: 43),
+           let source = ManuscriptPool.chapterSource(book: book, chapter: 3, startVerse: 16, language: language, style: style) {
+            return source
+        }
         // -manuscript_verse long — длинный стих, чтобы проверить плотную страницу
         let wantsLong = defaults.string(forKey: "manuscript_verse") == "long"
         let longVerse = BibleVerse.database.min { abs($0.text(for: language).count - 240) < abs($1.text(for: language).count - 240) }
         let verse = (wantsLong ? longVerse : nil) ?? BibleVerse.shortPearls.first ?? BibleManager.shared.currentVerse
         var page = ManuscriptPage.from(verse: verse, language: language)
         page.style = style
-        if let name = defaults.string(forKey: "manuscript_name") {
-            page.name = name
-        }
-        return page
+        return .curated(first: page)
     }
 }
 

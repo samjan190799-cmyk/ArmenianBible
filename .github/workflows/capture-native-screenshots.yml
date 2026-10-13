@@ -14,13 +14,14 @@ on:
           - iphone_6_9
           - iphone_6_5
       scope:
-        description: 'Что снимать: all — все экраны, manuscript — только «Рукопись»'
+        description: 'Что снимать: all — все экраны, manuscript — «Рукопись», features — листание, «Нарек утешает» и карта святынь'
         required: false
         default: 'all'
         type: choice
         options:
           - all
           - manuscript
+          - features
 
 jobs:
   capture-screenshots:
@@ -113,6 +114,35 @@ jobs:
             sleep 8
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
+
+            # 11. Листание «Рукописи», «Нарек утешает», «Карта святынь»
+            if [ "$SCOPE" = "features" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@" -luys_ads_enabled NO
+                sleep 8
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "11_Deck_chapter_John3_16" -openTab manuscript -manuscript_source chapter -manuscript_language russian -manuscript_time 30 -manuscript_name "Самвел"
+              shoot "11_Deck_turned_t1.2" -openTab manuscript -manuscript_source chapter -manuscript_language russian -manuscript_time 1.2 -manuscript_turned YES -manuscript_name "Самвел"
+              shoot "12_Consolation_empty_ru" -openTab consolation -luys_debug_language russian
+              shoot "12_Consolation_fear_ru" -openTab consolation -luys_debug_language russian -consolation_text "Мне страшно за близкого, и очень тяжело на душе" -consolation_chips fear,weariness
+              shoot "12_Consolation_sorrow_full_ru" -openTab consolation -luys_debug_language russian -consolation_text "Я потерял близкого человека и не нахожу себе места" -consolation_chips sorrow -consolation_full YES
+              shoot "12_Consolation_guilt_en" -openTab consolation -luys_debug_language english -consolation_text "I feel guilty and ashamed about what I did" -consolation_chips guilt
+              shoot "12_Consolation_hy" -openTab consolation -luys_debug_language armenian -consolation_text "Ես մենակ եմ և վախենում եմ" -consolation_chips loneliness
+              shoot "13_Map_ru" -openTab map -luys_debug_language russian
+              shoot "13_Map_khor_virap_ru" -openTab map -luys_debug_language russian -sanctuary_select khor_virap
+              shoot "13_Map_tatev_locked_ru" -openTab map -luys_debug_language russian -sanctuary_select tatev
+              shoot "13_Map_list_ru" -openTab map -luys_debug_language russian -sanctuary_mode list
+              shoot "13_Map_etchmiadzin_en" -openTab map -luys_debug_language english -sanctuary_select etchmiadzin
+              shoot "13_Home_cards_ru" -openTab home -luys_debug_language russian
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты новых функций для $DEV_LABEL сняты"
+              return 0
+            fi
 
             # 9. «Рукопись»: кадры анимации (секунда задаётся аргументом), языки и стили
             for SPEC in "russian roslin 2.4 Самвел short" "russian roslin 3.6 Самвел long" \

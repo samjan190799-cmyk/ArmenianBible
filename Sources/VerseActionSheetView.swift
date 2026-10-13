@@ -17,7 +17,7 @@ struct VerseActionSheetView: View {
     @State private var selectedColorHex: String? = nil
     @State private var noteText: String = ""
     @State private var selectedTags: Set<VerseTag> = []
-    @State private var manuscriptPage: ManuscriptPage? = nil
+    @State private var manuscriptLaunch: ManuscriptLaunch? = nil
 
     let onPinToWidget: () -> Void
     let onToggleFavorite: () -> Void
@@ -192,14 +192,17 @@ struct VerseActionSheetView: View {
                         // «Рукопись»: стих на странице армянского манускрипта
                         Button {
                             Haptics.impact(.soft)
-                            manuscriptPage = ManuscriptPage.from(book: book, chapter: chapter, verse: verse, language: language)
+                            // Листание влево и вправо идёт по стихам этой же главы
+                            let source = ManuscriptPool.chapterSource(book: book, chapter: chapter, startVerse: verse.verseNumber, language: language)
+                                ?? .curated(first: ManuscriptPage.from(book: book, chapter: chapter, verse: verse, language: language))
+                            manuscriptLaunch = ManuscriptLaunch(source: source)
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "scroll")
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundColor(Paper.gold)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(ManuscriptText.pick(language, hy: "Ստեղծել ձեռագիր", ru: "Создать рукопись", en: "Create a manuscript"))
+                                    Text(language.pick(hy: "Ստեղծել ձեռագիր", ru: "Создать рукопись", en: "Create a manuscript"))
                                         .font(PaperFont.font(size: 15, weight: .semibold))
                                         .foregroundColor(primaryTextColor)
                                     Text(ManuscriptText.pick(
@@ -297,8 +300,8 @@ struct VerseActionSheetView: View {
                 .padding(20)
             }
             .scrollDismissesKeyboard(.interactively)
-            .fullScreenCover(item: $manuscriptPage) { page in
-                ManuscriptStudioView(page: page)
+            .fullScreenCover(item: $manuscriptLaunch) { launch in
+                ManuscriptStudioView(source: launch.source)
             }
             .navigationTitle("\(book.name) \(chapter):\(verse.verseNumber)")
             .navigationBarTitleDisplayMode(.inline)
