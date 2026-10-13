@@ -19,7 +19,7 @@ on:
         default: 'all'
         type: choice
         options:
-                    - all
+          - all
           - manuscript
           - candles
 
@@ -115,7 +115,7 @@ jobs:
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
 
-                        # 14. Свечи: притвор, лист свечи на разных стадиях горения, зажжение
+            # 14. Свечи: притвор, лист свечи на разных стадиях горения, зажжение
             if [ "$SCOPE" = "candles" ]; then
               shoot() {
                 local NAME="$1"; shift
