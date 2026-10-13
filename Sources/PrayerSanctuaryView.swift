@@ -150,7 +150,17 @@ struct PrayerSanctuaryView: View {
                 CandleDetailPrayerSheetView(candle: candle, language: manager.appLanguage)
             }
             .onAppear {
-                candleManager.cleanExpiredCandles()
+
+                candleManager.seedDemoCandlesIfRequested()
+                // -candle_detail 1: сразу открыть лист свечи с этим номером
+                if let raw = UserDefaults.standard.string(forKey: "candle_detail"), let index = Int(raw) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        if candleManager.activeCandles.indices.contains(index) {
+                            selectedCandleForPrayer = candleManager.activeCandles[index]
+                        }
+                    }
+                }
+                #endif
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 candleManager.cleanExpiredCandles()
@@ -245,23 +255,22 @@ struct CandleStandCellView: View {
             onTap()
         } label: {
             ZStack(alignment: .top) {
-                // Мягкое свечение пламени на верхнюю часть карточки подсвечника
-                RadialGradient(
-                    colors: [Paper.gold.opacity(isSelectedForWidget ? 0.28 : 0.18), Color.clear],
-                    center: .top,
-                    startRadius: 10,
-                    endRadius: 85
-                )
-                
-                VStack(spacing: 8) {
-                    // Реалистичная армянская восковая свеча с живым пламенем и физическим таянием воска
+: живое пламя, таящий воск, латунный подсвечник
                     RealisticArmenianCandleView(
                         tier: candle.tier,
                         burnProgress: candle.burnProgress(),
                         isLit: candle.isLit,
-                        randomSeed: Double(abs(candle.id.hashValue))
+                        randomSeed: Double(abs(candle.id.hashValue % 100_000))
+                    )
+                    .frame(height: 150)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Paper.gold.opacity(isSelectedForWidget ? 0.6 : 0.25), lineWidth: 1)
                     )
                     .padding(.top, 8)
+                    .padding(.horizontal, 8)
                     
                     // Имя близкого или название намерения
                     Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
@@ -589,7 +598,20 @@ struct LightCandleFormSheetView: View {
                     ZStack {
                         Paper.scrim.ignoresSafeArea()
                         VStack(spacing: 18) {
-                            FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 48)
+                            RealisticArmenianCandleView(
+
+                                burnProgress: 0,
+                                isLit: true,
+                                randomSeed: 3,
+                                quality: .hero,
+                                ignitesOnAppear: true
+                            )
+                            .frame(width: 180, height: 240)
+                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .strokeBorder(Paper.gold.opacity(0.4), lineWidth: 1)
+                            )
                             GoldenSparkBurstView(isTriggered: true)
                             Text(successTitle)
                                 .font(PaperFont.font(size: 20, weight: .semibold))
@@ -829,7 +851,13 @@ struct CandleDetailPrayerSheetView: View {
     @State private var selectedDuration: Double = 4.0 // 4 секунды по умолчанию
     
     private var currentBurnProgress: Double {
-        previewBurnProgress ?? candle.burnProgress()
+        #if DEBUG
+        // -candle_burn 0.5: показать свечу на этой стадии горения (для скриншотов в CI)
+        if let raw = UserDefaults.standard.string(forKey: "candle_burn"), let value = Double(raw) {
+            return value
+        }
+        #endif
+        return previewBurnProgress ?? candle.burnProgress()
     }
     
     var body: some View {
@@ -842,15 +870,21 @@ struct CandleDetailPrayerSheetView: View {
                     VStack(spacing: 16) {
                         // Интерактивная свеча с живым пламенем и физическим таянием
                         RealisticArmenianCandleView(
-                            tier: candle.tier,
-                            candleHeight: 68,
-                            candleWidth: 22,
-                            flameSize: 32,
-                            burnProgress: currentBurnProgress,
+,
                             isLit: currentBurnProgress < 0.99,
-                            randomSeed: Double(abs(candle.id.hashValue))
+                            randomSeed: Double(abs(candle.id.hashValue % 100_000)),
+                            quality: .hero
                         )
-                        .padding(.top, 16)
+                        .frame(height: 340)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .strokeBorder(Paper.gold.opacity(0.35), lineWidth: 1)
+                        )
+                        .shadow(color: Paper.shadow, radius: 14, y: 6)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
                         .animation(.easeInOut(duration: isSimulatingMelting ? selectedDuration : 0.25), value: currentBurnProgress)
                         
                         Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)

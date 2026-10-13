@@ -23,6 +23,27 @@ final class CandleManager: ObservableObject {
         checkDailyFreeStatus()
     }
     
+        #if DEBUG
+    /// Для скриншотов в CI (-candle_seed YES): четыре свечи на разных стадиях горения, без сохранения на диск
+    func seedDemoCandlesIfRequested() {
+        guard UserDefaults.standard.bool(forKey: "candle_seed"), activeCandles.isEmpty else { return }
+        let demo: [(CandleTier, CandleIntention, String, Double)] = [
+            (.freeDaily, .health, "Анна", 0.05),
+            (.rewarded, .peace, "Армен", 0.40),
+            (.temple, .memory, "Мария", 0.72),
+            (.generous, .gratitude, "Давид", 0.90)
+        ]
+        activeCandles = demo.map { tier, intention, name, progress in
+            PrayerCandle(
+                personName: name,
+                intention: intention,
+                tier: tier,
+                litDate: Date().addingTimeInterval(-tier.duration * progress)
+            )
+        }
+    }
+    #endif
+
     // MARK: - Проверка доступности бесплатной свечи дня
     func checkDailyFreeStatus() {
         guard let lastDate = UserDefaults.standard.object(forKey: kLastFreeCandleDateKey) as? Date else {

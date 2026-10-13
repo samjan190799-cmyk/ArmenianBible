@@ -532,6 +532,10 @@ struct HomeView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         isShowingPomegranateSanctuary = true
                     }
+                                } else if tabArg == "sanctuary" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingSanctuary = true
+                    }
                 } else if tabArg == "manuscript" {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         manuscriptPage = ManuscriptPage.debugPage(fallbackLanguage: manager.appLanguage)
