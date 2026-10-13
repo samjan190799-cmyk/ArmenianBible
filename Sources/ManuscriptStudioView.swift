@@ -52,6 +52,7 @@ struct ManuscriptStudioView: View {
     @ObservedObject private var library = ManuscriptLibrary.shared
     @StateObject private var motion = ManuscriptMotion()
     @AppStorage("luys_manuscript_name") private var name = ""
+    @AppStorage(ManuscriptWritingSpeed.storageKey) private var writingSpeedRaw = ManuscriptWritingSpeed.defaultValue.rawValue
 
     @State private var startDate = Date()
     @State private var isTurned: Bool
@@ -233,7 +234,7 @@ struct ManuscriptStudioView: View {
                 let page = styled(raw, look: look)
                 let length = ManuscriptTextLayout.cached(for: page).length
                 let elapsed = frozenTime ?? timeline.date.timeIntervalSince(started)
-                let reveal = reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.at(time: elapsed, textLength: length, turned: turned)
+                let reveal = reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.at(time: elapsed, textLength: length, turned: turned, speed: writingSpeed)
                 pageFrame(page: page, reveal: reveal, sheen: sheen(at: timeline.date), scale: scale)
             }
             .contentShape(Rectangle())
@@ -422,6 +423,10 @@ struct ManuscriptStudioView: View {
         return CGPoint(x: sin(t * 0.7) * 0.85, y: cos(t * 0.45) * 0.35)
     }
 
+    private var writingSpeed: ManuscriptWritingSpeed {
+        ManuscriptWritingSpeed(rawValue: writingSpeedRaw) ?? ManuscriptWritingSpeed.defaultValue
+    }
+
     private func restart() {
         isTurned = false
         startDate = Date()
@@ -434,7 +439,7 @@ struct ManuscriptStudioView: View {
         animationToken = token
         let length = ManuscriptTextLayout.cached(for: currentPage).length
         let turned = isTurned
-        let finish = ManuscriptReveal.totalDuration(textLength: length, turned: turned) - 0.3
+        let finish = ManuscriptReveal.totalDuration(textLength: length, turned: turned, speed: writingSpeed) - 0.3
         let firstTick = turned ? 0.3 : 1.6
         DispatchQueue.main.asyncAfter(deadline: .now() + firstTick) {
             if animationToken == token { Haptics.impact(.soft) }

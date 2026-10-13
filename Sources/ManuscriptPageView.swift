@@ -18,21 +18,21 @@ struct ManuscriptReveal {
     /// Чистый лист с заставкой: так выглядит соседняя страница, пока её листают
     static let leaf = ManuscriptReveal(parchment: 1, frame: 1, headpiece: 1, initial: 0, text: 0, margin: 0, colophon: 0)
 
-    /// Скорость письма относительно первоначальной: 0.65 — на 35% медленнее. Растягивает и
-    /// границы длительности, поэтому короткий и длинный стих замедляются одинаково
-    private static let writingSpeed = 0.65
-
-    static func textDuration(for length: Int) -> Double {
-        min(4.6, max(1.8, Double(length) * 0.032)) / writingSpeed
+    /// Сколько перо пишет весь стих: скорость выбирается в настройках
+    static func textDuration(for length: Int, speed: ManuscriptWritingSpeed = .current) -> Double {
+        let range = speed.durationRange
+        return min(range.upperBound, max(range.lowerBound, Double(length) * speed.secondsPerCharacter))
     }
 
     /// Полная запись начинается с пустого пергамента; на перевёрнутом листе рамка и заставка уже есть
-    static func totalDuration(textLength: Int, turned: Bool = false) -> Double {
-        turned ? 0.5 + textDuration(for: textLength) + 1.4 : 2.2 + textDuration(for: textLength) + 1.4
+    static func totalDuration(textLength: Int, turned: Bool = false, speed: ManuscriptWritingSpeed = .current) -> Double {
+        let writing = textDuration(for: textLength, speed: speed)
+        return turned ? 0.5 + writing + 1.4 : 2.2 + writing + 1.4
     }
 
-    static func at(time t: Double, textLength: Int, turned: Bool = false) -> ManuscriptReveal {
-        let writing = textDuration(for: textLength)
+    static func at(time t: Double, textLength: Int, turned: Bool = false,
+                   speed: ManuscriptWritingSpeed = .current) -> ManuscriptReveal {
+        let writing = textDuration(for: textLength, speed: speed)
         func phase(_ start: Double, _ duration: Double) -> CGFloat {
             CGFloat(min(1, max(0, (t - start) / duration)))
         }
@@ -126,6 +126,8 @@ final class ManuscriptTextLayout {
         let baseline: CGFloat
         let ascent: CGFloat
         let descent: CGFloat
+        /// Буквы строки с контурами: по ним идёт перо. Заполняются только у итоговой вёрстки
+        var glyphs: [ManuscriptGlyph] = []
     }
 
     let lines: [Line]
@@ -196,7 +198,12 @@ final class ManuscriptTextLayout {
         }
 
         // Строки, которые не поместились даже мелким кеглем, отбрасываются
-        let visible = setLines(best).lines.filter { $0.baseline + $0.descent <= height + 2 }
+        let inkColor = ManuscriptPalette.color(palette.ink)
+        let visible = setLines(best).lines.filter { $0.baseline + $0.descent <= height + 2 }.map { item -> Line in
+            var inked = item
+            inked.glyphs = ManuscriptGlyphs.make(line: item.line, indexBase: item.indexBase, range: item.range, ink: inkColor)
+            return inked
+        }
         let length = visible.last.map { $0.range.location + $0.range.length } ?? 0
         let textBottom = max(exclusion.height, visible.last.map { $0.baseline + $0.descent } ?? 0)
         // Короткий стих: блок опускается ближе к середине свободного места под заставкой
@@ -778,6 +785,9 @@ enum ManuscriptRenderer {
         let written = p * CGFloat(layout.length)
         var pen: CGPoint?
         var lastLineEnd: CGPoint?
+        // Строка и буква, которые перо выводит прямо сейчас, и где оно оторвалось от предыдущей буквы
+        var writing: (line: ManuscriptTextLayout.Line, glyph: Int)?
+        var previousInk: CGPoint?
 
         ctx.withCGContext { cg in
             for item in layout.lines {
@@ -796,9 +806,27 @@ enum ManuscriptRenderer {
                     let lineWidth = CGFloat(CTLineGetTypographicBounds(item.line, nil, nil, nil))
                     lastLineEnd = CGPoint(x: rect.minX + item.x + lineWidth + 1.5,
                                           y: top + item.baseline - item.ascent * 0.32)
+                    if let lastInked = item.glyphs.last(where: { $0.hasInk }) {
+                        previousInk = CGPoint(x: rect.minX + item.x + lastInked.endPoint.x,
+                                              y: top + item.baseline + lastInked.endPoint.y)
+                    }
                     continue
                 }
-                // Строка пишется прямо сейчас: открываем её до кончика пера
+                // Строка пишется прямо сейчас. Слева от текущей буквы всё написано целиком, а сама
+                // буква рисуется ниже по контуру: перо обводит её, и чернила заливают контур
+                if let index = item.glyphs.firstIndex(where: { CGFloat($0.from) <= written && written < CGFloat($0.to) }) {
+                    let glyph = item.glyphs[index]
+                    let done = CGRect(x: -2, y: -item.descent - 2, width: max(0, glyph.x + 2), height: item.ascent + item.descent + 4)
+                    cg.saveGState()
+                    cg.clip(to: done)
+                    cg.textPosition = .zero
+                    CTLineDraw(item.line, cg)
+                    cg.restoreGState()
+                    cg.restoreGState()
+                    writing = (item, index)
+                    break
+                }
+                // Запасной путь, если контуров нет: открываем строку до кончика пера
                 let character = Int(written)
                 let fraction = written - CGFloat(character)
                 let x0 = CTLineGetOffsetForStringIndex(item.line, character - item.indexBase, nil)
@@ -826,15 +854,69 @@ enum ManuscriptRenderer {
             }
         }
 
+        if let writing {
+            pen = drawWritingGlyph(writing.line, glyphIndex: writing.glyph, written: written,
+                                   previousInk: previousInk, rect: rect, top: top, in: ctx)
+        }
+
         if let pen, p < 1 {
             ctx.fill(Path(ellipseIn: circle(pen, 1.8)), with: .color(c(P.ink, 0.8)))
             ctx.fill(Path(ellipseIn: circle(pen, 3.6)), with: .color(c(P.ink, 0.12)))
             // Рука чуть покачивает перо в такт письму
             let sway = Double(sin(written * 0.9)) * 2.5
             drawQuill(tip: pen, sway: sway, lift: 0, palette: P, in: ctx)
-        } else if p >= 1, lift < 1, let lastLineEnd {
-            drawQuill(tip: lastLineEnd, sway: 0, lift: lift, palette: P, in: ctx)
+        } else if p >= 1, lift < 1, let restingTip = previousInk ?? lastLineEnd {
+            drawQuill(tip: restingTip, sway: 0, lift: lift, palette: P, in: ctx)
         }
+    }
+
+    /// Буква, которую перо пишет сейчас. Перо подходит к её началу, обводит контур, а потом
+    /// чернила заливают букву, и обводка растворяется. Возвращает, где стоит кончик пера на странице.
+    private static func drawWritingGlyph(_ item: ManuscriptTextLayout.Line, glyphIndex: Int, written: CGFloat,
+                                         previousInk: CGPoint?, rect: CGRect, top: CGFloat,
+                                         in ctx: GraphicsContext) -> CGPoint {
+        let glyph = item.glyphs[glyphIndex]
+        let originX = rect.minX + item.x
+        let originY = top + item.baseline
+        let span = CGFloat(max(1, glyph.to - glyph.from))
+        let fraction = clamp((written - CGFloat(glyph.from)) / span)
+
+        guard glyph.hasInk else {
+            // Пробел и знаки без контура: перо просто скользит над строкой
+            let x = glyph.x + (glyph.nextX - glyph.x) * fraction
+            return CGPoint(x: originX + x, y: originY - item.ascent * 0.15)
+        }
+
+        let approach: CGFloat = 0.14
+        let traced = clamp((fraction - approach) / 0.68)
+        let outline = glyph.path.trimmedPath(from: 0, to: traced)
+        let soak = smooth((fraction - 0.5) / 0.5)
+        let wet = 1 - smooth((fraction - 0.8) / 0.2)
+
+        var layer = ctx
+        layer.translateBy(x: originX, y: originY)
+        if soak > 0 {
+            layer.fill(glyph.path, with: .color(glyph.color.opacity(Double(soak))))
+        }
+        if wet > 0, traced > 0 {
+            layer.stroke(outline, with: .color(glyph.color.opacity(Double(wet))),
+                         style: StrokeStyle(lineWidth: 1, lineCap: .round, lineJoin: .round))
+        }
+
+        var tip = outline.currentPoint ?? glyph.startPoint
+        if fraction < approach {
+            // Перо переходит от конца предыдущей буквы к началу этой
+            var from = glyph.startPoint
+            if let before = item.glyphs[..<glyphIndex].last(where: { $0.hasInk }) {
+                from = before.endPoint
+            } else if let carried = previousInk {
+                from = CGPoint(x: carried.x - originX, y: carried.y - originY)
+            }
+            let k = smooth(fraction / approach)
+            tip = CGPoint(x: from.x + (glyph.startPoint.x - from.x) * k,
+                          y: from.y + (glyph.startPoint.y - from.y) * k)
+        }
+        return CGPoint(x: originX + tip.x, y: originY + tip.y)
     }
 
     // MARK: Перо: гусиное перо, кончик которого стоит в точке письма

@@ -408,6 +408,11 @@
 "system_storage_section_desc" = "Տակտիլ արձագանք, Face ID անվտանգություն, քեշի մաքրում և պահուստավորում:";
 "haptics_title" = "Տակտիլ արձագանք (Haptic)";
 "haptics_desc" = "Թրթռում կոճակների և ընտրությունների ժամանակ";
+"manuscript_speed_title" = "Ձեռագրի գրելու արագությունը";
+"manuscript_speed_desc" = "Որքան արագ է գրիչը գրում ոտանավորի տառերը";
+"manuscript_speed_slow" = "Դանդաղ";
+"manuscript_speed_medium" = "Միջին";
+"manuscript_speed_fast" = "Արագ";
 "biometric_lock_title" = "Face ID / Touch ID կողպում";
 "biometric_lock_desc" = "Ընտրյալների, նշումների և ընթերցանության պաշտպանություն";
 "biometric_auth_reason" = "Ապակողպեք հավելված մուտք գործելու համար";

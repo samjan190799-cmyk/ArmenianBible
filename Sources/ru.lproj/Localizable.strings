@@ -408,6 +408,11 @@
 "system_storage_section_desc" = "Тактильный отклик, безопасность Face ID, очистка кэша и резервное копирование:";
 "haptics_title" = "Тактильный отклик (Haptic)";
 "haptics_desc" = "Виброотклик при взаимодействии и переключениях";
+"manuscript_speed_title" = "Скорость письма в «Рукописи»";
+"manuscript_speed_desc" = "Как быстро перо выводит буквы стиха";
+"manuscript_speed_slow" = "Медленно";
+"manuscript_speed_medium" = "Средне";
+"manuscript_speed_fast" = "Быстро";
 "biometric_lock_title" = "Блокировка Face ID / Touch ID";
 "biometric_lock_desc" = "Защита закладок, заметок и истории чтения";
 "biometric_auth_reason" = "Разблокируйте для доступа к приложению";

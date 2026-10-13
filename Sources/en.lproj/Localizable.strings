@@ -408,6 +408,11 @@
 "system_storage_section_desc" = "Haptic feedback, Face ID security, cache cleanup, and backup:";
 "haptics_title" = "Haptic Feedback";
 "haptics_desc" = "Tactile vibration on tap and interactions";
+"manuscript_speed_title" = "Manuscript writing speed";
+"manuscript_speed_desc" = "How fast the quill writes out the verse";
+"manuscript_speed_slow" = "Slow";
+"manuscript_speed_medium" = "Medium";
+"manuscript_speed_fast" = "Fast";
 "biometric_lock_title" = "Face ID / Touch ID Lock";
 "biometric_lock_desc" = "Protect bookmarks, notes, and reading progress";
 "biometric_auth_reason" = "Unlock to access Armenian Bible";
