@@ -98,11 +98,11 @@ enum CandleRenderer {
     // MARK: Параметры свечи
     private static func params(for tier: CandleTier) -> (width: CGFloat, factor: CGFloat, wax: WaxPalette) {
         switch tier {
-        case .freeDaily: return (16, 0.60, WaxPalette(light: 0xF7EBCB, mid: 0xE6CF98, dark: 0xB99358))
-        case .rewarded: return (19, 0.78, WaxPalette(light: 0xF5E2AE, mid: 0xE2BE72, dark: 0xA97A33))
-        case .small: return (18, 0.70, WaxPalette(light: 0xF5E2AE, mid: 0xE2BE72, dark: 0xA97A33))
-        case .temple: return (21, 0.88, WaxPalette(light: 0xF2D88F, mid: 0xDDAA4E, dark: 0x9A6420))
-        case .generous: return (24, 1.0, WaxPalette(light: 0xEFCB7A, mid: 0xD49A38, dark: 0x8A5514))
+        case .freeDaily: return (16, 0.60, WaxPalette(light: 0xFBF3DF, mid: 0xEEDDB8, dark: 0xC8A874))
+        case .rewarded: return (19, 0.78, WaxPalette(light: 0xF9EBC8, mid: 0xEBCF94, dark: 0xBE9048))
+        case .small: return (18, 0.70, WaxPalette(light: 0xF9EBC8, mid: 0xEBCF94, dark: 0xBE9048))
+        case .temple: return (21, 0.88, WaxPalette(light: 0xF6E4B0, mid: 0xE6C177, dark: 0xB07C34))
+        case .generous: return (24, 1.0, WaxPalette(light: 0xF3DA9A, mid: 0xE0B25E, dark: 0xA26C2A))
         }
     }
 
@@ -158,7 +158,7 @@ enum CandleRenderer {
 
         if lit && ignition > 0.01 {
             drawFlame(
-                ctx, base: flameBase, h: flameH * ignition, w: flameH * 0.36 * (0.55 + 0.45 * ignition),
+                ctx, base: flameBase, h: flameH * ignition, w: flameH * 0.47 * (0.55 + 0.45 * ignition),
                 flick: flick, light: light, scene: scene, ignition: ignition
             )
             if scene.quality.showsSparks {
@@ -229,7 +229,7 @@ enum CandleRenderer {
         .linearGradient(
             gradient([
                 (0x2E1C06, 1, 0), (0x7A5418, 1, 0.16), (0xC9983C, 1, 0.34),
-                (0xFFF0B0, 1, 0.46), (0xC9983C, 1, 0.58), (0x7A5418, 1, 0.82), (0x2E1C06, 1, 1)
+                (0xF0D48A, 1, 0.46), (0xC9983C, 1, 0.58), (0x7A5418, 1, 0.82), (0x2E1C06, 1, 1)
             ]),
             startPoint: CGPoint(x: x0, y: 0), endPoint: CGPoint(x: x1, y: 0)
         )
@@ -309,7 +309,12 @@ enum CandleRenderer {
 
         // Низ тонет в темноте ниши
         layer.fill(body, with: .linearGradient(
-            gradient([(0x0A0604, 0, 0), (0x0A0604, 0.62, 1)]),
+            gradient([(0x24120A, 0, 0), (0x24120A, 0.50, 1)]),
+            startPoint: CGPoint(x: 0, y: topY), endPoint: CGPoint(x: 0, y: bottomY)
+        ))
+        // Мягкий вертикальный блик на воске
+        layer.fill(Path(CGRect(x: cx - rx * 0.62, y: topY, width: rx * 0.46, height: bottomY - topY)), with: .linearGradient(
+            gradient([(0xFFFFFF, 0.20, 0), (0xFFFFFF, 0.06, 1)]),
             startPoint: CGPoint(x: 0, y: topY), endPoint: CGPoint(x: 0, y: bottomY)
         ))
 
@@ -475,7 +480,7 @@ enum CandleRenderer {
         var right: [CGPoint] = []
         for i in 0...steps {
             let t = CGFloat(i) / CGFloat(steps)
-            let shape = pow(max(0, sin(.pi * pow(t, 0.55))), 0.8)
+            let shape = pow(max(0, sin(.pi * pow(t, 0.62))), 0.85)
             let half = w / 2 * shape * (1 + 0.05 * sin(t * 6 + phase))
             let center = base.x + bend * h * pow(t, 1.7) + wobble * h * t * sin(t * 3.1 + phase)
             let y = base.y - t * h
@@ -514,11 +519,11 @@ enum CandleRenderer {
         // 2. Внешнее пламя: оранжевое, с мягким краем
         let outer = flameOutline(base: base, height: height, width: width, bend: flick.bend, wobble: flick.wobble, phase: phase, steps: q.flameSteps)
         ctx.drawLayer { layer in
-            layer.addFilter(.blur(radius: max(0.4, width * 0.06 * q.blur)))
+            layer.addFilter(.blur(radius: max(0.5, width * 0.10 * q.blur)))
             layer.fill(outer, with: .linearGradient(
                 gradient([
-                    (0xFFD36E, 0.95, 0), (0xFFB02E, 0.95, 0.30), (0xFF7A18, 0.88, 0.64),
-                    (0xE8420C, 0.50, 0.90), (0xC93005, 0, 1)
+                    (0xFFD36E, 0.95, 0), (0xFFB02E, 0.95, 0.30), (0xFF7A18, 0.80, 0.58),
+                    (0xE8420C, 0.34, 0.84), (0xC93005, 0, 1)
                 ]),
                 startPoint: base, endPoint: tip
             ))

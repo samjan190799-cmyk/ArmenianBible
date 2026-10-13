@@ -26,7 +26,7 @@ final class CandleManager: ObservableObject {
         #if DEBUG
     /// Для скриншотов в CI (-candle_seed YES): четыре свечи на разных стадиях горения, без сохранения на диск
     func seedDemoCandlesIfRequested() {
-        guard UserDefaults.standard.bool(forKey: "candle_seed"), activeCandles.isEmpty else { return }
+        guard UserDefaults.standard.bool(forKey: "candle_seed") else { return }
         let demo: [(CandleTier, CandleIntention, String, Double)] = [
             (.freeDaily, .health, "Анна", 0.05),
             (.rewarded, .peace, "Армен", 0.40),
