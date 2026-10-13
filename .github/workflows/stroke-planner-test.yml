@@ -1,0 +1,26 @@
+name: Stroke Planner Test
+
+# Запускает настоящий Swift-код планировщика письма пером на шрифте приложения.
+# Только вручную и для рабочих веток: в TestFlight ничего не отправляет.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  planner:
+    name: Планировщик письма (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Компиляция
+        run: |
+          swiftc -O Sources/ManuscriptStrokePlanner.swift Tools/StrokePlannerTest/main.swift -o stroke_test
+
+      - name: Запуск
+        run: |
+          ./stroke_test Sources/Fonts/NotoSerifArmenian-Regular.ttf
