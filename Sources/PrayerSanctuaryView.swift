@@ -151,7 +151,7 @@ struct PrayerSanctuaryView: View {
             }
             .onAppear {
                 candleManager.cleanExpiredCandles()
-                #if DEBUG
+                #if DEBUG || targetEnvironment(simulator)
                 candleManager.seedDemoCandlesIfRequested()
                 // -candle_detail 1: сразу открыть лист свечи с этим номером
                 if let raw = UserDefaults.standard.string(forKey: "candle_detail"), let index = Int(raw) {
@@ -853,7 +853,7 @@ struct CandleDetailPrayerSheetView: View {
     @State private var selectedDuration: Double = 4.0 // 4 секунды по умолчанию
     
     private var currentBurnProgress: Double {
-        #if DEBUG
+        #if DEBUG || targetEnvironment(simulator)
         // -candle_burn 0.5: показать свечу на этой стадии горения (для скриншотов в CI)
         if let raw = UserDefaults.standard.string(forKey: "candle_burn"), let value = Double(raw) {
             return value

@@ -23,7 +23,7 @@ final class CandleManager: ObservableObject {
         checkDailyFreeStatus()
     }
     
-        #if DEBUG
+    #if DEBUG || targetEnvironment(simulator)
     /// Для скриншотов в CI (-candle_seed YES): четыре свечи на разных стадиях горения, без сохранения на диск
     func seedDemoCandlesIfRequested() {
         guard UserDefaults.standard.bool(forKey: "candle_seed") else { return }

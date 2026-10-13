@@ -238,7 +238,7 @@ struct RealisticArmenianCandleView: View {
         _ignitionStart = State(initialValue: ignitesOnAppear ? Date() : nil)
     }
 
-    #if DEBUG
+    #if DEBUG || targetEnvironment(simulator)
     /// Для скриншотов в CI: застывшая секунда (-candle_time 3.2) и возраст зажжения (-candle_ignite_age 0.9)
     private static let frozenTime: Double? = {
         let value = UserDefaults.standard.double(forKey: "candle_time")
