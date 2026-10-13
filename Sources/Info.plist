@@ -145,6 +145,8 @@
             <string>r26jy69rpl.skadnetwork</string>
         </dict>
     </array>
+    <key>NSSupportsLiveActivities</key>
+    <true/>
     <key>UIBackgroundModes</key>
     <array>
         <string>audio</string>
