@@ -58,9 +58,32 @@ private struct WaxPalette {
     let dark: UInt32
 }
 
+// MARK: - Детерминированный генератор случайных чисел (mulberry32)
+/// Свой, чтобы рендер свечи не тянул за собой файлы дерева: его собирает и расширение виджетов
+struct CandleRandom {
+    private var state: UInt32
+
+    init(seed: UInt32) {
+        state = seed
+    }
+
+    mutating func next() -> CGFloat {
+        state = state &+ 0x6D2B79F5
+        var t = (state ^ (state >> 15)) &* (1 | state)
+        t = (t &+ ((t ^ (t >> 7)) &* (61 | t))) ^ t
+        return CGFloat(Double(t ^ (t >> 14)) / 4_294_967_296.0)
+    }
+}
+
 enum CandleRenderer {
     private static func c(_ hex: UInt32, _ alpha: Double = 1) -> Color {
-        PomegranatePalette.color(hex, alpha)
+        Color(
+            .sRGB,
+            red: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255,
+            opacity: alpha
+        )
     }
 
     private static func gradient(_ stops: [(UInt32, Double, CGFloat)]) -> Gradient {
@@ -331,7 +354,7 @@ enum CandleRenderer {
         ))
 
         // Тонкие продольные неровности воска
-        var rng = PomegranateRandom(seed: UInt32(truncatingIfNeeded: Int(seed * 1000) &+ 7))
+        var rng = CandleRandom(seed: UInt32(truncatingIfNeeded: Int(seed * 1000) &+ 7))
         for _ in 0..<5 {
             let x = cx - rx + rng.next() * rx * 2
             let dark = rng.next() > 0.5
@@ -356,14 +379,16 @@ enum CandleRenderer {
         palette: WaxPalette, s: CGFloat, seed: Double, burn: CGFloat, light: CGFloat
     ) {
         guard burn > 0.04 else { return }
-        var rng = PomegranateRandom(seed: UInt32(truncatingIfNeeded: Int(seed * 977) &+ 31))
+        var rng = CandleRandom(seed: UInt32(truncatingIfNeeded: Int(seed * 977) &+ 31))
         let count = 2 + Int(burn * 3.4)
         for i in 0..<count {
             let u = (CGFloat(i) + 0.25 + rng.next() * 0.5) / CGFloat(count)
             let angle = CGFloat.pi * (0.08 + 0.84 * u)          // дуга по передней кромке
             let x = cx - rx * cos(angle)
             let y0 = topY + ry * sin(angle)
-            let length = wax * (0.10 + 0.38 * rng.next()) * (0.55 + 0.7 * burn)
+            let lengthJitter: CGFloat = 0.10 + 0.38 * rng.next()
+            let lengthScale: CGFloat = 0.55 + 0.7 * burn
+            let length: CGFloat = wax * lengthJitter * lengthScale
             let width = (1.5 + 1.5 * rng.next()) * s
             let tipY = min(y0 + length, topY + wax * 0.92)
             let drip = Path(roundedRect: CGRect(x: x - width / 2, y: y0 - 0.5 * s, width: width, height: max(width, tipY - y0)), cornerRadius: width / 2)
