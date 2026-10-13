@@ -148,15 +148,16 @@ final class ManuscriptTextLayout {
     private static let cacheLock = NSLock()
     private static var cache: [String: ManuscriptTextLayout] = [:]
 
-    static func cached(for page: ManuscriptPage) -> ManuscriptTextLayout {
-        let key = "\(page.style.rawValue)|\(page.language.rawValue)|\(page.text)"
+    static func cached(for page: ManuscriptPage, pen: ManuscriptPen = .defaultValue) -> ManuscriptTextLayout {
+        let ink = pen.inkOverride ?? page.style.palette.ink
+        let key = "\(page.style.rawValue)|\(page.language.rawValue)|\(ink)|\(page.text)"
         cacheLock.lock()
         if let hit = cache[key] {
             cacheLock.unlock()
             return hit
         }
         cacheLock.unlock()
-        let made = make(for: page)
+        let made = make(for: page, ink: ink)
         cacheLock.lock()
         if cache.count > 48 { cache.removeAll() }
         cache[key] = made
@@ -164,7 +165,7 @@ final class ManuscriptTextLayout {
         return made
     }
 
-    private static func make(for page: ManuscriptPage) -> ManuscriptTextLayout {
+    private static func make(for page: ManuscriptPage, ink: UInt32) -> ManuscriptTextLayout {
         let body = page.initialAndBody.body
         let palette = page.style.palette
         let rect = ManuscriptGeometry.textRect
@@ -172,7 +173,7 @@ final class ManuscriptTextLayout {
         let isShort = (body as NSString).length < 60
 
         func setLines(_ size: CGFloat) -> (lines: [Line], height: CGFloat, breaksWord: Bool) {
-            typeset(body: body, size: size, palette: palette, isShort: isShort, width: rect.width, exclusion: exclusion)
+            typeset(body: body, size: size, palette: palette, ink: ink, isShort: isShort, width: rect.width, exclusion: exclusion)
         }
 
         // Длинному стиху разрешаем занять чуть больше места вниз
@@ -198,7 +199,7 @@ final class ManuscriptTextLayout {
         }
 
         // Строки, которые не поместились даже мелким кеглем, отбрасываются
-        let inkColor = ManuscriptPalette.color(palette.ink)
+        let inkColor = ManuscriptPalette.color(ink)
         let visible = setLines(best).lines.filter { $0.baseline + $0.descent <= height + 2 }.map { item -> Line in
             var inked = item
             inked.glyphs = ManuscriptGlyphs.make(line: item.line, indexBase: item.indexBase, range: item.range, ink: inkColor)
@@ -212,9 +213,9 @@ final class ManuscriptTextLayout {
         return ManuscriptTextLayout(lines: visible, length: length, offsetY: offsetY, bottomY: rect.minY + offsetY + textBottom)
     }
 
-    private static func typeset(body: String, size: CGFloat, palette: ManuscriptPalette, isShort: Bool,
+    private static func typeset(body: String, size: CGFloat, palette: ManuscriptPalette, ink: UInt32, isShort: Bool,
                                 width: CGFloat, exclusion: CGSize) -> (lines: [Line], height: CGFloat, breaksWord: Bool) {
-        let text = attributed(body: body, size: size, palette: palette, isShort: isShort)
+        let text = attributed(body: body, size: size, palette: palette, ink: ink, isShort: isShort)
         let total = text.length
         guard total > 0 else { return ([], 0, false) }
         let typesetter = CTTypesetterCreateWithAttributedString(text as CFAttributedString)
@@ -281,11 +282,11 @@ final class ManuscriptTextLayout {
         return (lines, height, breaksWord)
     }
 
-    private static func attributed(body: String, size: CGFloat, palette: ManuscriptPalette, isShort: Bool) -> NSAttributedString {
+    private static func attributed(body: String, size: CGFloat, palette: ManuscriptPalette, ink: UInt32, isShort: Bool) -> NSAttributedString {
         let colorKey = NSAttributedString.Key(kCTForegroundColorAttributeName as String)
         let result = NSMutableAttributedString(string: body, attributes: [
             .font: PaperFont.uiFont(size: size, weight: .regular),
-            colorKey: ManuscriptPalette.uiColor(palette.ink).cgColor
+            colorKey: ManuscriptPalette.uiColor(ink).cgColor
         ])
         // Слова сразу после буквицы — киноварью, как рубрика в рукописи
         let rubric = rubricLength(in: body, words: isShort ? 1 : 2)
@@ -327,9 +328,11 @@ struct ManuscriptPageView: View {
     var sheen: CGPoint = CGPoint(x: 0.2, y: -0.1)
     /// Подпись Luys внизу — только в картинке для соцсетей
     var showsWatermark = false
+    /// Перо задаёт чернила и вид пера в руке писца
+    var pen: ManuscriptPen = .defaultValue
 
     var body: some View {
-        let layout = ManuscriptTextLayout.cached(for: page)
+        let layout = ManuscriptTextLayout.cached(for: page, pen: pen)
         let initial = page.initialAndBody.initial
         ZStack {
             ManuscriptParchment(seed: page.seed, style: page.style)
@@ -340,7 +343,7 @@ struct ManuscriptPageView: View {
                 ManuscriptRenderer.drawFrame(progress: reveal.frame, palette: page.style.palette, gold: gold, in: context)
                 ManuscriptRenderer.drawHeadpiece(progress: reveal.headpiece, style: page.style, gold: gold, in: context)
                 ManuscriptRenderer.drawInitial(initial, progress: reveal.initial, offsetY: layout.offsetY, style: page.style, gold: gold, in: context)
-                ManuscriptRenderer.drawText(layout, progress: reveal.text, lift: reveal.colophon, palette: page.style.palette, in: context)
+                ManuscriptRenderer.drawText(layout, progress: reveal.text, lift: reveal.colophon, pen: pen, palette: page.style.palette, in: context)
                 ManuscriptRenderer.drawMarginOrnament(progress: reveal.margin, style: page.style, gold: gold, in: context)
                 ManuscriptRenderer.drawEnding(page: page, layout: layout, progress: reveal.colophon, gold: gold, in: context)
                 ManuscriptRenderer.drawGlints(reveal: reveal, initialOffsetY: layout.offsetY, gold: gold, in: context)
@@ -778,7 +781,9 @@ enum ManuscriptRenderer {
     // MARK: Текст: перо проходит строку за строкой
     /// `lift` — отрыв пера от листа после последней строки: 0 — перо ещё на странице, 1 — улетело
     static func drawText(_ layout: ManuscriptTextLayout, progress p: CGFloat, lift: CGFloat = 1,
+                         pen penStyle: ManuscriptPen = .defaultValue,
                          palette P: ManuscriptPalette, in ctx: GraphicsContext) {
+        let inkHex = penStyle.inkOverride ?? P.ink
         guard p > 0, !layout.lines.isEmpty else { return }
         let rect = ManuscriptGeometry.textRect
         let top = rect.minY + layout.offsetY
@@ -860,18 +865,19 @@ enum ManuscriptRenderer {
         }
 
         if let pen, p < 1 {
-            ctx.fill(Path(ellipseIn: circle(pen, 1.8)), with: .color(c(P.ink, 0.8)))
-            ctx.fill(Path(ellipseIn: circle(pen, 3.6)), with: .color(c(P.ink, 0.12)))
+            ctx.fill(Path(ellipseIn: circle(pen, 1.8)), with: .color(c(inkHex, 0.8)))
+            ctx.fill(Path(ellipseIn: circle(pen, 3.6)), with: .color(c(inkHex, 0.12)))
             // Рука чуть покачивает перо в такт письму
             let sway = Double(sin(written * 0.9)) * 2.5
-            drawQuill(tip: pen, sway: sway, lift: 0, palette: P, in: ctx)
+            ManuscriptQuillArt.draw(pen: penStyle, tip: pen, sway: sway, lift: 0, time: Double(written) * 0.5, palette: P, in: ctx)
         } else if p >= 1, lift < 1, let restingTip = previousInk ?? lastLineEnd {
-            drawQuill(tip: restingTip, sway: 0, lift: lift, palette: P, in: ctx)
+            ManuscriptQuillArt.draw(pen: penStyle, tip: restingTip, sway: 0, lift: lift, time: Double(written) * 0.5, palette: P, in: ctx)
         }
     }
 
-    /// Буква, которую перо пишет сейчас. Перо подходит к её началу, обводит контур, а потом
-    /// чернила заливают букву, и обводка растворяется. Возвращает, где стоит кончик пера на странице.
+    /// Буква, которую перо пишет сейчас. Перо подходит к началу буквы и ведёт кончик по её штрихам
+    /// в том порядке, в каком их выводит рука: чернила проступают только там, где перо уже прошло.
+    /// Возвращает, где стоит кончик пера на странице.
     private static func drawWritingGlyph(_ item: ManuscriptTextLayout.Line, glyphIndex: Int, written: CGFloat,
                                          previousInk: CGPoint?, rect: CGRect, top: CGFloat,
                                          in ctx: GraphicsContext) -> CGPoint {
@@ -887,23 +893,31 @@ enum ManuscriptRenderer {
             return CGPoint(x: originX + x, y: originY - item.ascent * 0.15)
         }
 
-        let approach: CGFloat = 0.14
-        let traced = clamp((fraction - approach) / 0.68)
-        let outline = glyph.path.trimmedPath(from: 0, to: traced)
-        let soak = smooth((fraction - 0.5) / 0.5)
-        let wet = 1 - smooth((fraction - 0.8) / 0.2)
+        // Начало времени буквы перо тратит на подход к ней, остальное на письмо
+        let approach: CGFloat = 0.12
+        let stroke = clamp((fraction - approach) / (1 - approach))
 
         var layer = ctx
         layer.translateBy(x: originX, y: originY)
-        if soak > 0 {
-            layer.fill(glyph.path, with: .color(glyph.color.opacity(Double(soak))))
-        }
-        if wet > 0, traced > 0 {
-            layer.stroke(outline, with: .color(glyph.color.opacity(Double(wet))),
-                         style: StrokeStyle(lineWidth: 1, lineCap: .round, lineJoin: .round))
+        var tip = glyph.startPoint
+
+        if let plan = glyph.plan {
+            var inked = layer
+            inked.clip(to: Path(plan.inkMask(at: stroke)))
+            inked.fill(glyph.path, with: .color(glyph.color))
+            // Под самый конец буква заливается целиком, чтобы между кругами не осталось щелей
+            let settle = smooth((fraction - 0.92) / 0.08)
+            if settle > 0 {
+                layer.fill(glyph.path, with: .color(glyph.color.opacity(Double(settle))))
+            }
+            if fraction >= approach {
+                tip = plan.position(at: stroke).tip
+            }
+        } else {
+            // Контуры штрихов построить не удалось: буква просто проступает
+            layer.fill(glyph.path, with: .color(glyph.color.opacity(Double(smooth(fraction)))))
         }
 
-        var tip = outline.currentPoint ?? glyph.startPoint
         if fraction < approach {
             // Перо переходит от конца предыдущей буквы к началу этой
             var from = glyph.startPoint
@@ -917,79 +931,6 @@ enum ManuscriptRenderer {
                           y: from.y + (glyph.startPoint.y - from.y) * k)
         }
         return CGPoint(x: originX + tip.x, y: originY + tip.y)
-    }
-
-    // MARK: Перо: гусиное перо, кончик которого стоит в точке письма
-    /// Рисуется в локальных координатах: кончик в (0, 0), ось пера идёт вверх (−Y), затем
-    /// весь рисунок поворачивается так, чтобы перо наклонялось вправо, как в руке писца.
-    private static func drawQuill(tip: CGPoint, sway: Double, lift: CGFloat, palette P: ManuscriptPalette,
-                                  in ctx: GraphicsContext) {
-        let length: CGFloat = 66
-        let leftStart = CGPoint(x: 0, y: -17)
-        let leftControl = CGPoint(x: -18, y: -36)
-        let end = CGPoint(x: 1.5, y: -length)
-        let rightControl = CGPoint(x: 15, y: -40)
-
-        func edgePoint(_ from: CGPoint, _ control: CGPoint, _ to: CGPoint, _ t: CGFloat) -> CGPoint {
-            let u = 1 - t
-            let x = u * u * from.x + 2 * u * t * control.x + t * t * to.x
-            let y = u * u * from.y + 2 * u * t * control.y + t * t * to.y
-            return CGPoint(x: x, y: y)
-        }
-
-        // Опахало: две дуги от основания к острию, справа шире
-        var vane = Path()
-        vane.move(to: leftStart)
-        vane.addQuadCurve(to: end, control: leftControl)
-        vane.addQuadCurve(to: leftStart, control: rightControl)
-        vane.closeSubpath()
-
-        // Бородки идут от стержня к краям, скошены к острию
-        var barbs = Path()
-        for i in 1 ... 8 {
-            let t = CGFloat(i) / 9
-            let left = edgePoint(leftStart, leftControl, end, t)
-            let right = edgePoint(end, rightControl, leftStart, 1 - t)
-            barbs.move(to: CGPoint(x: 0.5 * t, y: left.y + 5))
-            barbs.addLine(to: left)
-            barbs.move(to: CGPoint(x: 0.5 * t, y: right.y + 5))
-            barbs.addLine(to: right)
-        }
-
-        var shaft = Path()
-        shaft.move(to: CGPoint(x: 0, y: -8))
-        shaft.addLine(to: end)
-
-        var barrel = Path()
-        barrel.move(to: CGPoint(x: 0, y: -5))
-        barrel.addLine(to: CGPoint(x: 0, y: -21))
-
-        // Срез кончика: тёмный клин, в него «стекают» чернила
-        var nib = Path()
-        nib.move(to: CGPoint(x: 0.2, y: 0))
-        nib.addLine(to: CGPoint(x: -1.6, y: -6))
-        nib.addLine(to: CGPoint(x: 1.8, y: -6.5))
-        nib.closeSubpath()
-
-        var quill = ctx
-        quill.opacity = Double(1 - lift)
-        quill.translateBy(x: tip.x + 14 * lift, y: tip.y - 34 * lift)
-        quill.rotate(by: .degrees(30 + sway))
-
-        // Мягкая тень на пергаменте: то же перо, смещённое вниз и вправо
-        var shadow = quill
-        shadow.translateBy(x: 2.5, y: 3.5)
-        shadow.fill(vane, with: .color(Color.black.opacity(0.14)))
-        shadow.stroke(barrel, with: .color(Color.black.opacity(0.14)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-
-        quill.fill(vane, with: .color(c(P.pearl, 0.97)))
-        quill.fill(vane, with: .color(c(P.parchmentEdge, 0.28)))
-        quill.stroke(barbs, with: .color(c(P.parchmentEdge, 0.95)), lineWidth: 0.5)
-        quill.stroke(vane, with: .color(c(P.goldDark, 0.55)), lineWidth: 0.6)
-        quill.stroke(barrel, with: .color(c(P.goldDark, 0.65)), style: StrokeStyle(lineWidth: 3.6, lineCap: .round))
-        quill.stroke(barrel, with: .color(c(P.pearl)), style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
-        quill.stroke(shaft, with: .color(c(P.goldDark, 0.85)), style: StrokeStyle(lineWidth: 1, lineCap: .round))
-        quill.fill(nib, with: .color(c(P.ink)))
     }
 
     // MARK: Украшение на внешнем поле: стебель растёт снизу вверх, наверху крест

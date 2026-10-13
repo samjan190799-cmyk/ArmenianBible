@@ -21,18 +21,18 @@ enum ManuscriptWritingSpeed: Int, CaseIterable, Identifiable {
     /// Секунд на один знак: столько перо выводит одну букву
     var secondsPerCharacter: Double {
         switch self {
-        case .slow: return 0.14
-        case .medium: return 0.09
-        case .fast: return 0.05
+        case .slow: return 0.20
+        case .medium: return 0.12
+        case .fast: return 0.07
         }
     }
 
     /// Границы длительности письма всего стиха: короткий не мелькает, длинный не тянется вечность
     var durationRange: ClosedRange<Double> {
         switch self {
-        case .slow: return 6.0 ... 16.0
-        case .medium: return 4.0 ... 10.0
-        case .fast: return 2.8 ... 7.1
+        case .slow: return 8.0 ... 22.0
+        case .medium: return 5.0 ... 13.0
+        case .fast: return 3.5 ... 8.0
         }
     }
 
@@ -99,6 +99,8 @@ struct ManuscriptGlyph {
     let x: CGFloat
     let nextX: CGFloat
     let path: Path
+    /// Как перо пишет эту букву: путь вдоль штрихов и их толщина. nil — не удалось построить, буква проступает целиком
+    let plan: ManuscriptStrokePlan?
     let color: Color
     /// Где перо касается буквы в начале и где отрывается в конце
     let startPoint: CGPoint
@@ -112,6 +114,7 @@ enum ManuscriptGlyphs {
         let index: Int
         let x: CGFloat
         let path: Path
+        let plan: ManuscriptStrokePlan?
         let color: Color
     }
 
@@ -143,13 +146,19 @@ enum ManuscriptGlyphs {
             CTRunGetStringIndices(run, whole, &indices)
 
             for i in 0 ..< count {
-                // CoreText даёт контур с осью Y вверх; переворачиваем и сдвигаем на место буквы в строке
-                var flip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: positions[i].x, ty: -positions[i].y)
+                // CoreText даёт контур с осью Y вверх; переворачиваем (ось Y вниз) и сдвигаем на место буквы в строке
+                var flip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: 0)
                 var path = Path()
-                if let outline = CTFontCreatePathForGlyph(font, glyphs[i], &flip) {
-                    path = Path(outline)
+                var plan: ManuscriptStrokePlan?
+                if let outline = CTFontCreatePathForGlyph(font, glyphs[i], &flip), !outline.isEmpty {
+                    var shift = CGAffineTransform(translationX: positions[i].x, y: -positions[i].y)
+                    if let placed = outline.copy(using: &shift) { path = Path(placed) }
+                    // План письма зависит только от шрифта и номера глифа, поэтому считается один раз на букву
+                    let key = "\(CTFontCopyPostScriptName(font) as String)|\(CTFontGetSize(font))|\(glyphs[i])"
+                    plan = ManuscriptStrokePlanner.cachedPlan(key: key, outline: outline)?
+                        .translated(dx: positions[i].x, dy: -positions[i].y)
                 }
-                raws.append(Raw(index: indices[i], x: positions[i].x, path: path, color: color))
+                raws.append(Raw(index: indices[i], x: positions[i].x, path: path, plan: plan, color: color))
             }
         }
         guard !raws.isEmpty else { return [] }
@@ -192,11 +201,11 @@ enum ManuscriptGlyphs {
                     break
                 }
             }
-            let startPoint = first ?? CGPoint(x: raw.x, y: 0)
+            let startPoint = raw.plan?.points.first ?? first ?? CGPoint(x: raw.x, y: 0)
             result.append(ManuscriptGlyph(
                 from: from, to: max(to, from + 1), x: raw.x, nextX: nextX,
-                path: raw.path, color: raw.color,
-                startPoint: startPoint, endPoint: last ?? startPoint
+                path: raw.path, plan: raw.plan, color: raw.color,
+                startPoint: startPoint, endPoint: raw.plan?.points.last ?? last ?? startPoint
             ))
         }
         return result

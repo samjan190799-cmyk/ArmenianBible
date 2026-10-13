@@ -53,6 +53,9 @@ struct ManuscriptStudioView: View {
     @StateObject private var motion = ManuscriptMotion()
     @AppStorage("luys_manuscript_name") private var name = ""
     @AppStorage(ManuscriptWritingSpeed.storageKey) private var writingSpeedRaw = ManuscriptWritingSpeed.defaultValue.rawValue
+    @AppStorage(ManuscriptPen.storageKey) private var penRaw = ManuscriptPen.defaultValue.rawValue
+    @ObservedObject private var subscription = SubscriptionManager.shared
+    @State private var isShowingPens = false
 
     @State private var startDate = Date()
     @State private var isTurned: Bool
@@ -203,6 +206,13 @@ struct ManuscriptStudioView: View {
                 open(opened)
             }
         }
+        .sheet(isPresented: $isShowingPens) {
+            ManuscriptPenSheet(language: language, selectedRaw: $penRaw)
+        }
+        .onChange(of: penRaw) { _ in
+            // Новое перо сразу пишет страницу заново: видно и перо, и чернила
+            restart()
+        }
         .alert(
             language.pick(hy: "Անուն հիշատակարանի համար", ru: "Имя для памятной записи", en: "Name for the colophon"),
             isPresented: $isEditingName
@@ -232,7 +242,7 @@ struct ManuscriptStudioView: View {
         } else if raw.id == currentId {
             TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
                 let page = styled(raw, look: look)
-                let length = ManuscriptTextLayout.cached(for: page).length
+                let length = ManuscriptTextLayout.cached(for: page, pen: activePen).length
                 let elapsed = frozenTime ?? timeline.date.timeIntervalSince(started)
                 let reveal = reduceMotion ? ManuscriptReveal.complete : ManuscriptReveal.at(time: elapsed, textLength: length, turned: turned, speed: writingSpeed)
                 pageFrame(page: page, reveal: reveal, sheen: sheen(at: timeline.date), scale: scale)
@@ -251,7 +261,7 @@ struct ManuscriptStudioView: View {
     }
 
     private func pageFrame(page: ManuscriptPage, reveal: ManuscriptReveal, sheen: CGPoint, scale: CGFloat) -> some View {
-        ManuscriptPageView(page: page, reveal: reveal, sheen: sheen)
+        ManuscriptPageView(page: page, reveal: reveal, sheen: sheen, pen: activePen)
             .scaleEffect(scale)
             .frame(width: ManuscriptGeometry.size.width * scale, height: ManuscriptGeometry.size.height * scale)
             .shadow(color: Color.black.opacity(0.6), radius: 18, x: 0, y: 10)
@@ -272,6 +282,9 @@ struct ManuscriptStudioView: View {
             }
             .accessibilityLabel(Text(language.pick(hy: "Փակել", ru: "Закрыть", en: "Close")))
 
+            // Пустое место слева равно ширине кнопки пера справа: заголовок остаётся по центру
+            Color.clear.frame(width: 38, height: 38)
+
             Spacer()
 
             VStack(spacing: 1) {
@@ -285,6 +298,18 @@ struct ManuscriptStudioView: View {
             }
 
             Spacer()
+
+            Button {
+                Haptics.impact(.soft)
+                isShowingPens = true
+            } label: {
+                Image(systemName: "pencil.and.outline")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Self.parchmentInk)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
+            }
+            .accessibilityLabel(Text(language.pick(hy: "Գրիչ", ru: "Перо", en: "Pen")))
 
             Button {
                 Haptics.impact(.soft)
@@ -423,6 +448,12 @@ struct ManuscriptStudioView: View {
         return CGPoint(x: sin(t * 0.7) * 0.85, y: cos(t * 0.45) * 0.35)
     }
 
+    /// Выбранное перо; если Premium закончился, платное перо заменяется бесплатным
+    private var activePen: ManuscriptPen {
+        let chosen = ManuscriptPen(rawValue: penRaw) ?? ManuscriptPen.defaultValue
+        return chosen.isFree || subscription.isPremium ? chosen : ManuscriptPen.defaultValue
+    }
+
     private var writingSpeed: ManuscriptWritingSpeed {
         ManuscriptWritingSpeed(rawValue: writingSpeedRaw) ?? ManuscriptWritingSpeed.defaultValue
     }
@@ -437,7 +468,7 @@ struct ManuscriptStudioView: View {
         guard !reduceMotion, frozenTime == nil else { return }
         let token = UUID()
         animationToken = token
-        let length = ManuscriptTextLayout.cached(for: currentPage).length
+        let length = ManuscriptTextLayout.cached(for: currentPage, pen: activePen).length
         let turned = isTurned
         let finish = ManuscriptReveal.totalDuration(textLength: length, turned: turned, speed: writingSpeed) - 0.3
         let firstTick = turned ? 0.3 : 1.6
@@ -532,7 +563,7 @@ struct ManuscriptStudioView: View {
     /// Картинка 1080×1920 для сторис и фотоальбома: готовая страница, золото с бликом, подпись Luys
     @MainActor
     private func renderImage() -> UIImage? {
-        let content = ManuscriptPageView(page: currentPage, reveal: .complete, sheen: CGPoint(x: 0.18, y: -0.12), showsWatermark: true)
+        let content = ManuscriptPageView(page: currentPage, reveal: .complete, sheen: CGPoint(x: 0.18, y: -0.12), showsWatermark: true, pen: activePen)
         let renderer = ImageRenderer(content: content)
         renderer.scale = 3
         if let image = renderer.uiImage {
