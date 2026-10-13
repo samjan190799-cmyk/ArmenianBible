@@ -153,6 +153,10 @@ struct PrayerSanctuaryView: View {
                 candleManager.cleanExpiredCandles()
                 #if DEBUG || targetEnvironment(simulator)
                 candleManager.seedDemoCandlesIfRequested()
+                // -candle_island_demo YES: сразу показать первую свечу в острове
+                if UserDefaults.standard.bool(forKey: "candle_island_demo"), let first = candleManager.activeCandles.first {
+                    CandleIslandManager.shared.show(first, language: manager.appLanguage)
+                }
                 // -candle_detail 1: сразу открыть лист свечи с этим номером
                 if let raw = UserDefaults.standard.string(forKey: "candle_detail"), let index = Int(raw) {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
@@ -847,7 +851,8 @@ struct CandleDetailPrayerSheetView: View {
     let language: AppLanguage
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var candleManager = CandleManager.shared
-    
+    @ObservedObject private var islandManager = CandleIslandManager.shared
+
     @State private var previewBurnProgress: Double? = nil
     @State private var isSimulatingMelting: Bool = false
     @State private var selectedDuration: Double = 4.0 // 4 секунды по умолчанию
@@ -1052,7 +1057,39 @@ struct CandleDetailPrayerSheetView: View {
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())
-                        
+
+                        // Кнопка: показать эту свечу в Dynamic Island и на экране блокировки
+                        if candle.isLit && (islandManager.isAvailable || islandManager.isShowing(candle)) {
+                            let isInIsland = islandManager.isShowing(candle)
+                            Button {
+                                Haptics.notify(.success)
+                                if isInIsland {
+                                    islandManager.hide()
+                                } else {
+                                    islandManager.show(candle, language: language)
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: isInIsland ? "checkmark.circle.fill" : "flame")
+                                        .font(.system(size: 15, weight: .semibold))
+                                    Text(isInIsland
+                                         ? (language == .armenian ? "✓ Ցուցադրվում է Dynamic Island-ում" : (language == .russian ? "✓ Свеча в острове" : "✓ Showing in Dynamic Island"))
+                                         : (language == .armenian ? "Ցուցադրել Dynamic Island-ում" : (language == .russian ? "Показать в острове" : "Show in Dynamic Island")))
+                                        .font(PaperFont.font(size: 14, weight: .semibold))
+                                }
+                                .foregroundColor(isInIsland ? Paper.gold : Paper.ink)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .background(isInIsland ? Paper.gold.opacity(0.25) : Paper.fillMuted)
+                                .cornerRadius(14)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(isInIsland ? Paper.gold : Paper.fillMuted, lineWidth: 1.2)
+                                )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+
                         Button {
                             Haptics.notify(.success)
                             dismiss()

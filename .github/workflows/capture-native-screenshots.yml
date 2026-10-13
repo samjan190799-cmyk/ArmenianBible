@@ -23,6 +23,7 @@ on:
           - manuscript
           - features
           - candles
+          - island
 
 jobs:
   capture-screenshots:
@@ -97,7 +98,8 @@ jobs:
               CODE_SIGNING_REQUIRED=NO
 
             local APP_PATH=$(find ./DerivedData -name "ArmenianBible.app" | head -1)
-            rm -rf "$APP_PATH/PlugIns"
+            # Для сцены «island» расширение виджетов нужно: именно оно рисует свечу в острове
+            if [ "$SCOPE" != "island" ]; then rm -rf "$APP_PATH/PlugIns"; fi
             xcrun simctl install "$UDID" "$APP_PATH"
 
             # Настройка: скрываем экранную клавиатуру, ставим эталонный статус-бар Apple (9:41 AM, 100% батарея)
@@ -115,6 +117,28 @@ jobs:
             sleep 8
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
+
+            # 15. Свеча в острове: макет раскрытого острова и экрана блокировки, настоящий свёрнутый остров
+            if [ "$SCOPE" = "island" ]; then
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab islandpreview -luys_ads_enabled NO -luys_debug_language russian
+              sleep 8
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/15_Island_preview.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              sleep 2
+              echo "📸 Настоящий остров: приложение зажигает свечу и уходит в фон"
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab sanctuary -candle_seed YES -candle_island_demo YES -luys_ads_enabled NO -luys_debug_language russian
+              sleep 10
+              xcrun simctl launch "$UDID" com.apple.Preferences
+              sleep 5
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/15_Island_compact.png"
+              sleep 20
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/15_Island_compact_later.png"
+              xcrun simctl terminate "$UDID" com.apple.Preferences || true
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты свечи в острове для $DEV_LABEL сняты"
+              return 0
+            fi
 
             # 14. Свечи: притвор, лист свечи на разных стадиях горения, зажжение
             if [ "$SCOPE" = "candles" ]; then

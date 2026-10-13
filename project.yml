@@ -50,6 +50,7 @@ targets:
           - SKAdNetworkIdentifier: tl5878mr92.skadnetwork
           - SKAdNetworkIdentifier: v9wttpbfk9.skadnetwork
           - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
+        NSSupportsLiveActivities: true
         UIBackgroundModes:
           - audio
         UIAppFonts:
@@ -119,6 +120,9 @@ targets:
       - path: Sources/BibleVerseDatabase+Faith2.swift
       - path: Sources/BibleVerseDatabase+Filter.swift
       - path: Sources/PrayerCandleModels.swift
+      - path: Sources/CandleRenderer.swift
+      - path: Sources/CandleActivityAttributes.swift
+      - path: Sources/CandleIslandViews.swift
       - path: Sources/en.lproj
       - path: Sources/ru.lproj
       - path: Sources/hy.lproj

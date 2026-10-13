@@ -44,6 +44,11 @@ final class CandleManager: ObservableObject {
     }
     #endif
 
+    /// Новая свеча сразу загорается в Dynamic Island и на экране блокировки
+    private func showInIsland(_ candle: PrayerCandle) {
+        CandleIslandManager.shared.show(candle, language: BibleManager.shared.appLanguage)
+    }
+
     // MARK: - Проверка доступности бесплатной свечи дня
     func checkDailyFreeStatus() {
         guard let lastDate = UserDefaults.standard.object(forKey: kLastFreeCandleDateKey) as? Date else {
@@ -68,7 +73,8 @@ final class CandleManager: ObservableObject {
         
         activeCandles.insert(candle, at: 0)
         saveCandles()
-        
+        showInIsland(candle)
+
         UserDefaults.standard.set(Date(), forKey: kLastFreeCandleDateKey)
         hasUsedDailyFreeCandle = true
         
@@ -111,6 +117,7 @@ final class CandleManager: ObservableObject {
             )
             activeCandles.insert(candle, at: 0)
             saveCandles()
+            showInIsland(candle)
             PomegranateTreeManager.shared.nourishWithDew(amount: 1)
             Haptics.notify(.success)
             return true
@@ -142,6 +149,7 @@ final class CandleManager: ObservableObject {
                     )
                     self.activeCandles.insert(candle, at: 0)
                     self.saveCandles()
+                    self.showInIsland(candle)
                     self.isPurchasing = false
                     PomegranateTreeManager.shared.nourishWithDew(amount: 1)
                     Haptics.notify(.success)
@@ -194,7 +202,8 @@ final class CandleManager: ObservableObject {
         if activeCandles.count != initialCount {
             saveCandles()
         }
-        
+        CandleIslandManager.shared.sync(with: activeCandles, language: BibleManager.shared.appLanguage)
+
         // Если выбранная для виджета свеча угасла, сбрасываем на автовыбор
         if let selectedId = selectedWidgetCandleId,
            !activeCandles.contains(where: { $0.id.uuidString == selectedId }) {

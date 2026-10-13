@@ -75,6 +75,7 @@ struct ContentView: View {
                     manager.authenticateWithBiometrics()
                 }
                 updateManager.checkForUpdates(language: manager.appLanguage)
+                CandleIslandManager.shared.sync(with: CandleManager.shared.activeCandles, language: manager.appLanguage)
             }
         }
         .onAppear {
@@ -82,6 +83,7 @@ struct ContentView: View {
                 manager.authenticateWithBiometrics()
             }
             updateManager.checkForUpdates(language: manager.appLanguage)
+            CandleIslandManager.shared.sync(with: CandleManager.shared.activeCandles, language: manager.appLanguage)
         }
     }
 }
@@ -558,6 +560,7 @@ struct HomeView: View {
             }
         }
         .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
+        .modifier(CandleIslandPreviewHook())
         .onAppear {
             if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
                 if tabArg == "calendar" {

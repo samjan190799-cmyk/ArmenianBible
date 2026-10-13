@@ -1271,6 +1271,7 @@ struct ArmenianBibleWidgetBundle: WidgetBundle {
     var body: some Widget {
         BibleWidget()
         PrayerCandleWidget()
+        CandleLiveActivity()
     }
 }
 
