@@ -38,7 +38,7 @@ final class CandleManager: ObservableObject {
                 personName: name,
                 intention: intention,
                 tier: tier,
-                litDate: Date().addingTimeInterval(-tier.duration * progress)
+                litDate: Date().addingTimeInterval(-Double(tier.burnHours) * 3600 * progress)
             )
         }
     }
