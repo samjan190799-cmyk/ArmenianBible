@@ -322,7 +322,7 @@ enum SanctuaryCatalog {
               let verse = chapter.verses.first(where: { $0.verseNumber == ref.verse }) else { return nil }
         // В базе встречаются пояснения в фигурных скобках ({Пётр: это имя означает камень}): на карточке они лишние
         let text = verse.text(for: language)
-            .replacingOccurrences(of: "\{[^}]*\}", with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\{[^}]*\}"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: "  ", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
