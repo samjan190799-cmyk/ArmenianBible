@@ -297,8 +297,7 @@ struct SanctuaryMapView: View {
             if locked {
                 lockedBlock
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
+                let content = VStack(alignment: .leading, spacing: 12) {
                         Text(site.history(language))
                             .font(PaperFont.font(size: 14))
                             .foregroundColor(Paper.ink)
@@ -339,7 +338,11 @@ struct SanctuaryMapView: View {
                                 Rectangle().fill(Paper.gold.opacity(0.7)).frame(width: 2)
                             }
                         }
-                    }
+                }
+
+                ViewThatFits(in: .vertical) {
+                    content
+                    ScrollView { content }
                 }
                 .frame(maxHeight: UIScreen.main.bounds.height * 0.36)
 
@@ -429,8 +432,8 @@ struct SanctuaryMapView: View {
         withAnimation(PaperMotion.appear) {
             selected = site
             region = MKCoordinateRegion(
-                // Центр ниже святыни: пин поднимается над карточкой
-                center: CLLocationCoordinate2D(latitude: site.latitude - 0.07, longitude: site.longitude),
+                // Центр ниже святыни: пин поднимается над карточкой (у закрытой святыни карточка ниже)
+                center: CLLocationCoordinate2D(latitude: site.latitude - (isLocked(site) ? 0.05 : 0.105), longitude: site.longitude),
                 span: MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35)
             )
         }
