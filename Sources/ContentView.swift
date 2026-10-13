@@ -181,6 +181,7 @@ struct HomeView: View {
     @State private var isShowingPomegranateSanctuary = false
     @State private var isShowingPaywall = false
     @State private var manuscriptLaunch: ManuscriptLaunch? = nil
+    @State private var isShowingCodex = false
     @State private var isShowingConsolation = false
     @State private var isShowingSanctuaryMap = false
 
@@ -325,7 +326,21 @@ struct HomeView: View {
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
 
-                            // 2. Кнопка Генератора Обоев для LockScreen
+                            // 2. Кнопка «На пергаменте»: этот же стих на странице армянского манускрипта
+                            Button {
+                                triggerHaptic(.soft)
+                                manuscriptLaunch = ManuscriptLaunch(source: .curated(first: ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)))
+                            } label: {
+                                Image(systemName: "scroll")
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundColor(Paper.inkSecondary)
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
+                            .accessibilityLabel(Text(ManuscriptText.pick(manager.appLanguage, hy: "Մագաղաթի վրա", ru: "На пергаменте", en: "On vellum")))
+
+                            // 3. Кнопка Генератора Обоев для LockScreen
                             Button {
                                 triggerHaptic(.soft)
                                 isShowingWallpaperMaker = true
@@ -338,7 +353,7 @@ struct HomeView: View {
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
 
-                            // 3. Кнопка Поделиться открыткой
+                            // 4. Кнопка Поделиться открыткой
                             Button {
                                 triggerHaptic(.soft)
                                 shareVerseAsImage()
@@ -387,14 +402,20 @@ struct HomeView: View {
                         .padding(.vertical, 2)
                         .staggeredEntrance(index: 1)
 
-                    // MARK: - Карточка «Рукописи»: стих дня на странице армянского манускрипта
+                    // MARK: - Карточка «Мой Матенадаран»: собранные листы рукописи и новый лист
+                    // Стих дня на пергаменте открывается кнопкой в верхней карточке стиха
                     ManuscriptBannerCardView(
                         language: manager.appLanguage,
                         primaryTextColor: primaryTextColor,
-                        previewPage: ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage),
-                        onOpen: {
+                        onOpenCodex: {
                             triggerHaptic(.soft)
-                            manuscriptLaunch = ManuscriptLaunch(source: .curated(first: ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)))
+                            isShowingCodex = true
+                        },
+                        onNewLeaf: {
+                            triggerHaptic(.soft)
+                            let fresh = ManuscriptPool.curatedPages(language: manager.appLanguage, excluding: [], count: 1).first
+                                ?? ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)
+                            manuscriptLaunch = ManuscriptLaunch(source: .curated(first: fresh))
                         }
                     )
                     .staggeredEntrance(index: 2)
@@ -610,6 +631,14 @@ struct HomeView: View {
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
+        }
+        .sheet(isPresented: $isShowingCodex) {
+            ManuscriptLibraryView { opened in
+                // Библиотека сама закрывается после выбора; мастерская открывается, когда она уйдёт
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    manuscriptLaunch = ManuscriptLaunch(source: .curated(first: opened))
+                }
+            }
         }
         .fullScreenCover(item: $manuscriptLaunch) { launch in
             ManuscriptStudioView(source: launch.source)

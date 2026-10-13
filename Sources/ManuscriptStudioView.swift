@@ -751,78 +751,132 @@ struct ManuscriptCodexCover: View {
     }
 }
 
-// MARK: - Карточка на главном экране
+// MARK: - Карточка на главном экране: «Мой Матенадаран»
+/// Стих дня на главной уже есть в верхней карточке (там же кнопка «На пергаменте»), поэтому эта
+/// карточка не повторяет его, а ведёт к собранным листам и к новому листу.
 struct ManuscriptBannerCardView: View {
     let language: AppLanguage
     let primaryTextColor: Color
-    let previewPage: ManuscriptPage
-    let onOpen: () -> Void
+    /// Открыть собранные листы (когда они есть)
+    let onOpenCodex: () -> Void
+    /// Открыть мастерскую на новом случайном листе
+    let onNewLeaf: () -> Void
 
     @ObservedObject private var library = ManuscriptLibrary.shared
+    @State private var samplePage: ManuscriptPage?
+
+    private var thumbnailPage: ManuscriptPage? { library.pages.first ?? samplePage }
+
+    private var subtitle: String {
+        let count = library.pages.count
+        let total = ManuscriptLibrary.codexSize
+        if count == 0 {
+            return ManuscriptText.pick(
+                language,
+                hy: "Դեռ դատարկ է. բացեք համարը մագաղաթի վրա և պահեք էջը",
+                ru: "Пока пусто. Откройте стих на пергаменте и сохраните лист",
+                en: "Nothing yet. Open a verse on vellum and save the page"
+            )
+        }
+        if library.isCodexBound {
+            return ManuscriptText.pick(
+                language,
+                hy: "Կոդեքսը կազմված է · \(count) էջ",
+                ru: "Кодекс переплетён · \(count) стр.",
+                en: "Codex bound · \(count) pages"
+            )
+        }
+        return ManuscriptText.pick(
+            language,
+            hy: "\(count) էջ · մինչև կազմը՝ \(total - count)",
+            ru: "\(count) стр. · до переплёта: \(total - count)",
+            en: "\(count) pages · \(total - count) to bind it"
+        )
+    }
 
     var body: some View {
-        Button {
-            onOpen()
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(ManuscriptPalette.color(0x15100B))
-                        .frame(width: 68, height: 68)
-                    ManuscriptPageView(page: previewPage, sheen: CGPoint(x: 0.25, y: -0.2))
-                        .scaleEffect(60 / ManuscriptGeometry.size.height)
-                        .frame(width: ManuscriptGeometry.size.width * 60 / ManuscriptGeometry.size.height, height: 60)
-                        .shadow(color: Color.black.opacity(0.5), radius: 3, x: 0, y: 2)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(ManuscriptText.pick(language, hy: "ՁԵՌԱԳԻՐ", ru: "РУКОПИСЬ", en: "MANUSCRIPT"))
-                            .font(PaperFont.font(size: 10, weight: .semibold))
-                            .foregroundColor(Paper.cinnabar)
-                            .tracking(1.2)
-                        if library.pages.isEmpty {
-                            Text(ManuscriptText.pick(language, hy: "ՆՈՐ", ru: "НОВОЕ", en: "NEW"))
-                                .font(PaperFont.font(size: 8, weight: .semibold))
-                                .foregroundColor(Paper.gold)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .overlay(Capsule().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 0.8))
-                        } else {
-                            Text("\(library.pages.count)/\(ManuscriptLibrary.codexSize)")
-                                .font(PaperFont.font(size: 8, weight: .semibold))
-                                .foregroundColor(Paper.inkSecondary)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .overlay(Capsule().strokeBorder(Paper.hairline, lineWidth: 0.8))
+        HStack(spacing: 10) {
+            Button {
+                if library.pages.isEmpty { onNewLeaf() } else { onOpenCodex() }
+            } label: {
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(ManuscriptPalette.color(0x15100B))
+                            .frame(width: 68, height: 68)
+                        if let page = thumbnailPage {
+                            ManuscriptPageView(page: page, sheen: CGPoint(x: 0.25, y: -0.2))
+                                .scaleEffect(60 / ManuscriptGeometry.size.height)
+                                .frame(width: ManuscriptGeometry.size.width * 60 / ManuscriptGeometry.size.height, height: 60)
+                                .shadow(color: Color.black.opacity(0.5), radius: 3, x: 0, y: 2)
                         }
                     }
-                    Text(ManuscriptText.pick(language, hy: "Ձեր համարը մագաղաթի վրա", ru: "Ваш стих на пергаменте", en: "Your verse on vellum"))
-                        .font(PaperFont.font(size: 17, weight: .semibold))
-                        .foregroundColor(primaryTextColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                    Text(ManuscriptText.pick(
-                        language,
-                        hy: "Գրիչը գրում է, ոսկին փայլում է թեքելիս",
-                        ru: "Перо пишет, золото бликует при наклоне",
-                        en: "The pen writes, the gold glints as you tilt"
-                    ))
-                    .font(PaperFont.font(size: 12))
-                    .foregroundColor(Paper.inkSecondary)
-                    .lineLimit(2)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Text(ManuscriptText.pick(language, hy: "ՁԵՌԱԳԻՐ", ru: "РУКОПИСЬ", en: "MANUSCRIPT"))
+                                .font(PaperFont.font(size: 10, weight: .semibold))
+                                .foregroundColor(Paper.cinnabar)
+                                .tracking(1.2)
+                            if library.pages.isEmpty {
+                                Text(ManuscriptText.pick(language, hy: "ՆՈՐ", ru: "НОВОЕ", en: "NEW"))
+                                    .font(PaperFont.font(size: 8, weight: .semibold))
+                                    .foregroundColor(Paper.gold)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .overlay(Capsule().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 0.8))
+                            } else {
+                                Text("\(library.pages.count)/\(ManuscriptLibrary.codexSize)")
+                                    .font(PaperFont.font(size: 8, weight: .semibold))
+                                    .foregroundColor(Paper.inkSecondary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .overlay(Capsule().strokeBorder(Paper.hairline, lineWidth: 0.8))
+                            }
+                        }
+                        Text(ManuscriptText.pick(language, hy: "Իմ Մատենադարանը", ru: "Мой Матенадаран", en: "My Matenadaran"))
+                            .font(PaperFont.font(size: 17, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        Text(subtitle)
+                            .font(PaperFont.font(size: 12))
+                            .foregroundColor(Paper.inkSecondary)
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: 0)
                 }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.97))
 
-                Spacer(minLength: 0)
-
+            if library.pages.isEmpty {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Paper.inkTertiary)
+            } else {
+                // Новый лист: случайный стих на пергаменте, не стих дня
+                Button {
+                    onNewLeaf()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Paper.gold)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 1))
+                }
+                .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.9))
+                .accessibilityLabel(Text(ManuscriptText.pick(language, hy: "Նոր էջ", ru: "Новый лист", en: "New page")))
             }
-            .padding(14)
-            .paperSheet(cornerRadius: 18)
-            .padding(.horizontal, 20)
         }
-        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
+        .padding(14)
+        .paperSheet(cornerRadius: 18)
+        .padding(.horizontal, 20)
+        .onAppear {
+            if samplePage == nil {
+                samplePage = ManuscriptPool.curatedPages(language: language, excluding: [], count: 1).first
+            }
+        }
     }
 }
