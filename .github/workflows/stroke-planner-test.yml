@@ -1,8 +1,14 @@
 name: Stroke Planner Test
 
 # Запускает настоящий Swift-код планировщика письма пером на шрифте приложения.
-# Только вручную и для рабочих веток: в TestFlight ничего не отправляет.
+# В TestFlight ничего не отправляет: запускается на пуш в feat/** и вручную.
 on:
+  push:
+    branches: [ "feat/**" ]
+    paths:
+      - "Sources/ManuscriptStrokePlanner.swift"
+      - "Tools/StrokePlannerTest/**"
+      - ".github/workflows/stroke-planner-test.yml"
   workflow_dispatch:
 
 permissions:
