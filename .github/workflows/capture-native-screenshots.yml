@@ -103,7 +103,12 @@ jobs:
             if [ "$SCOPE" = "island" ]; then
               echo "--- Info.plist расширения"
               plutil -p "$APP_PATH/PlugIns/BibleWidget.appex/Info.plist" | head -40 || true
-              # Без подписи симулятор не создаёт заглушку расширения («Invalid placeholder attributes»)
+              # В сборке для симулятора у расширения нет CFBundleVersion, и симулятор не создаёт заглушку
+              # («Invalid placeholder attributes»): дописываем версию и подписываем ad-hoc
+              for PLIST in "$APP_PATH/PlugIns/BibleWidget.appex/Info.plist" "$APP_PATH/Info.plist"; do
+                /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST" >/dev/null 2>&1                   || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 1" "$PLIST"
+                /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST" || true
+              done
               codesign --force --sign - "$APP_PATH/PlugIns/BibleWidget.appex" || true
               codesign --force --sign - "$APP_PATH" || true
             fi
