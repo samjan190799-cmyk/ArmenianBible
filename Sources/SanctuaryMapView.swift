@@ -341,7 +341,7 @@ struct SanctuaryMapView: View {
                 }
 
                 ViewThatFits(in: .vertical) {
-                    content
+                    content.fixedSize(horizontal: false, vertical: true)
                     ScrollView { content }
                 }
                 .frame(maxHeight: UIScreen.main.bounds.height * 0.36)

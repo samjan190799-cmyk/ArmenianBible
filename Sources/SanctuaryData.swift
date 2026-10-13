@@ -320,7 +320,11 @@ enum SanctuaryCatalog {
         guard let ref = site.verse,
               let chapter = BibleDatabase.shared.getChapterText(bookId: ref.bookId, chapter: ref.chapter),
               let verse = chapter.verses.first(where: { $0.verseNumber == ref.verse }) else { return nil }
-        let text = verse.text(for: language).trimmingCharacters(in: .whitespacesAndNewlines)
+        // В базе встречаются пояснения в фигурных скобках ({Пётр: это имя означает камень}): на карточке они лишние
+        let text = verse.text(for: language)
+            .replacingOccurrences(of: "\{[^}]*\}", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
         let book: String
         switch language {
