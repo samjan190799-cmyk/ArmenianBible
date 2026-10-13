@@ -150,7 +150,8 @@ struct PrayerSanctuaryView: View {
                 CandleDetailPrayerSheetView(candle: candle, language: manager.appLanguage)
             }
             .onAppear {
-
+                candleManager.cleanExpiredCandles()
+                #if DEBUG
                 candleManager.seedDemoCandlesIfRequested()
                 // -candle_detail 1: сразу открыть лист свечи с этим номером
                 if let raw = UserDefaults.standard.string(forKey: "candle_detail"), let index = Int(raw) {
@@ -255,7 +256,8 @@ struct CandleStandCellView: View {
             onTap()
         } label: {
             ZStack(alignment: .top) {
-: живое пламя, таящий воск, латунный подсвечник
+                VStack(spacing: 8) {
+                    // Свеча в тёмной нише: живое пламя, таящий воск, латунный подсвечник
                     RealisticArmenianCandleView(
                         tier: candle.tier,
                         burnProgress: candle.burnProgress(),
@@ -599,7 +601,7 @@ struct LightCandleFormSheetView: View {
                         Paper.scrim.ignoresSafeArea()
                         VStack(spacing: 18) {
                             RealisticArmenianCandleView(
-
+                                tier: selectedTier,
                                 burnProgress: 0,
                                 isLit: true,
                                 randomSeed: 3,
@@ -870,7 +872,8 @@ struct CandleDetailPrayerSheetView: View {
                     VStack(spacing: 16) {
                         // Интерактивная свеча с живым пламенем и физическим таянием
                         RealisticArmenianCandleView(
-,
+                            tier: candle.tier,
+                            burnProgress: currentBurnProgress,
                             isLit: currentBurnProgress < 0.99,
                             randomSeed: Double(abs(candle.id.hashValue % 100_000)),
                             quality: .hero
