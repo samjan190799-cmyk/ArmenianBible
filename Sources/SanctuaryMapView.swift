@@ -340,11 +340,9 @@ struct SanctuaryMapView: View {
                         }
                 }
 
-                ViewThatFits(in: .vertical) {
-                    content.fixedSize(horizontal: false, vertical: true)
-                    ScrollView { content }
+                FittedScrollView(maxHeight: UIScreen.main.bounds.height * 0.36) {
+                    content
                 }
-                .frame(maxHeight: UIScreen.main.bounds.height * 0.36)
 
                 HStack(spacing: 10) {
                     cardButton(icon: "map", title: language.pick(hy: "Երթուղի", ru: "Маршрут", en: "Directions")) {
@@ -554,5 +552,34 @@ struct SanctuaryMapBannerCardView: View {
             .padding(.horizontal, 20)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
+    }
+}
+
+// MARK: - Прокрутка по высоте содержимого
+/// Короткий текст занимает ровно свою высоту, длинный прокручивается внутри заданного максимума.
+private struct FittedScrollHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+struct FittedScrollView<Content: View>: View {
+    let maxHeight: CGFloat
+    @ViewBuilder let content: () -> Content
+
+    @State private var contentHeight: CGFloat = 0
+
+    var body: some View {
+        ScrollView {
+            content()
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: FittedScrollHeightKey.self, value: proxy.size.height)
+                    }
+                )
+        }
+        .frame(height: min(max(contentHeight, 40), maxHeight))
+        .onPreferenceChange(FittedScrollHeightKey.self) { contentHeight = $0 }
     }
 }
