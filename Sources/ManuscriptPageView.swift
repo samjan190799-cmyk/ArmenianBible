@@ -18,8 +18,12 @@ struct ManuscriptReveal {
     /// Чистый лист с заставкой: так выглядит соседняя страница, пока её листают
     static let leaf = ManuscriptReveal(parchment: 1, frame: 1, headpiece: 1, initial: 0, text: 0, margin: 0, colophon: 0)
 
+    /// Скорость письма относительно первоначальной: 0.65 — на 35% медленнее. Растягивает и
+    /// границы длительности, поэтому короткий и длинный стих замедляются одинаково
+    private static let writingSpeed = 0.65
+
     static func textDuration(for length: Int) -> Double {
-        min(4.6, max(1.8, Double(length) * 0.032))
+        min(4.6, max(1.8, Double(length) * 0.032)) / writingSpeed
     }
 
     /// Полная запись начинается с пустого пергамента; на перевёрнутом листе рамка и заставка уже есть
