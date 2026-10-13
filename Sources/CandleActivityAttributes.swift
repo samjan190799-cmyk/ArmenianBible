@@ -17,6 +17,8 @@ struct CandleActivityAttributes: ActivityAttributes {
     var intentionTitle: String
     /// Подпись перед оставшимся временем («Осталось»)
     var remainingLabel: String
+    /// Язык приложения: по нему система форматирует «4 дня, 4 часа»
+    var localeIdentifier: String
     var litDate: Date
     var expirationDate: Date
 

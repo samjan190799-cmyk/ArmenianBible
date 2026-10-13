@@ -38,6 +38,7 @@ struct CandleIslandPreviewView: View {
             intentionIcon: intention.icon,
             intentionTitle: intention.title(for: .russian),
             remainingLabel: "Осталось",
+            localeIdentifier: AppLanguage.russian.localeCode,
             litDate: lit,
             expirationDate: lit.addingTimeInterval(duration)
         )

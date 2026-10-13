@@ -18,6 +18,16 @@ struct IslandCandleView: View {
     var showsNiche = false
 
     var body: some View {
+        // Свечение рисуется до самых границ кадра; на чёрном фоне острова это даёт видимый прямоугольник,
+        // поэтому по краям гасим его плавно (в нише у экрана блокировки рамка и так есть)
+        if showsNiche {
+            canvas
+        } else {
+            canvas.mask(edgeFade)
+        }
+    }
+
+    private var canvas: some View {
         Canvas { context, size in
             CandleRenderer.draw(
                 context,
@@ -34,6 +44,17 @@ struct IslandCandleView: View {
                 )
             )
         }
+    }
+
+    private var edgeFade: some View {
+        LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .white, location: 0.22),
+                               .init(color: .white, location: 0.78), .init(color: .clear, location: 1)],
+                       startPoint: .leading, endPoint: .trailing)
+            .mask(
+                LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .white, location: 0.14),
+                                       .init(color: .white, location: 0.86), .init(color: .clear, location: 1)],
+                               startPoint: .top, endPoint: .bottom)
+            )
     }
 }
 
@@ -106,6 +127,7 @@ struct CandleRemainingText: View {
             Text(attributes.remainingLabel)
                 .foregroundColor(.white.opacity(0.6))
             Text(attributes.expirationDate, style: .relative)
+                .environment(\.locale, Locale(identifier: attributes.localeIdentifier))
                 .foregroundColor(CandleIslandPalette.amberSoft)
                 .monospacedDigit()
         }

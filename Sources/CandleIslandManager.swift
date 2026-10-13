@@ -100,6 +100,7 @@ final class CandleIslandManager: ObservableObject {
             intentionIcon: candle.intention.icon,
             intentionTitle: candle.intention.title(for: language),
             remainingLabel: Self.remainingLabel(for: language),
+            localeIdentifier: language.localeCode,
             litDate: candle.litDate,
             expirationDate: candle.expirationDate
         )
