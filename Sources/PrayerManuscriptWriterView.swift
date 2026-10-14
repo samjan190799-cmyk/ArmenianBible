@@ -46,6 +46,12 @@ struct PrayerManuscriptWriterView: View {
     let language: AppLanguage
     /// Строка над текстом на листе: «О здравии · Аракс»
     let reference: String
+    /// Каноническая молитва выбранного намерения: её можно вернуть одной кнопкой
+    let canonicalPrayer: String
+    /// Подпись кнопки «Зажечь свечу» (учитывает PRO и рекламу)
+    let lightTitle: String
+    /// Человек нажал «Зажечь свечу»: форма зажжёт свечу, когда лист закроется
+    let onLight: () -> Void
     @Binding var text: String
 
     @Environment(\.dismiss) private var dismiss
@@ -108,6 +114,7 @@ struct PrayerManuscriptWriterView: View {
                 .shadow(color: Color.black.opacity(0.55), radius: 16, x: 0, y: 8)
 
                 controls
+                lightButton
             }
             .padding(.bottom, 8)
         }
@@ -156,17 +163,8 @@ struct PrayerManuscriptWriterView: View {
 
             Spacer()
 
-            Button {
-                isFocused = false
-                dismiss()
-            } label: {
-                Text(language.pick(hy: "Պատրաստ է", ru: "Готово", en: "Done"))
-                    .font(PaperFont.font(size: 14, weight: .semibold))
-                    .foregroundColor(Self.backdrop)
-                    .padding(.horizontal, 14)
-                    .frame(height: 38)
-                    .background(Capsule().fill(Paper.gold))
-            }
+            // Пустое место справа равно кнопке закрытия слева: заголовок по центру
+            Color.clear.frame(width: 38, height: 38)
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -246,6 +244,21 @@ struct PrayerManuscriptWriterView: View {
             }
             .accessibilityLabel(Text(language.pick(hy: "Գրիչ", ru: "Перо", en: "Pen")))
 
+            if text != canonicalPrayer {
+                Button {
+                    Haptics.impact(.light)
+                    text = canonicalPrayer
+                    isFocused = true
+                } label: {
+                    Image(systemName: "book.closed")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Self.parchmentInk.opacity(0.75))
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Color.white.opacity(0.08)))
+                }
+                .accessibilityLabel(Text(language.pick(hy: "Կանոնական աղոթք", ru: "Каноническая молитва", en: "Canonical prayer")))
+            }
+
             if !text.isEmpty {
                 Button {
                     Haptics.impact(.light)
@@ -261,6 +274,31 @@ struct PrayerManuscriptWriterView: View {
                 .accessibilityLabel(Text(language.pick(hy: "Մաքրել", ru: "Очистить", en: "Clear")))
             }
         }
+    }
+
+    // MARK: Зажечь свечу
+    private var lightButton: some View {
+        Button {
+            Haptics.impact(.soft)
+            isFocused = false
+            onLight()
+            dismiss()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                Text(lightTitle)
+                    .font(PaperFont.font(size: 15, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundColor(Self.backdrop)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Paper.gold))
+        }
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.97))
+        .padding(.horizontal, 16)
     }
 
     // MARK: Ввод прямо на листе

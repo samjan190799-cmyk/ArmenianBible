@@ -360,8 +360,8 @@ struct LightCandleFormSheetView: View {
     @State private var customPrayer: String = ""
     @State private var isShowingSuccessAnimation: Bool = false
     @State private var isShowingWriter: Bool = false
-    /// Молитва написана на пергаменте: после зажжения лист попадает в «Мой Матенадаран»
-    @State private var wroteOnParchment: Bool = false
+    /// Человек нажал «Зажечь свечу» на листе: свеча зажигается, когда лист закроется
+    @State private var pendingLight: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -444,165 +444,16 @@ struct LightCandleFormSheetView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        // 4. Текст молитвы (с возможностью ручного написания)
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text(prayerSectionTitle)
-                                    .font(PaperFont.font(size: 13, weight: .semibold))
-                                    .foregroundColor(Paper.gold)
-                                
-                                Spacer()
-                                
-                                // Кнопка подстановки канонической молитвы
-                                Button {
-                                    triggerHaptic(.light)
-                                    customPrayer = selectedIntention.defaultPrayer(for: language)
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "book.closed")
-                                            .font(.system(size: 10))
-                                        Text(canonicalPrayerButtonTitle)
-                                            .font(PaperFont.font(size: 11, weight: .semibold))
-                                    }
-                                    .foregroundColor(Paper.gold)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Paper.gold.opacity(0.15))
-                                    .cornerRadius(8)
-                                }
-                                .buttonStyle(ScaleButtonStyle())
-                                
-                                if !customPrayer.isEmpty {
-                                    Button {
-                                        triggerHaptic(.light)
-                                        customPrayer = ""
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(Paper.inkTertiary)
-                                    }
-                                }
-                            }
-                            
-                            // Многострочный редактор молитвы с поддержкой ручного ввода
-                            ZStack(alignment: .topLeading) {
-                                if customPrayer.isEmpty {
-                                    Text(prayerPlaceholderText)
-                                        .font(PaperFont.font(size: 14))
-                                        .foregroundColor(Paper.inkTertiary)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 14)
-                                        .allowsHitTesting(false)
-                                }
-                                
-                                TextEditor(text: $customPrayer)
-                                    .font(PaperFont.font(size: 14, weight: .medium))
-                                    .foregroundColor(Paper.ink)
-                                    .lineSpacing(4)
-                                    .scrollContentBackground(.hidden)
-                                    .background(Color.clear)
-                                    .frame(minHeight: 100, maxHeight: 150)
-                                    .padding(8)
-                            }
-                            .background(Paper.fillSubtle)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Paper.hairline, lineWidth: 1)
-                            )
-                            
-                            // Молитва на пергаменте: человек печатает, перо пишет следом
-                            Button {
-                                triggerHaptic(.soft)
-                                isShowingWriter = true
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "pencil.and.outline")
-                                        .font(.system(size: 14, weight: .semibold))
-                                    Text(writeOnVellumTitle)
-                                        .font(PaperFont.font(size: 14, weight: .semibold))
-                                    Spacer(minLength: 0)
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(Paper.inkTertiary)
-                                }
-                                .foregroundColor(Paper.gold)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                                .background(Paper.gold.opacity(0.12))
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Paper.gold.opacity(0.35), lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(ScaleButtonStyle())
-                            
-                            CandleLockPrayerRow(language: language)
-                                .padding(.vertical, 4)
-                            
-                            HStack {
-                                Text(prayerHintText)
-                                    .font(PaperFont.font(size: 10.5))
-                                    .foregroundColor(Paper.inkSecondary)
-                                
-                                Spacer()
-                                
-                                Text("\(customPrayer.count)/500")
-                                    .font(PaperFont.font(size: 10, weight: .medium).monospacedDigit())
-                                    .foregroundColor(customPrayer.count > 500 ? Paper.cinnabar : Paper.inkSecondary.opacity(0.6))
-                            }
-                        }
-                        .padding(.horizontal, 20)
+                        // 4. Приватность: показывать ли начало молитвы без разблокировки
+                        CandleLockPrayerRow(language: language)
+                            .padding(.horizontal, 20)
                         
                         // 5. Кнопка совершения молитвы и возжжения
                         VStack(spacing: 8) {
                             Button {
+                                // Молитва пишется на пергаменте; свеча зажигается кнопкой на листе
                                 triggerHaptic(.soft)
-                                Task {
-                                    let name = personName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                        ? selectedIntention.title(for: language)
-                                        : personName
-                                    
-                                    let prayer = customPrayer.isEmpty ? selectedIntention.defaultPrayer(for: language) : customPrayer
-                                    
-                                    let success = await candleManager.purchaseAndLightCandle(
-                                        tier: selectedTier,
-                                        name: name,
-                                        intention: selectedIntention,
-                                        customPrayer: prayer
-                                    )
-                                    
-                                    if success {
-                                        // Лист с молитвой для большого виджета свечи
-                                        if let lit = candleManager.activeCandles.first {
-                                            candleManager.attachParchment(to: lit.id, page: ManuscriptPage(
-                                                text: prayer,
-                                                reference: parchmentReference,
-                                                language: language,
-                                                style: ManuscriptPage.preferredStyle,
-                                                name: ManuscriptPage.rememberedName
-                                            ))
-                                        }
-                                        // Лист, написанный пером, остаётся в кодексе рядом с остальными
-                                        if wroteOnParchment,
-                                           !customPrayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                            ManuscriptLibrary.shared.save(ManuscriptPage(
-                                                text: customPrayer,
-                                                reference: parchmentReference,
-                                                language: language,
-                                                style: ManuscriptPage.preferredStyle,
-                                                name: ManuscriptPage.rememberedName
-                                            ))
-                                        }
-                                        withAnimation(.spring()) {
-                                            isShowingSuccessAnimation = true
-                                        }
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                                            dismiss()
-                                        }
-                                    }
-                                }
+                                isShowingWriter = true
                             } label: {
                                 HStack(spacing: 10) {
                                     if candleManager.isPurchasing {
@@ -612,14 +463,10 @@ struct LightCandleFormSheetView: View {
                                             .font(PaperFont.font(size: 15, weight: .semibold))
                                             .foregroundColor(Paper.onAccent)
                                     } else {
-                                        if selectedTier == .rewarded && !SubscriptionManager.shared.isPremium {
-                                            Image(systemName: "play.rectangle.fill")
-                                                .font(.system(size: 18, weight: .semibold))
-                                                .foregroundColor(Paper.onAccent)
-                                        } else {
-                                            FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20, showsAura: false)
-                                        }
-                                        Text(submitButtonText)
+                                        Image(systemName: "pencil.and.outline")
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundColor(Paper.onAccent)
+                                        Text(continueToPrayerTitle)
                                             .font(PaperFont.font(size: 16, weight: .semibold))
                                             .foregroundColor(Paper.onAccent)
                                     }
@@ -689,9 +536,19 @@ struct LightCandleFormSheetView: View {
             .navigationTitle(sheetTitle)
             .navigationBarTitleDisplayMode(.inline)
             .fullScreenCover(isPresented: $isShowingWriter, onDismiss: {
-                wroteOnParchment = !customPrayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                if pendingLight {
+                    pendingLight = false
+                    lightCandle()
+                }
             }) {
-                PrayerManuscriptWriterView(language: language, reference: parchmentReference, text: $customPrayer)
+                PrayerManuscriptWriterView(
+                    language: language,
+                    reference: parchmentReference,
+                    canonicalPrayer: selectedIntention.defaultPrayer(for: language),
+                    lightTitle: submitButtonText,
+                    onLight: { pendingLight = true },
+                    text: $customPrayer
+                )
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -801,6 +658,48 @@ struct LightCandleFormSheetView: View {
         let intent = selectedIntention.title(for: language)
         let name = personName.trimmingCharacters(in: .whitespacesAndNewlines)
         return name.isEmpty ? intent : "\(intent) · \(name)"
+    }
+
+    private var continueToPrayerTitle: String {
+        language == .armenian ? "Շարունակել՝ գրել աղոթքը" : (language == .russian ? "Далее: написать молитву" : "Next: write the prayer")
+    }
+
+    /// Зажигает свечу с молитвой с листа; лист попадает в большой виджет и в «Мой Матенадаран»
+    private func lightCandle() {
+        Task {
+            let name = personName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? selectedIntention.title(for: language)
+                : personName
+            let prayer = customPrayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? selectedIntention.defaultPrayer(for: language)
+                : customPrayer
+
+            let success = await candleManager.purchaseAndLightCandle(
+                tier: selectedTier,
+                name: name,
+                intention: selectedIntention,
+                customPrayer: prayer
+            )
+            guard success else { return }
+
+            let page = ManuscriptPage(
+                text: prayer,
+                reference: parchmentReference,
+                language: language,
+                style: ManuscriptPage.preferredStyle,
+                name: ManuscriptPage.rememberedName
+            )
+            if let lit = candleManager.activeCandles.first {
+                candleManager.attachParchment(to: lit.id, page: page)
+            }
+            ManuscriptLibrary.shared.save(page)
+            withAnimation(.spring()) {
+                isShowingSuccessAnimation = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                dismiss()
+            }
+        }
     }
 
     private var writeOnVellumTitle: String {
