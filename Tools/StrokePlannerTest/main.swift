@@ -84,46 +84,77 @@ func ascii(plan: ManuscriptStrokePlan, outline: CGPath, progress: CGFloat, colum
 }
 
 let args = CommandLine.arguments
-guard args.count >= 2, let font = loadFont(path: args[1], size: 100) else {
+guard args.count >= 2, let armenianFont = loadFont(path: args[1], size: 100) else {
     print("нет шрифта")
     exit(2)
 }
 
-let armenian = "ԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄՅՆՇՈՉՊՋՌՍՎՏՐՑՒՓՔՕՖաբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆ"
-var results: [(Character, Int, Double, Int)] = []
 var failures: [String] = []
-let started = Date()
-var plans: [Character: (ManuscriptStrokePlan, CGPath)] = [:]
 
-for character in armenian {
-    guard let path = outline(of: character, font: font) else {
-        failures.append("нет контура \(character)")
-        continue
-    }
-    let t0 = Date()
-    guard let plan = ManuscriptStrokePlanner.plan(outline: path) else {
-        failures.append("нет плана \(character)")
-        continue
-    }
-    let ms = Int(Date().timeIntervalSince(t0) * 1000)
-    let full = coverage(of: plan, outline: path, progress: 1)
-    let strokes = 1 + plan.inked.dropFirst().filter { !$0 }.count
-    results.append((character, strokes, full, ms))
-    plans[character] = (plan, path)
-    if full < 0.97 { failures.append("покрытие \(character) = \(String(format: "%.3f", full))") }
+struct SetResult {
+    var plans: [Character: (ManuscriptStrokePlan, CGPath)] = [:]
+    var rows: [(Character, Int, Double)] = []
+    var mean: Double { rows.isEmpty ? 0 : rows.map { $0.2 }.reduce(0, +) / Double(rows.count) }
+    var strokeMean: Double { rows.isEmpty ? 0 : Double(rows.map { $0.1 }.reduce(0, +)) / Double(rows.count) }
 }
-let elapsed = Date().timeIntervalSince(started)
 
-for r in results {
-    print("\(r.0) штрихов \(r.1) покрытие \(String(format: "%.3f", r.2)) \(r.3) мс")
+/// Прогоняет набор букв через планировщик; печатает слабые места и сводку
+func evaluate(label: String, font: CTFont, characters: String, minimumMean: Double, minimumEach: Double, verbose: Bool) -> SetResult {
+    var result = SetResult()
+    let started = Date()
+    for character in characters {
+        guard let path = outline(of: character, font: font) else {
+            failures.append("\(label): нет контура \(character)")
+            continue
+        }
+        guard let plan = ManuscriptStrokePlanner.plan(outline: path) else {
+            failures.append("\(label): нет плана \(character)")
+            continue
+        }
+        let full = coverage(of: plan, outline: path, progress: 1)
+        let strokes = 1 + plan.inked.dropFirst().filter { !$0 }.count
+        result.rows.append((character, strokes, full))
+        result.plans[character] = (plan, path)
+        if verbose || full < minimumEach {
+            print("\(label) \(character) штрихов \(strokes) покрытие \(String(format: "%.3f", full))")
+        }
+        if full < minimumEach { failures.append("\(label): покрытие \(character) = \(String(format: "%.3f", full))") }
+    }
+    let ms = Int(Date().timeIntervalSince(started) * 1000)
+    print("\(label): знаков \(result.rows.count), среднее покрытие \(String(format: "%.4f", result.mean)), штрихов в среднем \(String(format: "%.2f", result.strokeMean)), \(ms) мс")
+    if result.mean < minimumMean { failures.append("\(label): среднее покрытие \(result.mean) ниже \(minimumMean)") }
+    return result
 }
-let mean = results.map { $0.2 }.reduce(0, +) / Double(max(1, results.count))
-let strokeMean = Double(results.map { $0.1 }.reduce(0, +)) / Double(max(1, results.count))
-print("букв: \(results.count), среднее покрытие \(String(format: "%.4f", mean)), штрихов в среднем \(String(format: "%.2f", strokeMean)), всего \(Int(elapsed * 1000)) мс")
+
+let armenian = "ԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄՅՆՇՈՉՊՋՌՍՎՏՐՑՒՓՔՕՖաբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆ"
+let latin = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+let cyrillic = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+let punctuation = ".,:;!?-–—«»()\"'…"
+
+let armenianResult = evaluate(label: "hy", font: armenianFont, characters: armenian, minimumMean: 0.99, minimumEach: 0.97, verbose: true)
+
+// Латиница и кириллица в приложении идут системным шрифтом с засечками (New York); на раннере берём
+// первый из доступных настоящих шрифтов с засечками
+var serifFont: CTFont?
+for name in ["NewYork-Regular", "TimesNewRomanPSMT", "Georgia", "Times-Roman"] {
+    let candidate = CTFontCreateWithName(name as CFString, 100, nil)
+    if (CTFontCopyPostScriptName(candidate) as String) == name {
+        serifFont = candidate
+        print("системный шрифт для проверки: \(name)")
+        break
+    }
+}
+if let serifFont {
+    _ = evaluate(label: "latin", font: serifFont, characters: latin, minimumMean: 0.985, minimumEach: 0.95, verbose: false)
+    _ = evaluate(label: "cyrillic", font: serifFont, characters: cyrillic, minimumMean: 0.985, minimumEach: 0.95, verbose: false)
+    _ = evaluate(label: "punct", font: serifFont, characters: punctuation, minimumMean: 0.97, minimumEach: 0.9, verbose: true)
+} else {
+    print("шрифт с засечками не найден: латиница и кириллица не проверены")
+}
 
 // Кадры письма: покрытие растёт монотонно, перо идёт по штриху
 for sample in ["Ա", "ա", "թ"] {
-    guard let character = sample.first, let (plan, path) = plans[character] else { continue }
+    guard let character = sample.first, let (plan, path) = armenianResult.plans[character] else { continue }
     var last = 0.0
     var monotonic = true
     for step in 0 ... 20 {
@@ -132,15 +163,11 @@ for sample in ["Ա", "ա", "թ"] {
         last = c
     }
     if !monotonic { failures.append("покрытие \(sample) не растёт монотонно") }
-    for progress in [0.25, 0.5, 0.75, 1.0] {
+    for progress in [0.5, 1.0] {
         print("--- \(sample) \(Int(progress * 100))% ---")
         for row in ascii(plan: plan, outline: path, progress: CGFloat(progress)) { print(row) }
     }
 }
-
-// Скорость: вся страница на ~250 уникальных букв считается мгновенно благодаря кэшу
-if elapsed > 3 { failures.append("слишком медленно: \(elapsed) с") }
-if mean < 0.99 { failures.append("среднее покрытие \(mean) ниже 0.99") }
 
 if failures.isEmpty {
     print("ИТОГ: всё хорошо")

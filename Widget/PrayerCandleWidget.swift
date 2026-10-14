@@ -322,10 +322,14 @@ struct CandleAccessoryRectangularView: View {
                 .frame(height: 2)
                 .padding(.vertical, 1)
                 
-                Text(prayerSummary(for: candle, language: entry.language))
-                    .font(.system(size: 9))
-                    .opacity(0.65)
-                    .lineLimit(1)
+                // Молитву видно без разблокировки только с разрешения человека
+                if AppGroupConstants.sharedBool(forKey: CandleConstants.showPrayerOnLockKey) {
+                    Text(prayerSummary(for: candle, language: entry.language))
+                        .font(.system(size: 9))
+                        .opacity(0.65)
+                        .lineLimit(1)
+                        .privacySensitive()
+                }
             }
         } else {
             VStack(alignment: .leading, spacing: 3) {
@@ -541,6 +545,8 @@ struct CandleSystemMediumView: View {
                             .foregroundColor(.white.opacity(0.85))
                             .lineSpacing(3)
                             .lineLimit(3)
+                            // Когда устройство заблокировано, система закрывает текст молитвы (StandBy, экран блокировки)
+                            .privacySensitive()
                         
                         Spacer(minLength: 0)
                         
@@ -619,6 +625,7 @@ struct CandleSystemLargeView: View {
                     .scaledToFill()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .clipped()
+                    .privacySensitive()
 
                 // Полоса внизу: чья свеча и сколько ей гореть
                 HStack(spacing: 8) {

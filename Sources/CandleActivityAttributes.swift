@@ -21,6 +21,8 @@ struct CandleActivityAttributes: ActivityAttributes {
     var localeIdentifier: String
     var litDate: Date
     var expirationDate: Date
+    /// Начало молитвы для экрана блокировки; nil, если человек не разрешил показывать её без разблокировки
+    var prayerLine: String? = nil
 
     var tier: CandleTier { CandleTier(rawValue: tierRaw) ?? .rewarded }
 

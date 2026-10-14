@@ -69,6 +69,11 @@ extension SettingsView {
                 ManuscriptSpeedSettingsRow(language: selectedLanguage, primaryTextColor: primaryTextColor)
 
                 Divider().opacity(0.3)
+
+                // 1в. Молитва свечи на экране блокировки
+                CandleLockPrayerRow(language: selectedLanguage)
+
+                Divider().opacity(0.3)
                 
                 // 2. Блокировка Face ID / Touch ID
                 HStack(spacing: 12) {

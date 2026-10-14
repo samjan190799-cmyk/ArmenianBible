@@ -538,6 +538,9 @@ struct LightCandleFormSheetView: View {
                             }
                             .buttonStyle(ScaleButtonStyle())
                             
+                            CandleLockPrayerRow(language: language)
+                                .padding(.vertical, 4)
+                            
                             HStack {
                                 Text(prayerHintText)
                                     .font(PaperFont.font(size: 10.5))

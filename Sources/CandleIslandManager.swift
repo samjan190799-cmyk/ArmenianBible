@@ -76,6 +76,15 @@ final class CandleIslandManager: ObservableObject {
         }
     }
 
+    /// Молитва на экране блокировки только с разрешения человека и не длиннее двух строк
+    private static func prayerLine(for candle: PrayerCandle, language: AppLanguage) -> String? {
+        guard AppGroupConstants.sharedBool(forKey: CandleConstants.showPrayerOnLockKey) else { return nil }
+        let raw = (candle.customPrayer?.isEmpty == false ? candle.customPrayer : nil) ?? candle.intention.defaultPrayer(for: language)
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\n", with: " ")
+        guard !text.isEmpty else { return nil }
+        return text.count > 90 ? String(text.prefix(88)) + "…" : text
+    }
+
     // MARK: ActivityKit
     @available(iOS 16.2, *)
     private func currentActivityCandleId() -> String? {
@@ -102,7 +111,8 @@ final class CandleIslandManager: ObservableObject {
             remainingLabel: Self.remainingLabel(for: language),
             localeIdentifier: language.localeCode,
             litDate: candle.litDate,
-            expirationDate: candle.expirationDate
+            expirationDate: candle.expirationDate,
+            prayerLine: Self.prayerLine(for: candle, language: language)
         )
         let content = ActivityContent(
             state: CandleActivityAttributes.ContentState(isLit: true),

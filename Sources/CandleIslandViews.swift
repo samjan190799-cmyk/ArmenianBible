@@ -156,6 +156,14 @@ struct CandleLockScreenView: View {
                 CandleIslandTitle(attributes: attributes)
                 CandleBurnBar(attributes: attributes)
                 CandleRemainingText(attributes: attributes)
+                if let line = attributes.prayerLine, !line.isEmpty {
+                    Text(line)
+                        .font(.system(size: 12, design: .serif))
+                        .italic()
+                        .foregroundColor(.white.opacity(0.78))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .padding(16)
