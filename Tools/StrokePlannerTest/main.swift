@@ -2,7 +2,8 @@ import Foundation
 import CoreGraphics
 import CoreText
 
-// Проверка планировщика письма на настоящем шрифте приложения. Запускается в CI на macOS:
+// Проверка планировщика письма на настоящем шрифте приложения (армянский, латиница, кириллица, знаки).
+// Запускается в CI на macOS:
 //   swiftc -O Sources/ManuscriptStrokePlanner.swift Tools/StrokePlannerTest/main.swift -o stroke_test
 //   ./stroke_test Sources/Fonts/NotoSerifArmenian-Regular.ttf
 // Печатает таблицу по буквам и ASCII-кадры письма; код возврата 1, если покрытие или скорость плохи.
