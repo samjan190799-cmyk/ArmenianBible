@@ -101,7 +101,12 @@ enum ManuscriptQuillArt {
 
     /// `time` оживляет искры золотого пера; `lift` — отрыв пера от листа в конце письма (0…1)
     static func draw(pen: ManuscriptPen, tip: CGPoint, sway: Double, lift: CGFloat, time: Double,
-                     palette P: ManuscriptPalette, in ctx: GraphicsContext) {
+                     palette P: ManuscriptPalette, surface: ManuscriptSurface = .parchment, in ctx: GraphicsContext) {
+        // На камне в руке резец, а не перо
+        if surface.isCarved {
+            ManuscriptChiselArt.draw(tip: tip, sway: sway, lift: lift, time: time, in: ctx)
+            return
+        }
         var quill = ctx
         quill.opacity = Double(1 - lift)
         quill.translateBy(x: tip.x + 14 * lift, y: tip.y - 34 * lift)

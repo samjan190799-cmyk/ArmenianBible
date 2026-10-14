@@ -103,6 +103,8 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
     let reference: String
     let language: AppLanguage
     var style: ManuscriptStyle
+    /// Основа листа; у страниц, сохранённых до появления основ, поля нет — это пергамент
+    var surfaceChoice: ManuscriptSurface?
     var name: String
     let createdAt: Date
 
@@ -112,6 +114,7 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
         reference: String,
         language: AppLanguage,
         style: ManuscriptStyle = .roslin,
+        surface: ManuscriptSurface = ManuscriptSurface.effective,
         name: String = "",
         createdAt: Date = Date()
     ) {
@@ -120,9 +123,18 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
         self.reference = reference
         self.language = language
         self.style = style
+        self.surfaceChoice = surface
         self.name = name
         self.createdAt = createdAt
     }
+
+    var surface: ManuscriptSurface {
+        get { surfaceChoice ?? .parchment }
+        set { surfaceChoice = newValue }
+    }
+
+    /// Стиль миниатюры и основа вместе: от них зависят все цвета страницы
+    var look: ManuscriptLook { ManuscriptLook(style: style, surface: surface) }
 
     /// Имя для памятной записи берётся из прошлого раза
     static var rememberedName: String {
@@ -256,7 +268,7 @@ enum ManuscriptPool {
 
     /// Стихи главы подряд: листание влево и вправо переходит к соседним стихам
     static func chapterSource(book: BibleBook, chapter: Int, startVerse: Int, language: AppLanguage,
-                              style: ManuscriptStyle? = nil) -> ManuscriptSource? {
+                              style: ManuscriptStyle? = nil, surface: ManuscriptSurface? = nil) -> ManuscriptSource? {
         guard let text = BibleDatabase.shared.getChapterText(bookId: book.id, chapter: chapter),
               !text.verses.isEmpty else { return nil }
         var pages: [ManuscriptPage] = []
@@ -264,6 +276,7 @@ enum ManuscriptPool {
         for verse in text.verses {
             var page = ManuscriptPage.from(book: book, chapter: chapter, verse: verse, language: language)
             if let style { page.style = style }
+            if let surface { page.surface = surface }
             if verse.verseNumber == startVerse { startId = page.id }
             pages.append(page)
         }

@@ -59,7 +59,9 @@ struct PrayerManuscriptWriterView: View {
     @AppStorage(ManuscriptPen.storageKey) private var penRaw = ManuscriptPen.defaultValue.rawValue
     @ObservedObject private var subscription = SubscriptionManager.shared
     @State private var style = ManuscriptPage.preferredStyle
+    @State private var surface = ManuscriptSurface.effective
     @State private var isShowingPens = false
+    @State private var isShowingSurfaces = false
     @State private var clock = PrayerPenClock()
     @State private var pageId = UUID()
     @State private var createdAt = Date()
@@ -76,6 +78,11 @@ struct PrayerManuscriptWriterView: View {
         return chosen.isFree || subscription.isPremium ? chosen : ManuscriptPen.defaultValue
     }
 
+    /// Выбранная основа; если Premium закончился, платная заменяется пергаментом
+    private var activeSurface: ManuscriptSurface {
+        surface.isFree || subscription.isPremium ? surface : .parchment
+    }
+
     private var page: ManuscriptPage {
         ManuscriptPage(
             id: pageId,
@@ -83,6 +90,7 @@ struct PrayerManuscriptWriterView: View {
             reference: reference,
             language: language,
             style: style,
+            surface: activeSurface,
             name: writerName,
             createdAt: createdAt
         )
@@ -129,8 +137,18 @@ struct PrayerManuscriptWriterView: View {
         .onChange(of: isShowingPens) { showing in
             if !showing { isFocused = true }
         }
+        .onChange(of: isShowingSurfaces) { showing in
+            if !showing { isFocused = true }
+        }
+        .onChange(of: surface) { newValue in
+            // Выбор запоминается: свеча сохранит лист на этой основе
+            UserDefaults.standard.set(newValue.rawValue, forKey: ManuscriptSurface.storageKey)
+        }
         .sheet(isPresented: $isShowingPens) {
             ManuscriptPenSheet(language: language, selectedRaw: $penRaw)
+        }
+        .sheet(isPresented: $isShowingSurfaces) {
+            ManuscriptSurfaceSheet(language: language, selection: $surface)
         }
     }
 
@@ -220,17 +238,33 @@ struct PrayerManuscriptWriterView: View {
                             .fill(ManuscriptPalette.color(option.palette.field))
                             .frame(width: 12, height: 12)
                             .overlay(Circle().strokeBorder(ManuscriptPalette.color(option.palette.goldLight), lineWidth: 1.2))
-                        Text(option.title(for: language))
-                            .font(PaperFont.font(size: 12, weight: isSelected ? .semibold : .regular))
-                            .foregroundColor(Self.parchmentInk.opacity(isSelected ? 1 : 0.7))
+                        // Название только у выбранного стиля: ряд кнопок должен помещаться на узком экране
+                        if isSelected {
+                            Text(option.title(for: language))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
+                                .foregroundColor(Self.parchmentInk)
+                        }
                     }
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal, isSelected ? 10 : 9)
                     .padding(.vertical, 7)
                     .background(Capsule().fill(Color.white.opacity(isSelected ? 0.12 : 0.05)))
                     .overlay(Capsule().strokeBorder(isSelected ? Paper.gold.opacity(0.8) : Color.white.opacity(0.08), lineWidth: 1))
                 }
                 .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
+                .accessibilityLabel(Text(option.title(for: language)))
             }
+
+            Button {
+                Haptics.impact(.soft)
+                isShowingSurfaces = true
+            } label: {
+                Image(systemName: "paintpalette")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Self.parchmentInk)
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
+            }
+            .accessibilityLabel(Text(language.pick(hy: "Էջի հիմք", ru: "Основа листа", en: "Page surface")))
 
             Button {
                 Haptics.impact(.soft)
@@ -312,7 +346,7 @@ struct PrayerManuscriptWriterView: View {
                 en: "Start typing your prayer: the pen writes along"
             ))
             .font(PaperFont.font(size: 16))
-            .foregroundColor(Color(red: 0.16, green: 0.11, blue: 0.07).opacity(0.5))
+            .foregroundColor(ManuscriptPalette.color(page.look.palette.ink, 0.55))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 60)
             .allowsHitTesting(false)

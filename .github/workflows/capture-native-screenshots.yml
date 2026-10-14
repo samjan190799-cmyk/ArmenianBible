@@ -221,6 +221,20 @@ jobs:
               sleep 2
             done
 
+            # 9b. Основы листа (Premium): пурпур с золотом и хачкар; Premium в симуляторе включает отладочный флаг
+            for SPEC in "purple roslin 2.4 short" "purple roslin 30 long" "purple cilicia 30 short" \
+                        "khachkar roslin 2.4 short" "khachkar roslin 30 long" "khachkar narek 30 short"; do
+              set -- $SPEC
+              echo "📸 Снятие 09b Manuscript surface $1 $2 t=$3 $4..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript -luys_ads_enabled NO \
+                -k_debug_premium_unlocked YES -manuscript_language russian -manuscript_surface "$1" -manuscript_style "$2" \
+                -manuscript_time "$3" -manuscript_name "Самвел" -manuscript_verse "$4"
+              sleep 7
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/09b_Surface_${1}_${2}_t${3}_${4}.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              sleep 2
+            done
+
             # 10. Картинка для «Поделиться» (ImageRenderer): приложение кладёт её в Documents
             echo "📸 Снятие 10 Manuscript export..."
             xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript -luys_ads_enabled NO \

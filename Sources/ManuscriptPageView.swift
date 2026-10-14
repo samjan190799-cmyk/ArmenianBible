@@ -79,6 +79,8 @@ enum ManuscriptGeometry {
 struct ManuscriptGold {
     let palette: ManuscriptPalette
     let sheen: CGPoint
+    /// 0 — звёздочки блика не рисуются (камень), 1 — как на золоте
+    var glintScale: CGFloat = 1
 
     var center: CGFloat {
         min(0.96, max(0.04, 0.5 + 0.38 * sheen.x + 0.2 * sheen.y))
@@ -107,7 +109,7 @@ struct ManuscriptGold {
     func glint(at point: CGPoint) -> CGFloat {
         let w = ManuscriptGeometry.size.width, h = ManuscriptGeometry.size.height
         let t = (point.x * w + point.y * h) / (w * w + h * h)
-        return max(0, 1 - abs(t - center) / 0.07)
+        return max(0, 1 - abs(t - center) / 0.07) * glintScale
     }
 }
 
@@ -151,8 +153,8 @@ final class ManuscriptTextLayout {
     /// `prayer` — вёрстка для текста, который набирают прямо сейчас: ступенчатый кегль и неподвижный блок,
     /// чтобы строки не прыгали от каждой буквы
     static func cached(for page: ManuscriptPage, pen: ManuscriptPen = .defaultValue, prayer: Bool = false) -> ManuscriptTextLayout {
-        let ink = pen.inkOverride ?? page.style.palette.ink
-        let key = "\(page.style.rawValue)|\(page.language.rawValue)|\(ink)|\(prayer)|\(page.text)"
+        let ink = pen.ink(on: page.look)
+        let key = "\(page.style.rawValue)|\(page.surface.rawValue)|\(page.language.rawValue)|\(ink)|\(prayer)|\(page.text)"
         cacheLock.lock()
         if let hit = cache[key] {
             cacheLock.unlock()
@@ -169,7 +171,7 @@ final class ManuscriptTextLayout {
 
     private static func make(for page: ManuscriptPage, ink: UInt32, prayer: Bool) -> ManuscriptTextLayout {
         let body = page.initialAndBody.body
-        let palette = page.style.palette
+        let palette = page.look.palette
         let rect = ManuscriptGeometry.textRect
         let exclusion = ManuscriptGeometry.exclusion
         let isShort = !prayer && (body as NSString).length < 60
@@ -353,20 +355,21 @@ struct ManuscriptPageView: View {
         let layout = ManuscriptTextLayout.cached(for: page, pen: pen, prayer: isLiveWriting)
         let initial = page.initialAndBody.initial
         ZStack {
-            ManuscriptParchment(seed: parchmentSeed ?? page.seed, style: page.style)
+            ManuscriptParchment(seed: parchmentSeed ?? page.seed, look: page.look)
                 .equatable()
                 .opacity(Double(reveal.parchment))
             Canvas { context, _ in
-                let gold = ManuscriptGold(palette: page.style.palette, sheen: sheen)
-                ManuscriptRenderer.drawFrame(progress: reveal.frame, palette: page.style.palette, gold: gold, in: context)
-                ManuscriptRenderer.drawHeadpiece(progress: reveal.headpiece, style: page.style, gold: gold, in: context)
-                ManuscriptRenderer.drawInitial(initial, progress: reveal.initial, offsetY: layout.offsetY, style: page.style, gold: gold, in: context)
-                ManuscriptRenderer.drawText(layout, progress: reveal.text, lift: quillLift ?? reveal.colophon, pen: pen, palette: page.style.palette, in: context)
-                ManuscriptRenderer.drawMarginOrnament(progress: reveal.margin, style: page.style, gold: gold, in: context)
+                let look = page.look
+                let gold = ManuscriptGold(palette: look.palette, sheen: sheen, glintScale: look.surface.glintScale)
+                ManuscriptRenderer.drawFrame(progress: reveal.frame, palette: look.palette, gold: gold, in: context)
+                ManuscriptRenderer.drawHeadpiece(progress: reveal.headpiece, style: look, gold: gold, in: context)
+                ManuscriptRenderer.drawInitial(initial, progress: reveal.initial, offsetY: layout.offsetY, style: look, gold: gold, in: context)
+                ManuscriptRenderer.drawText(layout, progress: reveal.text, lift: quillLift ?? reveal.colophon, pen: pen, look: look, in: context)
+                ManuscriptRenderer.drawMarginOrnament(progress: reveal.margin, style: look, gold: gold, in: context)
                 ManuscriptRenderer.drawEnding(page: page, layout: layout, progress: reveal.colophon, gold: gold, in: context)
                 ManuscriptRenderer.drawGlints(reveal: reveal, initialOffsetY: layout.offsetY, gold: gold, in: context)
                 if showsWatermark {
-                    ManuscriptRenderer.drawWatermark(palette: page.style.palette, in: context)
+                    ManuscriptRenderer.drawWatermark(palette: page.look.palette, in: context)
                 }
             }
         }
@@ -380,11 +383,11 @@ struct ManuscriptPageView: View {
 // MARK: - Пергамент: рисуется один раз, а не каждый кадр анимации
 struct ManuscriptParchment: View, Equatable {
     let seed: UInt32
-    let style: ManuscriptStyle
+    let look: ManuscriptLook
 
     var body: some View {
         Canvas { context, size in
-            ManuscriptRenderer.drawParchment(seed: seed, palette: style.palette, size: size, in: context)
+            ManuscriptSurfaceArt.draw(surface: look.surface, seed: seed, palette: look.palette, size: size, in: context)
         }
     }
 }
@@ -559,7 +562,7 @@ enum ManuscriptRenderer {
     }
 
     // MARK: Заставка (хоран): золотая рама, поле, лоза, крест с павлинами
-    static func drawHeadpiece(progress p: CGFloat, style: ManuscriptStyle, gold: ManuscriptGold, in ctx: GraphicsContext) {
+    static func drawHeadpiece(progress p: CGFloat, style: ManuscriptLook, gold: ManuscriptGold, in ctx: GraphicsContext) {
         guard p > 0 else { return }
         let P = style.palette
         let band = ManuscriptGeometry.headpiece
@@ -735,7 +738,7 @@ enum ManuscriptRenderer {
     }
 
     // MARK: Буквица: золотая буква на цветном поле в золотой раме
-    static func drawInitial(_ letter: String, progress p: CGFloat, offsetY: CGFloat, style: ManuscriptStyle,
+    static func drawInitial(_ letter: String, progress p: CGFloat, offsetY: CGFloat, style: ManuscriptLook,
                             gold: ManuscriptGold, in ctx: GraphicsContext) {
         guard p > 0 else { return }
         let P = style.palette
@@ -800,8 +803,9 @@ enum ManuscriptRenderer {
     /// `lift` — отрыв пера от листа после последней строки: 0 — перо ещё на странице, 1 — улетело
     static func drawText(_ layout: ManuscriptTextLayout, progress p: CGFloat, lift: CGFloat = 1,
                          pen penStyle: ManuscriptPen = .defaultValue,
-                         palette P: ManuscriptPalette, in ctx: GraphicsContext) {
-        let inkHex = penStyle.inkOverride ?? P.ink
+                         look: ManuscriptLook, in ctx: GraphicsContext) {
+        let P = look.palette
+        let inkHex = penStyle.ink(on: look)
         guard p > 0, !layout.lines.isEmpty else { return }
         let rect = ManuscriptGeometry.textRect
         let top = rect.minY + layout.offsetY
@@ -811,6 +815,10 @@ enum ManuscriptRenderer {
         // Строка и буква, которые перо выводит прямо сейчас, и где оно оторвалось от предыдущей буквы
         var writing: (line: ManuscriptTextLayout.Line, glyph: Int)?
         var previousInk: CGPoint?
+
+        if look.surface.isCarved {
+            drawCarvedRims(layout, written: written, rect: rect, top: top, rim: c(P.goldHighlight, 0.8), in: ctx)
+        }
 
         ctx.withCGContext { cg in
             for item in layout.lines {
@@ -887,9 +895,35 @@ enum ManuscriptRenderer {
             ctx.fill(Path(ellipseIn: circle(pen, 3.6)), with: .color(c(inkHex, 0.12)))
             // Рука чуть покачивает перо в такт письму
             let sway = Double(sin(written * 0.9)) * 2.5
-            ManuscriptQuillArt.draw(pen: penStyle, tip: pen, sway: sway, lift: 0, time: Double(written) * 0.5, palette: P, in: ctx)
+            ManuscriptQuillArt.draw(pen: penStyle, tip: pen, sway: sway, lift: 0, time: Double(written) * 0.5, palette: P, surface: look.surface, in: ctx)
         } else if p >= 1, lift < 1, let restingTip = previousInk ?? lastLineEnd {
-            ManuscriptQuillArt.draw(pen: penStyle, tip: restingTip, sway: 0, lift: lift, time: Double(written) * 0.5, palette: P, in: ctx)
+            ManuscriptQuillArt.draw(pen: penStyle, tip: restingTip, sway: 0, lift: lift, time: Double(written) * 0.5, palette: P, surface: look.surface, in: ctx)
+        }
+    }
+
+    /// Доля времени буквы, которую перо тратит на подход к ней
+    private static let writeApproach: CGFloat = 0.12
+
+    /// Резьба: светлая кромка по нижнему правому краю каждой буквы, как у борозды в камне при боковом свете.
+    /// Рисуется под чернилами, поэтому видна только там, где борозда выходит за контур буквы.
+    private static func drawCarvedRims(_ layout: ManuscriptTextLayout, written: CGFloat, rect: CGRect, top: CGFloat,
+                                       rim: Color, in ctx: GraphicsContext) {
+        for item in layout.lines {
+            if written <= CGFloat(item.range.location) { break }
+            var layer = ctx
+            layer.translateBy(x: rect.minX + item.x + 0.55, y: top + item.baseline + 0.75)
+            for glyph in item.glyphs where glyph.hasInk && CGFloat(glyph.from) < written {
+                if CGFloat(glyph.to) <= written {
+                    layer.fill(glyph.path, with: .color(rim))
+                } else if let plan = glyph.plan {
+                    let span = CGFloat(max(1, glyph.to - glyph.from))
+                    let fraction = clamp((written - CGFloat(glyph.from)) / span)
+                    let stroke = clamp((fraction - writeApproach) / (1 - writeApproach))
+                    var partial = layer
+                    partial.clip(to: Path(plan.inkMask(at: stroke)))
+                    partial.fill(glyph.path, with: .color(rim))
+                }
+            }
         }
     }
 
@@ -912,7 +946,7 @@ enum ManuscriptRenderer {
         }
 
         // Начало времени буквы перо тратит на подход к ней, остальное на письмо
-        let approach: CGFloat = 0.12
+        let approach = writeApproach
         let stroke = clamp((fraction - approach) / (1 - approach))
 
         var layer = ctx
@@ -952,7 +986,7 @@ enum ManuscriptRenderer {
     }
 
     // MARK: Украшение на внешнем поле: стебель растёт снизу вверх, наверху крест
-    static func drawMarginOrnament(progress p: CGFloat, style: ManuscriptStyle, gold: ManuscriptGold, in ctx: GraphicsContext) {
+    static func drawMarginOrnament(progress p: CGFloat, style: ManuscriptLook, gold: ManuscriptGold, in ctx: GraphicsContext) {
         guard p > 0 else { return }
         let P = style.palette
         let x0 = ManuscriptGeometry.marginX
@@ -1016,7 +1050,7 @@ enum ManuscriptRenderer {
     static func drawEnding(page: ManuscriptPage, layout: ManuscriptTextLayout, progress p: CGFloat,
                            gold: ManuscriptGold, in ctx: GraphicsContext) {
         guard p > 0 else { return }
-        let P = page.style.palette
+        let P = page.look.palette
         let cx = ManuscriptGeometry.textRect.midX
         let dividerY = ManuscriptGeometry.colophonDividerY
 

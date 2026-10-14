@@ -45,6 +45,7 @@ struct ManuscriptStudioView: View {
     @State private var pages: [ManuscriptPage]
     @State private var currentId: UUID
     @State private var style: ManuscriptStyle
+    @State private var surface: ManuscriptSurface
     private let isEndless: Bool
 
     @Environment(\.dismiss) private var dismiss
@@ -56,6 +57,7 @@ struct ManuscriptStudioView: View {
     @AppStorage(ManuscriptPen.storageKey) private var penRaw = ManuscriptPen.defaultValue.rawValue
     @ObservedObject private var subscription = SubscriptionManager.shared
     @State private var isShowingPens = false
+    @State private var isShowingSurfaces = false
 
     @State private var startDate = Date()
     @State private var isTurned: Bool
@@ -80,11 +82,13 @@ struct ManuscriptStudioView: View {
             _pages = State(initialValue: [first] + more)
             _currentId = State(initialValue: first.id)
             _style = State(initialValue: first.style)
+            _surface = State(initialValue: first.surface)
             isEndless = true
         case .chapter(let chapterPages, let startId):
             _pages = State(initialValue: chapterPages)
             _currentId = State(initialValue: startId)
             _style = State(initialValue: chapterPages.first?.style ?? .roslin)
+            _surface = State(initialValue: chapterPages.first?.surface ?? .parchment)
             isEndless = false
         }
     }
@@ -97,15 +101,16 @@ struct ManuscriptStudioView: View {
     private var currentPage: ManuscriptPage { styled(pages[min(currentIndex, pages.count - 1)]) }
     private var language: AppLanguage { currentPage.language }
 
-    /// Стиль и имя общие для всех страниц: так листы складываются в один кодекс
+    /// Стиль, основа и имя общие для всех страниц: так листы складываются в один кодекс
     private func styled(_ page: ManuscriptPage) -> ManuscriptPage {
-        styled(page, look: (style: style, name: name))
+        styled(page, look: (style: style, name: name, surface: activeSurface))
     }
 
-    private func styled(_ page: ManuscriptPage, look: (style: ManuscriptStyle, name: String)) -> ManuscriptPage {
+    private func styled(_ page: ManuscriptPage, look: (style: ManuscriptStyle, name: String, surface: ManuscriptSurface)) -> ManuscriptPage {
         var result = page
         result.style = look.style
         result.name = look.name
+        result.surface = look.surface
         return result
     }
 
@@ -122,7 +127,7 @@ struct ManuscriptStudioView: View {
         // Всё, от чего зависит рисунок листа, читаем здесь, чтобы лента гарантированно обновлялась
         let turned = isTurned
         let started = startDate
-        let look = (style: style, name: name)
+        let look = (style: style, name: name, surface: activeSurface)
         return ZStack {
             Self.backdrop.ignoresSafeArea()
             RadialGradient(
@@ -210,8 +215,17 @@ struct ManuscriptStudioView: View {
         .sheet(isPresented: $isShowingPens) {
             ManuscriptPenSheet(language: language, selectedRaw: $penRaw)
         }
+        .sheet(isPresented: $isShowingSurfaces) {
+            ManuscriptSurfaceSheet(language: language, selection: $surface)
+        }
         .onChange(of: penRaw) { _ in
             // Новое перо сразу пишет страницу заново: видно и перо, и чернила
+            restart()
+        }
+        .onChange(of: surface) { newValue in
+            // Новая основа: страница пишется заново, выбор запоминается для следующих листов
+            UserDefaults.standard.set(newValue.rawValue, forKey: ManuscriptSurface.storageKey)
+            if library.contains(currentPage) { library.save(currentPage) }
             restart()
         }
         .alert(
@@ -235,7 +249,7 @@ struct ManuscriptStudioView: View {
     // MARK: Лист книги
     @ViewBuilder
     private func pageContent(_ raw: ManuscriptPage, isCurrent: Bool, scale: CGFloat, turned: Bool, started: Date,
-                             look: (style: ManuscriptStyle, name: String)) -> some View {
+                             look: (style: ManuscriptStyle, name: String, surface: ManuscriptSurface)) -> some View {
         if isCurrent {
             TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
                 let page = styled(raw, look: look)
@@ -277,7 +291,8 @@ struct ManuscriptStudioView: View {
             }
             .accessibilityLabel(Text(language.pick(hy: "Փակել", ru: "Закрыть", en: "Close")))
 
-            // Пустое место слева равно ширине кнопки пера справа: заголовок остаётся по центру
+            // Пустое место слева равно ширине кнопок справа: заголовок остаётся по центру
+            Color.clear.frame(width: 38, height: 38)
             Color.clear.frame(width: 38, height: 38)
 
             Spacer()
@@ -293,6 +308,18 @@ struct ManuscriptStudioView: View {
             }
 
             Spacer()
+
+            Button {
+                Haptics.impact(.soft)
+                isShowingSurfaces = true
+            } label: {
+                Image(systemName: "paintpalette")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Self.parchmentInk)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
+            }
+            .accessibilityLabel(Text(language.pick(hy: "Էջի հիմք", ru: "Основа листа", en: "Page surface")))
 
             Button {
                 Haptics.impact(.soft)
@@ -449,6 +476,11 @@ struct ManuscriptStudioView: View {
         return chosen.isFree || subscription.isPremium ? chosen : ManuscriptPen.defaultValue
     }
 
+    /// Выбранная основа; если Premium закончился, платная заменяется пергаментом
+    private var activeSurface: ManuscriptSurface {
+        surface.isFree || subscription.isPremium ? surface : .parchment
+    }
+
     private var writingSpeed: ManuscriptWritingSpeed {
         ManuscriptWritingSpeed(rawValue: writingSpeedRaw) ?? ManuscriptWritingSpeed.defaultValue
     }
@@ -488,6 +520,7 @@ struct ManuscriptStudioView: View {
     private func open(_ opened: ManuscriptPage) {
         let more = ManuscriptPool.curatedPages(language: opened.language, excluding: [opened.reference], count: 24)
         style = opened.style
+        surface = opened.surface
         pages = [opened] + more
         currentId = opened.id
         isTurned = false
@@ -595,12 +628,13 @@ extension ManuscriptPage {
         let defaults = UserDefaults.standard
         let language = defaults.string(forKey: "manuscript_language").flatMap(AppLanguage.init(rawValue:)) ?? fallbackLanguage
         let style = defaults.string(forKey: "manuscript_style").flatMap(ManuscriptStyle.init(rawValue:)) ?? .roslin
+        let surface = defaults.string(forKey: "manuscript_surface").flatMap(ManuscriptSurface.init(rawValue:)) ?? .parchment
         if let name = defaults.string(forKey: "manuscript_name") {
             defaults.set(name, forKey: "luys_manuscript_name")
         }
         if defaults.string(forKey: "manuscript_source") == "chapter",
            let book = BibleDatabase.shared.getBook(id: 43),
-           let source = ManuscriptPool.chapterSource(book: book, chapter: 3, startVerse: 16, language: language, style: style) {
+           let source = ManuscriptPool.chapterSource(book: book, chapter: 3, startVerse: 16, language: language, style: style, surface: surface) {
             return source
         }
         // -manuscript_verse long — длинный стих, чтобы проверить плотную страницу
@@ -609,6 +643,7 @@ extension ManuscriptPage {
         let verse = (wantsLong ? longVerse : nil) ?? BibleVerse.shortPearls.first ?? BibleManager.shared.currentVerse
         var page = ManuscriptPage.from(verse: verse, language: language)
         page.style = style
+        page.surface = surface
         return .curated(first: page)
     }
 }
