@@ -100,14 +100,18 @@ struct PrayerManuscriptWriterView: View {
                 GeometryReader { geo in
                     pageWindow(size: geo.size)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .overlay(placeholder)
+                        // Нажатие на лист возвращает клавиатуру: пишем прямо на пергаменте
+                        .contentShape(Rectangle())
+                        .onTapGesture { isFocused = true }
                 }
                 .shadow(color: Color.black.opacity(0.55), radius: 16, x: 0, y: 8)
 
                 controls
-                editor
             }
             .padding(.bottom, 8)
         }
+        .background(hiddenInput)
         .preferredColorScheme(.dark)
         .onAppear { isFocused = true }
         .onChange(of: text) { newValue in
@@ -241,55 +245,49 @@ struct PrayerManuscriptWriterView: View {
                     .background(Circle().fill(Color.white.opacity(0.08)))
             }
             .accessibilityLabel(Text(language.pick(hy: "Գրիչ", ru: "Перо", en: "Pen")))
+
+            if !text.isEmpty {
+                Button {
+                    Haptics.impact(.light)
+                    text = ""
+                    isFocused = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Self.parchmentInk.opacity(0.75))
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Color.white.opacity(0.08)))
+                }
+                .accessibilityLabel(Text(language.pick(hy: "Մաքրել", ru: "Очистить", en: "Clear")))
+            }
         }
     }
 
-    // MARK: Поле ввода
-    private var editor: some View {
-        VStack(spacing: 4) {
-            ZStack(alignment: .topLeading) {
-                if text.isEmpty {
-                    Text(language.pick(
-                        hy: "Սկսեք գրել աղոթքը. գրիչը կգրի ձեր հետևից",
-                        ru: "Начните печатать молитву: перо будет писать следом",
-                        en: "Start typing your prayer: the pen writes along"
-                    ))
-                    .font(PaperFont.font(size: 15))
-                    .foregroundColor(Self.parchmentInk.opacity(0.4))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 14)
-                    .allowsHitTesting(false)
-                }
-                TextEditor(text: $text)
-                    .focused($isFocused)
-                    .font(PaperFont.font(size: 16))
-                    .foregroundColor(Self.parchmentInk)
-                    .scrollContentBackground(.hidden)
-                    .background(Color.clear)
-                    .frame(height: 84)
-                    .padding(6)
-            }
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.08)))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
-
-            HStack {
-                if !text.isEmpty {
-                    Button {
-                        Haptics.impact(.light)
-                        text = ""
-                    } label: {
-                        Text(language.pick(hy: "Մաքրել", ru: "Очистить", en: "Clear"))
-                            .font(PaperFont.font(size: 12, weight: .medium))
-                            .foregroundColor(Self.parchmentInk.opacity(0.6))
-                    }
-                }
-                Spacer()
-                Text("\(text.count)/\(Self.maxLength)")
-                    .font(PaperFont.font(size: 11, weight: .medium).monospacedDigit())
-                    .foregroundColor(Self.parchmentInk.opacity(0.45))
-            }
-            .padding(.horizontal, 4)
+    // MARK: Ввод прямо на листе
+    /// Подсказка на пустом листе
+    @ViewBuilder
+    private var placeholder: some View {
+        if text.isEmpty {
+            Text(language.pick(
+                hy: "Սկսեք գրել աղոթքը. գրիչը կգրի ձեր հետևից",
+                ru: "Начните печатать молитву: перо будет писать следом",
+                en: "Start typing your prayer: the pen writes along"
+            ))
+            .font(PaperFont.font(size: 16))
+            .foregroundColor(Color(red: 0.16, green: 0.11, blue: 0.07).opacity(0.5))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 60)
+            .allowsHitTesting(false)
         }
-        .padding(.horizontal, 16)
+    }
+
+    /// Невидимое поле, которое принимает ввод с клавиатуры; всё видимое рисует лист
+    private var hiddenInput: some View {
+        TextEditor(text: $text)
+            .focused($isFocused)
+            .scrollContentBackground(.hidden)
+            .frame(width: 44, height: 44)
+            .opacity(0.02)
+            .allowsHitTesting(false)
     }
 }

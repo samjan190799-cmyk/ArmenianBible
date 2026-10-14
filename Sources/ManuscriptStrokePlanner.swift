@@ -114,7 +114,9 @@ enum ManuscriptStrokePlanner {
 
         guard var ink = rasterize(outline, box: box, scale: scale, width: width, height: height) else { return nil }
         let distance = distances(ink, width: width, height: height)
+        let original = ink
         thin(&ink, width: width, height: height)
+        keepVanishedShapes(original: original, skeleton: &ink, distance: distance, width: width, height: height)
         let order = walk(ink, width: width, height: height)
         guard !order.isEmpty else { return nil }
 
@@ -238,6 +240,34 @@ enum ManuscriptStrokePlanner {
         }
     }
 
+    /// Точка над «i», двоеточие, диерезис: маленькое пятно при утончении может исчезнуть целиком.
+    /// В каждом связном куске, где скелета не осталось, оставляем пиксель, самый далёкий от края.
+    private static func keepVanishedShapes(original: [UInt8], skeleton: inout [UInt8], distance: [Float],
+                                           width: Int, height: Int) {
+        var seen = [Bool](repeating: false, count: original.count)
+        for start in 0 ..< original.count where original[start] != 0 && !seen[start] {
+            var stack = [start]
+            seen[start] = true
+            var hasSkeleton = false
+            var deepest = start
+            while let index = stack.popLast() {
+                if skeleton[index] != 0 { hasSkeleton = true }
+                if distance[index] > distance[deepest] { deepest = index }
+                let x = index % width, y = index / width
+                for n in neighbours {
+                    let nx = x + n.dx, ny = y + n.dy
+                    if nx < 0 || ny < 0 || nx >= width || ny >= height { continue }
+                    let j = ny * width + nx
+                    if original[j] != 0 && !seen[j] {
+                        seen[j] = true
+                        stack.append(j)
+                    }
+                }
+            }
+            if !hasSkeleton { skeleton[deepest] = 1 }
+        }
+    }
+
     // MARK: Обход скелета
     private struct Step {
         let x: Int
@@ -281,6 +311,20 @@ enum ManuscriptStrokePlanner {
         var current = candidates.min { startRank($0) < startRank($1) } ?? cells[0]
 
         var visited = [Bool](repeating: false, count: skeleton.count)
+        // Объявлена после visited: локальная функция не может захватить переменную раньше её объявления
+        func touchesVisited(_ pixels: [Int]) -> Bool {
+            for p in pixels {
+                let x = p % width, y = p / width
+                for dy in -2 ... 2 {
+                    for dx in -2 ... 2 {
+                        let nx = x + dx, ny = y + dy
+                        if nx < 0 || ny < 0 || nx >= width || ny >= height { continue }
+                        if visited[ny * width + nx] { return true }
+                    }
+                }
+            }
+            return false
+        }
         var steps: [Step] = [Step(x: current % width, y: current / width, lifted: false)]
         visited[current] = true
         var heading: (dy: Int, dx: Int)?
@@ -331,7 +375,9 @@ enum ManuscriptStrokePlanner {
                     queue.append(j)
                 }
             }
-            if crumb.count < 3 {
+            // Обрывок в один-два пикселя возле пройденного пути — мусор от утончения; такой же обрывок
+            // вдали от пути — самостоятельная точка (над «i», в двоеточии), её надо писать
+            if crumb.count < 3 && touchesVisited(crumb) {
                 for j in crumb { visited[j] = true }
                 left -= crumb.count
                 continue
