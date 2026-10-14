@@ -138,12 +138,74 @@ final class ManuscriptTextLayout {
     let offsetY: CGFloat
     /// Низ текста в координатах страницы
     let bottomY: CGFloat
+    /// Накопленное время пера по знакам: cumulative[i] — сколько прошло к началу знака i, а в конце их сумма.
+    /// Вес знака — время пера на него относительно среднего знака (в среднем 1): сложная буква дольше простой,
+    /// после запятой и точки перо медлит. Так письмо идёт не метрономом, а как у руки.
+    private let cumulative: [CGFloat]
 
     private init(lines: [Line], length: Int, offsetY: CGFloat, bottomY: CGFloat) {
         self.lines = lines
         self.length = length
         self.offsetY = offsetY
         self.bottomY = bottomY
+        self.cumulative = ManuscriptTextLayout.cumulativeWeights(lines: lines, length: length)
+    }
+
+    private static func cumulativeWeights(lines: [Line], length: Int) -> [CGFloat] {
+        guard length > 0 else { return [0] }
+        var perChar = [CGFloat](repeating: 0, count: length)
+        for item in lines {
+            for glyph in item.glyphs {
+                let from = max(0, glyph.from)
+                let to = min(length, glyph.to)
+                guard from < to else { continue }
+                let share = glyph.weight / CGFloat(to - from)
+                for c in from ..< to { perChar[c] = max(perChar[c], share) }
+            }
+        }
+        let known = perChar.filter { $0 > 0 }
+        let mean = known.isEmpty ? 1 : known.reduce(0, +) / CGFloat(known.count)
+        var result = [CGFloat](repeating: 0, count: length + 1)
+        for c in 0 ..< length {
+            // Знак без веса получает средний; слишком короткое и слишком долгое время обрезается
+            let relative = perChar[c] > 0 ? min(3.5, max(0.35, perChar[c] / mean)) : 1
+            result[c + 1] = result[c] + relative
+        }
+        return result
+    }
+
+    /// Время пера на знак относительно среднего знака
+    func weight(atChar index: Int) -> CGFloat {
+        guard length > 0 else { return 1 }
+        let i = min(length - 1, max(0, index))
+        return cumulative[i + 1] - cumulative[i]
+    }
+
+    /// Какой знак (с дробной частью) перо пишет к моменту progress (0…1) от всего времени письма
+    func written(atProgress progress: CGFloat) -> CGFloat {
+        guard length > 0, let total = cumulative.last, total > 0 else { return 0 }
+        let target = min(1, max(0, progress)) * total
+        // Последний знак, который начался не позже target
+        var low = 0
+        var high = length
+        while low < high {
+            let middle = (low + high + 1) / 2
+            if cumulative[middle] <= target { low = middle } else { high = middle - 1 }
+        }
+        if low >= length { return CGFloat(length) }
+        let span = cumulative[low + 1] - cumulative[low]
+        let k = span > 0 ? (target - cumulative[low]) / span : 0
+        return CGFloat(low) + k
+    }
+
+    /// Обратное к `written(atProgress:)`: доля времени письма, к которой перо дошло до знака `written`
+    func progress(forWritten written: CGFloat) -> CGFloat {
+        guard length > 0, let total = cumulative.last, total > 0 else { return 0 }
+        let position = min(CGFloat(length), max(0, written))
+        let i = Int(position)
+        if i >= length { return 1 }
+        let k = position - CGFloat(i)
+        return (cumulative[i] + (cumulative[i + 1] - cumulative[i]) * k) / total
     }
 
     // Подбор кегля — десяток пробных вёрсток, поэтому результат кэшируется
@@ -217,7 +279,8 @@ final class ManuscriptTextLayout {
         let inkColor = ManuscriptPalette.color(ink)
         let visible = setLines(best).lines.filter { $0.baseline + $0.descent <= height + 2 }.map { item -> Line in
             var inked = item
-            inked.glyphs = ManuscriptGlyphs.make(line: item.line, indexBase: item.indexBase, range: item.range, ink: inkColor)
+            inked.glyphs = ManuscriptGlyphs.make(line: item.line, indexBase: item.indexBase, range: item.range,
+                                                 ink: inkColor, text: body as NSString)
             return inked
         }
         let length = visible.last.map { $0.range.location + $0.range.length } ?? 0
@@ -809,8 +872,9 @@ enum ManuscriptRenderer {
         guard p > 0, !layout.lines.isEmpty else { return }
         let rect = ManuscriptGeometry.textRect
         let top = rect.minY + layout.offsetY
-        let written = p * CGFloat(layout.length)
-        var pen: CGPoint?
+        // Перо идёт не метрономом: p — доля времени письма, written — какой по счёту знак перо пишет сейчас
+        let written = layout.written(atProgress: p)
+        var pen: ManuscriptPenPose?
         var lastLineEnd: CGPoint?
         // Строка и буква, которые перо выводит прямо сейчас, и где оно оторвалось от предыдущей буквы
         var writing: (line: ManuscriptTextLayout.Line, glyph: Int)?
@@ -880,7 +944,8 @@ enum ManuscriptRenderer {
                 cg.restoreGState()
 
                 cg.restoreGState()
-                pen = CGPoint(x: rect.minX + item.x + tipX + 1.5, y: top + item.baseline - item.ascent * 0.32)
+                pen = ManuscriptPenPose(tip: CGPoint(x: rect.minX + item.x + tipX + 1.5, y: top + item.baseline - item.ascent * 0.32),
+                                        hover: 0, heading: CGPoint(x: 1, y: 0))
                 break
             }
         }
@@ -890,19 +955,22 @@ enum ManuscriptRenderer {
                                    previousInk: previousInk, rect: rect, top: top, in: ctx)
         }
 
-        if let pen, p < 1 {
-            ctx.fill(Path(ellipseIn: circle(pen, 1.8)), with: .color(c(inkHex, 0.8)))
-            ctx.fill(Path(ellipseIn: circle(pen, 3.6)), with: .color(c(inkHex, 0.12)))
-            // Рука чуть покачивает перо в такт письму
-            let sway = Double(sin(written * 0.9)) * 2.5
-            ManuscriptQuillArt.draw(pen: penStyle, tip: pen, sway: sway, lift: 0, time: Double(written) * 0.5, palette: P, surface: look.surface, in: ctx)
+        if let pose = pen, p < 1 {
+            // Чернила у кончика видны, пока перо касается бумаги
+            if pose.hover < 0.25 {
+                ctx.fill(Path(ellipseIn: circle(pose.tip, 1.8)), with: .color(c(inkHex, 0.8)))
+                ctx.fill(Path(ellipseIn: circle(pose.tip, 3.6)), with: .color(c(inkHex, 0.12)))
+            }
+            // Рука наклоняет перо по ходу движения и чуть дрожит; в перелёте перо приподнято и отклонено
+            let lean = Double(max(-1, min(1, pose.heading.x))) * 4
+            let tremor = Double(sin(written * 11) * 0.5 + sin(written * 4.3) * 0.6)
+            let sway = lean + tremor + Double(pose.hover) * 5
+            ManuscriptQuillArt.draw(pen: penStyle, tip: pose.tip, sway: sway, lift: 0, hover: pose.hover, time: Double(written) * 0.5,
+                                    palette: P, surface: look.surface, in: ctx)
         } else if p >= 1, lift < 1, let restingTip = previousInk ?? lastLineEnd {
             ManuscriptQuillArt.draw(pen: penStyle, tip: restingTip, sway: 0, lift: lift, time: Double(written) * 0.5, palette: P, surface: look.surface, in: ctx)
         }
     }
-
-    /// Доля времени буквы, которую перо тратит на подход к ней
-    private static let writeApproach: CGFloat = 0.12
 
     /// Резьба: светлая кромка по нижнему правому краю каждой буквы, как у борозды в камне при боковом свете.
     /// Рисуется под чернилами, поэтому видна только там, где борозда выходит за контур буквы.
@@ -918,7 +986,7 @@ enum ManuscriptRenderer {
                 } else if let plan = glyph.plan {
                     let span = CGFloat(max(1, glyph.to - glyph.from))
                     let fraction = clamp((written - CGFloat(glyph.from)) / span)
-                    let stroke = clamp((fraction - writeApproach) / (1 - writeApproach))
+                    let stroke = clamp((fraction - glyph.approachShare) / max(0.05, 1 - glyph.approachShare - glyph.dwellShare))
                     var partial = layer
                     partial.clip(to: Path(plan.inkMask(at: stroke)))
                     partial.fill(glyph.path, with: .color(rim))
@@ -929,41 +997,61 @@ enum ManuscriptRenderer {
 
     /// Буква, которую перо пишет сейчас. Перо подходит к началу буквы и ведёт кончик по её штрихам
     /// в том порядке, в каком их выводит рука: чернила проступают только там, где перо уже прошло.
-    /// Возвращает, где стоит кончик пера на странице.
+    /// Возвращает, где и как стоит перо: кончик на странице, высоту над листом, направление движения.
     private static func drawWritingGlyph(_ item: ManuscriptTextLayout.Line, glyphIndex: Int, written: CGFloat,
                                          previousInk: CGPoint?, rect: CGRect, top: CGFloat,
-                                         in ctx: GraphicsContext) -> CGPoint {
+                                         in ctx: GraphicsContext) -> ManuscriptPenPose {
         let glyph = item.glyphs[glyphIndex]
         let originX = rect.minX + item.x
         let originY = top + item.baseline
         let span = CGFloat(max(1, glyph.to - glyph.from))
         let fraction = clamp((written - CGFloat(glyph.from)) / span)
+        let glideY = -item.ascent * ManuscriptPenRhythm.glideHeight
 
-        guard glyph.hasInk else {
-            // Пробел и знаки без контура: перо просто скользит над строкой
-            let x = glyph.x + (glyph.nextX - glyph.x) * fraction
-            return CGPoint(x: originX + x, y: originY - item.ascent * 0.15)
+        // Где кончик пера был до этого знака: после пробела — над строкой, иначе у конца последней буквы
+        var from = glyph.startPoint
+        if glyphIndex > 0 && !item.glyphs[glyphIndex - 1].hasInk {
+            from = CGPoint(x: item.glyphs[glyphIndex - 1].nextX, y: glideY)
+        } else if let before = item.glyphs[..<glyphIndex].last(where: { $0.hasInk }) {
+            from = before.endPoint
+        } else if let carried = previousInk {
+            from = CGPoint(x: carried.x - originX, y: carried.y - originY)
         }
 
-        // Начало времени буквы перо тратит на подход к ней, остальное на письмо
-        let approach = writeApproach
-        let stroke = clamp((fraction - approach) / (1 - approach))
+        guard glyph.hasInk else {
+            // Пробел и знаки без контура: перо приподнято и плывёт над строкой от конца слова к началу следующего
+            let target = CGPoint(x: glyph.nextX, y: glideY)
+            let k = smooth(fraction)
+            let glide = CGPoint(x: from.x + (target.x - from.x) * k, y: from.y + (target.y - from.y) * k)
+            return ManuscriptPenPose(tip: CGPoint(x: originX + glide.x, y: originY + glide.y),
+                                     hover: 0.8 * sin(CGFloat.pi * fraction), heading: CGPoint(x: 1, y: 0))
+        }
+
+        // Время буквы: подход к ней, письмо, в конце — пауза (после запятой и точки)
+        let approach = glyph.approachShare
+        let stroke = clamp((fraction - approach) / max(0.05, 1 - approach - glyph.dwellShare))
 
         var layer = ctx
         layer.translateBy(x: originX, y: originY)
         var tip = glyph.startPoint
+        var hover: CGFloat = 0
+        var heading = CGPoint(x: 1, y: 0)
 
         if let plan = glyph.plan {
-            var inked = layer
-            inked.clip(to: Path(plan.inkMask(at: stroke)))
-            inked.fill(glyph.path, with: .color(glyph.color))
-            // Под самый конец буква заливается целиком, чтобы между кругами не осталось щелей
-            let settle = smooth((fraction - 0.92) / 0.08)
+            // Чернила ложатся, только когда перо коснулось бумаги, а не пока оно летит к началу буквы
+            if fraction >= approach {
+                var inked = layer
+                inked.clip(to: Path(plan.inkMask(at: stroke)))
+                inked.fill(glyph.path, with: .color(glyph.color))
+                let pose = plan.pose(at: stroke)
+                tip = pose.tip
+                hover = pose.hover
+                heading = pose.heading
+            }
+            // Под самый конец письма буква заливается целиком, чтобы между кругами не осталось щелей
+            let settle = smooth((fraction - (1 - glyph.dwellShare - 0.08)) / 0.08)
             if settle > 0 {
                 layer.fill(glyph.path, with: .color(glyph.color.opacity(Double(settle))))
-            }
-            if fraction >= approach {
-                tip = plan.position(at: stroke).tip
             }
         } else {
             // Контуры штрихов построить не удалось: буква просто проступает
@@ -971,18 +1059,18 @@ enum ManuscriptRenderer {
         }
 
         if fraction < approach {
-            // Перо переходит от конца предыдущей буквы к началу этой
-            var from = glyph.startPoint
-            if let before = item.glyphs[..<glyphIndex].last(where: { $0.hasInk }) {
-                from = before.endPoint
-            } else if let carried = previousInk {
-                from = CGPoint(x: carried.x - originX, y: carried.y - originY)
+            // Перо перелетает от конца предыдущего знака к началу этой буквы дугой: приподнято, у цели опускается
+            let k = fraction / approach
+            let eased = smooth(k)
+            tip = CGPoint(x: from.x + (glyph.startPoint.x - from.x) * eased,
+                          y: from.y + (glyph.startPoint.y - from.y) * eased)
+            let travel = hypot(glyph.startPoint.x - from.x, glyph.startPoint.y - from.y)
+            hover = sin(CGFloat.pi * k) * min(1, travel / 10)
+            if travel > 0.01 {
+                heading = CGPoint(x: (glyph.startPoint.x - from.x) / travel, y: (glyph.startPoint.y - from.y) / travel)
             }
-            let k = smooth(fraction / approach)
-            tip = CGPoint(x: from.x + (glyph.startPoint.x - from.x) * k,
-                          y: from.y + (glyph.startPoint.y - from.y) * k)
         }
-        return CGPoint(x: originX + tip.x, y: originY + tip.y)
+        return ManuscriptPenPose(tip: CGPoint(x: originX + tip.x, y: originY + tip.y), hover: hover, heading: heading)
     }
 
     // MARK: Украшение на внешнем поле: стебель растёт снизу вверх, наверху крест

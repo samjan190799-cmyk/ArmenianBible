@@ -1,8 +1,8 @@
 import SwiftUI
 
 // MARK: - Часы пера: догоняют набранный текст
-/// Перо идёт за текстом, а не за временем: каждая новая буква пишется со скоростью руки,
-/// вставленный кусок догоняется быстрее, стёртое исчезает сразу.
+/// Перо идёт за текстом, а не за временем: каждая новая буква пишется в ритме руки (сложная дольше простой,
+/// скорость задана в настройках письма), длинный хвост после вставки догоняется быстрее, стёртое исчезает сразу.
 final class PrayerPenClock {
     private var last: Date?
     private var written: Double = 0
@@ -15,7 +15,10 @@ final class PrayerPenClock {
         let top: CGFloat
     }
 
-    func advance(now: Date, target: Int, hasText: Bool, scrollTarget: CGFloat) -> Snapshot {
+    /// `secondsPerCharacter` — сколько в среднем рука пишет один знак; `weightAt` — время пера на знак
+    /// относительно среднего (из раскладки): так перо не стучит метрономом, а замедляется на сложных буквах
+    func advance(now: Date, target: Int, hasText: Bool, scrollTarget: CGFloat,
+                 secondsPerCharacter: Double, weightAt: (Int) -> CGFloat) -> Snapshot {
         let dt = last.map { min(0.1, max(0, now.timeIntervalSince($0))) } ?? 0
         last = now
 
@@ -23,7 +26,11 @@ final class PrayerPenClock {
         if written > goal {
             written = goal
         } else if written < goal {
-            let speed = max(16, (goal - written) / 2)
+            // Пока текста в очереди мало, перо пишет в ритме руки; большой хвост (вставка) догоняется быстрее
+            let backlog = goal - written
+            let hurry = 1 + min(3, max(0, backlog - 6) / 8)
+            let weight = max(0.35, Double(weightAt(Int(written))))
+            let speed = hurry / (max(0.05, secondsPerCharacter) * weight)
             written = min(goal, written + speed * dt)
         }
 
@@ -62,6 +69,8 @@ struct PrayerManuscriptWriterView: View {
     @State private var surface = ManuscriptSurface.effective
     @State private var isShowingPens = false
     @State private var isShowingSurfaces = false
+    /// Клавиатура должна вернуться после листа выбора пера или основы, если человек её не скрывал
+    @State private var keyboardWanted = true
     @State private var clock = PrayerPenClock()
     @State private var pageId = UUID()
     @State private var createdAt = Date()
@@ -134,11 +143,15 @@ struct PrayerManuscriptWriterView: View {
                 text = String(newValue.prefix(Self.maxLength))
             }
         }
+        .onChange(of: isFocused) { focused in
+            // Запоминаем выбор человека, но не то, что клавиатура пропала из-за листа выбора пера или основы
+            if !isShowingPens && !isShowingSurfaces { keyboardWanted = focused }
+        }
         .onChange(of: isShowingPens) { showing in
-            if !showing { isFocused = true }
+            if !showing { isFocused = keyboardWanted }
         }
         .onChange(of: isShowingSurfaces) { showing in
-            if !showing { isFocused = true }
+            if !showing { isFocused = keyboardWanted }
         }
         .onChange(of: surface) { newValue in
             // Выбор запоминается: свеча сохранит лист на этой основе
@@ -181,8 +194,21 @@ struct PrayerManuscriptWriterView: View {
 
             Spacer()
 
-            // Пустое место справа равно кнопке закрытия слева: заголовок по центру
-            Color.clear.frame(width: 38, height: 38)
+            // Скрыть или вернуть клавиатуру; размер равен кнопке закрытия слева, поэтому заголовок остаётся по центру.
+            // Без клавиатуры лист занимает больше места и видно, как перо пишет.
+            Button {
+                Haptics.impact(.soft)
+                isFocused.toggle()
+            } label: {
+                Image(systemName: isFocused ? "keyboard.chevron.compact.down" : "keyboard")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Self.parchmentInk)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
+            }
+            .accessibilityLabel(Text(isFocused
+                ? language.pick(hy: "Թաքցնել ստեղնաշարը", ru: "Скрыть клавиатуру", en: "Hide keyboard")
+                : language.pick(hy: "Ցույց տալ ստեղնաշարը", ru: "Показать клавиатуру", en: "Show keyboard")))
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -198,8 +224,12 @@ struct PrayerManuscriptWriterView: View {
             let minTop: CGFloat = 56
             let followTarget = max(minTop, min(layout.bottomY - visibleHeight + 40, ManuscriptGeometry.size.height - visibleHeight))
             let hasText = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            let state = clock.advance(now: timeline.date, target: layout.length, hasText: hasText, scrollTarget: followTarget)
-            let progress = layout.length > 0 ? CGFloat(min(1, state.written / Double(layout.length))) : 0
+            // Живая рука медленнее анимации готового листа: на знак уходит в 1,6 раза больше времени, чем задано в настройках
+            let state = clock.advance(now: timeline.date, target: layout.length, hasText: hasText, scrollTarget: followTarget,
+                                      secondsPerCharacter: ManuscriptWritingSpeed.current.secondsPerCharacter * 1.6,
+                                      weightAt: { layout.weight(atChar: $0) })
+            // Часы считают знаки, а рисунок — долю времени письма: у сложных букв доля течёт медленнее
+            let progress = layout.progress(forWritten: CGFloat(state.written))
             let reveal = ManuscriptReveal(
                 parchment: 1, frame: 1, headpiece: 1,
                 initial: CGFloat(state.initial), text: progress, margin: 1, colophon: 1

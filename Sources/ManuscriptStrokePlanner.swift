@@ -12,7 +12,8 @@ struct ManuscriptStrokePlan {
     var radii: [CGFloat]
     /// true: от предыдущей точки перо идёт по бумаге и оставляет след; false: перо поднято и перелетает
     var inked: [Bool]
-    /// «Время» к каждой точке: длина пути в пикселях растра, перелёты считаются дешевле, чем письмо
+    /// «Время» к каждой точке: длина пути в пикселях растра с поправкой на скорость руки (разгон, изгибы),
+    /// перелёты считаются дешевле, чем письмо
     var timeline: [CGFloat]
     /// Размер одного пикселя растра в координатах контура
     var pixel: CGFloat
@@ -37,6 +38,26 @@ struct ManuscriptStrokePlan {
         let from = points[index]
         let to = points[index + 1]
         return (index, CGPoint(x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k))
+    }
+
+    /// Положение кончика, высота пера над листом и направление движения к моменту progress (0…1).
+    /// На перелётах перо поднято дугой: чем длиннее перелёт, тем выше.
+    func pose(at progress: CGFloat) -> (tip: CGPoint, hover: CGFloat, heading: CGPoint) {
+        let reached = position(at: progress)
+        guard reached.index + 1 < points.count else { return (reached.tip, 0, .zero) }
+
+        let from = points[reached.index]
+        let to = points[reached.index + 1]
+        let length = hypot(to.x - from.x, to.y - from.y)
+        let heading = length > 0.0001 ? CGPoint(x: (to.x - from.x) / length, y: (to.y - from.y) / length) : CGPoint.zero
+
+        var hover: CGFloat = 0
+        if !inked[reached.index + 1] {
+            let span = timeline[reached.index + 1] - timeline[reached.index]
+            let k = span > 0 ? (min(1, max(0, progress)) * totalTime - timeline[reached.index]) / span : 0
+            hover = sin(CGFloat.pi * min(1, max(0, k))) * min(1, length / (10 * pixel))
+        }
+        return (reached.tip, hover, heading)
     }
 
     /// Область, уже закрашенная пером: круги вдоль пройденных участков. Буква рисуется только внутри неё.
@@ -69,8 +90,8 @@ struct ManuscriptStrokePlan {
 }
 
 // MARK: - Построение плана
-/// Контур рисуется в маленький растр, скелетизуется (Жанг–Суэн), по скелету перо ведётся жадным
-/// обходом, а толщина штриха берётся из карты расстояний до края (дискретная медиальная ось).
+/// Контур рисуется в маленький растр, скелетизуется (Жанг–Суэн), по скелету перо ведётся обходом,
+/// как у руки (см. `walk`), а толщина штриха берётся из карты расстояний до края (дискретная медиальная ось).
 enum ManuscriptStrokePlanner {
     static let rasterSize = 64
     private static let padding = 3
@@ -119,29 +140,22 @@ enum ManuscriptStrokePlanner {
         let order = walk(ink, width: width, height: height)
         guard !order.isEmpty else { return nil }
 
-        // Пиксели растра → координаты контура; соседние точки усредняются, чтобы убрать «ступеньки»
-        var points: [CGPoint] = []
+        // Пиксели растра → точки пути; соседние точки усредняются, чтобы убрать «ступеньки»
+        var rasterPoints: [CGPoint] = []
         var radii: [CGFloat] = []
         var inked: [Bool] = []
-        var timeline: [CGFloat] = []
-        var clock: CGFloat = 0
-        var previous: (x: Int, y: Int)?
         for step in order {
-            if let before = previous {
-                let length = hypot(CGFloat(step.x - before.x), CGFloat(step.y - before.y))
-                // Перелёт: перо в воздухе, вдвое быстрее письма, плюс короткая пауза на подъём
-                clock += step.lifted ? 0.5 * length + 4 : length
-            }
-            previous = (step.x, step.y)
-            let px = CGFloat(step.x) + 0.5
-            let py = CGFloat(step.y) + 0.5
-            points.append(CGPoint(x: box.minX + (px - CGFloat(padding)) / scale,
-                                  y: box.minY + (py - CGFloat(padding)) / scale))
+            rasterPoints.append(CGPoint(x: CGFloat(step.x) + 0.5, y: CGFloat(step.y) + 0.5))
             radii.append(CGFloat(distance[step.y * width + step.x]) / scale)
             inked.append(!step.lifted)
-            timeline.append(clock)
         }
-        points = smoothed(points, inked: inked)
+        rasterPoints = smoothed(rasterPoints, inked: inked)
+        let timeline = handwritingTimeline(points: rasterPoints, inked: inked)
+        // Растр → координаты контура
+        let points = rasterPoints.map { point in
+            CGPoint(x: box.minX + (point.x - CGFloat(padding)) / scale,
+                    y: box.minY + (point.y - CGFloat(padding)) / scale)
+        }
         return ManuscriptStrokePlan(points: points, radii: radii, inked: inked, timeline: timeline, pixel: 1 / scale)
     }
 
@@ -275,42 +289,69 @@ enum ManuscriptStrokePlanner {
         let lifted: Bool
     }
 
-    /// Жадный обход: идём прямо, пока есть куда; упёрлись, поднимаем перо и ставим его
-    /// у ближайшего ненаписанного места. Начало: верхний левый конец скелета.
+    /// Возвращаться по уже написанному можно, если путь по скелету не длиннее этого (в пикселях растра)
+    private static let retraceLimit = 10.0
+    /// … или если он не длиннее прямого перелёта больше чем в столько раз
+    private static let retraceRatio = 1.3
+
+    /// Обход как у руки: старт сверху слева (замкнутая линия — сверху и против часовой стрелки),
+    /// дальше прямо, пока есть куда. Упёрлись: короткую ветку (засечку, ушко) рука пишет туда и обратно,
+    /// не отрывая пера; далёкую — отрывает перо и садится на конец следующей ветки.
     private static func walk(_ skeleton: [UInt8], width: Int, height: Int) -> [Step] {
         var cells: [Int] = []
         for i in 0 ..< skeleton.count where skeleton[i] != 0 { cells.append(i) }
         guard !cells.isEmpty else { return [] }
 
-        func unvisitedNeighbours(of index: Int, _ visited: [Bool]) -> [Int] {
+        // Соседи каждой клетки скелета
+        var adjacency = [[Int]](repeating: [], count: skeleton.count)
+        for index in cells {
             let x = index % width, y = index / width
-            var found: [Int] = []
             for n in neighbours {
                 let nx = x + n.dx, ny = y + n.dy
                 if nx < 0 || ny < 0 || nx >= width || ny >= height { continue }
                 let j = ny * width + nx
-                if skeleton[j] != 0 && !visited[j] { found.append(j) }
+                if skeleton[j] != 0 { adjacency[index].append(j) }
             }
-            return found
-        }
-        func neighbourCount(of index: Int) -> Int {
-            let x = index % width, y = index / width
-            var count = 0
-            for n in neighbours {
-                let nx = x + n.dx, ny = y + n.dy
-                if nx < 0 || ny < 0 || nx >= width || ny >= height { continue }
-                if skeleton[ny * width + nx] != 0 { count += 1 }
-            }
-            return count
         }
 
-        let ends = cells.filter { neighbourCount(of: $0) == 1 }
-        let candidates = ends.isEmpty ? cells : ends
-        func startRank(_ i: Int) -> Double { Double(i / width) + 0.35 * Double(i % width) }
-        var current = candidates.min { startRank($0) < startRank($1) } ?? cells[0]
+        var heading: (dy: Int, dx: Int)?
+        var current = cells[0]
+        let ends = cells.filter { adjacency[$0].count == 1 }
+        if ends.isEmpty {
+            // Замкнутая линия («о», «О»): начинаем сверху у середины и идём влево, против часовой стрелки
+            let top = cells.map { $0 / width }.min() ?? 0
+            let middle = Double(cells.map { $0 % width }.reduce(0, +)) / Double(cells.count)
+            let topRow = cells.filter { $0 / width <= top + 1 }
+            current = topRow.min { abs(Double($0 % width) - middle) < abs(Double($1 % width) - middle) } ?? cells[0]
+            heading = (0, -1)
+        } else {
+            func startRank(_ i: Int) -> Double { Double(i / width) + 0.35 * Double(i % width) }
+            current = ends.min { startRank($0) < startRank($1) } ?? cells[0]
+        }
 
         var visited = [Bool](repeating: false, count: skeleton.count)
-        // Объявлена после visited: локальная функция не может захватить переменную раньше её объявления
+        visited[current] = true
+        var steps: [Step] = [Step(x: current % width, y: current / width, lifted: false)]
+        var left = cells.count - 1
+
+        // Локальные функции объявлены после visited: они его захватывают
+        func unvisitedNeighbours(of index: Int) -> [Int] {
+            adjacency[index].filter { !visited[$0] }
+        }
+        /// Связный кусок ненаписанного скелета, в котором лежит start
+        func unvisitedPiece(from start: Int) -> [Int] {
+            var seen: Set<Int> = [start]
+            var piece = [start]
+            var stack = [start]
+            while let head = stack.popLast() {
+                for j in unvisitedNeighbours(of: head) where !seen.contains(j) {
+                    seen.insert(j)
+                    piece.append(j)
+                    stack.append(j)
+                }
+            }
+            return piece
+        }
         func touchesVisited(_ pixels: [Int]) -> Bool {
             for p in pixels {
                 let x = p % width, y = p / width
@@ -324,13 +365,40 @@ enum ManuscriptStrokePlanner {
             }
             return false
         }
-        var steps: [Step] = [Step(x: current % width, y: current / width, lifted: false)]
-        visited[current] = true
-        var heading: (dy: Int, dx: Int)?
-        var left = cells.count - 1
+        /// Кратчайший путь по скелету (в том числе по написанному) до ближайшей ненаписанной клетки
+        func pathToUnvisited(from source: Int) -> (length: Double, path: [Int])? {
+            var best = [Double](repeating: .infinity, count: skeleton.count)
+            var previous = [Int](repeating: -1, count: skeleton.count)
+            var done = [Bool](repeating: false, count: skeleton.count)
+            best[source] = 0
+            while true {
+                var pick = -1
+                var pickDistance = Double.infinity
+                for c in cells where !done[c] && best[c] < pickDistance {
+                    pick = c
+                    pickDistance = best[c]
+                }
+                if pick < 0 { return nil }
+                if pick != source && !visited[pick] {
+                    var path = [pick]
+                    while path[path.count - 1] != source { path.append(previous[path[path.count - 1]]) }
+                    path.reverse()
+                    return (pickDistance, path)
+                }
+                done[pick] = true
+                for n in adjacency[pick] {
+                    let sideways = n % width == pick % width || n / width == pick / width
+                    let candidate = pickDistance + (sideways ? 1 : 1.4142)
+                    if candidate < best[n] {
+                        best[n] = candidate
+                        previous[n] = pick
+                    }
+                }
+            }
+        }
 
         while left > 0 {
-            let options = unvisitedNeighbours(of: current, visited)
+            let options = unvisitedNeighbours(of: current)
             if !options.isEmpty {
                 var best = options[0]
                 var bestScore = -Double.infinity
@@ -353,35 +421,49 @@ enum ManuscriptStrokePlanner {
                 continue
             }
 
-            // Упёрлись: ближайший ненаписанный пиксель; крошечные обрывки возле пути пропускаем
-            let cx = current % width, cy = current / width
-            var nearest = -1
-            var nearestDistance = Int.max
-            for i in cells where !visited[i] {
-                let dx = i % width - cx, dy = i / width - cy
-                let d2 = dx * dx + dy * dy
-                if d2 < nearestDistance { nearestDistance = d2; nearest = i }
-            }
-            if nearest < 0 { break }
-
-            var crumb = [nearest]
-            var seen: Set<Int> = [nearest]
-            var queue = [nearest]
-            while let head = queue.popLast() {
-                for j in unvisitedNeighbours(of: head, visited) where !seen.contains(j) {
-                    seen.insert(j)
-                    crumb.append(j)
-                    queue.append(j)
+            // Упёрлись. Ближайшее ненаписанное место достижимо по скелету?
+            if let found = pathToUnvisited(from: current) {
+                let target = found.path[found.path.count - 1]
+                // Обрывок в один-два пикселя возле пройденного пути — мусор от утончения; такой же обрывок
+                // вдали от пути — самостоятельная точка (над «i», в двоеточии), её надо писать
+                let piece = unvisitedPiece(from: target)
+                if piece.count < 3 && touchesVisited(piece) {
+                    for j in piece { visited[j] = true }
+                    left -= piece.count
+                    continue
+                }
+                let straight = hypot(Double(target % width - current % width), Double(target / width - current / width))
+                if found.length <= retraceLimit || found.length <= retraceRatio * straight + 2 {
+                    // Возвращаемся по уже написанному, перо не отрывается
+                    for index in found.path.dropFirst() {
+                        steps.append(Step(x: index % width, y: index / width, lifted: false))
+                    }
+                    current = target
+                    visited[current] = true
+                    left -= 1
+                    heading = nil
+                    continue
                 }
             }
-            // Обрывок в один-два пикселя возле пройденного пути — мусор от утончения; такой же обрывок
-            // вдали от пути — самостоятельная точка (над «i», в двоеточии), её надо писать
-            if crumb.count < 3 && touchesVisited(crumb) {
-                for j in crumb { visited[j] = true }
-                left -= crumb.count
+
+            // Перо отрывается и садится на конец ближайшей ненаписанной ветки: посадка в середину
+            // ветки потребовала бы ещё одного перелёта
+            let pending = cells.filter { !visited[$0] }
+            let chainEnds = pending.filter { unvisitedNeighbours(of: $0).count <= 1 }
+            let pool = chainEnds.isEmpty ? pending : chainEnds
+            func landingCost(_ i: Int) -> Double {
+                let dx = Double(i % width - current % width)
+                let dy = Double(i / width - current / width)
+                return (dx * dx + dy * dy).squareRoot() + 0.04 * (Double(i / width) + 0.35 * Double(i % width))
+            }
+            guard let chosen = pool.min(by: { landingCost($0) < landingCost($1) }) else { break }
+            let piece = unvisitedPiece(from: chosen)
+            if piece.count < 3 && touchesVisited(piece) {
+                for j in piece { visited[j] = true }
+                left -= piece.count
                 continue
             }
-            current = nearest
+            current = chosen
             visited[current] = true
             left -= 1
             heading = nil
@@ -411,5 +493,74 @@ enum ManuscriptStrokePlanner {
             result[i] = CGPoint(x: sx / n, y: sy / n)
         }
         return result
+    }
+
+    // MARK: Время письма
+    /// Время к каждой точке в единицах длины растра при ровной скорости руки. Рука идёт неравномерно:
+    /// в начале и в конце штриха медленнее (разгон и торможение), на крутых изгибах тоже — скорость
+    /// обратна кривизне в степени 1/3 («закон двух третей» из исследований почерка). Перелёты быстрее письма.
+    private static func handwritingTimeline(points: [CGPoint], inked: [Bool]) -> [CGFloat] {
+        let count = points.count
+        var timeline = [CGFloat](repeating: 0, count: count)
+        guard count > 1 else { return timeline }
+
+        // Штрих — подряд идущие точки на бумаге; новый штрих начинается с посадки после перелёта
+        var strokeStart = [Int](repeating: 0, count: count)
+        var strokeEnd = [Int](repeating: count - 1, count: count)
+        var begin = 0
+        for i in 0 ..< count {
+            if i > 0 && !inked[i] { begin = i }
+            strokeStart[i] = begin
+        }
+        var finish = count - 1
+        for i in stride(from: count - 1, through: 0, by: -1) {
+            strokeEnd[i] = finish
+            if !inked[i] { finish = i - 1 }
+        }
+
+        // Длина штриха от его начала до каждой точки
+        var arc = [CGFloat](repeating: 0, count: count)
+        for i in 1 ..< count where strokeStart[i] != i {
+            arc[i] = arc[i - 1] + hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y)
+        }
+
+        func speed(at i: Int) -> CGFloat {
+            let total = arc[strokeEnd[i]]
+            // Разгон и торможение на краях штриха: перо трогается с места не мгновенно
+            var easing: CGFloat = 1
+            let ramp = min(8, total / 2)
+            if ramp > 0.001 {
+                let edge = min(1, max(0, min(arc[i], total - arc[i]) / ramp))
+                easing = 0.55 + 0.45 * (edge * edge * (3 - 2 * edge))
+            }
+            // Кривизна по точкам через одну-две в стороне, в пределах штриха
+            var curve: CGFloat = 1
+            let a = max(strokeStart[i], i - 2)
+            let b = min(strokeEnd[i], i + 2)
+            if a < i && i < b {
+                let ux = points[i].x - points[a].x, uy = points[i].y - points[a].y
+                let vx = points[b].x - points[i].x, vy = points[b].y - points[i].y
+                let lu = hypot(ux, uy), lv = hypot(vx, vy)
+                if lu > 0.01 && lv > 0.01 {
+                    let turn = abs(atan2(ux * vy - uy * vx, ux * vx + uy * vy))
+                    let curvature = turn / ((lu + lv) / 2)
+                    curve = min(1, max(0.5, pow(1 + 8 * curvature, -1.0 / 3.0)))
+                }
+            }
+            return easing * curve
+        }
+
+        var clock: CGFloat = 0
+        for i in 1 ..< count {
+            let length = hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y)
+            if inked[i] {
+                clock += length / max(0.3, (speed(at: i - 1) + speed(at: i)) / 2)
+            } else {
+                // Перелёт: перо в воздухе, вдвое быстрее письма, плюс короткая пауза на подъём
+                clock += 0.5 * length + 4
+            }
+            timeline[i] = clock
+        }
+        return timeline
     }
 }

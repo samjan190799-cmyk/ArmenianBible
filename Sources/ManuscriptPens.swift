@@ -99,8 +99,9 @@ enum ManuscriptQuillArt {
         }
     }
 
-    /// `time` оживляет искры золотого пера; `lift` — отрыв пера от листа в конце письма (0…1)
-    static func draw(pen: ManuscriptPen, tip: CGPoint, sway: Double, lift: CGFloat, time: Double,
+    /// `time` оживляет искры золотого пера; `lift` — отрыв пера от листа в конце письма (0…1);
+    /// `hover` — перо приподнято над листом, пока перелетает от буквы к букве (0…1): оно выше, тень дальше
+    static func draw(pen: ManuscriptPen, tip: CGPoint, sway: Double, lift: CGFloat, hover: CGFloat = 0, time: Double,
                      palette P: ManuscriptPalette, surface: ManuscriptSurface = .parchment, in ctx: GraphicsContext) {
         // На камне в руке резец, а не перо
         if surface.isCarved {
@@ -109,17 +110,18 @@ enum ManuscriptQuillArt {
         }
         var quill = ctx
         quill.opacity = Double(1 - lift)
-        quill.translateBy(x: tip.x + 14 * lift, y: tip.y - 34 * lift)
+        quill.translateBy(x: tip.x + 14 * lift + 5 * hover, y: tip.y - 34 * lift - 9 * hover)
         quill.rotate(by: .degrees(30 + sway))
 
         if let look = feather(for: pen, palette: P) {
-            drawFeather(look, in: quill)
+            drawFeather(look, hover: hover, in: quill)
         } else {
-            drawReed(in: quill)
+            drawReed(hover: hover, in: quill)
         }
 
         if pen == .gilded {
-            drawSparkles(around: CGPoint(x: tip.x + 14 * lift, y: tip.y - 34 * lift), time: time, opacity: Double(1 - lift), in: ctx)
+            drawSparkles(around: CGPoint(x: tip.x + 14 * lift + 5 * hover, y: tip.y - 34 * lift - 9 * hover),
+                         time: time, opacity: Double(1 - lift), in: ctx)
         }
     }
 
@@ -130,7 +132,7 @@ enum ManuscriptQuillArt {
         return CGPoint(x: x, y: y)
     }
 
-    private static func drawFeather(_ look: Feather, in quill: GraphicsContext) {
+    private static func drawFeather(_ look: Feather, hover: CGFloat, in quill: GraphicsContext) {
         let length: CGFloat = 66
         let leftStart = CGPoint(x: 0, y: -17)
         let leftControl = CGPoint(x: -18, y: -36)
@@ -171,11 +173,12 @@ enum ManuscriptQuillArt {
         nib.addLine(to: CGPoint(x: 1.8, y: -6.5))
         nib.closeSubpath()
 
-        // Мягкая тень на пергаменте: то же перо, смещённое вниз и вправо
+        // Мягкая тень на пергаменте: то же перо, смещённое вниз и вправо; у поднятого пера тень дальше и бледнее
         var shadow = quill
-        shadow.translateBy(x: 2.5, y: 3.5)
-        shadow.fill(vane, with: .color(Color.black.opacity(0.14)))
-        shadow.stroke(barrel, with: .color(Color.black.opacity(0.14)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+        shadow.translateBy(x: 2.5 + 3 * hover, y: 3.5 + 9 * hover)
+        let shadowOpacity = 0.14 - 0.06 * Double(hover)
+        shadow.fill(vane, with: .color(Color.black.opacity(shadowOpacity)))
+        shadow.stroke(barrel, with: .color(Color.black.opacity(shadowOpacity)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
 
         quill.fill(vane, with: .color(c(look.vane, 0.97)))
         quill.fill(vane, with: .color(c(look.shade, 0.28)))
@@ -197,7 +200,7 @@ enum ManuscriptQuillArt {
     }
 
     /// Тростниковый калам: гладкий стебель с узлами и косым срезом на конце
-    private static func drawReed(in quill: GraphicsContext) {
+    private static func drawReed(hover: CGFloat, in quill: GraphicsContext) {
         var body = Path()
         body.move(to: CGPoint(x: -2.2, y: -6))
         body.addLine(to: CGPoint(x: 0.4, y: 0))
@@ -230,8 +233,8 @@ enum ManuscriptQuillArt {
         slit.addLine(to: CGPoint(x: 0.3, y: -9))
 
         var shadow = quill
-        shadow.translateBy(x: 2.5, y: 3.5)
-        shadow.fill(body, with: .color(Color.black.opacity(0.14)))
+        shadow.translateBy(x: 2.5 + 3 * hover, y: 3.5 + 9 * hover)
+        shadow.fill(body, with: .color(Color.black.opacity(0.14 - 0.06 * Double(hover))))
 
         quill.fill(body, with: .color(c(0xC9A96A)))
         quill.fill(lightSide, with: .color(c(0x6B4E22, 0.28)))

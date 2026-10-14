@@ -105,8 +105,37 @@ struct ManuscriptGlyph {
     /// Где перо касается буквы в начале и где отрывается в конце
     let startPoint: CGPoint
     let endPoint: CGPoint
+    /// Сколько времени рука тратит на знак: длина штрихов, подход, пауза (в пунктах при ровной скорости).
+    /// Сложная буква пишется дольше простой, запятая и точка заканчиваются паузой.
+    let weight: CGFloat
+    /// Доля времени знака на подход к первой точке (перо перелетает от прошлой буквы)
+    let approachShare: CGFloat
+    /// Доля времени знака в самом конце, когда перо уже оторвалось от штриха и замерло (после запятой, точки)
+    let dwellShare: CGFloat
 
     var hasInk: Bool { !path.isEmpty }
+}
+
+/// Где и как стоит перо: кончик на странице, высота над листом (0 — пишет, 1 — высоко) и направление движения
+struct ManuscriptPenPose {
+    var tip: CGPoint
+    var hover: CGFloat
+    var heading: CGPoint
+}
+
+/// Как перо ведёт себя между буквами и на пробелах
+enum ManuscriptPenRhythm {
+    /// Пауза после знака препинания в пунктах пути при ровной скорости
+    static func dwell(after character: unichar) -> CGFloat {
+        switch character {
+        case 0x2E, 0x21, 0x3F, 0x2026, 0x0589, 0x055C, 0x055E: return 14   // . ! ? … ։ ՜ ՞
+        case 0x2C, 0x3B, 0x3A, 0x2013, 0x2014, 0x055D: return 8            // , ; : – — ՝
+        default: return 0
+        }
+    }
+
+    /// Высота скольжения пера над строкой на пробелах в долях подъёма строки
+    static let glideHeight: CGFloat = 0.15
 }
 
 enum ManuscriptGlyphs {
@@ -120,7 +149,8 @@ enum ManuscriptGlyphs {
 
     /// Раскладывает набранную строку на буквы вместе с их контурами. Контуры берутся у того шрифта,
     /// которым строка набрана на самом деле (в том числе у запасного шрифта для армянских букв).
-    static func make(line: CTLine, indexBase: Int, range: CFRange, ink: Color) -> [ManuscriptGlyph] {
+    /// `text` — полный текст стиха: по нему видно, где знаки препинания и перо делает паузу
+    static func make(line: CTLine, indexBase: Int, range: CFRange, ink: Color, text: NSString? = nil) -> [ManuscriptGlyph] {
         var raws: [Raw] = []
         let runs = (CTLineGetGlyphRuns(line) as? [CTRun]) ?? []
         for run in runs {
@@ -165,8 +195,11 @@ enum ManuscriptGlyphs {
         raws.sort { $0.index < $1.index }
 
         let lineEnd = range.location + range.length
-        let lineWidth = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil))
+        var lineAscent: CGFloat = 0
+        let lineWidth = CGFloat(CTLineGetTypographicBounds(line, &lineAscent, nil, nil))
         var result: [ManuscriptGlyph] = []
+        // Где кончик пера после предыдущего знака: так считается длина подхода к следующей букве
+        var restPoint: CGPoint?
         for (n, raw) in raws.enumerated() {
             let from = raw.index + indexBase
             // Буква пишется до тех пор, пока не начнётся следующая (буквы с общим знаком — одновременно)
@@ -202,11 +235,41 @@ enum ManuscriptGlyphs {
                 }
             }
             let startPoint = raw.plan?.points.first ?? first ?? CGPoint(x: raw.x, y: 0)
+            let endPoint = raw.plan?.points.last ?? last ?? startPoint
+
+            // Время знака: подход + штрихи (+ пауза). Простая буква быстрее сложной, пробел — перелёт над строкой
+            let isInked = !raw.path.isEmpty
+            var approach: CGFloat = 0
+            let stroke: CGFloat
+            if isInked {
+                let travel = restPoint.map { hypot(startPoint.x - $0.x, startPoint.y - $0.y) } ?? 12
+                approach = 0.5 * travel + 4
+                if let plan = raw.plan {
+                    stroke = max(3, plan.totalTime * plan.pixel)
+                } else {
+                    stroke = 14
+                }
+            } else {
+                // Между словами рука чуть медлит: перелёт через пробел занимает треть буквы
+                stroke = 12 + 0.6 * max(0, nextX - raw.x)
+            }
+            var dwell: CGFloat = 0
+            if let text, from >= 0, from < text.length {
+                dwell = ManuscriptPenRhythm.dwell(after: text.character(at: from))
+            }
+            // Рука не метроном: у каждой буквы чуть своя скорость (одна и та же при каждой отрисовке)
+            let rhythm = 1 + 0.07 * CGFloat(sin(Double(from) * 12.9898 + 1.3))
+            let whole = approach + stroke + dwell
+
             result.append(ManuscriptGlyph(
                 from: from, to: max(to, from + 1), x: raw.x, nextX: nextX,
                 path: raw.path, plan: raw.plan, color: raw.color,
-                startPoint: startPoint, endPoint: raw.plan?.points.last ?? last ?? startPoint
+                startPoint: startPoint, endPoint: endPoint,
+                weight: whole * rhythm,
+                approachShare: isInked ? min(0.6, max(0.05, approach / whole)) : 0,
+                dwellShare: dwell / whole
             ))
+            restPoint = isInked ? endPoint : CGPoint(x: nextX, y: -lineAscent * ManuscriptPenRhythm.glideHeight)
         }
         return result
     }

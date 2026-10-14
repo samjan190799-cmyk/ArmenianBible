@@ -112,6 +112,9 @@ func evaluate(label: String, font: CTFont, characters: String, minimumMean: Doub
             failures.append("\(label): нет плана \(character)")
             continue
         }
+        if !zip(plan.timeline, plan.timeline.dropFirst()).allSatisfy({ $0 <= $1 }) {
+            failures.append("\(label): время письма \(character) убывает")
+        }
         let full = coverage(of: plan, outline: path, progress: 1)
         let strokes = 1 + plan.inked.dropFirst().filter { !$0 }.count
         result.rows.append((character, strokes, full))
@@ -133,6 +136,10 @@ let cyrillic = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮ
 let punctuation = ".,:;!?-–—«»()\"'…"
 
 let armenianResult = evaluate(label: "hy", font: armenianFont, characters: armenian, minimumMean: 0.99, minimumEach: 0.97, verbose: true)
+// Человек пишет армянскую букву в одно-два движения: больше 1,6 штриха в среднем — перо слишком часто отрывается
+if armenianResult.strokeMean > 1.6 {
+    failures.append("hy: штрихов в среднем \(String(format: "%.2f", armenianResult.strokeMean)), ожидалось не больше 1.6")
+}
 
 // Латиница и кириллица в приложении идут системным шрифтом с засечками (New York); на раннере берём
 // первый из доступных настоящих шрифтов с засечками
