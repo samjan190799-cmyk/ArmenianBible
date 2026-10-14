@@ -8,6 +8,8 @@ struct ManuscriptCurlPager: UIViewControllerRepresentable {
     /// Номера листов по порядку
     let ids: [UUID]
     @Binding var currentId: UUID
+    /// Меняется, когда у всех листов меняется вид (стиль, основа, имя): соседние листы пересоздаются
+    let refreshToken: String
     /// Содержимое листа: второй параметр — этот лист сейчас открыт (на нём пишет перо)
     let page: (UUID, Bool) -> AnyView
 
@@ -43,6 +45,11 @@ struct ManuscriptCurlPager: UIViewControllerRepresentable {
 
         if visibleId == currentId {
             visible.rootView = page(visibleId, true)
+            if coordinator.refreshToken != refreshToken {
+                coordinator.refreshToken = refreshToken
+                // UIKit хранит соседние листы готовыми; пересборка заставит его запросить их заново
+                controller.setViewControllers([visible], direction: .forward, animated: false)
+            }
             return
         }
         // Лист сменили не пальцем (кнопка, «Мой Матенадаран»): переходим к нему
@@ -61,9 +68,11 @@ struct ManuscriptCurlPager: UIViewControllerRepresentable {
     final class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate {
         var parent: ManuscriptCurlPager
         var isTurning = false
+        var refreshToken: String
 
         init(_ parent: ManuscriptCurlPager) {
             self.parent = parent
+            self.refreshToken = parent.refreshToken
         }
 
         /// Номер листа хранится в заголовке контроллера: так не нужен свой подкласс

@@ -144,7 +144,11 @@ struct ManuscriptStudioView: View {
                 GeometryReader { geo in
                     let scale = min(geo.size.width / ManuscriptGeometry.size.width, geo.size.height / ManuscriptGeometry.size.height)
                     // Лист перелистывается, как страница книги: загибается у края, под ним следующий
-                    ManuscriptCurlPager(ids: pages.map(\.id), currentId: $currentId) { id, isCurrent in
+                    ManuscriptCurlPager(
+                        ids: pages.map(\.id),
+                        currentId: $currentId,
+                        refreshToken: "\(look.style.rawValue)|\(look.surface.rawValue)|\(look.name)"
+                    ) { id, isCurrent in
                         guard let raw = pages.first(where: { $0.id == id }) else { return AnyView(Color.clear) }
                         return AnyView(pageContent(raw, isCurrent: isCurrent, scale: scale, turned: turned, started: started, look: look))
                     }
@@ -216,18 +220,13 @@ struct ManuscriptStudioView: View {
             ManuscriptPenSheet(language: language, selectedRaw: $penRaw)
         }
         .sheet(isPresented: $isShowingSurfaces) {
-            ManuscriptSurfaceSheet(language: language, selection: $surface)
+            ManuscriptSurfaceSheet(language: language, selection: surfaceSelection)
         }
         .onChange(of: penRaw) { _ in
             // Новое перо сразу пишет страницу заново: видно и перо, и чернила
             restart()
         }
-        .onChange(of: surface) { newValue in
-            // Новая основа: страница пишется заново, выбор запоминается для следующих листов
-            UserDefaults.standard.set(newValue.rawValue, forKey: ManuscriptSurface.storageKey)
-            if library.contains(currentPage) { library.save(currentPage) }
-            restart()
-        }
+
         .alert(
             language.pick(hy: "Անուն հիշատակարանի համար", ru: "Имя для памятной записи", en: "Name for the colophon"),
             isPresented: $isEditingName
@@ -291,9 +290,18 @@ struct ManuscriptStudioView: View {
             }
             .accessibilityLabel(Text(language.pick(hy: "Փակել", ru: "Закрыть", en: "Close")))
 
-            // Пустое место слева равно ширине кнопок справа: заголовок остаётся по центру
-            Color.clear.frame(width: 38, height: 38)
-            Color.clear.frame(width: 38, height: 38)
+            // Основа слева, перо и «Матенадаран» справа: по две кнопки с каждой стороны, заголовок по центру
+            Button {
+                Haptics.impact(.soft)
+                isShowingSurfaces = true
+            } label: {
+                Image(systemName: "paintpalette")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Self.parchmentInk)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
+            }
+            .accessibilityLabel(Text(language.pick(hy: "Էջի հիմք", ru: "Основа листа", en: "Page surface")))
 
             Spacer()
 
@@ -308,18 +316,6 @@ struct ManuscriptStudioView: View {
             }
 
             Spacer()
-
-            Button {
-                Haptics.impact(.soft)
-                isShowingSurfaces = true
-            } label: {
-                Image(systemName: "paintpalette")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Self.parchmentInk)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color.white.opacity(0.08)))
-            }
-            .accessibilityLabel(Text(language.pick(hy: "Էջի հիմք", ru: "Основа листа", en: "Page surface")))
 
             Button {
                 Haptics.impact(.soft)
@@ -479,6 +475,21 @@ struct ManuscriptStudioView: View {
     /// Выбранная основа; если Premium закончился, платная заменяется пергаментом
     private var activeSurface: ManuscriptSurface {
         surface.isFree || subscription.isPremium ? surface : .parchment
+    }
+
+    /// Выбор основы в листе. Запоминается и пишет страницу заново только тогда, когда основу выбрал человек,
+    /// а не когда лист из «Матенадарана» принёс свою
+    private var surfaceSelection: Binding<ManuscriptSurface> {
+        Binding(
+            get: { surface },
+            set: { chosen in
+                guard chosen != surface else { return }
+                surface = chosen
+                UserDefaults.standard.set(chosen.rawValue, forKey: ManuscriptSurface.storageKey)
+                if library.contains(currentPage) { library.save(currentPage) }
+                restart()
+            }
+        )
     }
 
     private var writingSpeed: ManuscriptWritingSpeed {

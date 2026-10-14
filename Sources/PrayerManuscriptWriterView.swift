@@ -246,7 +246,7 @@ struct PrayerManuscriptWriterView: View {
                         }
                     }
                     .padding(.horizontal, isSelected ? 10 : 9)
-                    .padding(.vertical, 7)
+                    .padding(.vertical, 9)
                     .background(Capsule().fill(Color.white.opacity(isSelected ? 0.12 : 0.05)))
                     .overlay(Capsule().strokeBorder(isSelected ? Paper.gold.opacity(0.8) : Color.white.opacity(0.08), lineWidth: 1))
                 }
@@ -346,7 +346,7 @@ struct PrayerManuscriptWriterView: View {
                 en: "Start typing your prayer: the pen writes along"
             ))
             .font(PaperFont.font(size: 16))
-            .foregroundColor(ManuscriptPalette.color(page.look.palette.ink, 0.55))
+            .foregroundColor(ManuscriptPalette.color(page.look.palette.ink, page.surface.isCarved ? 0.8 : 0.55))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 60)
             .allowsHitTesting(false)

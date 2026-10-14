@@ -87,7 +87,7 @@ enum ManuscriptSurface: String, CaseIterable, Identifiable, Codable {
             case .narek: field = 0x3F4A3C
             }
             return ManuscriptPalette(
-                parchment: 0xB2A18A, parchmentEdge: 0x5B4D3E, ink: 0x2B2118, rubric: 0x6E2A1E,
+                parchment: 0xBFB099, parchmentEdge: 0x7A6A55, ink: 0x1F160E, rubric: 0x5C1D12,
                 field: field, fieldAccent: 0xCDBFA6, leaf: 0x8E7E68,
                 goldDark: 0x4E4335, gold: 0x948872, goldLight: 0xCDC1AA, goldHighlight: 0xF1E8D5, pearl: 0xDED2BC
             )
@@ -124,10 +124,10 @@ extension ManuscriptPen {
         case .khachkar:
             switch self {
             case .goose: return look.palette.ink
-            case .reed: return 0x4A3524
-            case .peacock: return 0x1F3E70
-            case .gilded: return 0x6A4A12
-            case .cinnabar: return 0x8E2A20
+            case .reed: return 0x39291C
+            case .peacock: return 0x162B4E
+            case .gilded: return 0x3A290A
+            case .cinnabar: return 0x521812
             }
         }
     }

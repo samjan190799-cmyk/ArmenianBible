@@ -1102,7 +1102,7 @@ enum ManuscriptRenderer {
             colophon.draw(name, at: CGPoint(x: cx, y: y), anchor: .center)
             y += 20
         }
-        let date = ctx.resolve(Text(lines.date).font(PaperFont.font(size: 11.5)).foregroundColor(c(P.ink, 0.72)))
+        let date = ctx.resolve(Text(lines.date).font(PaperFont.font(size: 11.5)).foregroundColor(c(P.ink, page.look.surface.isCarved ? 1 : 0.72)))
         colophon.draw(date, at: CGPoint(x: cx, y: y), anchor: .center)
     }
 
