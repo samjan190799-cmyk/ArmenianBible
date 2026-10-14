@@ -46,8 +46,12 @@ final class CandleManager: ObservableObject {
 
     /// Новая свеча сразу загорается в Dynamic Island и на экране блокировки
     private func showInIsland(_ candle: PrayerCandle) {
+        guard !defersIslandStart else { return }
         CandleIslandManager.shared.show(candle, language: BibleManager.shared.appLanguage)
     }
+
+    /// Форма свечи сама запускает остров, когда свеча долетит до него: анимация «свеча взлетает в остров»
+    var defersIslandStart = false
 
     // MARK: - Проверка доступности бесплатной свечи дня
     func checkDailyFreeStatus() {

@@ -360,6 +360,9 @@ struct LightCandleFormSheetView: View {
     @State private var customPrayer: String = ""
     @State private var isShowingSuccessAnimation: Bool = false
     @State private var isShowingWriter: Bool = false
+    /// Рамка свечи в оверлее успеха (экранные координаты): отсюда она взлетает в остров
+    @State private var successCandleFrame: CGRect = .zero
+    @State private var hideSuccessCandle: Bool = false
     /// Человек нажал «Зажечь свечу» на листе: свеча зажигается, когда лист закроется
     @State private var pendingLight: Bool = false
     
@@ -519,6 +522,12 @@ struct LightCandleFormSheetView: View {
                                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                                     .strokeBorder(Paper.gold.opacity(0.4), lineWidth: 1)
                             )
+                            .opacity(hideSuccessCandle ? 0 : 1)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.onAppear { successCandleFrame = geo.frame(in: .global) }
+                                }
+                            )
                             GoldenSparkBurstView(isTriggered: true)
                             Text(successTitle)
                                 .font(PaperFont.font(size: 20, weight: .semibold))
@@ -674,12 +683,15 @@ struct LightCandleFormSheetView: View {
                 ? selectedIntention.defaultPrayer(for: language)
                 : customPrayer
 
+            // Остров запускается, когда свеча до него долетит
+            candleManager.defersIslandStart = true
             let success = await candleManager.purchaseAndLightCandle(
                 tier: selectedTier,
                 name: name,
                 intention: selectedIntention,
                 customPrayer: prayer
             )
+            candleManager.defersIslandStart = false
             guard success else { return }
 
             let page = ManuscriptPage(
@@ -696,9 +708,23 @@ struct LightCandleFormSheetView: View {
             withAnimation(.spring()) {
                 isShowingSuccessAnimation = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            let lit = candleManager.activeCandles.first
+            let appLanguage = language
+            // Свеча успела зажечься на листе благословения; дальше она взлетает в остров, а лист закрывается
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard let lit else {
                 dismiss()
+                return
             }
+            if CandleIslandFlight.canFly, successCandleFrame != .zero {
+                hideSuccessCandle = true
+                CandleIslandFlight.play(tier: lit.tier, from: successCandleFrame) {
+                    CandleIslandManager.shared.show(lit, language: appLanguage)
+                }
+            } else {
+                CandleIslandManager.shared.show(lit, language: appLanguage)
+            }
+            dismiss()
         }
     }
 
