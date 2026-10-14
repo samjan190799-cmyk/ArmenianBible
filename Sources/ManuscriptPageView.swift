@@ -148,16 +148,18 @@ final class ManuscriptTextLayout {
     private static let cacheLock = NSLock()
     private static var cache: [String: ManuscriptTextLayout] = [:]
 
-    static func cached(for page: ManuscriptPage, pen: ManuscriptPen = .defaultValue) -> ManuscriptTextLayout {
+    /// `prayer` — вёрстка для текста, который набирают прямо сейчас: ступенчатый кегль и неподвижный блок,
+    /// чтобы строки не прыгали от каждой буквы
+    static func cached(for page: ManuscriptPage, pen: ManuscriptPen = .defaultValue, prayer: Bool = false) -> ManuscriptTextLayout {
         let ink = pen.inkOverride ?? page.style.palette.ink
-        let key = "\(page.style.rawValue)|\(page.language.rawValue)|\(ink)|\(page.text)"
+        let key = "\(page.style.rawValue)|\(page.language.rawValue)|\(ink)|\(prayer)|\(page.text)"
         cacheLock.lock()
         if let hit = cache[key] {
             cacheLock.unlock()
             return hit
         }
         cacheLock.unlock()
-        let made = make(for: page, ink: ink)
+        let made = make(for: page, ink: ink, prayer: prayer)
         cacheLock.lock()
         if cache.count > 48 { cache.removeAll() }
         cache[key] = made
@@ -165,12 +167,12 @@ final class ManuscriptTextLayout {
         return made
     }
 
-    private static func make(for page: ManuscriptPage, ink: UInt32) -> ManuscriptTextLayout {
+    private static func make(for page: ManuscriptPage, ink: UInt32, prayer: Bool) -> ManuscriptTextLayout {
         let body = page.initialAndBody.body
         let palette = page.style.palette
         let rect = ManuscriptGeometry.textRect
         let exclusion = ManuscriptGeometry.exclusion
-        let isShort = (body as NSString).length < 60
+        let isShort = !prayer && (body as NSString).length < 60
 
         func setLines(_ size: CGFloat) -> (lines: [Line], height: CGFloat, breaksWord: Bool) {
             typeset(body: body, size: size, palette: palette, ink: ink, isShort: isShort, width: rect.width, exclusion: exclusion)
@@ -186,15 +188,26 @@ final class ManuscriptTextLayout {
             height = rect.height + 24
         }
         var best = low
-        for _ in 0..<10 {
-            let mid = (low + high) / 2
-            // Кегль подходит, если текст влез по высоте и ни одно слово не разорвано посередине
-            let attempt = setLines(mid)
-            if attempt.height <= height && !attempt.breaksWord {
-                best = mid
-                low = mid
-            } else {
-                high = mid
+        if prayer {
+            // Набираемый текст: берём первый из ступенчатых кеглей, в который он влезает
+            for size in [24, 20, 17, 14.5, 12.5] as [CGFloat] {
+                let attempt = setLines(size)
+                if attempt.height <= height && !attempt.breaksWord {
+                    best = size
+                    break
+                }
+            }
+        } else {
+            for _ in 0..<10 {
+                let mid = (low + high) / 2
+                // Кегль подходит, если текст влез по высоте и ни одно слово не разорвано посередине
+                let attempt = setLines(mid)
+                if attempt.height <= height && !attempt.breaksWord {
+                    best = mid
+                    low = mid
+                } else {
+                    high = mid
+                }
             }
         }
 
@@ -209,7 +222,7 @@ final class ManuscriptTextLayout {
         let textBottom = max(exclusion.height, visible.last.map { $0.baseline + $0.descent } ?? 0)
         // Короткий стих: блок опускается ближе к середине свободного места под заставкой
         let free = (500 - rect.minY) - (textBottom + 30)
-        let offsetY = free > 0 ? free * 0.42 : 0
+        let offsetY = (!prayer && free > 0) ? free * 0.42 : 0
         return ManuscriptTextLayout(lines: visible, length: length, offsetY: offsetY, bottomY: rect.minY + offsetY + textBottom)
     }
 
@@ -330,12 +343,17 @@ struct ManuscriptPageView: View {
     var showsWatermark = false
     /// Перо задаёт чернила и вид пера в руке писца
     var pen: ManuscriptPen = .defaultValue
+    /// Набираемая молитва: вёрстка со ступенчатым кеглем, зерно пергамента не меняется от каждой буквы,
+    /// а перо остаётся у конца текста, пока человек думает
+    var isLiveWriting = false
+    var parchmentSeed: UInt32?
+    var quillLift: CGFloat?
 
     var body: some View {
-        let layout = ManuscriptTextLayout.cached(for: page, pen: pen)
+        let layout = ManuscriptTextLayout.cached(for: page, pen: pen, prayer: isLiveWriting)
         let initial = page.initialAndBody.initial
         ZStack {
-            ManuscriptParchment(seed: page.seed, style: page.style)
+            ManuscriptParchment(seed: parchmentSeed ?? page.seed, style: page.style)
                 .equatable()
                 .opacity(Double(reveal.parchment))
             Canvas { context, _ in
@@ -343,7 +361,7 @@ struct ManuscriptPageView: View {
                 ManuscriptRenderer.drawFrame(progress: reveal.frame, palette: page.style.palette, gold: gold, in: context)
                 ManuscriptRenderer.drawHeadpiece(progress: reveal.headpiece, style: page.style, gold: gold, in: context)
                 ManuscriptRenderer.drawInitial(initial, progress: reveal.initial, offsetY: layout.offsetY, style: page.style, gold: gold, in: context)
-                ManuscriptRenderer.drawText(layout, progress: reveal.text, lift: reveal.colophon, pen: pen, palette: page.style.palette, in: context)
+                ManuscriptRenderer.drawText(layout, progress: reveal.text, lift: quillLift ?? reveal.colophon, pen: pen, palette: page.style.palette, in: context)
                 ManuscriptRenderer.drawMarginOrnament(progress: reveal.margin, style: page.style, gold: gold, in: context)
                 ManuscriptRenderer.drawEnding(page: page, layout: layout, progress: reveal.colophon, gold: gold, in: context)
                 ManuscriptRenderer.drawGlints(reveal: reveal, initialOffsetY: layout.offsetY, gold: gold, in: context)

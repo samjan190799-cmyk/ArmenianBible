@@ -359,6 +359,9 @@ struct LightCandleFormSheetView: View {
     @State private var selectedTier: CandleTier = .rewarded
     @State private var customPrayer: String = ""
     @State private var isShowingSuccessAnimation: Bool = false
+    @State private var isShowingWriter: Bool = false
+    /// Молитва написана на пергаменте: после зажжения лист попадает в «Мой Матенадаран»
+    @State private var wroteOnParchment: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -508,6 +511,33 @@ struct LightCandleFormSheetView: View {
                                     .stroke(Paper.hairline, lineWidth: 1)
                             )
                             
+                            // Молитва на пергаменте: человек печатает, перо пишет следом
+                            Button {
+                                triggerHaptic(.soft)
+                                isShowingWriter = true
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "pencil.and.outline")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    Text(writeOnVellumTitle)
+                                        .font(PaperFont.font(size: 14, weight: .semibold))
+                                    Spacer(minLength: 0)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(Paper.inkTertiary)
+                                }
+                                .foregroundColor(Paper.gold)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .background(Paper.gold.opacity(0.12))
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Paper.gold.opacity(0.35), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            
                             HStack {
                                 Text(prayerHintText)
                                     .font(PaperFont.font(size: 10.5))
@@ -541,6 +571,17 @@ struct LightCandleFormSheetView: View {
                                     )
                                     
                                     if success {
+                                        // Лист, написанный пером, остаётся в кодексе рядом с остальными
+                                        if wroteOnParchment,
+                                           !customPrayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                            ManuscriptLibrary.shared.save(ManuscriptPage(
+                                                text: customPrayer,
+                                                reference: parchmentReference,
+                                                language: language,
+                                                style: ManuscriptPage.preferredStyle,
+                                                name: ManuscriptPage.rememberedName
+                                            ))
+                                        }
                                         withAnimation(.spring()) {
                                             isShowingSuccessAnimation = true
                                         }
@@ -634,6 +675,11 @@ struct LightCandleFormSheetView: View {
             }
             .navigationTitle(sheetTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .fullScreenCover(isPresented: $isShowingWriter, onDismiss: {
+                wroteOnParchment = !customPrayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }) {
+                PrayerManuscriptWriterView(language: language, reference: parchmentReference, text: $customPrayer)
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -737,6 +783,17 @@ struct LightCandleFormSheetView: View {
         case .english: return "2. NAME OF LOVED ONE (OR FAMILY)"
         }
     }
+    /// Строка над молитвой на листе: намерение и, если есть, имя
+    private var parchmentReference: String {
+        let intent = selectedIntention.title(for: language)
+        let name = personName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? intent : "\(intent) · \(name)"
+    }
+
+    private var writeOnVellumTitle: String {
+        language == .armenian ? "Գրել մագաղաթի վրա" : (language == .russian ? "Написать на пергаменте" : "Write on vellum")
+    }
+
     private var namePlaceholder: String {
         switch language {
         case .armenian: return "Օրինակ՝ Աննա, Արամ, ընտանիք..."
