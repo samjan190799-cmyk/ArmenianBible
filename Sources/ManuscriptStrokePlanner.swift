@@ -51,12 +51,11 @@ struct ManuscriptStrokePlan {
             let r = radius * growth + extra
             mask.addEllipse(in: CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2))
         }
+        // Перо ставит круг в каждой точке, куда уже пришло: в том числе в начале штриха после перелёта.
+        // Одиночная точка (над «i», в двоеточии) состоит только из такого круга.
         var i = 0
         while i <= reached.index {
-            // Точка, к которой перо лишь перелетело, а не писало: след появится со следующей
-            if i == 0 || inked[i] || (i + 1 < points.count && inked[i + 1]) {
-                dab(points[i], radii[i])
-            }
+            dab(points[i], radii[i])
             i += 1
         }
         if reached.index + 1 < points.count, inked[reached.index + 1] {
