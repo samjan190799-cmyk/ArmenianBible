@@ -16,11 +16,6 @@ struct CandleLiveActivity: Widget {
                     IslandCandleView(attributes: context.attributes)
                         .frame(width: 54, height: 80)
                 }
-                DynamicIslandExpandedRegion(.trailing) {
-                    CandleBurnRing(attributes: context.attributes)
-                        .frame(width: 40, height: 40)
-                        .padding(.top, 4)
-                }
                 DynamicIslandExpandedRegion(.center) {
                     CandleIslandTitle(attributes: context.attributes, alignment: .center)
                 }
@@ -35,8 +30,8 @@ struct CandleLiveActivity: Widget {
                 IslandCandleView(attributes: context.attributes)
                     .frame(width: 20, height: 30)
             } compactTrailing: {
-                CandleBurnRing(attributes: context.attributes)
-                    .frame(width: 22, height: 22)
+                // В острове остаётся одна свеча: кружок-таймер убран
+                EmptyView()
             } minimal: {
                 IslandCandleView(attributes: context.attributes)
                     .frame(width: 18, height: 28)

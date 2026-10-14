@@ -80,7 +80,6 @@ struct CandleIslandPreviewView: View {
         HStack {
             IslandCandleView(attributes: a).frame(width: 20, height: 30)
             Spacer(minLength: 56)
-            CandleBurnRing(attributes: a).frame(width: 22, height: 22)
         }
         .padding(.horizontal, 14)
         .frame(width: 236, height: 37)
@@ -104,7 +103,7 @@ struct CandleIslandPreviewView: View {
                     CandleIslandTitle(attributes: a, alignment: .center)
                 }
                 Spacer(minLength: 0)
-                CandleBurnRing(attributes: a).frame(width: 40, height: 40).padding(.top, 4)
+                Color.clear.frame(width: 40, height: 40)
             }
             CandleBurnBar(attributes: a)
             CandleRemainingText(attributes: a)
