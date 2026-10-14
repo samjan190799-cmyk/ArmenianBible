@@ -571,6 +571,16 @@ struct LightCandleFormSheetView: View {
                                     )
                                     
                                     if success {
+                                        // Лист с молитвой для большого виджета свечи
+                                        if let lit = candleManager.activeCandles.first {
+                                            candleManager.attachParchment(to: lit.id, page: ManuscriptPage(
+                                                text: prayer,
+                                                reference: parchmentReference,
+                                                language: language,
+                                                style: ManuscriptPage.preferredStyle,
+                                                name: ManuscriptPage.rememberedName
+                                            ))
+                                        }
                                         // Лист, написанный пером, остаётся в кодексе рядом с остальными
                                         if wroteOnParchment,
                                            !customPrayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

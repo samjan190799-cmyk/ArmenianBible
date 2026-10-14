@@ -215,8 +215,22 @@ final class CandleManager: ObservableObject {
     private func saveCandles() {
         if let data = try? JSONEncoder().encode(activeCandles) {
             AppGroupConstants.syncDataToAll(data, forKey: kCandlesStorageKey)
+            // Листы сгоревших свечей больше не нужны
+            let kept = Set(activeCandles.compactMap { $0.pageImageFile })
+            AppGroupConstants.removeSharedFiles(withPrefix: "candle_page_", keeping: kept)
             WidgetCenter.shared.reloadAllTimelines()
         }
+    }
+
+    /// Рисует лист с молитвой и кладёт картинку в общий контейнер: большой виджет показывает её
+    func attachParchment(to candleId: UUID, page: ManuscriptPage) {
+        guard let index = activeCandles.firstIndex(where: { $0.id == candleId }),
+              let image = ManuscriptPageSnapshot.widgetImage(page: page, pen: ManuscriptPen.effective),
+              let data = image.jpegData(compressionQuality: 0.88) else { return }
+        let fileName = PrayerCandle.pageImageFileName(for: candleId)
+        AppGroupConstants.syncFileToAll(data, named: fileName)
+        activeCandles[index] = activeCandles[index].withPageImageFile(fileName)
+        saveCandles()
     }
     
     private func loadSavedCandles() {

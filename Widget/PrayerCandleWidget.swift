@@ -237,6 +237,8 @@ struct PrayerCandleWidgetEntryView: View {
                 CandleSystemSmallView(entry: entry)
             case .systemMedium:
                 CandleSystemMediumView(entry: entry)
+            case .systemLarge:
+                CandleSystemLargeView(entry: entry)
             default:
                 CandleSystemSmallView(entry: entry)
             }
@@ -597,6 +599,63 @@ struct CandleSystemMediumView: View {
     }
 }
 
+// MARK: - Большой виджет: молитва на пергаменте (картинка листа из приложения)
+struct CandleSystemLargeView: View {
+    let entry: PrayerCandleEntry
+
+    private var pageImage: UIImage? {
+        guard let candle = entry.candle, candle.isLit, let file = candle.pageImageFile,
+              let data = AppGroupConstants.sharedFile(named: file) else { return nil }
+        return UIImage(data: data)
+    }
+
+    var body: some View {
+        if let candle = entry.candle, candle.isLit, let image = pageImage {
+            ZStack(alignment: .bottom) {
+                Color(hex: "090A0F")
+
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .clipped()
+
+                // Полоса внизу: чья свеча и сколько ей гореть
+                HStack(spacing: 8) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(hex: "F59E0B"))
+                    Text(candle.personName.isEmpty ? candle.intention.title(for: entry.language) : candle.personName)
+                        .font(.system(size: 14, weight: .bold, design: .serif))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Spacer(minLength: 6)
+                    HStack(spacing: 3) {
+                        Text("⏳")
+                            .font(.system(size: 9))
+                        Text(candle.expirationDate, style: .timer)
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundColor(.white.opacity(0.9))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(
+                    LinearGradient(
+                        colors: [Color.black.opacity(0), Color.black.opacity(0.82)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            }
+        } else {
+            // У свечи нет листа (она зажжена до этого обновления): обычная раскладка
+            CandleSystemMediumView(entry: entry)
+        }
+    }
+}
+
 // MARK: - Детализированная восковая свеча для снимка виджета (WidgetWaxCandleView)
 struct WidgetWaxCandleView: View {
     let tier: CandleTier
@@ -788,6 +847,7 @@ struct PrayerCandleWidget: Widget {
         .supportedFamilies([
             .systemSmall,
             .systemMedium,
+            .systemLarge,
             .accessoryCircular,
             .accessoryRectangular,
             .accessoryInline

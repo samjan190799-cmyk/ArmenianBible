@@ -166,6 +166,8 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
     let customPrayer: String?
     let tier: CandleTier
     let litDate: Date
+    /// Картинка листа с молитвой в общем контейнере (для большого виджета); nil — у старых свечей
+    let pageImageFile: String?
     
     init(
         id: UUID = UUID(),
@@ -173,7 +175,8 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
         intention: CandleIntention,
         customPrayer: String? = nil,
         tier: CandleTier,
-        litDate: Date = Date()
+        litDate: Date = Date(),
+        pageImageFile: String? = nil
     ) {
         self.id = id
         self.personName = personName
@@ -181,6 +184,19 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
         self.customPrayer = customPrayer
         self.tier = tier
         self.litDate = litDate
+        self.pageImageFile = pageImageFile
+    }
+
+    /// Имя файла листа этой свечи в общем контейнере
+    static func pageImageFileName(for id: UUID) -> String {
+        "candle_page_\(id.uuidString).jpg"
+    }
+
+    func withPageImageFile(_ file: String?) -> PrayerCandle {
+        PrayerCandle(
+            id: id, personName: personName, intention: intention, customPrayer: customPrayer,
+            tier: tier, litDate: litDate, pageImageFile: file
+        )
     }
     
     var duration: TimeInterval {

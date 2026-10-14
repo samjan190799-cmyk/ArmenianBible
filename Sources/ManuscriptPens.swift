@@ -16,6 +16,14 @@ enum ManuscriptPen: Int, CaseIterable, Identifiable {
 
     var isFree: Bool { self == .goose || self == .reed }
 
+    /// Перо, выбранное в настройках; без Premium платное заменяется бесплатным
+    @MainActor
+    static var effective: ManuscriptPen {
+        let stored = UserDefaults.standard.object(forKey: storageKey) as? Int
+        let chosen = stored.flatMap { ManuscriptPen(rawValue: $0) } ?? defaultValue
+        return chosen.isFree || SubscriptionManager.shared.isPremium ? chosen : defaultValue
+    }
+
     /// Чернила пера; nil — родные чернила выбранного стиля страницы
     var inkOverride: UInt32? {
         switch self {
