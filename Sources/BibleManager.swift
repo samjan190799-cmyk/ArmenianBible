@@ -661,7 +661,8 @@ class BibleManager: ObservableObject {
         
         let activeLargeCat = (isPremium || !largeWidgetCategory.isPremiumRequired) ? largeWidgetCategory : .all
         let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
-        let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
+        // Верхний предел: длиннее в большой виджет не помещается и обрезалось бы многоточием
+        let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 && $0.textHy.count <= 260 }
         let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
         let randomLarge = largePool.randomElement()
         
@@ -727,7 +728,8 @@ class BibleManager: ObservableObject {
         case .verses:
             return BibleVerse.database.filter { !$0.isPrayer }
         case .prayers:
-            return BibleVerse.database.filter { $0.isPrayer }
+            // Целые молитвы (BibleVerseDatabase+Prayers.swift); куски для среднего виджета нужны только виджету
+            return BibleVerse.prayers
         case .favorites:
             // Фильтруем элементы избранного, которые применимы к виджетам (isDailyVerse = true)
             let dailyFavorites = favoriteVerses.filter { $0.isDailyVerse }
@@ -747,10 +749,10 @@ class BibleManager: ObservableObject {
                 )
             }
         case .both:
-            return BibleVerse.database
+            return BibleVerse.database + BibleVerse.prayers
         }
     }
-    
+
     // MARK: - Управление Избранным
     func addToFavorites(_ verse: BibleVerse) {
         if !favoriteVerses.contains(where: { $0.textHy == verse.textHy || $0.textRu == verse.textRu }) {

@@ -44,12 +44,15 @@ extension BibleVerse {
                 let r = (v.refHy + " " + v.refRu + " " + v.refEn).lowercased()
                 return r.contains("նարեկ") || r.contains("нарекаци") || r.contains("narek")
             }
-            let list = n + BibleVerse.shortNarekatsi
+            // Короткие строки идут в средний виджет, строфы — в средний и большой (по длине)
+            let list = n + BibleVerse.shortNarekatsi + BibleVerse.narekStanzas
             return !list.isEmpty ? list : BibleVerse.shortNarekatsi
             
         case .prayers:
-            let prayers = BibleVerse.database.filter { $0.isPrayer }
-            return !prayers.isEmpty ? prayers : BibleVerse.database
+            // Молитвы лежат отдельно от стихов (BibleVerseDatabase+Prayers.swift): целые и законченные куски,
+            // виджет сам берёт те, что помещаются по длине
+            let units = BibleVerse.prayerUnits
+            return !units.isEmpty ? units : BibleVerse.database
             
         case .favorites:
             if let savedFavoritesData = AppGroupConstants.sharedDefaults.data(forKey: "favorite_verses"),

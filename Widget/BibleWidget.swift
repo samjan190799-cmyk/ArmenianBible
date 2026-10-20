@@ -488,7 +488,9 @@ struct Provider: AppIntentTimelineProvider {
             case .pearls:
                 return BibleVerse.shortPearls
             case .narekatsi:
-                return isPremium ? BibleVerse.shortNarekatsi : BibleVerse.shortPearls
+                // Короткие строки и строфы целиком: ниже виджет сам выберет, что помещается по длине
+                // (средний — 35…100 знаков, большой — 75…260)
+                base = isPremium ? BibleVerse.shortNarekatsi + BibleVerse.narekStanzas : BibleVerse.shortPearls
             case .psalms:
                 return isPremium ? BibleVerse.shortPsalms : BibleVerse.shortPearls
             case .wisdom:
@@ -500,7 +502,8 @@ struct Provider: AppIntentTimelineProvider {
             case .verses:
                 base = BibleVerse.database.filter { !$0.isPrayer }
             case .prayers:
-                base = BibleVerse.database.filter { $0.isPrayer }
+                // Целые молитвы и законченные куски: средний виджет берёт куски до 100 знаков, большой — целые
+                base = BibleVerse.prayerUnits
             case .favorites:
                 if let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
                    let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
@@ -558,7 +561,8 @@ struct Provider: AppIntentTimelineProvider {
                 let cat = HomeWidgetCategory(rawValue: savedCatRaw) ?? .all
                 pool = BibleVerse.verses(for: cat, isPremium: isPremium)
             }
-            let largeVerses = pool.filter { $0.text(for: lang).count >= 75 }
+            // Верхний предел: длиннее в большой виджет не помещается и обрезалось бы многоточием
+            let largeVerses = pool.filter { $0.text(for: lang).count >= 75 && $0.text(for: lang).count <= 260 }
             return !largeVerses.isEmpty ? largeVerses : (!pool.isEmpty ? pool : base)
             
         @unknown default:
