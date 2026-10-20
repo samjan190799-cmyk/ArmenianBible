@@ -24,6 +24,16 @@ on:
           - features
           - candles
           - island
+          - store
+      language:
+        description: 'Язык интерфейса для scope=store (russian, armenian, english)'
+        required: false
+        default: 'russian'
+        type: choice
+        options:
+          - russian
+          - armenian
+          - english
 
 jobs:
   capture-screenshots:
@@ -62,6 +72,7 @@ jobs:
         env:
           TARGET_DEVICE: ${{ github.event.inputs.device || 'all' }}
           SCOPE: ${{ github.event.inputs.scope || 'all' }}
+          STORE_LANG: ${{ github.event.inputs.language || 'russian' }}
         run: |
           set -e
           mkdir -p ./Real_Screenshots_Output
@@ -149,6 +160,43 @@ jobs:
               xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Скриншоты свечи в острове для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 16. Скриншоты для магазина: ключевые экраны на одном языке, Premium включён, реклама выключена
+            if [ "$SCOPE" = "store" ]; then
+              case "$STORE_LANG" in
+                armenian)
+                  PERSON="Աննա"; CONSOLE_TEXT="Ես վախենում եմ և մենակ եմ զգում"; CONSOLE_CHIP="fear" ;;
+                english)
+                  PERSON="Anna"; CONSOLE_TEXT="I am afraid and I feel so alone"; CONSOLE_CHIP="fear" ;;
+                *)
+                  PERSON="Анна"; CONSOLE_TEXT="Мне страшно, и я чувствую себя одиноко"; CONSOLE_CHIP="fear" ;;
+              esac
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@" -luys_ads_enabled NO -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+                sleep 9
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "s01_home" -openTab home
+              shoot "s02_bible" -openTab bible
+              shoot "s03_ai" -openTab ai
+              shoot "s04_favorites" -openTab favorites
+              shoot "s05_manuscript" -openTab manuscript -manuscript_source chapter -manuscript_language "$STORE_LANG" -manuscript_time 30 -manuscript_name "$PERSON" -manuscript_verse long
+              shoot "s06_candles" -openTab sanctuary -candle_seed YES -candle_time 5.9
+              shoot "s07_consolation" -openTab consolation -consolation_reset YES -consolation_text "$CONSOLE_TEXT" -consolation_chips "$CONSOLE_CHIP" -consolation_full YES
+              shoot "s08_map" -openTab map -sanctuary_select khor_virap
+              shoot "s09_tree" -openTab tree -pomegranate_debug_days 45
+              shoot "s10_wallpaper" -openTab wallpaper
+              shoot "s11_quiz" -openTab quiz
+              shoot "s12_calendar" -openTab calendar
+              shoot "s13_settings" -openTab settings
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты для магазина ($STORE_LANG) сняты"
               return 0
             fi
 
