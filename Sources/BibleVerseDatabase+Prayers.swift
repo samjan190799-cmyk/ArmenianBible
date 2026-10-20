@@ -70,18 +70,18 @@ extension BibleVerse {
             textHy: "Ընկա՛լ քաղցրությամբ, Տեր Աստված հզոր, զդառնացողիս աղաչանս, մատի՛ր գթությամբ առ պատկառեալս դիմոք։",
             textRu: "Прими с благоволением, Господи Боже Вседержитель, горькие моления мои, обрати милостивый взор на кающегося.",
             textEn: "Receive with sweetness, Lord God Almighty, my bitter prayers, look with compassion upon my contrite face.",
-            refHy: "Սուրբ Գրիգոր Նարեկացի",
-            refRu: "Св. Григор Нарекаци",
-            refEn: "St. Gregory of Narek",
+            refHy: "Աղոթագիրք",
+            refRu: "Молитвослов",
+            refEn: "Prayer Book",
             isPrayer: true
         ),
         BibleVerse(
             textHy: "Փարատեա՛, ամենապարգև, զամոթական տխրութիւնս, բա՛րձ յինէն զծանր հեծութիւնս։ Ամեն։",
             textRu: "Рассей, Всеблагой, постыдную скорбь мою, сними с меня тяжелое бремя уныния. Аминь.",
             textEn: "Dispel, O All-Giver, my shameful sadness, lift from me this heavy sighing. Amen.",
-            refHy: "Սուրբ Գրիգոր Նարեկացի",
-            refRu: "Св. Григор Нарекаци",
-            refEn: "St. Gregory of Narek",
+            refHy: "Աղոթագիրք",
+            refRu: "Молитвослов",
+            refEn: "Prayer Book",
             isPrayer: true
         ),
         BibleVerse(
@@ -196,9 +196,9 @@ extension BibleVerse {
             textHy: "Պահապա՛ն ամենայնի Քրիստոս, աջ Քո հովանի լիցի ի վերայ իմ, ի տուէ և ի գիշերի։",
             textRu: "Хранитель всех, Христос! Да будет десница Твоя сенью надо мною днем и ночью.",
             textEn: "O Christ, guardian of all, let Thy right hand be a shadow over me day and night.",
-            refHy: "Սուրբ Ներսես Շնորհալի",
-            refRu: "Св. Нерсес Шнорали",
-            refEn: "St. Nerses the Gracious",
+            refHy: "Աղոթագիրք",
+            refRu: "Молитвослов",
+            refEn: "Prayer Book",
             isPrayer: true
         ),
         BibleVerse(

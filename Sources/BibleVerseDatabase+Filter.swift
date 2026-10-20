@@ -2,6 +2,15 @@ import Foundation
 import SwiftUI
 
 extension BibleVerse {
+    // MARK: - Общая база стихов: основные стихи + стихи из «Веры и Мужества»
+    /// Стихи из shortFaith2 (кроме молитв), которых ещё нет в основной базе: раньше нигде не показывались
+    static let faithScriptures: [BibleVerse] = {
+        let known = Set(baseDatabase.map { $0.refEn })
+        return shortFaith2.filter { !$0.isPrayer && !known.contains($0.refEn) }
+    }()
+
+    static let database: [BibleVerse] = baseDatabase + faithScriptures
+
     // MARK: - Объединённая категория «Вера и Мужество» (shortFaith + shortFaith2)
     static var allShortFaith: [BibleVerse] { shortFaith + shortFaith2 }
 
