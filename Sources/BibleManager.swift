@@ -255,6 +255,10 @@ class BibleManager: ObservableObject {
         if let override = UserDefaults.standard.string(forKey: "luys_debug_language"),
            let debugLanguage = AppLanguage(rawValue: override) {
             self.appLanguage = debugLanguage
+            // BibleVerse.text и список книг читают язык из общих настроек: для кадров записываем его и туда
+            AppGroupConstants.syncToAll { defs in
+                defs.set(debugLanguage.rawValue, forKey: appLanguageKey)
+            }
         }
         
         // Загрузка Избранного
