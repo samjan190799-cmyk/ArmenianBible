@@ -1120,3 +1120,42 @@ And establish my feet upon the rock of Your faith.
         + NarekatsiDatabase.prayersPart2
         + NarekatsiDatabase.prayersPart3
 }
+
+// MARK: - Что в приложении настоящее, а что нет
+// В приложении есть две полные студийные записи «Книги скорбных песнопений» (армянская и русская). А текст под номерами
+// 1–95 — это пять молитв «в духе Нарекаци», которые раньше повторялись по кругу; дословным текстом книги они не являются.
+extension NarekPrayer {
+    /// Собственный текст есть только у первых пяти номеров; остальные девяносто раньше повторяли их по кругу
+    var hasOwnText: Bool { id <= 5 }
+
+    /// Подпись главы записи: только номер, без придуманных названий
+    func chapterLabel(for language: AppLanguage) -> String {
+        switch language {
+        case .armenian: return banNumber
+        case .russian: return "Глава \(id)"
+        case .english: return "Chapter \(id)"
+        }
+    }
+
+    /// Название молитвы без хвоста «(Глава N)»
+    func inspiredTitle(for language: AppLanguage) -> String {
+        let full = title(for: language)
+        guard let open = full.lastIndex(of: "(") else { return full }
+        return String(full[..<open]).trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Отметка времени точная только для глав, которые размечены по записи; остальные рассчитаны примерно
+    func isTimestampExact(for language: AppLanguage) -> Bool {
+        language == .armenian ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 41].contains(id) : id <= 10
+    }
+
+    /// Отметка времени для списка: приблизительная помечается «≈»
+    func timestampLabel(for language: AppLanguage) -> String {
+        (isTimestampExact(for: language) ? "" : "≈ ") + formattedTimestamp(for: language)
+    }
+}
+
+extension NarekatsiDatabase {
+    /// Пять молитв «в духе Нарекаци» с собственным текстом
+    var inspiredPrayers: [NarekPrayer] { prayers.filter { $0.hasOwnText } }
+}

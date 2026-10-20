@@ -507,9 +507,9 @@ enum LockScreenCategory: String, CaseIterable, Identifiable, Codable {
             }
         case .narekatsi:
             switch language {
-            case .armenian: return "Նարեկացու աղոթքներ"
-            case .russian: return "Молитвы Нарекаци"
-            case .english: return "Narekatsi Prayers"
+            case .armenian: return "Նարեկացու ոգով"
+            case .russian: return "В духе Нарекаци"
+            case .english: return "In the spirit of Narekatsi"
             }
         case .psalms:
             switch language {
@@ -598,9 +598,9 @@ enum HomeWidgetCategory: String, CaseIterable, Identifiable, Codable {
             }
         case .narekatsi:
             switch language {
-            case .armenian: return "Նարեկացի"
-            case .russian: return "Нарекаци"
-            case .english: return "Narekatsi"
+            case .armenian: return "Նարեկացու ոգով"
+            case .russian: return "В духе Нарекаци"
+            case .english: return "In the spirit of Narekatsi"
             }
         case .prayers:
             switch language {

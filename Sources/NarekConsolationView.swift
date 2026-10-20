@@ -100,9 +100,9 @@ struct NarekConsolationView: View {
                 .font(PaperFont.font(size: 30, weight: .semibold))
                 .foregroundColor(Paper.ink)
             Text(language.pick(
-                hy: "Մեկ նախադասությամբ ասեք՝ ինչ կա սրտում: Գրիգոր Նարեկացին՝ վշտացյալների ուսուցիչը, կգտնի ձեզ համար բան:",
-                ru: "Скажите одной фразой, что на сердце. Григор Нарекаци, учитель скорбящих, найдёт для вас главу «Книги скорбных песнопений».",
-                en: "Say in a single sentence what is on your heart. Grigor Narekatsi, the teacher of the grieving, will find a chapter of his Book of Lamentations for you."
+                hy: "Մեկ նախադասությամբ ասեք՝ ինչ կա սրտում: Հավելվածը կգտնի ձեզ համար աղոթք Գրիգոր Նարեկացու ոգով:",
+                ru: "Скажите одной фразой, что на сердце. Приложение найдёт для вас молитву в духе Григора Нарекаци.",
+                en: "Say in a single sentence what is on your heart. The app will find a prayer in the spirit of Grigor Narekatsi for you."
             ))
             .font(PaperFont.font(size: 14))
             .foregroundColor(Paper.inkSecondary)
@@ -217,9 +217,9 @@ struct NarekConsolationView: View {
             .foregroundColor(Paper.ink)
             .multilineTextAlignment(.center)
             Text(language.pick(
-                hy: "Premium-ով՝ անսահմանափակ խոսքեր, ձայնագրություն և այլ գլուխներ:",
-                ru: "С Premium — без ограничений, с озвучкой и подбором других глав.",
-                en: "With Premium: unlimited words, audio narration and other chapters."
+                hy: "Premium-ով՝ անսահմանափակ խոսքեր և այլ աղոթքներ:",
+                ru: "С Premium — без ограничений и с подбором других молитв.",
+                en: "With Premium: unlimited words and other prayers."
             ))
             .font(PaperFont.font(size: 14))
             .foregroundColor(Paper.inkSecondary)
@@ -244,9 +244,9 @@ struct NarekConsolationView: View {
 
     private var footerNote: some View {
         Text(language.pick(
-            hy: "Անվճար՝ օրը մեկ խոսք: Premium՝ առանց սահմանափակման և ձայնագրությամբ:",
-            ru: "Бесплатно — одно слово в день. Premium — без ограничений и с озвучкой.",
-            en: "Free: one word a day. Premium: unlimited and with audio."
+            hy: "Անվճար՝ օրը մեկ խոսք: Premium՝ առանց սահմանափակման:",
+            ru: "Бесплатно — одно слово в день. Premium — без ограничений.",
+            en: "Free: one word a day. Premium: unlimited."
         ))
         .font(PaperFont.font(size: 12))
         .foregroundColor(Paper.inkTertiary)
@@ -257,23 +257,16 @@ struct NarekConsolationView: View {
     private func resultCard(_ match: NarekMatch) -> some View {
         let stanza = match.firstStanza(for: language)
         let rest = match.restOfText(for: language)
-        let isThisPlaying = audioPlayer.isPlaying && audioPlayer.currentlyPlayingId == match.prayer.id
         return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
-                Text(language.pick(hy: "ԳԼՈՒԽ \(match.prayer.id)", ru: "ГЛАВА \(match.prayer.id)", en: "CHAPTER \(match.prayer.id)"))
+                Text(language.pick(hy: "ԱՂՈԹՔ ՆԱՐԵԿԱՑՈՒ ՈԳՈՎ", ru: "МОЛИТВА В ДУХЕ НАРЕКАЦИ", en: "A PRAYER IN THE SPIRIT OF NAREKATSI"))
                     .font(PaperFont.font(size: 11, weight: .semibold))
                     .foregroundColor(Paper.cinnabar)
                     .tracking(1.4)
-                Text(match.prayer.banNumber)
-                    .font(PaperFont.font(size: 11))
-                    .foregroundColor(Paper.inkTertiary)
                 Spacer()
-                if isThisPlaying {
-                    AudioWaveformIndicator(isPlaying: true, color: Paper.gold)
-                }
             }
 
-            Text(match.prayer.title(for: language))
+            Text(match.prayer.inspiredTitle(for: language))
                 .font(PaperFont.font(size: 19, weight: .semibold))
                 .foregroundColor(Paper.ink)
                 .fixedSize(horizontal: false, vertical: true)
@@ -305,7 +298,7 @@ struct NarekConsolationView: View {
                 } label: {
                     Text(showsFullText
                          ? language.pick(hy: "Թաքցնել", ru: "Свернуть", en: "Collapse")
-                         : language.pick(hy: "Կարդալ ամբողջը", ru: "Читать главу целиком", en: "Read the whole chapter"))
+                         : language.pick(hy: "Կարդալ ամբողջ աղոթքը", ru: "Читать молитву целиком", en: "Read the whole prayer"))
                         .font(PaperFont.font(size: 14, weight: .medium))
                         .foregroundColor(Paper.gold)
                 }
@@ -328,31 +321,21 @@ struct NarekConsolationView: View {
                 .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Paper.fillSubtle))
             }
 
-            actionButtons(match, isPlaying: isThisPlaying)
+            actionButtons(match)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .paperSheet(cornerRadius: 20)
     }
 
-    private func actionButtons(_ match: NarekMatch, isPlaying: Bool) -> some View {
+    private func actionButtons(_ match: NarekMatch) -> some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
                 resultButton(
-                    icon: isPlaying ? "pause.fill" : "play.fill",
-                    title: isPlaying
-                        ? language.pick(hy: "Դադար", ru: "Пауза", en: "Pause")
-                        : language.pick(hy: "Լսել", ru: "Слушать", en: "Listen"),
-                    isLocked: !subscription.canPlayNarekAudio(prayerId: match.prayer.id),
-                    isProminent: true
-                ) {
-                    listen(match)
-                }
-                resultButton(
                     icon: "arrow.triangle.2.circlepath",
-                    title: language.pick(hy: "Այլ գլուխ", ru: "Другая глава", en: "Another chapter"),
+                    title: language.pick(hy: "Այլ աղոթք", ru: "Другая молитва", en: "Another prayer"),
                     isLocked: !isPremium,
-                    isProminent: false
+                    isProminent: true
                 ) {
                     nextMatch()
                 }
@@ -471,11 +454,9 @@ struct NarekConsolationView: View {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
             .joined(separator: " ")
-        let author = language.pick(hy: "Գրիգոր Նարեկացի", ru: "Григор Нарекаци", en: "Grigor Narekatsi")
-        let chapter = language.pick(hy: "Գլուխ \(match.prayer.id)", ru: "Глава \(match.prayer.id)", en: "Chapter \(match.prayer.id)")
         let page = ManuscriptPage(
             text: line,
-            reference: "\(author) · \(chapter)",
+            reference: language.pick(hy: "Նարեկացու ոգով", ru: "В духе Нарекаци", en: "In the spirit of Narekatsi"),
             language: language,
             style: ManuscriptPage.preferredStyle,
             name: ManuscriptPage.rememberedName
@@ -496,7 +477,7 @@ struct NarekConsolationView: View {
             language: language,
             feeling: text.trimmingCharacters(in: .whitespacesAndNewlines),
             themes: selectedThemes.map { $0.title(for: language) },
-            chapterTitle: match.prayer.title(for: language)
+            chapterTitle: match.prayer.inspiredTitle(for: language)
         )
         manager.generateTextFromAI(prompt: prompt) { result in
             isAskingAI = false
@@ -520,11 +501,11 @@ struct NarekConsolationView: View {
         let state = ([feeling] + themes).filter { !$0.isEmpty }.joined(separator: "; ")
         switch language {
         case .russian:
-            return "Ты тихий духовный собеседник в духе святого Григора Нарекаци. Человек говорит о себе: «\(state)». Ему предложена глава «\(chapterTitle)». Напиши два коротких тёплых предложения утешения на русском: без цитат, без медицинских советов, без обещаний чудес и без поучений. Если в словах человека слышна мысль о самоубийстве, мягко посоветуй поговорить с близким человеком и обратиться в службу экстренной помощи. Больше ничего не пиши."
+            return "Ты тихий духовный собеседник в духе святого Григора Нарекаци. Человек говорит о себе: «\(state)». Ему предложена молитва «\(chapterTitle)». Напиши два коротких тёплых предложения утешения на русском: без цитат, без медицинских советов, без обещаний чудес и без поучений. Если в словах человека слышна мысль о самоубийстве, мягко посоветуй поговорить с близким человеком и обратиться в службу экстренной помощи. Больше ничего не пиши."
         case .armenian:
-            return "Դու լուռ հոգևոր զրուցակից ես՝ Գրիգոր Նարեկացու ոգով: Մարդը ասում է իր մասին՝ «\(state)»: Նրան առաջարկվել է «\(chapterTitle)» գլուխը: Գրիր մխիթարանքի երկու կարճ, ջերմ նախադասություն հայերենով՝ առանց մեջբերումների, բժշկական խորհուրդների, հրաշքների խոստումների և խրատների: Եթե խոսքերում ինքնասպանության միտք է զգացվում, մեղմորեն խորհուրդ տուր խոսել մտերիմի հետ և դիմել շտապ օգնության: Ուրիշ ոչինչ մի գրիր:"
+            return "Դու լուռ հոգևոր զրուցակից ես՝ Գրիգոր Նարեկացու ոգով: Մարդը ասում է իր մասին՝ «\(state)»: Նրան առաջարկվել է «\(chapterTitle)» աղոթքը: Գրիր մխիթարանքի երկու կարճ, ջերմ նախադասություն հայերենով՝ առանց մեջբերումների, բժշկական խորհուրդների, հրաշքների խոստումների և խրատների: Եթե խոսքերում ինքնասպանության միտք է զգացվում, մեղմորեն խորհուրդ տուր խոսել մտերիմի հետ և դիմել շտապ օգնության: Ուրիշ ոչինչ մի գրիր:"
         case .english:
-            return "You are a quiet spiritual companion in the spirit of St. Grigor Narekatsi. A person says about themselves: \"\(state)\". The chapter \"\(chapterTitle)\" has been offered to them. Write two short, warm sentences of consolation in English: no quotations, no medical advice, no promises of miracles and no moralizing. If the words hint at suicide, gently suggest talking to someone close and contacting emergency services. Write nothing else."
+            return "You are a quiet spiritual companion in the spirit of St. Grigor Narekatsi. A person says about themselves: \"\(state)\". The prayer \"\(chapterTitle)\" has been offered to them. Write two short, warm sentences of consolation in English: no quotations, no medical advice, no promises of miracles and no moralizing. If the words hint at suicide, gently suggest talking to someone close and contacting emergency services. Write nothing else."
         }
     }
 
@@ -588,9 +569,9 @@ struct NarekConsolationBannerCardView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                     Text(language.pick(
-                        hy: "Նարեկացին կգտնի ձեզ համար գլուխ և կկարդա այն",
-                        ru: "Нарекаци найдёт главу и прочтёт её вам",
-                        en: "Narekatsi will find a chapter and read it to you"
+                        hy: "Կգտնենք ձեզ համար աղոթք Նարեկացու ոգով",
+                        ru: "Найдём для вас молитву в духе Нарекаци",
+                        en: "We will find a prayer in the spirit of Narekatsi for you"
                     ))
                     .font(PaperFont.font(size: 13))
                     .foregroundColor(secondaryAccentColor)

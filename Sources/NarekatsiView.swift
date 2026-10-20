@@ -39,17 +39,29 @@ struct NarekatsiView: View {
         Paper.ink
     }
     
+    /// Во вкладке «Молитвы» только пять молитв с собственным текстом: записи книги слушают во второй вкладке
     private var filteredPrayers: [NarekPrayer] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let own = NarekatsiDatabase.shared.inspiredPrayers
         if trimmed.isEmpty {
-            return NarekatsiDatabase.shared.prayers
+            return own
         }
-        return NarekatsiDatabase.shared.prayers.filter { prayer in
-            prayer.banNumber.lowercased().contains(trimmed) ||
-            prayer.title(for: manager.appLanguage).lowercased().contains(trimmed) ||
-            prayer.text(for: manager.appLanguage).lowercased().contains(trimmed) ||
-            "\(prayer.id)".contains(trimmed)
+        return own.filter { prayer in
+            prayer.inspiredTitle(for: manager.appLanguage).lowercased().contains(trimmed) ||
+            prayer.text(for: manager.appLanguage).lowercased().contains(trimmed)
         }
+    }
+
+    private var inspiredNotice: some View {
+        Text(manager.appLanguage.pick(
+            hy: "Այս աղոթքները գրված են Գրիգոր Նարեկացու ոգով. դրանք «Մատյան ողբերգության» բառացի տեքստը չեն: Ամբողջ գիրքը լսեք ձայնագրության ներդիրում:",
+            ru: "Эти молитвы написаны в духе Григора Нарекаци: это не дословный текст «Книги скорбных песнопений». Всю книгу слушайте во вкладке с аудиозаписью.",
+            en: "These prayers are written in the spirit of Grigor Narekatsi: they are not the verbatim text of the Book of Lamentations. Listen to the whole book in the audio tab."
+        ))
+        .font(PaperFont.font(size: 13))
+        .foregroundColor(Paper.inkSecondary)
+        .lineSpacing(3)
+        .padding(.horizontal, 20)
     }
     
     private var currentOrLastPrayer: NarekPrayer {
@@ -130,7 +142,7 @@ struct NarekatsiView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(Paper.inkSecondary)
-                            TextField("Поиск по 95 главам (напр. Բան Ժ или Глава 10)...", text: $searchText)
+                            TextField(manager.appLanguage.pick(hy: "Որոնել աղոթքներում", ru: "Поиск по молитвам", en: "Search prayers"), text: $searchText)
                                 .font(PaperFont.font(size: 14))
                                 .foregroundColor(primaryTextColor)
                                 .keyboardDismissToolbar()
@@ -154,7 +166,9 @@ struct NarekatsiView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 2)
                         
-                        // Список 95 молитв
+                        inspiredNotice
+
+                        // Пять молитв «в духе Нарекаци»
                         LazyVStack(spacing: 14) {
                             ForEach(filteredPrayers) { prayer in
                                 let isLocked = !subscriptionManager.canPlayNarekAudio(prayerId: prayer.id)
@@ -270,7 +284,7 @@ struct NarekatsiView: View {
                                         
                                         VStack(alignment: .leading, spacing: 3) {
                                             HStack(spacing: 6) {
-                                                Text(prayer.banNumber)
+                                                Text(prayer.chapterLabel(for: audioPlayer.voiceLanguage))
                                                     .font(PaperFont.font(size: 13, weight: .semibold))
                                                     .foregroundColor(isCurrent ? accentColor : primaryTextColor)
                                                 
@@ -283,16 +297,11 @@ struct NarekatsiView: View {
                                                         .padding(.vertical, 2)
                                                         .overlay(Capsule().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 0.8))
                                                 } else {
-                                                    Text("• \(prayer.formattedTimestamp(for: audioPlayer.voiceLanguage))")
+                                                    Text("• \(prayer.timestampLabel(for: audioPlayer.voiceLanguage))")
                                                         .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
                                                         .foregroundColor(isCurrent ? accentColor.opacity(0.9) : Paper.inkSecondary)
                                                 }
                                             }
-                                            
-                                            Text(prayer.title(for: audioPlayer.voiceLanguage))
-                                                .font(PaperFont.font(size: 12, weight: .medium))
-                                                .foregroundColor(isCurrent ? primaryTextColor : Paper.inkSecondary)
-                                                .lineLimit(1)
                                         }
                                         
                                         Spacer()
@@ -383,22 +392,23 @@ struct NarekatsiView: View {
             textHy: prayer.textHy,
             textRu: prayer.textRu,
             textEn: prayer.textEn,
-            refHy: prayer.banNumber,
-            refRu: prayer.banNumber,
-            refEn: prayer.banNumber
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         )
         showToast("Աղոթքը տեղադրվեց Վիջեթում 📌")
     }
     
     private func copyPrayer(_ prayer: NarekPrayer) {
         triggerHaptic(.light)
-        UIPasteboard.general.string = "\(prayer.title(for: manager.appLanguage))\n\n\(prayer.text(for: manager.appLanguage))"
+        UIPasteboard.general.string = "\(prayer.inspiredTitle(for: manager.appLanguage))\n\n\(prayer.text(for: manager.appLanguage))"
         showToast("Պատճենված է 📋")
     }
     
     private func sharePrayer(_ prayer: NarekPrayer) {
         triggerHaptic(.light)
-        shareText = "«\(prayer.title(for: manager.appLanguage))»\n\n\(prayer.text(for: manager.appLanguage))\n\n(Գրիգոր Նարեկացի — Մատյան Ողբերգության)"
+        let source = manager.appLanguage.pick(hy: "(Գրիգոր Նարեկացու ոգով)", ru: "(В духе Григора Нарекаци)", en: "(In the spirit of Gregory of Narek)")
+        shareText = "«\(prayer.inspiredTitle(for: manager.appLanguage))»\n\n\(prayer.text(for: manager.appLanguage))\n\n\(source)"
     }
     
     private func showToast(_ msg: String) {
@@ -443,7 +453,7 @@ struct NarekHeroPlayerCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(prayer.banNumber)
+                        Text(prayer.chapterLabel(for: audioPlayer.voiceLanguage))
                             .font(PaperFont.font(size: 18, weight: .semibold))
                             .foregroundColor(accentColor)
                         
@@ -465,11 +475,6 @@ struct NarekHeroPlayerCard: View {
                                 .foregroundColor(Paper.inkSecondary)
                         }
                     }
-                    
-                    Text(prayer.title(for: audioPlayer.voiceLanguage))
-                        .font(PaperFont.font(size: 14, weight: .medium))
-                        .foregroundColor(primaryTextColor)
-                        .lineLimit(2)
                 }
                 
                 Spacer()
@@ -744,51 +749,21 @@ struct NarekCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             
-            // Верхняя строка карточки: Номер главы + Кнопка прослушивания
+            // Верхняя строка карточки: пометка, что это молитва «в духе Нарекаци», а не текст книги
             HStack {
-                Text(prayer.banNumber)
+                Text(language.pick(hy: "Նարեկացու ոգով", ru: "В духе Нарекаци", en: "In the spirit of Narekatsi"))
                     .font(PaperFont.font(size: 13, weight: .semibold))
                     .foregroundColor(accentColor)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(accentColor.opacity(0.12))
                     .cornerRadius(8)
-                
+
                 Spacer()
-                
-                // Кнопка быстрого воспроизведения
-                Button {
-                    onToggleAudio()
-                } label: {
-                    HStack(spacing: 5) {
-                        if isLocked {
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Paper.onAccent)
-                            Text("narek_listen_pro".localized(for: language))
-                                .font(PaperFont.font(size: 11, weight: .semibold))
-                                .foregroundColor(Paper.onAccent)
-                        } else {
-                            Image(systemName: isPlaying ? "stop.fill" : "speaker.wave.2.fill")
-                                .font(.system(size: 12, weight: .semibold))
-                            Text(isPlaying ? "narek_stop".localized(for: language) : "narek_listen_prayer".localized(for: language))
-                                .font(PaperFont.font(size: 12, weight: .semibold))
-                        }
-                    }
-                    .foregroundColor(isLocked ? Paper.onAccent : (isPlaying ? Paper.onAccent : accentColor))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        isLocked ? AnyShapeStyle(Paper.gold) :
-                        (isPlaying ? AnyShapeStyle(Paper.cinnabar) : AnyShapeStyle(accentColor.opacity(0.12)))
-                    )
-                    .cornerRadius(12)
-                }
-                .buttonStyle(ScaleButtonStyle())
             }
-            
-            // Заголовок главы
-            Text(prayer.title(for: language))
+
+            // Название молитвы
+            Text(prayer.inspiredTitle(for: language))
                 .font(PaperFont.font(size: 16, weight: .semibold))
                 .foregroundColor(primaryTextColor)
                 .fixedSize(horizontal: false, vertical: true)
@@ -802,7 +777,7 @@ struct NarekCardView: View {
             
             // Нижняя панель действий (Виджет, Копировать, Поделиться)
             HStack {
-                Text("saint_gregory_narekatsi".localized(for: language))
+                Text(language.pick(hy: "Ոգով, ոչ թե բառացի տեքստ", ru: "В духе, не дословный текст", en: "In the spirit, not verbatim"))
                     .font(PaperFont.font(size: 12, weight: .semibold))
                     .foregroundColor(accentColor.opacity(0.8))
                 

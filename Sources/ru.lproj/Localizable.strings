@@ -300,13 +300,13 @@
 
 /* Narekatsi & Audio Player */
 "narekatsi_title" = "Св. Григор Нарекаци";
-"narekatsi_subtitle" = "Книга скорбных песнопений (Из глубины сердца)";
+"narekatsi_subtitle" = "Книга скорбных песнопений";
 "button_listen_audio" = "Слушать";
 "button_pause_audio" = "Пауза";
-"narek_tab_text" = "Текст (Матьян)";
+"narek_tab_text" = "Молитвы";
 "narek_tab_audio" = "Аудиозапись";
 "narek_playlist_title" = "📻 Все 95 Глав (Плейлист)";
-"narek_prayers_count" = "95 молитв";
+"narek_prayers_count" = "95 глав";
 "narek_loading_audio" = "• Загрузка аудио...";
 "narek_saved_position_format" = "Сохраненная позиция: %@ (Глава %d)";
 "narek_continue_format" = "Продолжить: %@ (Глава %d)";

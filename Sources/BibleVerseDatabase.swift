@@ -174,121 +174,121 @@ extension BibleVerse {
             textHy: "Ընդունիր աղօթքս այս խոնարհ հոգու։",
             textRu: "Прими сие молитвенное пение сокрушенного духа.",
             textEn: "Accept this prayer of a humble spirit.",
-            refHy: "Նարեկացի • Բան Ա",
-            refRu: "Нарекаци • Глава 1",
-            refEn: "Narekatsi • Prayer 1"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Մի մերժիր աղերսն իմ արցունքոտ։",
             textRu: "Не отвергни слез моих горьких.",
             textEn: "Reject not my tearful plea.",
-            refHy: "Նարեկացի • Բան Ա",
-            refRu: "Нарекаци • Глава 1",
-            refEn: "Narekatsi • Prayer 1"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Նայիր ինձ քո առատ ողորմութեամբ։",
             textRu: "Призри на меня по великой милости Твоей.",
             textEn: "Look upon me with Your abundant mercy.",
-            refHy: "Նարեկացի • Բան Ա",
-            refRu: "Нарекаци • Глава 1",
-            refEn: "Narekatsi • Prayer 1"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Տուր ինձ բժշկութիւն ու խաղաղութիւն։",
             textRu: "Даруй мне исцеление и покой души.",
             textEn: "Grant me healing and divine peace.",
-            refHy: "Նարեկացի • Բան Ա",
-            refRu: "Нарекаци • Глава 1",
-            refEn: "Narekatsi • Prayer 1"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Առ քեզ եմ նայում, լոյս ճշմարիտ։",
             textRu: "К Тебе возвожу взор мой, Свет Истинный.",
             textEn: "To You I lift up my eyes, O True Light.",
-            refHy: "Նարեկացի • Բան Բ",
-            refRu: "Нарекаци • Глава 2",
-            refEn: "Narekatsi • Prayer 2"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Փրկիր ինձ մեղաց ծովից։",
             textRu: "Избави меня от пучины греховной.",
             textEn: "Save me from the abyss of sin.",
-            refHy: "Նարեկացի • Բան Բ",
-            refRu: "Нарекаци • Глава 2",
-            refEn: "Narekatsi • Prayer 2"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Ինչպէ՞ս համարձակուեմ կանգնել քո առաջ։",
             textRu: "Как дерзну предстать пред ликом Твоим?",
             textEn: "How shall I dare to stand before Your face?",
-            refHy: "Նարեկացի • Բան Գ",
-            refRu: "Нарекаци • Глава 3",
-            refEn: "Narekatsi • Prayer 3"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Ով Ամենասուրբ և Անհասանելի Աստուած։",
             textRu: "О Пресвятый и Непостижимый Боже!",
             textEn: "O Most Holy and Incomprehensible God!",
-            refHy: "Նարեկացի • Բան Գ",
-            refRu: "Нарекаци • Глава 3",
-            refEn: "Narekatsi • Prayer 3"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Քո քաղցրութիւնն է ինձ ձգում առ քեզ։",
             textRu: "Благость Твоя влечет меня к Тебе.",
             textEn: "Your loving-kindness draws me to You.",
-            refHy: "Նարեկացի • Բան Գ",
-            refRu: "Нарекаци • Глава 3",
-            refEn: "Narekatsi • Prayer 3"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Քո խոստումն է տալիս ինձ յոյս։",
             textRu: "Обещание Твое дарует мне непреложную надежду.",
             textEn: "Your promise gives me steadfast hope.",
-            refHy: "Նարեկացի • Բան Գ",
-            refRu: "Нарекаци • Глава 3",
-            refEn: "Narekatsi • Prayer 3"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Զանօրէնութիւնս իմ ես ինձէն գիտեմ։",
             textRu: "Беззакония мои знаю я сам.",
             textEn: "My transgressions I know full well.",
-            refHy: "Նարեկացի • Բան Դ",
-            refRu: "Нарекаци • Глава 4",
-            refEn: "Narekatsi • Prayer 4"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Թող ինձ, Տէր, և ներեա։",
             textRu: "Прости мне, Господи, и помилуй.",
             textEn: "Forgive me, O Lord, and have mercy.",
-            refHy: "Նարեկացի • Բան Դ",
-            refRu: "Нарекаци • Глава 4",
-            refEn: "Narekatsi • Prayer 4"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Դու ես կեանքը իմ, ով Քրիստոս։",
             textRu: "Ты — жизнь моя, о Христе.",
             textEn: "You are my life, O Christ.",
-            refHy: "Նարեկացի • Բան Ե",
-            refRu: "Нарекаци • Глава 5",
-            refEn: "Narekatsi • Prayer 5"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Դու ես յարութիւնն և լոյսը հոգւոյս։",
             textRu: "Ты — воскресение и свет души моей.",
             textEn: "You are the resurrection and light of my soul.",
-            refHy: "Նարեկացի • Բան Ե",
-            refRu: "Нарекаци • Глава 5",
-            refEn: "Narekatsi • Prayer 5"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Քեզ եմ հաւատում և քեզ երկրպագում։",
             textRu: "В Тебя верую и Тебе поклоняюсь.",
             textEn: "In You I believe and You I worship.",
-            refHy: "Նարեկացի • Բան Ե",
-            refRu: "Нарекаци • Глава 5",
-            refEn: "Narekatsi • Prayer 5"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         )
     ]
 
@@ -298,65 +298,65 @@ extension BibleVerse {
             textHy: "Ձայն հառաչանաց, հեծութեան ողբոց,\nԱղաղակ սրտի, քեզ եմ ընծայում,\nՈվ Աստուած իմ, տէր իմ, փրկիչ իմ բարերար։",
             textRu: "Сконфужен взором, вздохом сокрушен,\nВопль сердца своего, стон исступленный\nТебе возношу я, Господи мой и Спаситель!",
             textEn: "The voice of sighing, weeping and lamenting,\nThe cry of the heart, I offer to You,\nO my God, my Lord and benevolent Savior!",
-            refHy: "Նարեկացի • Բան Ա",
-            refRu: "Нарекаци • Глава 1",
-            refEn: "Narekatsi • Prayer 1"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Ընդունիր աղօթքս այս խոնարհ հոգու,\nԵւ մի մերժիր աղերսն իմ արցունքոտ,\nԱյլ նայիր ինձ քո առատ ողորմութեամբ\nԵւ տուր ինձ բժշկութիւն ու խաղաղութիւն։",
             textRu: "Прими сие молитвенное пение сокрушенного духа\nИ не отвергни слез моих горьких,\nНо призри на меня по великой милости Твоей\nИ даруй мне исцеление и покой души.",
             textEn: "Accept this prayer of a humble spirit,\nAnd reject not my tearful plea,\nBut look upon me with Your abundant mercy\nAnd grant me healing and divine peace.",
-            refHy: "Նարեկացի • Բան Ա",
-            refRu: "Нарекаци • Глава 1",
-            refEn: "Narekatsi • Prayer 1"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Առ քեզ եմ նայում, լոյս ճշմարիտ,\nՈր լուսաւորում ես ամէն մարդու,\nՈր գալիս է այս աշխարհ։",
             textRu: "К Тебе возвожу взор мой, Свет Истинный,\nПросвещающий всякого человека,\nПриходящего в этот мир.",
             textEn: "To You I lift up my eyes, O True Light,\nWho enlightens every person\nComing into the world.",
-            refHy: "Նարեկացի • Բան Բ",
-            refRu: "Нарекаци • Глава 2",
-            refEn: "Narekatsi • Prayer 2"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Փրկիր ինձ մեղաց ծովից,\nԵւ հաստատիր ոտքերս քո վեմի վրայ։",
             textRu: "Избави меня от пучины греховной\nИ утверди стопы мои на камне веры Твоей.",
             textEn: "Save me from the abyss of sin\nAnd establish my feet upon the rock of Your faith.",
-            refHy: "Նարեկացի • Բան Բ",
-            refRu: "Нарекаци • Глава 2",
-            refEn: "Narekatsi • Prayer 2"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Արդ, ես՝ աղբս մարդկային, փոշիս հողեղէն,\nԻնչպէ՞ս համարձակուեմ կանգնել քո առաջ,\nՈվ Ամենասուրբ և Անհասանելի Աստուած։",
             textRu: "И ныне я, прах и пепел земной,\nКак дерзну предстать пред ликом Твоим,\nО Пресвятый и Непостижимый Боже!",
             textEn: "And now I, dust and ashes of the earth,\nHow shall I dare to stand before Your face,\nO Most Holy and Incomprehensible God!",
-            refHy: "Նարեկացի • Բան Գ",
-            refRu: "Нарекаци • Глава 3",
-            refEn: "Narekatsi • Prayer 3"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Բայց քո քաղցրութիւնն է ինձ ձգում առ քեզ,\nԵւ քո խոստումն է տալիս ինձ յոյս։",
             textRu: "Но благость Твоя влечет меня к Тебе,\nИ обещание Твое дарует мне непреложную надежду.",
             textEn: "Yet Your loving-kindness draws me to You,\nAnd Your promise gives me steadfast hope.",
-            refHy: "Նարեկացի • Բան Գ",
-            refRu: "Нарекаци • Глава 3",
-            refEn: "Narekatsi • Prayer 3"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Մեղայ քեզ, Տէր, մեղայ,\nԵւ զանօրէնութիւնս իմ ես ինձէն գիտեմ։\nԱյլ աղաչեմ և խնդրեմ ի քէն,\nԹող ինձ, Տէր, և ներեա։",
             textRu: "Согрешил я перед Тобой, Господи, согрешил,\nИ беззакония мои знаю я сам.\nНо молю и прошу Тебя:\nПрости мне, Господи, и помилуй.",
             textEn: "I have sinned against You, O Lord, I have sinned,\nAnd my transgressions I know full well.\nYet I pray and beseech You:\nForgive me, O Lord, and have mercy.",
-            refHy: "Նարեկացի • Բան Դ",
-            refRu: "Нарекаци • Глава 4",
-            refEn: "Narekatsi • Prayer 4"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
             textHy: "Դու ես կեանքը իմ, ով Քրիստոս,\nԴու ես յարութիւնն և լոյսը հոգւոյս։\nՔեզ եմ հաւատում և քեզ երկրպագում,\nՕրհնեալ յաւիտեանս։",
             textRu: "Ты — жизнь моя, о Христе,\nТы — воскресение и свет души моей.\nВ Тебя верую и Тебе поклоняюсь,\nБлагословенный во веки веков.",
             textEn: "You are my life, O Christ,\nYou are the resurrection and light of my soul.\nIn You I believe and You I worship,\nBlessed forever and ever.",
-            refHy: "Նարեկացի • Բան Ե",
-            refRu: "Нарекаци • Глава 5",
-            refEn: "Narekatsi • Prayer 5"
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         )
     ]
 

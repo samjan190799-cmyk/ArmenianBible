@@ -1,8 +1,8 @@
 import Foundation
 
 // MARK: - «Нарек утешает»: подбор главы «Книги скорбных песнопений» под состояние человека
-// Человек одной фразой говорит, что на сердце. Приложение находит в 95 главах Нарекаци ту,
-// что ближе всего по настроению, показывает строки и включает озвучку. Подбор работает без сети
+// Человек одной фразой говорит, что на сердце. Приложение находит среди пяти молитв «в духе Нарекаци» ту,
+// что ближе всего по настроению, и показывает её строки (это не дословный текст «Книги скорбных песнопений»). Подбор работает без сети
 // и без ключа ИИ: по словам человека и по темам глав. ИИ (если у человека свой ключ) только
 // добавляет личное слово утешения по нажатию кнопки.
 
@@ -115,7 +115,7 @@ enum NarekConsolationEngine {
     /// Насколько каждая тема выражена в каждой главе (считается один раз)
     private static let profiles: [Int: [ConsolationTheme: Double]] = {
         var result: [Int: [ConsolationTheme: Double]] = [:]
-        for prayer in NarekatsiDatabase.shared.prayers {
+        for prayer in NarekatsiDatabase.shared.inspiredPrayers {
             let haystack = [prayer.titleHy, prayer.titleRu, prayer.titleEn, prayer.textHy, prayer.textRu, prayer.textEn]
                 .joined(separator: " ")
                 .lowercased()
@@ -148,7 +148,7 @@ enum NarekConsolationEngine {
 
     /// Пять лучших глав; если ни слова, ни состояния не опознаны — «слово дня»
     static func rank(text: String, chips: Set<ConsolationTheme>, language: AppLanguage, now: Date = Date()) -> [NarekMatch] {
-        let prayers = NarekatsiDatabase.shared.prayers
+        let prayers = NarekatsiDatabase.shared.inspiredPrayers
         guard !prayers.isEmpty else { return [] }
 
         var wanted = themes(in: text)
@@ -176,7 +176,7 @@ enum NarekConsolationEngine {
                 score += 0.35 * Double(min(overlap, 4))
             }
             // Равные по очкам главы чередуются по дням, чтобы слово не повторялось изо дня в день
-            score += Double((prayer.id + dayOfYear) % 95) / 100_000
+            score += Double((prayer.id + dayOfYear) % 5) / 100_000
             scored.append(NarekMatch(prayer: prayer, score: score))
         }
         scored.sort { $0.score > $1.score }

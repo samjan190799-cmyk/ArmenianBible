@@ -300,13 +300,13 @@
 
 /* Narekatsi & Audio Player */
 "narekatsi_title" = "Գրիգոր Նարեկացի";
-"narekatsi_subtitle" = "Մատյան Ողբերգության (Ի խորոց սրտի)";
+"narekatsi_subtitle" = "Մատյան Ողբերգության";
 "button_listen_audio" = "Լսել աղոթքը";
 "button_pause_audio" = "Դադար";
-"narek_tab_text" = "Տեքստ (Մատյան)";
+"narek_tab_text" = "Աղոթքներ";
 "narek_tab_audio" = "Ձայնագրություն";
 "narek_playlist_title" = "📻 Բոլոր 95 Գլուխները (Փլեյլիստ)";
-"narek_prayers_count" = "95 աղոթք";
+"narek_prayers_count" = "95 գլուխ";
 "narek_loading_audio" = "• Բեռնվում է...";
 "narek_saved_position_format" = "Պահպանված դիրք՝ %@ (Գլուխ %d)";
 "narek_continue_format" = "Շարունակել՝ %@ (Գլուխ %d)";
