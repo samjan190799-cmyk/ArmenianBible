@@ -65,16 +65,6 @@ extension SettingsView {
                 
                 Divider().opacity(0.3)
 
-                // 1б. Скорость письма пера в «Рукописи»
-                ManuscriptSpeedSettingsRow(language: selectedLanguage, primaryTextColor: primaryTextColor)
-
-                Divider().opacity(0.3)
-
-                // 1в. Молитва свечи на экране блокировки
-                CandleLockPrayerRow(language: selectedLanguage)
-
-                Divider().opacity(0.3)
-                
                 // 2. Блокировка Face ID / Touch ID
                 HStack(spacing: 12) {
                     ZStack {
@@ -111,10 +101,120 @@ extension SettingsView {
                             }
                         }
                 }
-                
+
                 Divider().opacity(0.3)
+
+                // 3. Синхронизация через iCloud (по умолчанию выключена)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Paper.teal.opacity(0.15))
+                                .frame(width: 34, height: 34)
+
+                            Image(systemName: "icloud.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Paper.teal)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(iCloudSyncTitle)
+                                .font(PaperFont.font(size: 14, weight: .semibold))
+                                .foregroundColor(primaryTextColor)
+
+                            Text(iCloudSyncDescription)
+                                .font(PaperFont.font(size: 11.5))
+                                .foregroundColor(Paper.inkSecondary)
+                                .lineLimit(3)
+                        }
+
+                        Spacer()
+
+                        Toggle("", isOn: Binding(
+                            get: { cloudSync.isEnabled },
+                            set: { newValue in
+                                Haptics.impact(.light)
+                                cloudSync.setEnabled(newValue)
+                            }
+                        ))
+                        .labelsHidden()
+                        .tint(selectedTheme.color)
+                    }
+
+                    if cloudSync.isEnabled {
+                        HStack(spacing: 6) {
+                            Image(systemName: iCloudStatusIcon)
+                                .font(.system(size: 12))
+                                .foregroundColor(iCloudStatusColor)
+                            Text(iCloudStatusText)
+                                .font(PaperFont.font(size: 12, weight: .medium))
+                                .foregroundColor(iCloudStatusColor)
+
+                            Spacer()
+
+                            Button {
+                                Haptics.impact(.soft)
+                                cloudSync.syncNow()
+                            } label: {
+                                Text(iCloudSyncNowTitle)
+                                    .font(PaperFont.font(size: 12, weight: .semibold))
+                                    .foregroundColor(selectedTheme.color)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                }
+
+                Divider().opacity(0.3)
+
                 
-                // 3. Очистка кэша
+                // 4. Резервное копирование и экспорт
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Paper.plum.opacity(0.15))
+                            .frame(width: 34, height: 34)
+                        
+                        Image(systemName: "square.and.arrow.up.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Paper.plum)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("export_backup_title".localized(for: selectedLanguage))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("export_backup_desc".localized(for: selectedLanguage))
+                            .font(PaperFont.font(size: 11.5))
+                            .foregroundColor(Paper.inkSecondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        Haptics.impact(.soft)
+                        
+                        if let url = manager.generateBackupArchive() {
+                            self.backupShareUrl = url
+                            self.isShowingShareSheet = true
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(selectedTheme.color)
+                            .padding(8)
+                            .background(selectedTheme.color.opacity(0.12))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+
+                Divider().opacity(0.3)
+
+                
+                // 5. Очистка кэша
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -189,114 +289,6 @@ extension SettingsView {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 2)
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-                
-                Divider().opacity(0.3)
-                
-                // 4. Резервное копирование и экспорт
-                HStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Paper.plum.opacity(0.15))
-                            .frame(width: 34, height: 34)
-                        
-                        Image(systemName: "square.and.arrow.up.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(Paper.plum)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("export_backup_title".localized(for: selectedLanguage))
-                            .font(PaperFont.font(size: 14, weight: .semibold))
-                            .foregroundColor(primaryTextColor)
-                        
-                        Text("export_backup_desc".localized(for: selectedLanguage))
-                            .font(PaperFont.font(size: 11.5))
-                            .foregroundColor(Paper.inkSecondary)
-                            .lineLimit(2)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        Haptics.impact(.soft)
-                        
-                        if let url = manager.generateBackupArchive() {
-                            self.backupShareUrl = url
-                            self.isShowingShareSheet = true
-                        }
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(selectedTheme.color)
-                            .padding(8)
-                            .background(selectedTheme.color.opacity(0.12))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                }
-
-                Divider().opacity(0.3)
-
-                // 5. Синхронизация через iCloud (по умолчанию выключена)
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Paper.teal.opacity(0.15))
-                                .frame(width: 34, height: 34)
-
-                            Image(systemName: "icloud.fill")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(Paper.teal)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(iCloudSyncTitle)
-                                .font(PaperFont.font(size: 14, weight: .semibold))
-                                .foregroundColor(primaryTextColor)
-
-                            Text(iCloudSyncDescription)
-                                .font(PaperFont.font(size: 11.5))
-                                .foregroundColor(Paper.inkSecondary)
-                                .lineLimit(3)
-                        }
-
-                        Spacer()
-
-                        Toggle("", isOn: Binding(
-                            get: { cloudSync.isEnabled },
-                            set: { newValue in
-                                Haptics.impact(.light)
-                                cloudSync.setEnabled(newValue)
-                            }
-                        ))
-                        .labelsHidden()
-                        .tint(selectedTheme.color)
-                    }
-
-                    if cloudSync.isEnabled {
-                        HStack(spacing: 6) {
-                            Image(systemName: iCloudStatusIcon)
-                                .font(.system(size: 12))
-                                .foregroundColor(iCloudStatusColor)
-                            Text(iCloudStatusText)
-                                .font(PaperFont.font(size: 12, weight: .medium))
-                                .foregroundColor(iCloudStatusColor)
-
-                            Spacer()
-
-                            Button {
-                                Haptics.impact(.soft)
-                                cloudSync.syncNow()
-                            } label: {
-                                Text(iCloudSyncNowTitle)
-                                    .font(PaperFont.font(size: 12, weight: .semibold))
-                                    .foregroundColor(selectedTheme.color)
-                            }
-                            .buttonStyle(ScaleButtonStyle())
-                        }
-                    }
                 }
             }
             .padding(14)
