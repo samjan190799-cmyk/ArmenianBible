@@ -93,14 +93,20 @@ extension SettingsView {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(WidgetVisualStyle.allCases) { style in
+                            let isStyleLocked = style.isPremiumRequired && !subscriptionManager.isPremium
                             WidgetStyleCardButton(
                                 style: style,
                                 isSelected: selectedWidgetStyle == style,
-                                isLocked: false,
+                                isLocked: isStyleLocked,
                                 selectedLanguage: selectedLanguage,
                                 themeColorHex: selectedTheme.colorHex,
                                 colorScheme: colorScheme
                             ) {
+                                if isStyleLocked {
+                                    Haptics.impact(.soft)
+                                    isShowingPaywall = true
+                                    return
+                                }
                                 Haptics.impact(.soft)
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                     selectedWidgetStyle = style
@@ -273,7 +279,7 @@ extension SettingsView {
                             }
                         }
                         .padding(14)
-                        .background(selectedWidgetStyle.backgroundGradient(for: colorScheme))
+                        .background(WidgetStyleBackground(style: selectedWidgetStyle, colorScheme: colorScheme))
                         .cornerRadius(18)
                         .overlay(
                             RoundedRectangle(cornerRadius: 18)
@@ -347,7 +353,7 @@ extension SettingsView {
                             }
                         }
                         .padding(14)
-                        .background(selectedWidgetStyle.backgroundGradient(for: colorScheme))
+                        .background(WidgetStyleBackground(style: selectedWidgetStyle, colorScheme: colorScheme))
                         .cornerRadius(18)
                         .overlay(
                             RoundedRectangle(cornerRadius: 18)
@@ -421,7 +427,7 @@ extension SettingsView {
                             }
                         }
                         .padding(16)
-                        .background(selectedWidgetStyle.backgroundGradient(for: colorScheme))
+                        .background(WidgetStyleBackground(style: selectedWidgetStyle, colorScheme: colorScheme))
                         .cornerRadius(20)
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)

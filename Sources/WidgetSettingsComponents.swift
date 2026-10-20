@@ -411,7 +411,7 @@ struct WidgetStyleCardButton: View {
             }
             .padding(11)
             .frame(width: 130, height: 120)
-            .background(style.backgroundGradient(for: colorScheme))
+            .background(WidgetStyleBackground(style: style, colorScheme: colorScheme))
             .cornerRadius(15)
             .overlay(
                 RoundedRectangle(cornerRadius: 15)

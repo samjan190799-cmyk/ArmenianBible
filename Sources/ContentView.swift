@@ -15,6 +15,8 @@ struct ContentView: View {
         ZStack {
             if UserDefaults.standard.string(forKey: "openTab") == "lockscreen" {
                 iPadLockScreenShowcaseView()
+            } else if UserDefaults.standard.string(forKey: "openTab") == "widgetposters" {
+                WidgetPosterShowcaseView()
             } else {
                 TabView(selection: $manager.activeTabSelection) {
                     HomeView()

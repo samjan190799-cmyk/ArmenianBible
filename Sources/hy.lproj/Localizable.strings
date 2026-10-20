@@ -108,6 +108,14 @@
 "widget_style_sunset_desc" = "Ծիրանագույն ոսկի, տաք վարդ և ինդիգո";
 "widget_style_stone" = "Վանական Բազալտ";
 "widget_style_stone_desc" = "Խաչքարի հին քար և դրվագված արծաթ";
+"widget_style_poster_ararat" = "Պաստառ · Արարատ";
+"widget_style_poster_ararat_desc" = "Լուսաբաց Արարատի վրա, մեծ խոսք";
+"widget_style_poster_khachkar" = "Պաստառ · Խաչքար";
+"widget_style_poster_khachkar_desc" = "Ոսկե խաչքար մութ քարի վրա";
+"widget_style_poster_parchment" = "Պաստառ · Մագաղաթ";
+"widget_style_poster_parchment_desc" = "Ձեռագիր թերթ ոսկե շրջանակով";
+"widget_style_poster_night" = "Պաստառ · Բեթղեհեմ";
+"widget_style_poster_night_desc" = "Գիշերային երկինք աստղով";
 "check_models" = "Ստուգել թարմացումները";
 "checking_models" = "Ստուգում...";
 "auto_upgrade_active" = "Ավտոթարմացումն ակտիվ է";

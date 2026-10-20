@@ -89,6 +89,10 @@ enum WidgetStyleAppEnum: String, AppEnum {
     case crimsonGospel = "crimsonGospel"
     case auroraSunset = "auroraSunset"
     case monasticStone = "monasticStone"
+    case posterArarat = "posterArarat"
+    case posterKhachkar = "posterKhachkar"
+    case posterParchment = "posterParchment"
+    case posterNight = "posterNight"
     
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         "Widget & StandBy Style"
@@ -105,7 +109,11 @@ enum WidgetStyleAppEnum: String, AppEnum {
             .celestialEmerald: DisplayRepresentation(title: "🌿 Celestial Emerald", subtitle: "Liturgical malachite and glowing mint gold"),
             .crimsonGospel: DisplayRepresentation(title: "🍷 Sacred Pomegranate", subtitle: "Cilician royal crimson ruby and champagne gold"),
             .auroraSunset: DisplayRepresentation(title: "🌅 Ararat Sunset", subtitle: "Warm apricot amber, rose and mountain twilight"),
-            .monasticStone: DisplayRepresentation(title: "⛰️ Monastic Stone", subtitle: "Khachkar volcanic basalt and chiseled silver")
+            .monasticStone: DisplayRepresentation(title: "⛰️ Monastic Stone", subtitle: "Khachkar volcanic basalt and chiseled silver"),
+            .posterArarat: DisplayRepresentation(title: "🏔️ Poster · Ararat", subtitle: "Dawn over Ararat with a big phrase"),
+            .posterKhachkar: DisplayRepresentation(title: "✝️ Poster · Khachkar (PRO)", subtitle: "A golden khachkar on dark stone"),
+            .posterParchment: DisplayRepresentation(title: "📜 Poster · Parchment", subtitle: "A manuscript page with a gold frame"),
+            .posterNight: DisplayRepresentation(title: "⭐ Poster · Bethlehem (PRO)", subtitle: "Night sky with a star")
         ]
     }
     
@@ -121,6 +129,10 @@ enum WidgetStyleAppEnum: String, AppEnum {
         case .crimsonGospel: return .crimsonGospel
         case .auroraSunset: return .auroraSunset
         case .monasticStone: return .monasticStone
+        case .posterArarat: return .posterArarat
+        case .posterKhachkar: return .posterKhachkar
+        case .posterParchment: return .posterParchment
+        case .posterNight: return .posterNight
         }
     }
 }
@@ -359,13 +371,19 @@ struct Provider: AppIntentTimelineProvider {
     
     private func resolveVisualStyle(for configuration: ConfigurationAppIntent) -> WidgetVisualStyle {
         let appStyle = getSharedVisualStyle()
+        let chosen: WidgetVisualStyle
         if configuration.visualStyle == .followApp {
-            return appStyle
+            chosen = appStyle
         } else if let custom = configuration.visualStyle.widgetStyle {
-            return custom
+            chosen = custom
         } else {
-            return appStyle
+            chosen = appStyle
         }
+        // Премиум-постеры без подписки показываются как бесплатный «Пергамент»
+        if chosen.isPremiumRequired && !AppGroupConstants.sharedBool(forKey: "is_premium_active") {
+            return .posterParchment
+        }
+        return chosen
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
@@ -955,8 +973,47 @@ struct BibleWidgetEntryView: View {
         }
     }
 
+    /// Постер рисуется только в системных размерах; экран блокировки остаётся как был
+    private var posterArt: PosterArt? {
+        guard family == .systemSmall || family == .systemMedium || family == .systemLarge else { return nil }
+        return activeStyle.posterArt
+    }
+
+    @ViewBuilder
+    private func posterContent(_ art: PosterArt) -> some View {
+        let size: PosterSize = family == .systemSmall ? .small : (family == .systemMedium ? .medium : .large)
+        let target = family == .systemSmall ? "small" : (family == .systemMedium ? "medium" : "large")
+        let tint = art.mainColor
+        PosterWidgetLayout(
+            art: art,
+            size: size,
+            text: entry.verse.text(for: getLanguage()),
+            reference: entry.verse.reference(for: getLanguage())
+        ) {
+            HStack(spacing: 8) {
+                if size == .large {
+                    Button(intent: TogglePrayerCompletedWidgetIntent()) {
+                        PosterGlassIcon(symbol: isPrayerDone ? "checkmark.circle.fill" : "hands.sparkles.fill", tint: isPrayerDone ? .green : tint, size: 34)
+                    }
+                    .buttonStyle(.plain)
+                    Button(intent: ToggleFavoriteWidgetIntent()) {
+                        PosterGlassIcon(symbol: isFavorite ? "heart.fill" : "heart", tint: isFavorite ? .red : tint, size: 34)
+                    }
+                    .buttonStyle(.plain)
+                }
+                Button(intent: NextVerseIntent(targetSize: target)) {
+                    PosterGlassIcon(symbol: "arrow.clockwise", tint: tint, size: size == .large ? 34 : 30)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     var body: some View {
         Group {
+            if let art = posterArt {
+                posterContent(art)
+            } else {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки: строгие 2 строки для текста стиха + гарантированно видимая ссылка внизу
@@ -1233,6 +1290,7 @@ struct BibleWidgetEntryView: View {
                 
             default:
                 EmptyView()
+            }
             }
         }
         .widgetURL(URL(string: "armenianbible://next-verse"))

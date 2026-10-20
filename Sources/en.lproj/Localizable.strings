@@ -108,6 +108,14 @@
 "widget_style_sunset_desc" = "Apricot amber, warm rose and dusk indigo";
 "widget_style_stone" = "Ancient Basalt";
 "widget_style_stone_desc" = "Khachkar stone and embossed silver";
+"widget_style_poster_ararat" = "Poster · Ararat";
+"widget_style_poster_ararat_desc" = "Dawn over Ararat with a big phrase";
+"widget_style_poster_khachkar" = "Poster · Khachkar";
+"widget_style_poster_khachkar_desc" = "A golden khachkar on dark stone";
+"widget_style_poster_parchment" = "Poster · Parchment";
+"widget_style_poster_parchment_desc" = "A manuscript page with a gold frame";
+"widget_style_poster_night" = "Poster · Bethlehem";
+"widget_style_poster_night_desc" = "Night sky with a star";
 "check_models" = "Check Updates";
 "checking_models" = "Checking...";
 "auto_upgrade_active" = "Auto-Upgrade Active";

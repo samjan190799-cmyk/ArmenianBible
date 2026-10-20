@@ -12,6 +12,11 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
     case crimsonGospel = "crimsonGospel"
     case auroraSunset = "auroraSunset"
     case monasticStone = "monasticStone"
+    // Постеры: крупная фраза на нарисованном фоне (см. WidgetPosterStyle.swift)
+    case posterArarat = "posterArarat"
+    case posterKhachkar = "posterKhachkar"
+    case posterParchment = "posterParchment"
+    case posterNight = "posterNight"
     
     var id: String { self.rawValue }
     
@@ -26,6 +31,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .crimsonGospel: return "widget_style_crimson".localized(for: language)
         case .auroraSunset: return "widget_style_sunset".localized(for: language)
         case .monasticStone: return "widget_style_stone".localized(for: language)
+        case .posterArarat: return "widget_style_poster_ararat".localized(for: language)
+        case .posterKhachkar: return "widget_style_poster_khachkar".localized(for: language)
+        case .posterParchment: return "widget_style_poster_parchment".localized(for: language)
+        case .posterNight: return "widget_style_poster_night".localized(for: language)
         }
     }
     
@@ -40,6 +49,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .crimsonGospel: return "widget_style_crimson_desc".localized(for: language)
         case .auroraSunset: return "widget_style_sunset_desc".localized(for: language)
         case .monasticStone: return "widget_style_stone_desc".localized(for: language)
+        case .posterArarat: return "widget_style_poster_ararat_desc".localized(for: language)
+        case .posterKhachkar: return "widget_style_poster_khachkar_desc".localized(for: language)
+        case .posterParchment: return "widget_style_poster_parchment_desc".localized(for: language)
+        case .posterNight: return "widget_style_poster_night_desc".localized(for: language)
         }
     }
     
@@ -54,6 +67,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .crimsonGospel: return "drop.fill"
         case .auroraSunset: return "sun.horizon.fill"
         case .monasticStone: return "mountain.2.fill"
+        case .posterArarat: return "sunrise.fill"
+        case .posterKhachkar: return "cross.fill"
+        case .posterParchment: return "scroll.fill"
+        case .posterNight: return "star.fill"
         }
     }
     
@@ -68,6 +85,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .crimsonGospel: return .serif
         case .auroraSunset: return .rounded
         case .monasticStone: return .serif
+        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight: return .serif
         }
     }
     
@@ -205,6 +223,30 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
                     endPoint: .bottomTrailing
                 )
             }
+        case .posterArarat:
+            return LinearGradient(
+                colors: [Color(red: 0.20, green: 0.16, blue: 0.44), Color(red: 0.93, green: 0.44, blue: 0.37), Color(red: 1.0, green: 0.84, blue: 0.53)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .posterKhachkar:
+            return LinearGradient(
+                colors: [Color(red: 0.09, green: 0.08, blue: 0.09), Color(red: 0.23, green: 0.17, blue: 0.12)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .posterParchment:
+            return LinearGradient(
+                colors: [Color(red: 0.94, green: 0.87, blue: 0.70), Color(red: 0.84, green: 0.73, blue: 0.52)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .posterNight:
+            return LinearGradient(
+                colors: [Color(red: 0.02, green: 0.04, blue: 0.15), Color(red: 0.26, green: 0.20, blue: 0.45), Color(red: 0.82, green: 0.49, blue: 0.29)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
     }
     
@@ -229,6 +271,8 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return colorScheme == .dark ? Color(red: 1.0, green: 0.97, blue: 0.94) : Color(red: 0.22, green: 0.08, blue: 0.20)
         case .monasticStone:
             return colorScheme == .dark ? Color(red: 0.95, green: 0.96, blue: 0.98) : Color(red: 0.12, green: 0.13, blue: 0.15)
+        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
+            return posterArt?.mainColor ?? .white
         }
     }
     
@@ -285,6 +329,8 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return colorScheme == .dark ? Color(red: 1.0, green: 0.70, blue: 0.40) : Color(red: 0.78, green: 0.28, blue: 0.22)
         case .monasticStone:
             return colorScheme == .dark ? Color(red: 0.85, green: 0.70, blue: 0.45) : Color(red: 0.45, green: 0.35, blue: 0.20)
+        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
+            return posterArt?.accentColor ?? .white
         }
     }
     
@@ -315,6 +361,8 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return colorScheme == .dark ? Color(red: 1.0, green: 0.55, blue: 0.45).opacity(0.85) : Color(red: 0.82, green: 0.30, blue: 0.25).opacity(0.70)
         case .monasticStone:
             return colorScheme == .dark ? Color(red: 0.80, green: 0.65, blue: 0.40).opacity(0.85) : Color(red: 0.48, green: 0.38, blue: 0.22).opacity(0.70)
+        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
+            return (posterArt?.accentColor ?? .white).opacity(0.85)
         }
     }
     
@@ -398,6 +446,13 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
+            let tint = posterArt?.accentColor ?? .white
+            return LinearGradient(
+                colors: [tint.opacity(0.55), tint.opacity(0.15)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
     
@@ -421,6 +476,10 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return Color(red: 1.0, green: 0.60, blue: 0.40).opacity(colorScheme == .dark ? 0.22 : 0.12)
         case .monasticStone:
             return Color(red: 0.80, green: 0.65, blue: 0.40).opacity(colorScheme == .dark ? 0.18 : 0.10)
+        case .posterArarat, .posterKhachkar, .posterNight:
+            return Color.white.opacity(0.18)
+        case .posterParchment:
+            return Color(red: 0.36, green: 0.09, blue: 0.15).opacity(0.10)
         }
     }
 }

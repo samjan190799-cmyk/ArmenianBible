@@ -108,6 +108,14 @@
 "widget_style_sunset_desc" = "Абрикосовое золото, теплая роза и индиго";
 "widget_style_stone" = "Древний Базальт";
 "widget_style_stone_desc" = "Камень хачкаров и чеканное серебро";
+"widget_style_poster_ararat" = "Постер · Арарат";
+"widget_style_poster_ararat_desc" = "Рассвет над Араратом, крупная фраза";
+"widget_style_poster_khachkar" = "Постер · Хачкар";
+"widget_style_poster_khachkar_desc" = "Золотой хачкар на тёмном камне";
+"widget_style_poster_parchment" = "Постер · Пергамент";
+"widget_style_poster_parchment_desc" = "Рукописный лист с золотой рамкой";
+"widget_style_poster_night" = "Постер · Вифлеем";
+"widget_style_poster_night_desc" = "Ночное небо со звездой";
 "check_models" = "Проверить обновления";
 "checking_models" = "Проверка...";
 "auto_upgrade_active" = "Автообновление активно";

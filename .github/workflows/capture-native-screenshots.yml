@@ -25,6 +25,7 @@ on:
           - candles
           - island
           - store
+          - posters
       language:
         description: 'Язык интерфейса для scope=store (russian, armenian, english)'
         required: false
@@ -160,6 +161,21 @@ jobs:
               xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Скриншоты свечи в острове для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 17. Виджеты-постеры: малый, средний и большой размер на одном экране, по одному кадру на фон
+            if [ "$SCOPE" = "posters" ]; then
+              for ART in ararat khachkar parchment night; do
+                echo "📸 Постер $ART ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$ART" -luys_ads_enabled NO -luys_debug_language "$STORE_LANG"
+                sleep 7
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/poster_${ART}.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры постеров ($STORE_LANG) сняты"
               return 0
             fi
 
