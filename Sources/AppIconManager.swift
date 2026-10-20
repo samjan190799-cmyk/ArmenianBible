@@ -10,7 +10,10 @@ enum AppIconOption: String, CaseIterable, Identifiable {
     case royalIndigo = "royalIndigo"
     case royalPomegranate = "royalPomegranate"
     case sacredEmerald = "sacredEmerald"
-    
+    case manuscript = "manuscript"
+    case codex = "codex"
+    case light = "light"
+
     var id: String { rawValue }
     
     /// Имя иконки для передачи в UIApplication.shared.setAlternateIconName (nil = первичная)
@@ -30,9 +33,15 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             return "AppIcon-RoyalPomegranate"
         case .sacredEmerald:
             return "AppIcon-SacredEmerald"
+        case .manuscript:
+            return "AppIcon-Manuscript"
+        case .codex:
+            return "AppIcon-Codex"
+        case .light:
+            return "AppIcon-Light"
         }
     }
-    
+
     /// Имя ассета превью в Assets.xcassets
     var assetPreviewName: String {
         switch self {
@@ -50,15 +59,21 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             return "AppIcon-RoyalPomegranate"
         case .sacredEmerald:
             return "AppIcon-SacredEmerald"
+        case .manuscript:
+            return "AppIcon-Manuscript"
+        case .codex:
+            return "AppIcon-Codex"
+        case .light:
+            return "AppIcon-Light"
         }
     }
-    
+
     /// Является ли эксклюзивной Premium функцией
     var isPremium: Bool {
         switch self {
         case .classic, .pitchBlack, .snowWhite:
             return false
-        case .goldenGlow, .royalIndigo, .royalPomegranate, .sacredEmerald:
+        case .goldenGlow, .royalIndigo, .royalPomegranate, .sacredEmerald, .manuscript, .codex, .light:
             return true
         }
     }
@@ -107,6 +122,24 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .russian: return "Священный Изумруд"
             case .english: return "Sacred Emerald"
             }
+        case .manuscript:
+            switch language {
+            case .armenian: return "Ձեռագիր"
+            case .russian: return "Рукопись"
+            case .english: return "Manuscript"
+            }
+        case .codex:
+            switch language {
+            case .armenian: return "Մատյան"
+            case .russian: return "Кодекс"
+            case .english: return "Codex"
+            }
+        case .light:
+            switch language {
+            case .armenian: return "Լույս"
+            case .russian: return "Свет"
+            case .english: return "Light"
+            }
         }
     }
     
@@ -153,6 +186,24 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .armenian: return "Խորը զմրուխտյա հանգստություն և ոսկի"
             case .russian: return "Глубокий изумрудный цвет и золотой свет"
             case .english: return "Deep mystical emerald & celestial gold"
+            }
+        case .manuscript:
+            switch language {
+            case .armenian: return "Ոսկե խաչքար հին մագաղաթի վրա"
+            case .russian: return "Золотой хачкар на старом пергаменте"
+            case .english: return "Gold khachkar on aged parchment"
+            }
+        case .codex:
+            switch language {
+            case .armenian: return "Մագաղաթ «Լույս» անվանումով"
+            case .russian: return "Пергамент с названием «Լույս»"
+            case .english: return "Parchment with the «Լույս» title"
+            }
+        case .light:
+            switch language {
+            case .armenian: return "Բաց գիրք և լույս Արարատի վրա"
+            case .russian: return "Открытая книга и свет над Араратом"
+            case .english: return "Open book and light over Ararat"
             }
         }
     }
