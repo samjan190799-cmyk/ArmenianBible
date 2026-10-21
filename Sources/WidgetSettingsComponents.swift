@@ -440,7 +440,7 @@ struct LockScreenPreviewCardView: View {
     let colorScheme: ColorScheme
     var accentHex: String = "6366F1"
 
-    /// Показываем виджет так, как он выглядит на экране блокировки: обои, часы, плита, рамка и хачкар
+    /// Показываем виджет так, как он выглядит на экране блокировки: обои, часы и цитата с вертикальной чертой
     var body: some View {
         LockWidgetPreviewScene(
             text: verse.text(for: language),
