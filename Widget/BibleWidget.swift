@@ -705,7 +705,7 @@ struct Provider: AppIntentTimelineProvider {
 }
 
 // MARK: - Вспомогательные функции локализации и тем оформления для виджета
-private func getSharedLanguage() -> AppLanguage {
+func getSharedLanguage() -> AppLanguage {
     let defaults = AppGroupConstants.sharedDefaults
     
     if let widgetLangRaw = defaults.string(forKey: "widget_language"),
@@ -1332,6 +1332,10 @@ struct BibleWidget: Widget {
 struct ArmenianBibleWidgetBundle: WidgetBundle {
     var body: some Widget {
         BibleWidget()
+        PosterAraratWidget()
+        PosterKhachkarWidget()
+        PosterParchmentWidget()
+        PosterNightWidget()
         PrayerCandleWidget()
         CandleLiveActivity()
     }
