@@ -131,6 +131,7 @@ targets:
       - path: Sources/en.lproj
       - path: Sources/ru.lproj
       - path: Sources/hy.lproj
+      - path: Sources/Fonts
     info:
       path: Widget/Info.plist
       properties:
@@ -141,6 +142,10 @@ targets:
         CFBundleShortVersionString: "4.1"
         CFBundlePackageType: XPC!
         CFBundleExecutable: BibleWidget
+        UIAppFonts:
+          - NotoSerifArmenian-Regular.ttf
+          - NotoSerifArmenian-Medium.ttf
+          - NotoSerifArmenian-SemiBold.ttf
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     entitlements:

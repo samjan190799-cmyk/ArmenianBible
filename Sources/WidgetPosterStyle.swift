@@ -412,7 +412,7 @@ struct PosterWidgetLayout<Controls: View>: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 HStack(alignment: .bottom, spacing: 8) {
                     Text(reference)
-                        .font(.system(size: referenceSize, weight: .semibold, design: .serif))
+                        .font(QuoteFont.serif(size: referenceSize, weight: .semibold))
                         .italic()
                         .foregroundColor(art.accentColor)
                         .lineLimit(1)

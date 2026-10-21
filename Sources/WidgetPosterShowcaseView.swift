@@ -79,12 +79,9 @@ private struct LockWidgetMock: View {
             text: verse.text(for: language),
             reference: verse.reference(for: language),
             design: .serif,
-            systemPlate: false,
             forceMono: true
         )
         .frame(width: 160, height: 72)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.16)))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .background(
             LinearGradient(colors: [Color(red: 0.09, green: 0.10, blue: 0.24), Color(red: 0.55, green: 0.25, blue: 0.35)], startPoint: .top, endPoint: .bottom)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))

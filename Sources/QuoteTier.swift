@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WidgetKit
 
 // MARK: - Длина цитаты по месту показа
@@ -137,6 +138,41 @@ func sharedWidgetLanguage() -> AppLanguage {
     return .armenian
 }
 
+// MARK: - Шрифт цитат
+/// Системный serif (New York) для латиницы, кириллицы и цифр и Noto Serif Armenian для армянских букв.
+/// Без второго армянский текст в виджете шёл системным рубленым шрифтом, а подпись рядом — с засечками, и виджет выглядел разнородно.
+/// Если шрифта нет в пакете, остаётся системная подмена.
+enum QuoteFont {
+    static func serif(size: CGFloat, weight: Font.Weight) -> Font {
+        let ui = uiWeight(weight)
+        let system = UIFont.systemFont(ofSize: size, weight: ui)
+        let serif = system.fontDescriptor.withDesign(.serif) ?? system.fontDescriptor
+        let armenian = UIFontDescriptor(name: armenianName(for: ui), size: size)
+        let descriptor = serif.addingAttributes([.cascadeList: [armenian]])
+        return Font(UIFont(descriptor: descriptor, size: size) as CTFont)
+    }
+
+    private static func uiWeight(_ weight: Font.Weight) -> UIFont.Weight {
+        switch weight {
+        case .ultraLight: return .ultraLight
+        case .thin: return .thin
+        case .light: return .light
+        case .medium: return .medium
+        case .semibold: return .semibold
+        case .bold: return .bold
+        case .heavy: return .heavy
+        case .black: return .black
+        default: return .regular
+        }
+    }
+
+    private static func armenianName(for weight: UIFont.Weight) -> String {
+        if weight.rawValue >= UIFont.Weight.semibold.rawValue { return "NotoSerifArmenian-SemiBold" }
+        if weight.rawValue >= UIFont.Weight.medium.rawValue { return "NotoSerifArmenian-Medium" }
+        return "NotoSerifArmenian-Regular"
+    }
+}
+
 // MARK: - Текст, который занимает всё отведённое место
 /// Берёт самый крупный размер, при котором цитата помещается целиком: короткая фраза выходит огромной, длинная — помельче.
 /// Место задаёт вызывающий (frame с maxHeight: .infinity), поэтому на любом телефоне буквы максимально крупные.
@@ -157,8 +193,10 @@ struct FittedQuoteText: View {
 
     private func label(_ step: Int) -> some View {
         let k = scale(step)
+        let size = (maxSize * k).rounded()
+        let font: Font = design == .serif ? QuoteFont.serif(size: size, weight: weight) : .system(size: size, weight: weight, design: design)
         return Text(text)
-            .font(.system(size: (maxSize * k).rounded(), weight: weight, design: design))
+            .font(font)
             .lineSpacing(lineSpacing * k)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
