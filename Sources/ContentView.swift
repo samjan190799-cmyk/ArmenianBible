@@ -279,12 +279,35 @@ struct HomeView: View {
                             .opacity(animateVerse ? 1 : 0)
                             .offset(y: animateVerse ? 0 : 15)
 
-                        Text(manager.currentVerse.reference.uppercased())
-                            .font(PaperFont.font(size: 13, weight: .medium))
-                            .tracking(1.6)
-                            .foregroundColor(accentColor)
-                            .opacity(animateVerse ? 1 : 0)
-                            .offset(y: animateVerse ? 0 : 10)
+                        // Подпись стиха: если это место из Библии (или строка «в духе Нарекаци»), по нажатию открывается глава на этом стихе
+                        Group {
+                            if ScriptureLocator.canOpen(manager.currentVerse) {
+                                Button {
+                                    triggerHaptic(.light)
+                                    ScriptureLocator.open(manager.currentVerse)
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Text(manager.currentVerse.reference.uppercased())
+                                            .font(PaperFont.font(size: 13, weight: .medium))
+                                            .tracking(1.6)
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 10, weight: .semibold))
+                                    }
+                                    .foregroundColor(accentColor)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
+                            } else {
+                                Text(manager.currentVerse.reference.uppercased())
+                                    .font(PaperFont.font(size: 13, weight: .medium))
+                                    .tracking(1.6)
+                                    .foregroundColor(accentColor)
+                            }
+                        }
+                        .opacity(animateVerse ? 1 : 0)
+                        .offset(y: animateVerse ? 0 : 10)
 
                         Rectangle()
                             .fill(Paper.hairline)

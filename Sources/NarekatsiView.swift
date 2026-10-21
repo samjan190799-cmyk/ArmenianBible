@@ -12,6 +12,9 @@ struct NarekatsiView: View {
     @State private var toastMessage: String? = nil
     @State private var searchText: String = ""
     @State private var isShowingPaywall: Bool = false
+    /// Молитва, к которой надо прокрутить список (переход из подписи цитаты), и она же — на время подсвечена
+    @State private var scrollTarget: Int? = nil
+    @State private var highlightedPrayerId: Int? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -39,7 +42,7 @@ struct NarekatsiView: View {
         Paper.ink
     }
     
-    /// Во вкладке «Молитвы» только пять молитв с собственным текстом: записи книги слушают во второй вкладке
+    /// Во вкладке «Молитвы» только молитвы с собственным текстом (пятнадцать): записи книги слушают во второй вкладке
     private var filteredPrayers: [NarekPrayer] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let own = NarekatsiDatabase.shared.inspiredPrayers
@@ -135,6 +138,7 @@ struct NarekatsiView: View {
             // MARK: - Содержимое выбранной вкладки
             if subTab == 0 {
                 // ВКЛАДКА 1: ТЕКСТОВЫЙ ВАРИАНТ
+                ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 16) {
                         
@@ -168,7 +172,7 @@ struct NarekatsiView: View {
                         
                         inspiredNotice
 
-                        // Пять молитв «в духе Нарекаци»
+                        // Молитвы «в духе Нарекаци»
                         LazyVStack(spacing: 14) {
                             ForEach(filteredPrayers) { prayer in
                                 let isLocked = !subscriptionManager.canPlayNarekAudio(prayerId: prayer.id)
@@ -201,6 +205,13 @@ struct NarekatsiView: View {
                                         sharePrayer(prayer)
                                     }
                                 )
+                                .id(prayer.id)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .strokeBorder(accentColor, lineWidth: 2)
+                                        .opacity(highlightedPrayerId == prayer.id ? 0.85 : 0)
+                                        .allowsHitTesting(false)
+                                )
                             }
                         }
                         .padding(.horizontal, 16)
@@ -208,6 +219,9 @@ struct NarekatsiView: View {
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
+                .onAppear { scrollToTarget(proxy) }
+                .onChange(of: scrollTarget) { _ in scrollToTarget(proxy) }
+                }
             } else {
                 // ВКЛАДКА 2: ПОЛНОЦЕННЫЙ АУДИОПЛЕЕР С ПАМЯТЬЮ
                 ScrollView {
@@ -368,6 +382,14 @@ struct NarekatsiView: View {
         .sheet(isPresented: $isShowingPaywall) {
             PaywallView()
         }
+        .onReceive(manager.$narekFocusPrayerId) { id in
+            // Пришли из подписи цитаты «в духе Нарекаци»: показываем вкладку с текстом и прокручиваем к нужной молитве
+            guard let id else { return }
+            manager.narekFocusPrayerId = nil
+            searchText = ""
+            subTab = 0
+            scrollTarget = id
+        }
         .onReceive(audioPlayer.$paywallRequested) { requested in
             if requested {
                 audioPlayer.paywallRequested = false
@@ -385,6 +407,21 @@ struct NarekatsiView: View {
     }
     
     // MARK: - Хелперы
+
+    /// Прокручивает список молитв к выбранной и на пару секунд обводит её
+    private func scrollToTarget(_ proxy: ScrollViewProxy) {
+        guard let target = scrollTarget else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.easeInOut(duration: 0.4)) {
+                proxy.scrollTo(target, anchor: .top)
+                highlightedPrayerId = target
+            }
+            scrollTarget = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                withAnimation(.easeOut(duration: 0.4)) { highlightedPrayerId = nil }
+            }
+        }
+    }
     
     private func pinPrayerToWidget(_ prayer: NarekPrayer) {
         triggerHaptic(.soft)
