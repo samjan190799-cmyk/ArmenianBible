@@ -106,6 +106,16 @@ class BibleManager: ObservableObject {
         self.selectedReaderSection = 0
         self.activeTabSelection = 3
     }
+
+    /// Открывает главу Библии, на стихе, если он задан. Главу и стих записываем раньше номера книги: читалка забирает
+    /// все три поля в тот момент, когда приходит deepLinkBookId. Если номер книги записать первым, она возьмёт главу
+    /// и стих прошлой ссылки.
+    func openBibleReader(bookId: Int, chapter: Int, verse: Int?) {
+        self.deepLinkChapter = chapter
+        self.deepLinkVerse = verse
+        self.deepLinkBookId = bookId
+        openBibleReader()
+    }
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
     let appGroupSuiteName = AppGroupConstants.activeSuiteName

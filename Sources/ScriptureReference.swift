@@ -93,14 +93,9 @@ enum ScriptureReferenceParser {
         }
     }
 
-    /// Открывает место в читалке. Главу и стих записываем раньше номера книги: читалка
-    /// забирает все три поля в тот момент, когда приходит deepLinkBookId.
+    /// Открывает место в читалке
     static func open(_ reference: ScriptureReference) {
         guard let bookId = reference.bookId else { return }
-        let manager = BibleManager.shared
-        manager.deepLinkChapter = reference.chapter
-        manager.deepLinkVerse = reference.verse
-        manager.deepLinkBookId = bookId
-        manager.openBibleReader()
+        BibleManager.shared.openBibleReader(bookId: bookId, chapter: reference.chapter, verse: reference.verse)
     }
 }

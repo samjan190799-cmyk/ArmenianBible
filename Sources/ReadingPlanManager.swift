@@ -184,11 +184,8 @@ final class ReadingPlanManager: ObservableObject {
     
     // MARK: - Быстрый переход к чтению в Библии
     func openReadingInBible(target: PlanReadingTarget) {
-        let manager = BibleManager.shared
-        manager.deepLinkBookId = target.bookId
-        manager.deepLinkChapter = target.chapter
-        manager.openBibleReader()
-        
+        BibleManager.shared.openBibleReader(bookId: target.bookId, chapter: target.chapter, verse: nil)
+
         Haptics.impact(.soft)
     }
 }

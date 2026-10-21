@@ -456,20 +456,12 @@ struct FavoritesView: View {
     private func openInBible(_ item: FavoriteItem) {
         guard let bookId = item.bookId, let chapter = item.chapter else { return }
         triggerHaptic(.soft)
-        manager.deepLinkBookId = bookId
-        manager.deepLinkChapter = chapter
-        if let verse = item.verseNumber {
-            manager.deepLinkVerse = verse
-        }
-        manager.openBibleReader()
+        manager.openBibleReader(bookId: bookId, chapter: chapter, verse: item.verseNumber)
     }
-    
+
     private func openAnnotationInBible(_ ann: VerseAnnotation) {
         triggerHaptic(.soft)
-        manager.deepLinkBookId = ann.bookId
-        manager.deepLinkChapter = ann.chapter
-        manager.deepLinkVerse = ann.verseNumber
-        manager.openBibleReader()
+        manager.openBibleReader(bookId: ann.bookId, chapter: ann.chapter, verse: ann.verseNumber)
     }
     
     private func pinFavoriteToWidget(_ item: FavoriteItem) {

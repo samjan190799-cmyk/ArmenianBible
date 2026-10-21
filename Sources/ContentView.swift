@@ -736,14 +736,8 @@ struct HomeView: View {
                     if let bIdStr = bookIdStr, let bId = Int(bIdStr),
                        let cStr = chapterStr, let chapter = Int(cStr) {
                         triggerHaptic(.soft)
-                        
-                        manager.deepLinkBookId = bId
-                        manager.deepLinkChapter = chapter
-                        if let vStr = verseStr, let verse = Int(vStr) {
-                            manager.deepLinkVerse = verse
-                        }
-                        
-                        manager.openBibleReader()
+
+                        manager.openBibleReader(bookId: bId, chapter: chapter, verse: verseStr.flatMap { Int($0) })
                     }
                 } else if url.host == "tab" {
                     if let components = URLComponents(url: url, resolvingAgainstBaseURL: true),

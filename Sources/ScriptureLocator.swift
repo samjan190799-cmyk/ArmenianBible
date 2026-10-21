@@ -98,11 +98,7 @@ enum ScriptureLocator {
             return true
         }
         guard let location = location(for: verse) else { return false }
-        // Главу и стих записываем раньше номера книги: читалка забирает все три поля, когда приходит deepLinkBookId
-        manager.deepLinkChapter = location.chapter
-        manager.deepLinkVerse = location.verse
-        manager.deepLinkBookId = location.bookId
-        manager.openBibleReader()
+        manager.openBibleReader(bookId: location.bookId, chapter: location.chapter, verse: location.verse)
         return true
     }
 }
