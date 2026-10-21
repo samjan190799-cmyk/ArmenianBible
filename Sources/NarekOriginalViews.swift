@@ -49,6 +49,7 @@ struct NarekOriginalRow: View {
 struct NarekChapterReaderView: View {
     @ObservedObject private var manager = BibleManager.shared
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     @State private var currentId: Int
     @State private var shareText: String? = nil
@@ -157,8 +158,37 @@ struct NarekChapterReaderView: View {
 
             Spacer()
 
-            // Для равновесия с кнопкой слева
-            Color.clear.frame(width: 40, height: 40)
+            // Современный армянский: ссылки на переводы на Wikisource (текст в приложение не копируется)
+            Menu {
+                Section(manager.appLanguage.pick(
+                    hy: "Աշխարհաբար (hy.wikisource.org)",
+                    ru: "На современном армянском (hy.wikisource.org)",
+                    en: "In modern Armenian (hy.wikisource.org)"
+                )) {
+                    ForEach(NarekModernArmenian.translations) { translation in
+                        if let url = NarekModernArmenian.url(for: translation, chapter: currentId) {
+                            Button {
+                                Haptics.impact(.light)
+                                openURL(url)
+                            } label: {
+                                Label(translation.translator, systemImage: "arrow.up.right.square")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Image(systemName: "character.book.closed")
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(Paper.inkSecondary)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(Paper.sheet))
+                    .overlay(Circle().strokeBorder(Paper.hairline, lineWidth: 1))
+            }
+            .accessibilityLabel(Text(manager.appLanguage.pick(
+                hy: "Աշխարհաբար թարգմանություն",
+                ru: "Перевод на современный армянский",
+                en: "Modern Armenian translation"
+            )))
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)

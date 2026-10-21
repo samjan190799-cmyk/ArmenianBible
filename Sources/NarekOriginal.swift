@@ -65,3 +65,35 @@ final class NarekOriginal {
         chapters.first { $0.id == id }
     }
 }
+
+// MARK: - Современный армянский (աշխարհաբար): ссылки на переводы на hy.wikisource.org
+/// Два перевода на восточноармянский лежат на hy.wikisource.org рядом с оригиналом. Это работы XX века (Мкртич Херанян, 1899–1970;
+/// Вазген Геворкян), страницы Wikisource не указывают лицензию, а права на них не проверены, поэтому текст в приложение не копируется:
+/// в чтении главы есть только ссылка на то место страницы, где он размещён.
+enum NarekModernArmenian {
+    struct Translation: Identifiable {
+        let id: String
+        let translator: String
+        let pageTitle: String
+        /// Последняя глава, которая есть в переводе: у Геворкяна нет 95-й
+        let lastChapter: Int
+    }
+
+    static let translations: [Translation] = [
+        Translation(id: "kheranyan", translator: "Մկրտիչ Խերանյան", pageTitle: "Մատյան ողբերգության (Մկրտիչ Խերանյան)", lastChapter: 95),
+        Translation(id: "gevorgyan", translator: "Վազգեն Գևորգյան", pageTitle: "Մատյան ողբերգության (Վազգեն Գևորգյան)", lastChapter: 94)
+    ]
+
+    /// Ссылка на главу в переводе: страница одна на всю книгу, у каждой главы свой заголовок («Բան Ա»)
+    static func url(for translation: Translation, chapter: Int) -> URL? {
+        guard chapter >= 1, chapter <= translation.lastChapter else { return nil }
+        // В заголовке 87-й главы на Wikisource везде та же опечатка, что в оригинале: «Բան ԶԷ» вместо «Բան ՁԷ»
+        let heading = chapter == 87 ? "Բան ԶԷ" : NarekOriginal.shared.chapter(id: chapter)?.ban
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "hy.wikisource.org"
+        components.path = "/wiki/" + translation.pageTitle.replacingOccurrences(of: " ", with: "_")
+        components.fragment = heading?.replacingOccurrences(of: " ", with: "_")
+        return components.url
+    }
+}

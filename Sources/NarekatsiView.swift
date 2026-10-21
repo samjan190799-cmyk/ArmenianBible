@@ -69,9 +69,9 @@ struct NarekatsiView: View {
 
     private var originalNotice: some View {
         Text(manager.appLanguage.pick(
-            hy: "Սա «Մատյան ողբերգության» բնագիրն է գրաբարով (hy.wikisource.org): Թարգմանություններն ընդգրկված չեն՝ հեղինակային իրավունքի պատճառով: Ամբողջ գիրքը լսեք ձայնագրության ներդիրում:",
-            ru: "Это оригинал «Книги скорбных песнопений» на древнеармянском (грабар), источник — hy.wikisource.org. Переводов здесь нет: русские и английские переводы защищены авторским правом. Всю книгу можно послушать во вкладке с аудиозаписью.",
-            en: "This is the original text of the Book of Lamentations in Classical Armenian (Grabar), from hy.wikisource.org. Translations are not included: the Russian and English translations are under copyright. Listen to the whole book in the audio tab."
+            hy: "Սա «Մատյան ողբերգության» բնագիրն է գրաբարով (hy.wikisource.org): Աշխարհաբար թարգմանությունը բացվում է գլխի ընթերցման մեջ՝ վերևի աջ պատկերակով: Ռուսերեն և անգլերեն թարգմանությունները հեղինակային իրավունքով պաշտպանված են և ընդգրկված չեն: Ամբողջ գիրքը լսեք ձայնագրության ներդիրում:",
+            ru: "Это оригинал «Книги скорбных песнопений» на древнеармянском (грабар), источник — hy.wikisource.org. Русских и английских переводов здесь нет: они защищены авторским правом. Современный армянский перевод открывается по ссылке в чтении главы (значок вверху справа). Всю книгу можно послушать во вкладке с аудиозаписью.",
+            en: "This is the original text of the Book of Lamentations in Classical Armenian (Grabar), from hy.wikisource.org. A modern Armenian translation opens from a link in the chapter view (the icon at the top right). Russian and English translations are not included: they are under copyright. Listen to the whole book in the audio tab."
         ))
         .font(PaperFont.font(size: 13))
         .foregroundColor(Paper.inkSecondary)
