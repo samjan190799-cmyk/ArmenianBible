@@ -120,6 +120,7 @@ targets:
       - path: Sources/BibleVerseDatabase+Faith2.swift
       - path: Sources/BibleVerseDatabase+Filter.swift
       - path: Sources/BibleVerseDatabase+Prayers.swift
+      - path: Sources/BibleVerseDatabase+Library.swift
       - path: Sources/WidgetPosterStyle.swift
       - path: Sources/QuoteTier.swift
       - path: Sources/PrayerCandleModels.swift

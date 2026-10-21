@@ -26,7 +26,7 @@ enum QuoteTier {
         case .lockScreen: return 10...40
         case .small: return 14...40
         case .medium: return 56...90
-        case .large: return 101...300
+        case .large: return 101...340
         }
     }
 
@@ -36,7 +36,7 @@ enum QuoteTier {
         case .lockScreen: return 10...46
         case .small: return 12...55
         case .medium: return 45...110
-        case .large: return 80...340
+        case .large: return 80...430
         }
     }
 
@@ -118,30 +118,39 @@ func sharedWidgetLanguage() -> AppLanguage {
 /// Место задаёт вызывающий (frame с maxHeight: .infinity), поэтому на любом телефоне буквы максимально крупные.
 struct FittedQuoteText: View {
     let text: String
+    /// Размер для самой короткой фразы
     let maxSize: CGFloat
+    /// Во сколько раз можно уменьшить размер для самой длинной фразы (maxSize * minScale — нижний предел)
+    var minScale: CGFloat = 0.5
     var weight: Font.Weight = .bold
     var design: Font.Design = .default
     var lineSpacing: CGFloat = 2
 
-    private func label(_ scale: CGFloat) -> some View {
-        Text(text)
-            .font(.system(size: (maxSize * scale).rounded(), weight: weight, design: design))
-            .lineSpacing(lineSpacing * scale)
+    /// Девять равных ступеней от крупного к мелкому
+    private func scale(_ step: Int) -> CGFloat {
+        1 - (1 - minScale) * CGFloat(step) / 8
+    }
+
+    private func label(_ step: Int) -> some View {
+        let k = scale(step)
+        return Text(text)
+            .font(.system(size: (maxSize * k).rounded(), weight: weight, design: design))
+            .lineSpacing(lineSpacing * k)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     var body: some View {
         ViewThatFits(in: .vertical) {
-            label(1.0)
-            label(0.94)
-            label(0.88)
-            label(0.82)
-            label(0.76)
-            label(0.70)
-            label(0.64)
-            label(0.58)
-            label(0.52).minimumScaleFactor(0.8)
+            label(0)
+            label(1)
+            label(2)
+            label(3)
+            label(4)
+            label(5)
+            label(6)
+            label(7)
+            label(8).minimumScaleFactor(0.85)
         }
     }
 }

@@ -9,7 +9,8 @@ extension BibleVerse {
         return shortFaith2.filter { !$0.isPrayer && !known.contains($0.refEn) }
     }()
 
-    static let database: [BibleVerse] = baseDatabase + faithScriptures
+    /// Плюс цельные отрывки из bible.db (BibleVerseDatabase+Library.swift): они дают среднему и большому виджету разнообразие по длине
+    static let database: [BibleVerse] = baseDatabase + faithScriptures + libraryQuotes
 
     // MARK: - Объединённая категория «Вера и Мужество» (shortFaith + shortFaith2)
     static var allShortFaith: [BibleVerse] { shortFaith + shortFaith2 }

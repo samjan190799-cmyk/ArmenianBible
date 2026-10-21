@@ -825,6 +825,7 @@ struct BibleWidgetEntryView: View {
                     FittedQuoteText(
                         text: entry.verse.text(for: getLanguage()),
                         maxSize: 24,
+                        minScale: 0.6,
                         weight: .semibold,
                         design: lockScreenFontDesign,
                         lineSpacing: -0.5
@@ -888,6 +889,7 @@ struct BibleWidgetEntryView: View {
                     FittedQuoteText(
                         text: entry.verse.text(for: getLanguage()),
                         maxSize: 30,
+                        minScale: 0.55,
                         weight: .bold,
                         design: fontDesign,
                         lineSpacing: 2.0
@@ -938,6 +940,7 @@ struct BibleWidgetEntryView: View {
                     FittedQuoteText(
                         text: entry.verse.text(for: getLanguage()),
                         maxSize: 28,
+                        minScale: 0.55,
                         weight: .bold,
                         design: fontDesign,
                         lineSpacing: 3.5
@@ -1024,6 +1027,7 @@ struct BibleWidgetEntryView: View {
                     FittedQuoteText(
                         text: entry.verse.text(for: getLanguage()),
                         maxSize: 34,
+                        minScale: 0.42,
                         weight: .bold,
                         design: fontDesign,
                         lineSpacing: 5.5

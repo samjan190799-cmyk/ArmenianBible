@@ -404,7 +404,7 @@ struct PosterWidgetLayout<Controls: View>: View {
         ZStack {
             PosterBackground(art: art)
             VStack(alignment: .leading, spacing: 0) {
-                FittedQuoteText(text: text, maxSize: maxFontSize, weight: .bold, design: .serif, lineSpacing: 2)
+                FittedQuoteText(text: text, maxSize: maxFontSize, minScale: size == .large ? 0.42 : 0.55, weight: .bold, design: .serif, lineSpacing: 2)
                     .foregroundColor(art.mainColor)
                     .shadow(color: Color.black.opacity(art.usesTextShadow ? 0.45 : 0), radius: 4, x: 0, y: 2)
                     .padding(.trailing, trailingInset)
