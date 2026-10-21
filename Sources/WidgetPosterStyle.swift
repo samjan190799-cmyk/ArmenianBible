@@ -113,8 +113,8 @@ private struct PosterAraratArt: View {
     /// Две вершины: Масис (большая, слева) и Сис (малая); y в долях высоты
     private var peaks: [(x: CGFloat, top: CGFloat, half: CGFloat, q: CGFloat)] {
         wide
-            ? [(0.20, 0.50, 0.30, 0.80), (0.62, 0.70, 0.20, 0.85)]
-            : [(0.28, 0.60, 0.52, 0.80), (0.78, 0.74, 0.34, 0.85)]
+            ? [(0.20, 0.66, 0.30, 0.80), (0.62, 0.78, 0.20, 0.85)]
+            : [(0.28, 0.68, 0.52, 0.80), (0.78, 0.80, 0.34, 0.85)]
     }
 
     private func ridgeY(_ x: CGFloat) -> CGFloat {
@@ -164,7 +164,7 @@ private struct PosterAraratArt: View {
             ))
             // Снежная шапка Масиса: граница по высоте, неровная
             Path { path in
-                let snowY = height * (wide ? 0.62 : 0.70)
+                let snowY = height * (wide ? 0.74 : 0.77)
                 var xs: [CGFloat] = []
                 for i in 0...steps {
                     let x = width * CGFloat(i) / CGFloat(steps)
@@ -208,10 +208,10 @@ private struct PosterKhachkarArt: View {
             Image("KhachkarRelief")
                 .resizable()
                 .scaledToFit()
-                .frame(height: height * (tall ? 0.62 : (wide ? 1.12 : 0.95)))
-                .opacity(0.62)
+                .frame(height: height * (tall ? 0.55 : (wide ? 1.12 : 0.95)))
+                .opacity(tall ? 0.45 : 0.62)
                 .shadow(color: PosterPalette.rgb(210, 150, 60, 0.45), radius: 12)
-                .offset(x: tall ? 0 : (wide ? width * 0.03 : width * 0.20), y: tall ? height * 0.10 : (wide ? height * 0.08 : height * 0.22))
+                .offset(x: tall ? 0 : (wide ? width * 0.03 : width * 0.20), y: tall ? height * 0.16 : (wide ? height * 0.08 : height * 0.22))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: tall ? .bottom : .bottomTrailing)
         }
     }
@@ -270,8 +270,9 @@ private struct PosterNightArt: View {
     private var wide: Bool { width / height > 1.5 }
 
     var body: some View {
-        let starX = width * (height < 200 ? 0.84 : 0.80)
-        let starY = height * (height < 200 ? 0.17 : 0.13)
+        let large = height > 300
+        let starX = width * (large ? 0.78 : (wide ? 0.90 : 0.84))
+        let starY = height * (large ? 0.72 : 0.17)
         let radius = min(width, height) * 0.24
         ZStack {
             LinearGradient(
