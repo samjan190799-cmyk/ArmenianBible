@@ -4,6 +4,8 @@ import SwiftUI
 // Запуск: -openTab widgetposters -poster_art ararat|khachkar|parchment|night [-poster_extreme short|long]
 // С -poster_extreme берутся самая короткая или самая длинная цитата каждого размера: так видно, помещается ли худший случай.
 // Справа от малого постера — два макета виджета экрана блокировки (самая короткая и самая длинная фраза).
+// С -poster_ref long под всеми тремя постерами подставляется самая длинная подпись стиха на языке показа:
+// так видно, что подпись не обрезается многоточием (на виджете нет ни короны, ни PRO, место занимают только кнопки).
 struct WidgetPosterShowcaseView: View {
     @ObservedObject private var manager = BibleManager.shared
 
@@ -13,6 +15,18 @@ struct WidgetPosterShowcaseView: View {
 
     private var extreme: String {
         UserDefaults.standard.string(forKey: "poster_extreme") ?? ""
+    }
+
+    private var longReference: Bool {
+        UserDefaults.standard.string(forKey: "poster_ref") == "long"
+    }
+
+    /// Подпись под постером: обычная или, с -poster_ref long, самая длинная среди всех цитат
+    private func reference(of verse: BibleVerse, language: AppLanguage) -> String {
+        guard longReference else { return verse.reference(for: language) }
+        return BibleVerse.database
+            .map { $0.reference(for: language) }
+            .max { $0.count < $1.count } ?? verse.reference(for: language)
     }
 
     private func verse(_ refEn: String, in pool: [BibleVerse]) -> BibleVerse {
@@ -37,7 +51,7 @@ struct WidgetPosterShowcaseView: View {
             Color(red: 0.09, green: 0.09, blue: 0.11).ignoresSafeArea()
             VStack(spacing: 14) {
                 HStack(alignment: .top, spacing: 14) {
-                    PosterWidgetLayout(art: art, size: .small, text: small.text(for: language), reference: small.reference(for: language)) {
+                    PosterWidgetLayout(art: art, size: .small, text: small.text(for: language), reference: reference(of: small, language: language)) {
                         PosterGlassIcon(symbol: "arrow.clockwise", tint: art.mainColor, size: 30)
                     }
                     .frame(width: 170, height: 170)
@@ -48,12 +62,12 @@ struct WidgetPosterShowcaseView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                PosterWidgetLayout(art: art, size: .medium, text: medium.text(for: language), reference: medium.reference(for: language)) {
+                PosterWidgetLayout(art: art, size: .medium, text: medium.text(for: language), reference: reference(of: medium, language: language)) {
                     PosterGlassIcon(symbol: "arrow.clockwise", tint: art.mainColor, size: 30)
                 }
                 .frame(width: 364, height: 170)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                PosterWidgetLayout(art: art, size: .large, text: large.text(for: language), reference: large.reference(for: language)) {
+                PosterWidgetLayout(art: art, size: .large, text: large.text(for: language), reference: reference(of: large, language: language)) {
                     HStack(spacing: 8) {
                         PosterGlassIcon(symbol: "hands.sparkles.fill", tint: art.mainColor, size: 34)
                         PosterGlassIcon(symbol: "heart", tint: art.mainColor, size: 34)

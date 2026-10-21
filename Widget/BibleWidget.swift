@@ -396,7 +396,7 @@ struct Provider: AppIntentTimelineProvider {
         } else {
             chosen = appStyle
         }
-        // Без Premium постер «Хачкар»/«Вифлеем» остаётся выбранным, но на нём рисуется пометка PRO
+        // Постер «Хачкар»/«Вифлеем» рисуется как выбран, без пометок: короны и PRO на виджете нет
         return chosen
     }
     
@@ -791,8 +791,7 @@ struct BibleWidgetEntryView: View {
             art: art,
             size: size,
             text: entry.verse.text(for: getLanguage()),
-            reference: entry.verse.reference(for: getLanguage()),
-            locked: activeStyle.isPremiumRequired && !AppGroupConstants.sharedBool(forKey: "is_premium_active")
+            reference: entry.verse.reference(for: getLanguage())
         ) {
             HStack(spacing: 8) {
                 if size == .large {
@@ -820,7 +819,7 @@ struct BibleWidgetEntryView: View {
             } else {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: рамка, хачкар и подпись с линейкой (LockScreenQuoteViews.swift);
+                // Прямоугольный виджет на экране блокировки: вертикальная черта и подпись с линейкой (LockScreenQuoteViews.swift);
                 // цитата — самая крупная, при которой помещается
                 LockQuoteCard(
                     text: entry.verse.text(for: getLanguage()),

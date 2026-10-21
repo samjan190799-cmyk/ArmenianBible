@@ -202,6 +202,15 @@ jobs:
                 xcrun simctl terminate "$UDID" com.samvel.armenianbible
                 sleep 2
               done
+              # Самая длинная подпись стиха под тремя постерами: видно, что она не обрезается многоточием
+              for ART in khachkar night; do
+                echo "📸 Постер $ART, самая длинная подпись ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$ART" -poster_ref long -luys_ads_enabled NO -luys_debug_language "$STORE_LANG"
+                sleep 7
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/poster_${ART}_longref.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              done
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Кадры постеров ($STORE_LANG) сняты"
               return 0

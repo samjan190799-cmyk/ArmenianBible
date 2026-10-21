@@ -35,7 +35,7 @@ struct PosterProvider: AppIntentTimelineProvider {
         return converted
     }
 
-    /// Фон у виджета всегда свой; пометку PRO без Premium рисует сам виджет
+    /// Фон у виджета всегда свой
     private func restyled(_ entry: SimpleEntry) -> SimpleEntry {
         SimpleEntry(
             date: entry.date,
