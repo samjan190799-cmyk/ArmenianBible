@@ -90,7 +90,7 @@ struct NarekChapterReaderView: View {
                         titleBlock(chapter)
 
                         ForEach(Array(chapter.stanzas.enumerated()), id: \.offset) { _, stanza in
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: 9) {
                                 if !stanza.label.isEmpty {
                                     Text(stanza.label)
                                         .font(PaperFont.font(size: 13, weight: .semibold))
@@ -101,7 +101,7 @@ struct NarekChapterReaderView: View {
                                     Text(line)
                                         .font(PaperFont.font(size: bodySize))
                                         .foregroundColor(Paper.ink)
-                                        .lineSpacing(4)
+                                        .lineSpacing(3)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
