@@ -3,6 +3,9 @@ import UIKit
 
 // MARK: - Варианты иконок приложения
 enum AppIconOption: String, CaseIterable, Identifiable {
+    /// «Свет» — иконка по умолчанию (первичная, `AppIcon.appiconset`)
+    case light = "light"
+    /// Прежняя иконка по умолчанию — каменный хачкар, теперь обычная альтернативная
     case classic = "classic"
     case pitchBlack = "pitchBlack"
     case snowWhite = "snowWhite"
@@ -12,15 +15,16 @@ enum AppIconOption: String, CaseIterable, Identifiable {
     case sacredEmerald = "sacredEmerald"
     case manuscript = "manuscript"
     case codex = "codex"
-    case light = "light"
 
     var id: String { rawValue }
-    
+
     /// Имя иконки для передачи в UIApplication.shared.setAlternateIconName (nil = первичная)
     var iconName: String? {
         switch self {
-        case .classic:
+        case .light:
             return nil
+        case .classic:
+            return "AppIcon-Classic"
         case .pitchBlack:
             return "AppIcon-PitchBlack"
         case .snowWhite:
@@ -37,8 +41,6 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             return "AppIcon-Manuscript"
         case .codex:
             return "AppIcon-Codex"
-        case .light:
-            return "AppIcon-Light"
         }
     }
 
@@ -71,9 +73,9 @@ enum AppIconOption: String, CaseIterable, Identifiable {
     /// Является ли эксклюзивной Premium функцией
     var isPremium: Bool {
         switch self {
-        case .classic, .pitchBlack, .snowWhite:
+        case .light, .classic, .pitchBlack, .snowWhite:
             return false
-        case .goldenGlow, .royalIndigo, .royalPomegranate, .sacredEmerald, .manuscript, .codex, .light:
+        case .goldenGlow, .royalIndigo, .royalPomegranate, .sacredEmerald, .manuscript, .codex:
             return true
         }
     }
@@ -214,28 +216,21 @@ enum AppIconOption: String, CaseIterable, Identifiable {
 final class AppIconManager: ObservableObject {
     static let shared = AppIconManager()
     
-    private let storageKey = "selected_app_icon_option_v1"
-    
-    @Published private(set) var currentOption: AppIconOption = .classic
+    @Published private(set) var currentOption: AppIconOption = .light
     @Published var errorMessage: String? = nil
-    
+
     private init() {
         syncWithSystem()
     }
-    
-    /// Синхронизация текущей выбранной иконки с системой и UserDefaults
+
+    /// Текущая иконка — та, что показывает система. Сохранённый выбор не читаем: после обновления первичной иконкой
+    /// стал «Свет», а у тех, кто раньше ничего не менял, в UserDefaults лежало бы «classic» (прежний хачкар).
     func syncWithSystem() {
-        if let savedRaw = UserDefaults.standard.string(forKey: storageKey),
-           let savedOption = AppIconOption(rawValue: savedRaw) {
-            self.currentOption = savedOption
+        let systemIconName = UIApplication.shared.alternateIconName
+        if let matched = AppIconOption.allCases.first(where: { $0.iconName == systemIconName }) {
+            self.currentOption = matched
         } else {
-            // Проверяем системную установку
-            let systemIconName = UIApplication.shared.alternateIconName
-            if let matched = AppIconOption.allCases.first(where: { $0.iconName == systemIconName }) {
-                self.currentOption = matched
-            } else {
-                self.currentOption = .classic
-            }
+            self.currentOption = .light
         }
     }
     
@@ -278,7 +273,6 @@ final class AppIconManager: ObservableObject {
                     Haptics.notify(.error)
                 } else {
                     self?.currentOption = option
-                    UserDefaults.standard.set(option.rawValue, forKey: self?.storageKey ?? "selected_app_icon_option_v1")
                     Haptics.notify(.success)
                 }
             }
