@@ -249,7 +249,7 @@ extension SettingsView {
                             
                             Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                 .font(.system(size: 16, weight: .bold, design: selectedWidgetStyle.fontDesign))
-                                .lineLimit(3)
+                                .lineLimit(4)
                                 .minimumScaleFactor(0.8)
                                 .lineSpacing(3)
                                 .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
@@ -303,7 +303,7 @@ extension SettingsView {
                             
                             Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                 .font(.system(size: 16.5, weight: .bold, design: selectedWidgetStyle.fontDesign))
-                                .lineLimit(4)
+                                .lineLimit(5)
                                 .minimumScaleFactor(0.78)
                                 .lineSpacing(3.5)
                                 .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))
@@ -377,7 +377,7 @@ extension SettingsView {
                             
                             Text(previewVerse.text(for: selectedWidgetLanguage.appLanguage ?? selectedLanguage))
                                 .font(.system(size: 17.5, weight: .bold, design: selectedWidgetStyle.fontDesign))
-                                .lineLimit(7)
+                                .lineLimit(12)
                                 .minimumScaleFactor(0.75)
                                 .lineSpacing(4.5)
                                 .foregroundColor(selectedWidgetStyle.primaryTextColor(for: colorScheme))

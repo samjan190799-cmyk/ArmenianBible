@@ -372,23 +372,12 @@ struct PosterWidgetLayout<Controls: View>: View {
         self.controls = controls()
     }
 
-    private var fontSize: CGFloat {
-        let n = text.count
+    /// Самый крупный размер: фраза сама уменьшается до тех пор, пока не поместится целиком
+    private var maxFontSize: CGFloat {
         switch size {
-        case .small:
-            return n <= 14 ? 30 : (n <= 24 ? 26 : (n <= 36 ? 22 : 19))
-        case .medium:
-            return n <= 30 ? 30 : (n <= 50 ? 26 : (n <= 75 ? 23 : 20))
-        case .large:
-            return n <= 60 ? 36 : (n <= 100 ? 31 : (n <= 160 ? 27 : 23))
-        }
-    }
-
-    private var lineLimit: Int {
-        switch size {
-        case .small: return 5
-        case .medium: return 3
-        case .large: return 9
+        case .small: return 34
+        case .medium: return 32
+        case .large: return 40
         }
     }
 
@@ -415,16 +404,12 @@ struct PosterWidgetLayout<Controls: View>: View {
         ZStack {
             PosterBackground(art: art)
             VStack(alignment: .leading, spacing: 0) {
-                Text(text)
-                    .font(.system(size: fontSize, weight: .bold, design: .serif))
+                FittedQuoteText(text: text, maxSize: maxFontSize, weight: .bold, design: .serif, lineSpacing: 2)
                     .foregroundColor(art.mainColor)
-                    .lineSpacing(2)
-                    .lineLimit(lineLimit)
-                    .minimumScaleFactor(0.6)
                     .shadow(color: Color.black.opacity(art.usesTextShadow ? 0.45 : 0), radius: 4, x: 0, y: 2)
                     .padding(.trailing, trailingInset)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Spacer(minLength: 4)
+                    .padding(.bottom, 4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 HStack(alignment: .bottom, spacing: 8) {
                     Text(reference)
                         .font(.system(size: referenceSize, weight: .semibold, design: .serif))

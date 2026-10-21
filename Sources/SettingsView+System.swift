@@ -671,22 +671,28 @@ extension SettingsView {
     
     // MARK: - Выбор стиха для текущего размера виджета в предпросмотре
     func pickVerseForCurrentSize(_ size: PreviewWidgetSize) {
+        let lang = selectedWidgetLanguage.appLanguage ?? selectedLanguage
+        // Категории экрана блокировки в предпросмотре показываем и без Premium, как раньше
+        func pick(_ tier: QuoteTier) -> BibleVerse? {
+            let isHomeTier = (tier == .medium || tier == .large)
+            return BibleVerse.quotes(
+                for: tier, lang: lang,
+                isPremium: isHomeTier ? subscriptionManager.isPremium : true,
+                lockCategory: selectedLockCategory,
+                homeCategory: tier == .large ? selectedLargeCategory : selectedMediumCategory
+            ).randomElement()
+        }
+
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             switch size {
             case .lockScreen:
-                let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
-                previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+                previewVerse = pick(.lockScreen) ?? BibleVerse.shortPearls[0]
             case .small:
-                let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
-                previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+                previewVerse = pick(.small) ?? BibleVerse.shortPearls[0]
             case .medium:
-                let pool = BibleVerse.verses(for: selectedMediumCategory, isPremium: subscriptionManager.isPremium)
-                let filtered = pool.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
-                previewVerse = (!filtered.isEmpty ? filtered : pool).randomElement() ?? BibleVerse.database[1]
+                previewVerse = pick(.medium) ?? BibleVerse.database[1]
             case .large:
-                let pool = BibleVerse.verses(for: selectedLargeCategory, isPremium: subscriptionManager.isPremium)
-                let filtered = pool.filter { $0.textHy.count >= 75 }
-                previewVerse = (!filtered.isEmpty ? filtered : pool).randomElement() ?? BibleVerse.database[0]
+                previewVerse = pick(.large) ?? BibleVerse.database[0]
             }
         }
     }

@@ -121,6 +121,7 @@ targets:
       - path: Sources/BibleVerseDatabase+Filter.swift
       - path: Sources/BibleVerseDatabase+Prayers.swift
       - path: Sources/WidgetPosterStyle.swift
+      - path: Sources/QuoteTier.swift
       - path: Sources/PrayerCandleModels.swift
       - path: Sources/CandleRenderer.swift
       - path: Sources/CandleActivityAttributes.swift

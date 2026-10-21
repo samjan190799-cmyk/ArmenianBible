@@ -647,31 +647,25 @@ class BibleManager: ObservableObject {
     // MARK: - Мгновенная синхронизация и случайные стихи для всех размеров виджетов
     func syncLockScreenWidget() {
         let isPremium = AppGroupConstants.sharedBool(forKey: "is_premium_active")
-        let activeCategory = (isPremium || !lockScreenCategory.isPremiumRequired) ? lockScreenCategory : .pearls
-        let rawList = BibleVerse.lockScreenVerses(for: activeCategory).filter { $0.textHy.count <= 46 }
-        let list = !rawList.isEmpty ? rawList : BibleVerse.shortPearls
-        
-        let randomPearl = list.randomElement() ?? BibleVerse.shortPearls.first
+        let lang = sharedWidgetLanguage()
+
+        // Длина цитаты по месту показа (QuoteTier): экран блокировки и малый виджет — короткие, средний — средние, большой — длинные
+        func pick(_ tier: QuoteTier) -> BibleVerse? {
+            BibleVerse.quotes(
+                for: tier, lang: lang, isPremium: isPremium,
+                lockCategory: lockScreenCategory,
+                homeCategory: tier == .large ? largeWidgetCategory : mediumWidgetCategory
+            ).randomElement()
+        }
+
+        let randomPearl = pick(.lockScreen) ?? BibleVerse.shortPearls.first
         let enrichedPearl = randomPearl.map { BibleDatabase.shared.enrichVerse($0) }
-        
-        let smallPool = list
-        let randomSmall = smallPool.randomElement() ?? BibleVerse.shortPearls.first
-        
-        let activeMedCat = (isPremium || !mediumWidgetCategory.isPremiumRequired) ? mediumWidgetCategory : .all
-        let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
-        let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
-        let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
-        let randomMed = medPool.randomElement()
-        
-        let activeLargeCat = (isPremium || !largeWidgetCategory.isPremiumRequired) ? largeWidgetCategory : .all
-        let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
-        // Верхний предел: длиннее в большой виджет не помещается и обрезалось бы многоточием
-        let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 && $0.textHy.count <= 260 }
-        let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
-        let randomLarge = largePool.randomElement()
-        
+        let randomSmall = pick(.small) ?? BibleVerse.shortPearls.first
+        let randomMed = pick(.medium)
+        let randomLarge = pick(.large)
+
         AppGroupConstants.syncToAll { defaults in
-            // 1. Экран блокировки (Lock Screen) - строго короткие фразы <= 46 символов
+            // 1. Экран блокировки (Lock Screen) - короткие фразы
             if let enrichedPearl {
                 defaults.set(enrichedPearl.id.uuidString, forKey: "currentLockScreenVerseId")
                 defaults.set(enrichedPearl.textHy, forKey: "currentLockScreenTextHy")
@@ -684,17 +678,17 @@ class BibleManager: ObservableObject {
                 defaults.set(enrichedPearl.refEn, forKey: "currentLockScreenRefEn")
             }
             
-            // 2. Малый виджет (System Small 2x2) - строго короткие стихи активной категории
+            // 2. Малый виджет (System Small 2x2) - короткие стихи активной категории
             if let randomSmall {
                 defaults.set(randomSmall.id.uuidString, forKey: "currentSmallVerseId")
             }
             
-            // 3. Средний виджет (System Medium 4x2) - стихи 35-100 символов с учетом mediumWidgetCategory
+            // 3. Средний виджет (System Medium 4x2) - стихи средней длины с учетом mediumWidgetCategory
             if let randomMed {
                 defaults.set(randomMed.id.uuidString, forKey: "currentMediumVerseId")
             }
             
-            // 4. Большой виджет (System Large 4x4) - стихи от 75 символов с учетом largeWidgetCategory
+            // 4. Большой виджет (System Large 4x4) - длинные отрывки с учетом largeWidgetCategory
             if let randomLarge {
                 defaults.set(randomLarge.id.uuidString, forKey: "currentLargeVerseId")
             }
