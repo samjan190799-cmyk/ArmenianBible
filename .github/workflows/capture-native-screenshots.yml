@@ -203,7 +203,7 @@ jobs:
                 sleep 2
               done
               # Самая длинная подпись стиха под тремя постерами: видно, что она не обрезается многоточием
-              for ART in khachkar night; do
+              for ART in khachkar night parchment; do
                 echo "📸 Постер $ART, самая длинная подпись ($STORE_LANG)..."
                 xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$ART" -poster_ref long -luys_ads_enabled NO -luys_debug_language "$STORE_LANG"
                 sleep 7

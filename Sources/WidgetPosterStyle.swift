@@ -408,24 +408,51 @@ struct PosterWidgetLayout<Controls: View>: View {
                     .padding(.trailing, trailingInset)
                     .padding(.bottom, 4)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                HStack(alignment: .bottom, spacing: 8) {
-                    // Подпись целиком: длинное название книги («Ա Թեսաղոնիկեցիս 5:18») переносится на вторую строку
-                    // и только потом сжимается, а не обрезается многоточием
-                    Text(reference)
-                        .font(QuoteFont.serif(size: referenceSize, weight: .semibold))
-                        .italic()
-                        .foregroundColor(art.accentColor)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.7)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .layoutPriority(1)
-                        .shadow(color: Color.black.opacity(art.usesTextShadow ? 0.4 : 0), radius: 3, x: 0, y: 1)
-                    Spacer(minLength: 4)
-                    controls
-                }
+                footer
             }
             .padding(padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private var referenceLabel: some View {
+        Text(reference)
+            .font(QuoteFont.serif(size: referenceSize, weight: .semibold))
+            .italic()
+            .foregroundColor(art.accentColor)
+            .shadow(color: Color.black.opacity(art.usesTextShadow ? 0.4 : 0), radius: 3, x: 0, y: 1)
+    }
+
+    /// Подпись целиком, без многоточия. Длинное название книги («Ա Թեսաղոնիկեցիների 5:16-18») переносится на
+    /// вторую строку и только потом сжимается. В малом виджете рядом с кнопкой на подпись остаётся меньше 90 pt, чего
+    /// не хватает даже на одно длинное слово, поэтому там кнопка уходит над подписью, когда в одну строку они не помещаются.
+    @ViewBuilder
+    private var footer: some View {
+        if size == .small {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .bottom, spacing: 8) {
+                    referenceLabel.lineLimit(1)
+                    Spacer(minLength: 4)
+                    controls
+                }
+                VStack(alignment: .trailing, spacing: 4) {
+                    controls
+                    referenceLabel
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        } else {
+            HStack(alignment: .bottom, spacing: 8) {
+                referenceLabel
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+                Spacer(minLength: 4)
+                controls
+            }
         }
     }
 }
