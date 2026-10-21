@@ -22,7 +22,7 @@ struct WidgetPosterShowcaseView: View {
     /// Самая короткая или самая длинная цитата размера на языке показа
     private func sample(_ tier: QuoteTier, mode: String, language: AppLanguage, fallback: BibleVerse) -> BibleVerse {
         let pool = BibleVerse.quotes(for: tier, lang: language, isPremium: true, lockCategory: .pearls, homeCategory: .all)
-        let ordered = pool.sorted { $0.text(for: language).count < $1.text(for: language).count }
+        let ordered = pool.sorted { QuoteLength.of($0, lang: language) < QuoteLength.of($1, lang: language) }
         return (mode == "long" ? ordered.last : ordered.first) ?? fallback
     }
 

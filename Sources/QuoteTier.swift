@@ -52,12 +52,36 @@ enum QuoteTier {
     /// Оставляет из подборки цитаты, подходящие по длине на языке показа.
     /// Если таких мало, добавляет допустимые по длине (подходящие встречаются чаще); если и их нет, берёт ближайшие.
     func pick(from pool: [BibleVerse], lang: AppLanguage) -> [BibleVerse] {
-        let exact = pool.filter { range.contains($0.text(for: lang).count) }
+        let sized = pool.map { (verse: $0, length: QuoteLength.of($0, lang: lang)) }
+        let exact = sized.filter { range.contains($0.length) }.map { $0.verse }
         if exact.count >= Self.enoughQuotes { return exact }
-        let near = pool.filter { limit.contains($0.text(for: lang).count) }
+        let near = sized.filter { limit.contains($0.length) }.map { $0.verse }
         if !near.isEmpty { return exact + near }
-        let closest = pool.sorted { distance(of: $0.text(for: lang).count) < distance(of: $1.text(for: lang).count) }
-        return Array(closest.prefix(Self.enoughQuotes))
+        let closest = sized.sorted { distance(of: $0.length) < distance(of: $1.length) }
+        return closest.prefix(Self.enoughQuotes).map { $0.verse }
+    }
+}
+
+// MARK: - Длина текста на языке показа
+/// Длина запоминается: в приложении для армянского текста без своей записи (старые подборки) `text(for:)` каждый раз
+/// спрашивает базу, а подборка из сотен цитат просматривается несколько раз при каждой синхронизации виджетов.
+enum QuoteLength {
+    private static var cache: [String: Int] = [:]
+    private static let lock = NSLock()
+
+    static func of(_ verse: BibleVerse, lang: AppLanguage) -> Int {
+        let edition = lang == .armenian ? isAraratEditionSelected() : false
+        let key = "\(verse.id.uuidString)|\(lang.rawValue)|\(edition)"
+        lock.lock()
+        let known = cache[key]
+        lock.unlock()
+        if let known { return known }
+        let length = verse.text(for: lang).count
+        lock.lock()
+        if cache.count > 4000 { cache.removeAll() }  // избранное создаёт стихи с новыми id при каждом запросе
+        cache[key] = length
+        lock.unlock()
+        return length
     }
 }
 
