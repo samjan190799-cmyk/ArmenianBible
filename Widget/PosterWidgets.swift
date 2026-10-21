@@ -35,32 +35,30 @@ struct PosterProvider: AppIntentTimelineProvider {
         return converted
     }
 
-    /// В галерее показываем любой постер; на экране без Premium «Хачкар» и «Вифлеем» рисуются как «Пергамент»
-    private func restyled(_ entry: SimpleEntry, preview: Bool) -> SimpleEntry {
-        let premium = AppGroupConstants.sharedBool(forKey: "is_premium_active")
-        let shown: WidgetVisualStyle = (style.isPremiumRequired && !premium && !preview) ? .posterParchment : style
-        return SimpleEntry(
+    /// Фон у виджета всегда свой; пометку PRO без Premium рисует сам виджет
+    private func restyled(_ entry: SimpleEntry) -> SimpleEntry {
+        SimpleEntry(
             date: entry.date,
             verse: entry.verse,
             configuration: entry.configuration,
             language: entry.language,
-            visualStyle: shown,
+            visualStyle: style,
             styleTimestamp: entry.styleTimestamp
         )
     }
 
     func placeholder(in context: Context) -> SimpleEntry {
-        restyled(base.placeholder(in: context), preview: true)
+        restyled(base.placeholder(in: context))
     }
 
     func snapshot(for configuration: PosterConfigurationAppIntent, in context: Context) async -> SimpleEntry {
         let entry = await base.snapshot(for: baseConfiguration(configuration), in: context)
-        return restyled(entry, preview: context.isPreview)
+        return restyled(entry)
     }
 
     func timeline(for configuration: PosterConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
         let timeline = await base.timeline(for: baseConfiguration(configuration), in: context)
-        return Timeline(entries: timeline.entries.map { restyled($0, preview: false) }, policy: timeline.policy)
+        return Timeline(entries: timeline.entries.map { restyled($0) }, policy: timeline.policy)
     }
 }
 

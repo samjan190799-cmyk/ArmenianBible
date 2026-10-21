@@ -360,13 +360,15 @@ struct PosterWidgetLayout<Controls: View>: View {
     let size: PosterSize
     let text: String
     let reference: String
+    let locked: Bool
     let controls: Controls
 
-    init(art: PosterArt, size: PosterSize, text: String, reference: String, @ViewBuilder controls: () -> Controls) {
+    init(art: PosterArt, size: PosterSize, text: String, reference: String, locked: Bool = false, @ViewBuilder controls: () -> Controls) {
         self.art = art
         self.size = size
         self.text = text
         self.reference = reference
+        self.locked = locked
         self.controls = controls()
     }
 
@@ -432,11 +434,35 @@ struct PosterWidgetLayout<Controls: View>: View {
                         .minimumScaleFactor(0.7)
                         .shadow(color: Color.black.opacity(art.usesTextShadow ? 0.4 : 0), radius: 3, x: 0, y: 1)
                     Spacer(minLength: 4)
+                    if locked {
+                        PosterLockBadge(compact: size == .small)
+                    }
                     controls
                 }
             }
             .padding(padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+    }
+}
+
+// MARK: - Пометка «нужен Premium» на постере
+struct PosterLockBadge: View {
+    let compact: Bool
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "crown.fill")
+                .font(.system(size: 9, weight: .bold))
+            if !compact {
+                Text("PRO")
+                    .font(.system(size: 10, weight: .bold))
+            }
+        }
+        .foregroundColor(PosterPalette.rgb(255, 214, 120))
+        .padding(.horizontal, compact ? 6 : 8)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(Color.black.opacity(0.45)))
+        .overlay(Capsule().strokeBorder(PosterPalette.rgb(255, 214, 120, 0.7), lineWidth: 0.8))
     }
 }

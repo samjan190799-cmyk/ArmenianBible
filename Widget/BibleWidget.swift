@@ -379,10 +379,7 @@ struct Provider: AppIntentTimelineProvider {
         } else {
             chosen = appStyle
         }
-        // Премиум-постеры без подписки показываются как бесплатный «Пергамент»
-        if chosen.isPremiumRequired && !AppGroupConstants.sharedBool(forKey: "is_premium_active") {
-            return .posterParchment
-        }
+        // Без Premium постер «Хачкар»/«Вифлеем» остаётся выбранным, но на нём рисуется пометка PRO
         return chosen
     }
     
@@ -988,7 +985,8 @@ struct BibleWidgetEntryView: View {
             art: art,
             size: size,
             text: entry.verse.text(for: getLanguage()),
-            reference: entry.verse.reference(for: getLanguage())
+            reference: entry.verse.reference(for: getLanguage()),
+            locked: activeStyle.isPremiumRequired && !AppGroupConstants.sharedBool(forKey: "is_premium_active")
         ) {
             HStack(spacing: 8) {
                 if size == .large {
