@@ -70,8 +70,10 @@ struct LockQuoteCard: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 HStack(spacing: 4) {
-                    khachkar
-                        .frame(height: 10)
+                    // Хачкар в десять пунктов превращается в серое пятно, поэтому здесь чёткий крест
+                    Text("✠")
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundColor(palette.caption)
                         .widgetAccentable()
                     Text(reference)
                         .font(.system(size: 9.5, weight: .semibold, design: design))
