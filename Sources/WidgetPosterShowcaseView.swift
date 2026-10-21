@@ -69,31 +69,26 @@ struct WidgetPosterShowcaseView: View {
     }
 }
 
-/// Макет прямоугольного виджета экрана блокировки (160×72) с той же раскладкой, что в BibleWidget.swift
+/// Макет прямоугольного виджета экрана блокировки (160×72): тот же LockQuoteCard, что в BibleWidget.swift, на обоях
 private struct LockWidgetMock: View {
     let verse: BibleVerse
     let language: AppLanguage
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            FittedQuoteText(text: verse.text(for: language), maxSize: 24, minScale: 0.6, weight: .semibold, design: .default, lineSpacing: -0.5)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            HStack(spacing: 3) {
-                Text("✝")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.7))
-                Text(verse.reference(for: language))
-                    .font(.system(size: 9.5, weight: .semibold))
-                    .italic()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .foregroundColor(.white.opacity(0.7))
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(4)
+        LockQuoteCard(
+            text: verse.text(for: language),
+            reference: verse.reference(for: language),
+            design: .serif,
+            systemPlate: false,
+            forceMono: true
+        )
         .frame(width: 160, height: 72)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.14)))
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.16)))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            LinearGradient(colors: [Color(red: 0.09, green: 0.10, blue: 0.24), Color(red: 0.55, green: 0.25, blue: 0.35)], startPoint: .top, endPoint: .bottom)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(-6)
+        )
     }
 }

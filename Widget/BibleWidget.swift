@@ -820,51 +820,22 @@ struct BibleWidgetEntryView: View {
             } else {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: короткая фраза максимально крупно + гарантированно видимая ссылка внизу
-                VStack(alignment: .leading, spacing: 2) {
-                    FittedQuoteText(
-                        text: entry.verse.text(for: getLanguage()),
-                        maxSize: 24,
-                        minScale: 0.6,
-                        weight: .semibold,
-                        design: lockScreenFontDesign,
-                        lineSpacing: -0.5
-                    )
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    
-                    HStack(spacing: 3) {
-                        Text("✝")
-                            .font(.system(size: 8, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 9.5, weight: .semibold, design: lockScreenFontDesign))
-                            .italic()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                            .foregroundColor(.secondary)
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(1)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                
+                // Прямоугольный виджет на экране блокировки: рамка, хачкар и подпись с линейкой (LockScreenQuoteViews.swift);
+                // цитата — самая крупная, при которой помещается
+                LockQuoteCard(
+                    text: entry.verse.text(for: getLanguage()),
+                    reference: entry.verse.reference(for: getLanguage()),
+                    design: lockScreenFontDesign
+                )
+
             case .accessoryInline:
                 // Строчный виджет на экране блокировки над часами
-                Text("\(isPrayerDone ? "✓ " : "✝️ ")\(entry.verse.reference(for: getLanguage()))")
-                
+                Text("\(isPrayerDone ? "✓ " : "✠ ")\(entry.verse.reference(for: getLanguage()))")
+
             case .accessoryCircular:
-                // Круглый виджет на экране блокировки
-                ZStack {
-                    AccessoryWidgetBackground()
-                    VStack(spacing: 1) {
-                        Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "book.closed.fill")
-                            .font(.system(size: 16))
-                        Text(isPrayerDone ? "OK" : "widget_circular_text".localized(for: getLanguage()))
-                            .font(.system(size: 8, weight: .bold))
-                    }
-                }
-                
+                // Круглый виджет на экране блокировки: хачкар в кольце, при прочитанной молитве — галочка
+                LockQuoteCircle(prayerDone: isPrayerDone)
+
             case .systemSmall:
                 // Маленький виджет на домашнем экране (System Small 2x2) / Режим StandBy
                 VStack(alignment: .leading, spacing: 4) {
