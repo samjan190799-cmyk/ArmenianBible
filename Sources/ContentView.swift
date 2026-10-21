@@ -50,6 +50,7 @@ struct ContentView: View {
                         if tabArg == "favorites" { manager.activeTabSelection = 1 }
                         else if tabArg == "ai" { manager.activeTabSelection = 2 }
                         else if tabArg == "bible" { manager.activeTabSelection = 3 }
+                        else if tabArg == "narek" { manager.openNarekatsi() }
                     }
                 }
             }

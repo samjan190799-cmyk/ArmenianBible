@@ -15,6 +15,9 @@ struct NarekatsiView: View {
     /// Молитва, к которой надо прокрутить список (переход из подписи цитаты), и она же — на время подсвечена
     @State private var scrollTarget: Int? = nil
     @State private var highlightedPrayerId: Int? = nil
+    /// 0 — подлинный текст (95 глав на древнеармянском), 1 — молитвы «в духе Нарекаци»
+    @State private var textMode: Int = 0
+    @State private var readerChapter: NarekOriginalChapter? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -53,6 +56,27 @@ struct NarekatsiView: View {
             prayer.inspiredTitle(for: manager.appLanguage).lowercased().contains(trimmed) ||
             prayer.text(for: manager.appLanguage).lowercased().contains(trimmed)
         }
+    }
+
+    /// Главы оригинала: по номеру, подписи («Բան Ա») или любому слову текста
+    private var filteredChapters: [NarekOriginalChapter] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let all = NarekOriginal.shared.chapters
+        if trimmed.isEmpty { return all }
+        if let number = Int(trimmed) { return all.filter { $0.id == number } }
+        return all.filter { $0.ban.lowercased().contains(trimmed) || $0.text.lowercased().contains(trimmed) }
+    }
+
+    private var originalNotice: some View {
+        Text(manager.appLanguage.pick(
+            hy: "Սա «Մատյան ողբերգության» բնագիրն է գրաբարով (hy.wikisource.org): Թարգմանություններն ընդգրկված չեն՝ հեղինակային իրավունքի պատճառով: Ամբողջ գիրքը լսեք ձայնագրության ներդիրում:",
+            ru: "Это оригинал «Книги скорбных песнопений» на древнеармянском (грабар), источник — hy.wikisource.org. Переводов здесь нет: русские и английские переводы защищены авторским правом. Всю книгу можно послушать во вкладке с аудиозаписью.",
+            en: "This is the original text of the Book of Lamentations in Classical Armenian (Grabar), from hy.wikisource.org. Translations are not included: the Russian and English translations are under copyright. Listen to the whole book in the audio tab."
+        ))
+        .font(PaperFont.font(size: 13))
+        .foregroundColor(Paper.inkSecondary)
+        .lineSpacing(3)
+        .padding(.horizontal, 20)
     }
 
     private var inspiredNotice: some View {
@@ -170,6 +194,28 @@ struct NarekatsiView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 2)
                         
+                        Picker("", selection: $textMode) {
+                            Text(manager.appLanguage.pick(hy: "Բնագիր", ru: "Оригинал", en: "Original")).tag(0)
+                            Text(manager.appLanguage.pick(hy: "Նարեկացու ոգով", ru: "В духе Нарекаци", en: "In the spirit")).tag(1)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+
+                        if textMode == 0 {
+                            originalNotice
+
+                            // Подлинный текст: 95 глав
+                            LazyVStack(spacing: 10) {
+                                ForEach(filteredChapters) { chapter in
+                                    NarekOriginalRow(chapter: chapter, primaryTextColor: primaryTextColor) {
+                                        triggerHaptic(.light)
+                                        readerChapter = chapter
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 30)
+                        } else {
                         inspiredNotice
 
                         // Молитвы «в духе Нарекаци»
@@ -216,6 +262,7 @@ struct NarekatsiView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 30)
+                        }
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
@@ -382,12 +429,34 @@ struct NarekatsiView: View {
         .sheet(isPresented: $isShowingPaywall) {
             PaywallView()
         }
+        .onAppear {
+            // Отладочный запуск для съёмки в CI: -openTab narek -narek_reader_chapter N открывает чтение главы N
+            let chapterArg = UserDefaults.standard.integer(forKey: "narek_reader_chapter")
+            if chapterArg > 0, let chapter = NarekOriginal.shared.chapter(id: chapterArg) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { readerChapter = chapter }
+            }
+        }
+        .sheet(item: $readerChapter) { chapter in
+            NarekChapterReaderView(startId: chapter.id) { id in
+                // «Слушать»: закрываем чтение и включаем армянскую запись этой главы (если она доступна)
+                readerChapter = nil
+                guard let prayer = NarekatsiDatabase.shared.prayers.first(where: { $0.id == id }) else { return }
+                subTab = 1
+                if subscriptionManager.canPlayNarekAudio(prayerId: id) {
+                    audioPlayer.playPrayer(prayer, language: .armenian)
+                } else {
+                    // Экран подписки показываем, когда шторка чтения уже закрылась
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { isShowingPaywall = true }
+                }
+            }
+        }
         .onReceive(manager.$narekFocusPrayerId) { id in
             // Пришли из подписи цитаты «в духе Нарекаци»: показываем вкладку с текстом и прокручиваем к нужной молитве
             guard let id else { return }
             manager.narekFocusPrayerId = nil
             searchText = ""
             subTab = 0
+            textMode = 1
             scrollTarget = id
         }
         .onReceive(audioPlayer.$paywallRequested) { requested in

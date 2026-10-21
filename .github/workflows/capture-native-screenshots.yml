@@ -26,6 +26,7 @@ on:
           - island
           - store
           - posters
+          - narek
       language:
         description: 'Язык интерфейса для scope=store (russian, armenian, english)'
         required: false
@@ -161,6 +162,23 @@ jobs:
               xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Скриншоты свечи в острове для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 18. «Нарек»: подлинный текст (список и чтение глав)
+            if [ "$SCOPE" = "narek" ]; then
+              for SHOT in "list|" "reader1|-narek_reader_chapter 1" "reader93|-narek_reader_chapter 93" "reader41|-narek_reader_chapter 41"; do
+                NAME="${SHOT%%|*}"
+                ARGS="${SHOT#*|}"
+                echo "📸 Нарек: $NAME ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab narek $ARGS -luys_ads_enabled NO -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+                sleep 10
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/narek_${NAME}.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры «Нарека» ($STORE_LANG) сняты"
               return 0
             fi
 

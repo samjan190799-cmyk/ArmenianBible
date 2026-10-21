@@ -27,7 +27,7 @@
 
 * **Lock Screen & Home Screen Widgets** — Keep Holy Scripture close throughout your day with beautifully designed iOS widgets that refresh automatically or on demand.
 * **Complete Holy Bible** — Full Old and New Testaments in Armenian (Eastern, Western, Classical / Ararat & Etchmiadzin translations), English, and Russian.
-* **Saint Gregory of Narek — Book of Lamentations (Narek)** — Complete 95 chapters with high-definition studio audio recitations (by Sos Sargsyan and Oleg Molenko). Fifteen prayers written in the spirit of Narekatsi are included as text; they are not the verbatim Book of Lamentations.
+* **Saint Gregory of Narek — Book of Lamentations (Narek)** — Complete 95 chapters with high-definition studio audio recitations (by Sos Sargsyan and Oleg Molenko). The full original text (95 chapters in Classical Armenian, from hy.wikisource.org) is included; translations are not, because the Russian and English translations are under copyright. Fifteen prayers written in the spirit of Narekatsi are included in Armenian, Russian and English; they are not the verbatim Book of Lamentations.
 * **AI Spiritual Guide** — Ask questions and explore deep biblical reflections powered by advanced AI models (Gemini, ChatGPT, Claude).
 * **Bible Quiz & Trivia** — Strengthen your faith and test your biblical knowledge with engaging quizzes across multiple difficulty levels.
 * **Spiritual Postcard Creator** — Share inspiring scripture verses styled with elegant gradients and typography on Instagram, WhatsApp, and Telegram.
