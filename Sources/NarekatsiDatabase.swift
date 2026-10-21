@@ -1116,17 +1116,19 @@ And establish my feet upon the rock of Your faith.
     ]  // prayersPart1 (главы 1-32)
 
     /// Полная коллекция: все 95 глав из трёх частей
-    lazy var prayers: [NarekPrayer] = NarekatsiDatabase.prayersPart1
+    lazy var prayers: [NarekPrayer] = (NarekatsiDatabase.prayersPart1
         + NarekatsiDatabase.prayersPart2
-        + NarekatsiDatabase.prayersPart3
+        + NarekatsiDatabase.prayersPart3)
+        .map { NarekatsiInspired.apply(to: $0) }
 }
 
 // MARK: - Что в приложении настоящее, а что нет
 // В приложении есть две полные студийные записи «Книги скорбных песнопений» (армянская и русская). А текст под номерами
-// 1–95 — это пять молитв «в духе Нарекаци», которые раньше повторялись по кругу; дословным текстом книги они не являются.
+// 1–15 — это пятнадцать молитв «в духе Нарекаци» (1–5 написаны первыми, 6–15 — в NarekatsiInspired.swift); остальные номера раньше
+// повторяли первые пять по кругу. Дословным текстом книги молитвы не являются.
 extension NarekPrayer {
-    /// Собственный текст есть только у первых пяти номеров; остальные девяносто раньше повторяли их по кругу
-    var hasOwnText: Bool { id <= 5 }
+    /// Собственный текст есть у первых пятнадцати номеров; остальные восемьдесят раньше повторяли первые пять по кругу
+    var hasOwnText: Bool { id <= 5 || NarekatsiInspired.entries[id] != nil }
 
     /// Подпись главы записи: только номер, без придуманных названий
     func chapterLabel(for language: AppLanguage) -> String {
@@ -1156,6 +1158,6 @@ extension NarekPrayer {
 }
 
 extension NarekatsiDatabase {
-    /// Пять молитв «в духе Нарекаци» с собственным текстом
+    /// Пятнадцать молитв «в духе Нарекаци» с собственным текстом
     var inspiredPrayers: [NarekPrayer] { prayers.filter { $0.hasOwnText } }
 }
