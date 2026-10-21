@@ -87,12 +87,24 @@ class BibleManager: ObservableObject {
         }
     }
     
+    /// Когда в последний раз просили открыть «Нарека» с другого экрана. Экран Библии при входе на вкладку возвращает
+    /// каталог книг и сбрасывал раздел на «Библию», из-за чего баннер на главном и подпись цитаты открывали каталог.
+    var narekOpenRequestedAt: Date? = nil
+
+    /// Переход в «Нарек» ещё не дошёл до экрана (вход на вкладку вызывает сброс раздела один-два раза за долю секунды)
+    var isNarekOpenPending: Bool {
+        guard let requestedAt = narekOpenRequestedAt else { return false }
+        return Date().timeIntervalSince(requestedAt) < 1.5
+    }
+
     func openNarekatsi() {
+        self.narekOpenRequestedAt = Date()
         self.selectedReaderSection = 1
         self.activeTabSelection = 3
     }
     
     func openBibleReader() {
+        self.narekOpenRequestedAt = nil
         self.selectedReaderSection = 0
         self.activeTabSelection = 3
     }

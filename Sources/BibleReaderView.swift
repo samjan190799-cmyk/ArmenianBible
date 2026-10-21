@@ -26,7 +26,10 @@ struct BibleReaderView: View {
         } else {
             navigationPath = []
         }
-        manager.selectedReaderSection = 0
+        // Если только что просили открыть «Нарек», раздел не сбрасываем
+        if !manager.isNarekOpenPending {
+            manager.selectedReaderSection = 0
+        }
     }
     
     var body: some View {
