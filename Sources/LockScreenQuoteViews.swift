@@ -74,13 +74,16 @@ struct LockQuoteCard: View {
         }
         .padding(.vertical, 2)
         .background(alignment: .trailing) {
-            // Хачкар за текстом: на обоях виден как тонкий узор, читаемости не мешает
+            // Хачкар за текстом. Экран блокировки превращает яркость картинки в прозрачность белого, поэтому
+            // при прозрачности 0.30 на светлых обоях узор пропадал: контраст и яркость подняты, прозрачность 0.55
             Image("KhachkarRelief")
                 .resizable()
                 .scaledToFit()
                 .grayscale(palette.mono ? 1 : 0)
-                .frame(height: 68)
-                .opacity(0.30)
+                .contrast(1.35)
+                .brightness(0.12)
+                .frame(height: 70)
+                .opacity(0.55)
                 .widgetAccentable()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
