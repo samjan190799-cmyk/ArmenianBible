@@ -202,45 +202,6 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Action Buttons Row (Heart Favorite and Share in rounded circular pills)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Like / Favorite
-                    IconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            val item = FavoriteItem(
-                                textHy = currentVerse.textHy,
-                                textRu = currentVerse.textRu,
-                                textEn = currentVerse.textEn,
-                                refHy = currentVerse.refHy,
-                                refRu = currentVerse.refRu,
-                                refEn = currentVerse.refEn
-                            )
-                            if (isFav) {
-                                prefs.removeFavorite(item)
-                                isFav = false
-                                Toast.makeText(
-                                    context,
-                                    when(appLanguage) {
-                                        AppLanguage.ARMENIAN -> "Հեռացված է ընտրյալներից"
-                                        AppLanguage.RUSSIAN -> "Удалено из избранного"
-                                        AppLanguage.ENGLISH -> "Removed from favorites"
-                                    },
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            } else {
-                                prefs.addFavorite(item)
-                                isFav = true
-                                Toast.makeText(
-                                    context,
-                                    when(appLanguage) {
-                                        AppLanguage.ARMENIAN -> "Ավելացված է ընտրյալներում ❤️"
-                                        AppLanguage.RUSSIAN -> "Добавлено в избранное ❤️"
-                                        AppLanguage.ENGLISH -> "Added to favorites ❤️"
-                                    },
                 // Verse Card Action Buttons (Refresh, Favorite, Share, AI Guide)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -272,8 +233,12 @@ fun HomeScreen(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             val item = FavoriteItem(
-                                verse = currentVerse,
-                                addedDate = System.currentTimeMillis()
+                                textHy = currentVerse.textHy,
+                                textRu = currentVerse.textRu,
+                                textEn = currentVerse.textEn,
+                                refHy = currentVerse.refHy,
+                                refRu = currentVerse.refRu,
+                                refEn = currentVerse.refEn
                             )
                             if (isFav) {
                                 prefs.removeFavorite(item)
