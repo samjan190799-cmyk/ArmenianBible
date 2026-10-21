@@ -12,11 +12,6 @@ struct NarekatsiView: View {
     @State private var toastMessage: String? = nil
     @State private var searchText: String = ""
     @State private var isShowingPaywall: Bool = false
-    /// Молитва, к которой надо прокрутить список (переход из подписи цитаты), и она же — на время подсвечена
-    @State private var scrollTarget: Int? = nil
-    @State private var highlightedPrayerId: Int? = nil
-    /// 0 — подлинный текст (95 глав на древнеармянском), 1 — молитвы «в духе Нарекаци»
-    @State private var textMode: Int = 0
     @State private var readerChapter: NarekOriginalChapter? = nil
     
     @Environment(\.colorScheme) private var colorScheme
@@ -45,19 +40,6 @@ struct NarekatsiView: View {
         Paper.ink
     }
     
-    /// Во вкладке «Молитвы» только молитвы с собственным текстом (пятнадцать): записи книги слушают во второй вкладке
-    private var filteredPrayers: [NarekPrayer] {
-        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let own = NarekatsiDatabase.shared.inspiredPrayers
-        if trimmed.isEmpty {
-            return own
-        }
-        return own.filter { prayer in
-            prayer.inspiredTitle(for: manager.appLanguage).lowercased().contains(trimmed) ||
-            prayer.text(for: manager.appLanguage).lowercased().contains(trimmed)
-        }
-    }
-
     /// Главы оригинала: по номеру, подписи («Բան Ա») или любому слову текста
     private var filteredChapters: [NarekOriginalChapter] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -79,18 +61,6 @@ struct NarekatsiView: View {
         .padding(.horizontal, 20)
     }
 
-    private var inspiredNotice: some View {
-        Text(manager.appLanguage.pick(
-            hy: "Այս աղոթքները գրված են Գրիգոր Նարեկացու ոգով. դրանք «Մատյան ողբերգության» բառացի տեքստը չեն: Ամբողջ գիրքը լսեք ձայնագրության ներդիրում:",
-            ru: "Эти молитвы написаны в духе Григора Нарекаци: это не дословный текст «Книги скорбных песнопений». Всю книгу слушайте во вкладке с аудиозаписью.",
-            en: "These prayers are written in the spirit of Grigor Narekatsi: they are not the verbatim text of the Book of Lamentations. Listen to the whole book in the audio tab."
-        ))
-        .font(PaperFont.font(size: 13))
-        .foregroundColor(Paper.inkSecondary)
-        .lineSpacing(3)
-        .padding(.horizontal, 20)
-    }
-    
     private var currentOrLastPrayer: NarekPrayer {
         let id = audioPlayer.currentlyPlayingId ?? audioPlayer.savedPrayerId
         return NarekatsiDatabase.shared.prayers.first(where: { $0.id == id }) ?? NarekatsiDatabase.shared.prayers[0]
@@ -161,16 +131,15 @@ struct NarekatsiView: View {
             
             // MARK: - Содержимое выбранной вкладки
             if subTab == 0 {
-                // ВКЛАДКА 1: ТЕКСТОВЫЙ ВАРИАНТ
-                ScrollViewReader { proxy in
+                // ВКЛАДКА 1: ПОДЛИННЫЙ ТЕКСТ (95 глав на древнеармянском)
                 ScrollView {
                     VStack(spacing: 16) {
-                        
+
                         // Поиск по 95 главам
                         HStack(spacing: 10) {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(Paper.inkSecondary)
-                            TextField(manager.appLanguage.pick(hy: "Որոնել աղոթքներում", ru: "Поиск по молитвам", en: "Search prayers"), text: $searchText)
+                            TextField(manager.appLanguage.pick(hy: "Որոնել գլուխներում", ru: "Поиск по главам", en: "Search chapters"), text: $searchText)
                                 .font(PaperFont.font(size: 14))
                                 .foregroundColor(primaryTextColor)
                                 .keyboardDismissToolbar()
@@ -188,87 +157,28 @@ struct NarekatsiView: View {
                         .paperField(cornerRadius: 14)
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
-                        
+
                         // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
                         LuysHybridBannerView(placement: .narekatsi)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 2)
-                        
-                        Picker("", selection: $textMode) {
-                            Text(manager.appLanguage.pick(hy: "Բնագիր", ru: "Оригинал", en: "Original")).tag(0)
-                            Text(manager.appLanguage.pick(hy: "Նարեկացու ոգով", ru: "В духе Нарекаци", en: "In the spirit")).tag(1)
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal, 16)
 
-                        if textMode == 0 {
-                            originalNotice
+                        originalNotice
 
-                            // Подлинный текст: 95 глав
-                            LazyVStack(spacing: 10) {
-                                ForEach(filteredChapters) { chapter in
-                                    NarekOriginalRow(chapter: chapter, primaryTextColor: primaryTextColor) {
-                                        triggerHaptic(.light)
-                                        readerChapter = chapter
-                                    }
+                        // Подлинный текст: 95 глав
+                        LazyVStack(spacing: 10) {
+                            ForEach(filteredChapters) { chapter in
+                                NarekOriginalRow(chapter: chapter, primaryTextColor: primaryTextColor) {
+                                    triggerHaptic(.light)
+                                    readerChapter = chapter
                                 }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 30)
-                        } else {
-                        inspiredNotice
-
-                        // Молитвы «в духе Нарекаци»
-                        LazyVStack(spacing: 14) {
-                            ForEach(filteredPrayers) { prayer in
-                                let isLocked = !subscriptionManager.canPlayNarekAudio(prayerId: prayer.id)
-                                NarekCardView(
-                                    prayer: prayer,
-                                    language: manager.appLanguage,
-                                    isPlaying: audioPlayer.isPlaying && audioPlayer.currentlyPlayingId == prayer.id,
-                                    isLocked: isLocked,
-                                    accentColor: accentColor,
-                                    secondaryAccentColor: secondaryAccentColor,
-                                    cardBackgroundColor: cardBackgroundColor,
-                                    cardBorderColor: cardBorderColor,
-                                    primaryTextColor: primaryTextColor,
-                                    onToggleAudio: {
-                                        if isLocked {
-                                            triggerHaptic(.soft)
-                                            isShowingPaywall = true
-                                        } else {
-                                            triggerHaptic(.soft)
-                                            audioPlayer.togglePlay(prayer: prayer, language: manager.appLanguage)
-                                        }
-                                    },
-                                    onPinToWidget: {
-                                        pinPrayerToWidget(prayer)
-                                    },
-                                    onCopy: {
-                                        copyPrayer(prayer)
-                                    },
-                                    onShare: {
-                                        sharePrayer(prayer)
-                                    }
-                                )
-                                .id(prayer.id)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .strokeBorder(accentColor, lineWidth: 2)
-                                        .opacity(highlightedPrayerId == prayer.id ? 0.85 : 0)
-                                        .allowsHitTesting(false)
-                                )
                             }
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 30)
-                        }
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .onAppear { scrollToTarget(proxy) }
-                .onChange(of: scrollTarget) { _ in scrollToTarget(proxy) }
-                }
             } else {
                 // ВКЛАДКА 2: ПОЛНОЦЕННЫЙ АУДИОПЛЕЕР С ПАМЯТЬЮ
                 ScrollView {
@@ -450,15 +360,6 @@ struct NarekatsiView: View {
                 }
             }
         }
-        .onReceive(manager.$narekFocusPrayerId) { id in
-            // Пришли из подписи цитаты «в духе Нарекаци»: показываем вкладку с текстом и прокручиваем к нужной молитве
-            guard let id else { return }
-            manager.narekFocusPrayerId = nil
-            searchText = ""
-            subTab = 0
-            textMode = 1
-            scrollTarget = id
-        }
         .onReceive(audioPlayer.$paywallRequested) { requested in
             if requested {
                 audioPlayer.paywallRequested = false
@@ -477,21 +378,6 @@ struct NarekatsiView: View {
     
     // MARK: - Хелперы
 
-    /// Прокручивает список молитв к выбранной и на пару секунд обводит её
-    private func scrollToTarget(_ proxy: ScrollViewProxy) {
-        guard let target = scrollTarget else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            withAnimation(.easeInOut(duration: 0.4)) {
-                proxy.scrollTo(target, anchor: .top)
-                highlightedPrayerId = target
-            }
-            scrollTarget = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                withAnimation(.easeOut(duration: 0.4)) { highlightedPrayerId = nil }
-            }
-        }
-    }
-    
     private func pinPrayerToWidget(_ prayer: NarekPrayer) {
         triggerHaptic(.soft)
         manager.pinVerseToWidget(

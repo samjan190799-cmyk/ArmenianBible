@@ -9,7 +9,7 @@ struct ScriptureLocation: Equatable {
 }
 
 /// По подписи цитаты («Ezekiel 27:27», «Псалом 22:1-2») находит книгу, главу и стих и открывает их в читалке.
-/// Для цитат «в духе Нарекаци» ведёт на молитву, из которой взята строка. Молитвы и всё остальное без места в Библии — не ссылки.
+/// Подпись цитат «в духе Нарекаци» открывает экран Нарекаци. Молитвы и всё остальное без места в Библии — не ссылки.
 enum ScriptureLocator {
     /// Подпись цитат «в духе Нарекаци» (одинаковая у всех строк)
     private static let narekRefEn = "In the spirit of Narekatsi"
@@ -89,34 +89,11 @@ enum ScriptureLocator {
         isNarekatsi(verse) || location(for: verse) != nil
     }
 
-    // MARK: - Нарекаци: из какой молитвы строка
-    private static func letters(_ text: String) -> String {
-        let cleaned = text.lowercased().map { $0.isLetter ? $0 : " " }
-        return String(cleaned).split(separator: " ").joined(separator: " ")
-    }
-
-    /// Номер молитвы, в тексте которой есть первая строка цитаты (хотя бы на одном из трёх языков).
-    /// Знаки и регистр не сравниваем: в цитатах убран начальный союз и запятая в конце заменена точкой.
-    static func narekPrayerId(for verse: BibleVerse) -> Int? {
-        let lines = [verse.textHy, verse.textRu, verse.textEn]
-            .map { letters($0.split(separator: "\n").first.map(String.init) ?? $0) }
-            .filter { $0.count >= 8 }
-        guard !lines.isEmpty else { return nil }
-        for prayer in NarekatsiDatabase.shared.inspiredPrayers {
-            let texts = [prayer.textHy, prayer.textRu, prayer.textEn].map(letters)
-            if lines.contains(where: { line in texts.contains { $0.contains(line) } }) {
-                return prayer.id
-            }
-        }
-        return nil
-    }
-
-    /// Открывает место цитаты: главу Библии на нужном стихе или молитву Нарекаци. false — открывать нечего.
+    /// Открывает место цитаты: главу Библии на нужном стихе или экран Нарекаци. false — открывать нечего.
     @discardableResult
     static func open(_ verse: BibleVerse) -> Bool {
         let manager = BibleManager.shared
         if isNarekatsi(verse) {
-            manager.narekFocusPrayerId = narekPrayerId(for: verse) ?? NarekatsiDatabase.shared.inspiredPrayers.first?.id
             manager.openNarekatsi()
             return true
         }

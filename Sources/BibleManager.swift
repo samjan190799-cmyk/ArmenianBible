@@ -53,8 +53,6 @@ class BibleManager: ObservableObject {
     @Published var deepLinkBookId: Int? = nil
     @Published var deepLinkChapter: Int? = nil
     @Published var deepLinkVerse: Int? = nil
-    /// Молитва Нарекаци, к которой нужно прокрутить вкладку «Молитвы» (переход из подписи цитаты)
-    @Published var narekFocusPrayerId: Int? = nil
     @Published var lastReadBookId: Int? = nil
     @Published var lastReadChapter: Int? = nil
     @Published var readChaptersByBook: [Int: Set<Int>] = [:]
