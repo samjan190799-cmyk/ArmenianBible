@@ -28,6 +28,7 @@ on:
           - posters
           - narek
           - nativity
+          - nativityvideo
       language:
         description: 'Язык интерфейса для scope=store (russian, armenian, english)'
         required: false
@@ -163,6 +164,22 @@ jobs:
               xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Скриншоты свечи в острове для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 20. Мультфильм «Рождество Христово»: видеозапись экрана симулятора, история играет с начала до конца
+            if [ "$SCOPE" = "nativityvideo" ]; then
+              xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$OUT_DIR/nativity.mp4" &
+              REC_PID=$!
+              sleep 3
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab nativity -luys_ads_enabled NO -luys_debug_language "$STORE_LANG"
+              sleep 92
+              kill -INT "$REC_PID" || true
+              wait "$REC_PID" || true
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
+              xcrun simctl shutdown "$UDID" || true
+              ls -la "$OUT_DIR"
+              echo "✅ Видео «Рождества» ($STORE_LANG) записано"
               return 0
             fi
 
@@ -464,5 +481,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Real-AppStore-Native-Screenshots
-          path: ./Real_Screenshots_Output/**/*.png
+          path: |
+            ./Real_Screenshots_Output/**/*.png
+            ./Real_Screenshots_Output/**/*.mp4
           if-no-files-found: error
