@@ -17,6 +17,12 @@ struct ContentView: View {
                 iPadLockScreenShowcaseView()
             } else if UserDefaults.standard.string(forKey: "openTab") == "widgetposters" {
                 WidgetPosterShowcaseView()
+            } else if UserDefaults.standard.string(forKey: "openTab") == "nativity" {
+                // Отладка для съёмки в CI: -nativity_scene N -nativity_t СЕКУНДА ставят мультфильм на паузу в этом кадре
+                NativityStoryView(
+                    debugScene: UserDefaults.standard.object(forKey: "nativity_scene") == nil ? nil : UserDefaults.standard.integer(forKey: "nativity_scene"),
+                    debugSecond: UserDefaults.standard.double(forKey: "nativity_t")
+                )
             } else {
                 TabView(selection: $manager.activeTabSelection) {
                     HomeView()
@@ -189,6 +195,7 @@ struct HomeView: View {
     @State private var isShowingCodex = false
     @State private var isShowingConsolation = false
     @State private var isShowingSanctuaryMap = false
+    @State private var isShowingNativity = false
 
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
@@ -475,7 +482,19 @@ struct HomeView: View {
                         }
                     )
                     .staggeredEntrance(index: 3)
-                    
+
+                    // MARK: - Карточка мультфильма «Рождество Христово»
+                    NativityBannerCardView(
+                        language: manager.appLanguage,
+                        secondaryAccentColor: secondaryAccentColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpen: {
+                            triggerHaptic(.soft)
+                            isShowingNativity = true
+                        }
+                    )
+                    .staggeredEntrance(index: 3)
+
                     // MARK: - Карточка Храмовой Молитвы и Свечей (Մոմավառություն)
                     PrayerSanctuaryBannerCardView(
                         language: manager.appLanguage,
@@ -675,6 +694,9 @@ struct HomeView: View {
         }
         .fullScreenCover(item: $manuscriptLaunch) { launch in
             ManuscriptStudioView(source: launch.source)
+        }
+        .fullScreenCover(isPresented: $isShowingNativity) {
+            NativityStoryView()
         }
         .sheet(isPresented: $isShowingConsolation) {
             NarekConsolationView()

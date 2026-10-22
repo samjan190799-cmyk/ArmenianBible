@@ -27,6 +27,7 @@ on:
           - store
           - posters
           - narek
+          - nativity
       language:
         description: 'Язык интерфейса для scope=store (russian, armenian, english)'
         required: false
@@ -162,6 +163,22 @@ jobs:
               xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Скриншоты свечи в острове для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 19. Мультфильм «Рождество Христово»: кадры по сценам и секундам (история стоит на паузе в заданном кадре)
+            if [ "$SCOPE" = "nativity" ]; then
+              for SHOT in "0 2" "0 7" "0 11" "1 3" "1 9" "2 1" "2 3" "2 6" "2 12" "3 1" "3 4" "3 7" "3 12" "4 3" "4 8" "4 11" "5 3" "5 6" "5 11" "6 3"; do
+                set -- $SHOT
+                echo "📸 Рождество: сцена $1, секунда $2 ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab nativity -nativity_scene "$1" -nativity_t "$2" -luys_ads_enabled NO -luys_debug_language "$STORE_LANG"
+                sleep 6
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/nativity_$1_$(printf '%02d' $2).png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 1
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры «Рождества» ($STORE_LANG) сняты"
               return 0
             fi
 
