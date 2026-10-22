@@ -93,9 +93,9 @@ enum NativityArt {
         let progress = nvEase(t / 9)
         let moving = t < 9.2
         let feet = roadTop + 32 * u
-        let jx = nvLerp(-0.10 * s.w, 0.52 * s.w, progress)
+        let jx = nvLerp(-0.10 * s.w, 0.55 * s.w, progress)
         let walk = t * 4.6
-        let k: CGFloat = 0.82
+        let k: CGFloat = 1.0
         NativityPainter.donkey(&ctx, at: CGPoint(x: jx - 104 * u * k, y: feet), length: 84 * u * k, walk: moving ? walk : nil)
         NativityPainter.person(&ctx, .mary, at: CGPoint(x: jx - 108 * u * k, y: feet - 60 * u * k), height: 58 * u * k, skirt: true)
         NativityPainter.person(&ctx, .joseph, at: CGPoint(x: jx, y: feet), height: 88 * u * k, walk: moving ? walk + 1 : nil)
@@ -180,15 +180,19 @@ enum NativityArt {
         NativityPainter.hills(&ctx, s, base: s.ground + 4 * u, amplitude: 12 * u, wavelength: 70 * u, phase: 2.6, scroll: 0, top: NP.rgb(34, 40, 78), bottom: NP.rgb(18, 22, 48))
 
         // ангел и воинство небесное
-        let main = CGPoint(x: s.w * 0.5, y: s.h * 0.26)
-        NativityPainter.angel(&ctx, at: main, scale: 1.2 * u, ambient: amb, strength: reveal)
+        let main = CGPoint(x: s.w * 0.5, y: s.h * 0.30)
+        NativityPainter.angel(&ctx, at: main, scale: 0.82 * u, ambient: amb, strength: reveal)
         let host = nvEase((t - 9) / 2.0)
         if host > 0.001 {
-            for i in 0..<9 {
-                let a = (-165.0 + Double(i) * 18.75) * Double.pi / 180
-                let bob = CGFloat(sin(amb * 1.1 + Double(i))) * 4 * u
-                let c = CGPoint(x: s.w * 0.5 + CGFloat(cos(a)) * s.w * 0.44, y: s.h * 0.30 + CGFloat(sin(a)) * s.h * 0.15 + bob)
-                NativityPainter.angel(&ctx, at: c, scale: 0.34 * u, ambient: amb + Double(i), strength: host * 0.9)
+            // воинство небесное по сторонам от главного ангела, зеркально
+            let spots: [(CGFloat, CGFloat)] = [(0.11, 0.35), (0.22, 0.26), (0.30, 0.37), (0.14, 0.21)]
+            for (i, spot) in spots.enumerated() {
+                for side in [0, 1] {
+                    let x = side == 0 ? spot.0 : 1 - spot.0
+                    let bob = CGFloat(sin(amb * 1.1 + Double(i * 2 + side))) * 4 * u
+                    let c = CGPoint(x: s.w * x, y: s.h * spot.1 + bob)
+                    NativityPainter.angel(&ctx, at: c, scale: 0.30 * u, ambient: amb + Double(i * 2 + side), strength: host * 0.9)
+                }
             }
         }
 
@@ -241,7 +245,7 @@ enum NativityArt {
         let slots: [(CGFloat, CGFloat)] = [(0.20, 6), (0.47, 0), (0.74, -6)]
         for i in 0..<3 {
             let sway = CGFloat(sin(amb * 0.5 + Double(i))) * 3 * u
-            let feet = s.ground + 100 * u + slots[i].1 * u
+            let feet = s.ground + 78 * u + slots[i].1 * u
             NativityPainter.camel(&ctx, at: CGPoint(x: s.w * slots[i].0 + sway, y: feet), height: 100 * u, walk: moving ? t * 3.6 + Double(i) * 0.9 : nil, blanket: riders[i].1, rider: riders[i].0)
         }
     }
@@ -256,31 +260,38 @@ enum NativityArt {
 
         // Мария с Младенцем на коленях, Иосиф за ней
         let marySeat = CGPoint(x: s.w * 0.62, y: floorY + 8 * u)
+        let babyPoint = CGPoint(x: marySeat.x - 34 * u, y: marySeat.y - 44 * u)
+        // сияние Младенца рисуем за людьми, иначе оно выбеливает Марию
+        NativityPainter.glow(&ctx, at: babyPoint, radius: 120 * u, color: NP.rgb(255, 230, 168), alpha: 0.55 + 0.08 * sin(amb * 2))
         NativityPainter.person(&ctx, .joseph, at: CGPoint(x: s.w * 0.88, y: floorY - 2 * u), height: 112 * u, facing: -1, lean: 0.03)
         NativityPainter.person(&ctx, .mary, at: marySeat, height: 100 * u, facing: -1, skirt: true)
-        bundle(&ctx, at: CGPoint(x: marySeat.x - 34 * u, y: marySeat.y - 44 * u), u: u, ambient: amb)
+        bundle(&ctx, at: babyPoint, u: u)
 
         // волхвы входят слева и преклоняют колени
         let finals: [CGFloat] = [0.15, 0.29, 0.43]
         let people: [NativityPerson] = [.magiViolet, .magiTeal, .magiRed]
+        var arrivals: [Double] = []
         for i in 0..<3 {
             let start = 0.3 + Double(i) * 0.7
             let walkProgress = nvEase((t - start) / 4.0)
             let arrived = start + 4.0
+            arrivals.append(arrived)
             let kneel = nvEase((t - arrived) / 1.6)
             let x = nvLerp(-0.20 * s.w, finals[i] * s.w, walkProgress)
             let walking = t > start && t < arrived
             let height = (100 - 22 * CGFloat(kneel)) * u
-            NativityPainter.person(&ctx, people[i], at: CGPoint(x: x, y: floorY + CGFloat(i) * 5 * u), height: height, facing: 1, walk: walking ? t * 4.4 + Double(i) : nil, lean: 0.36 * CGFloat(kneel), skirt: kneel > 0.4)
-            let giftAlpha = nvEase((t - arrived - 1.6) / 1.2)
-            gift(&ctx, kind: i, at: CGPoint(x: x + 58 * u, y: floorY + 4 * u + CGFloat(i) * 5 * u), u: u, ambient: amb, alpha: giftAlpha)
+            NativityPainter.person(&ctx, people[i], at: CGPoint(x: x, y: floorY + CGFloat(i) * 5 * u), height: height, facing: 1, walk: walking ? t * 4.4 + Double(i) : nil, lean: 0.30 * CGFloat(kneel), skirt: kneel > 0.4)
+        }
+        // дары кладут перед ними, ближе к зрителю, чтобы их не закрывали фигуры
+        for i in 0..<3 {
+            let giftAlpha = nvEase((t - arrivals[i] - 1.6) / 1.2)
+            gift(&ctx, kind: i, at: CGPoint(x: finals[i] * s.w + 36 * u, y: floorY + 30 * u + CGFloat(i) * 4 * u), u: u, ambient: amb, alpha: giftAlpha)
         }
         NativityPainter.motes(&ctx, s, ambient: amb, count: 22, color: NP.warmLight, alpha: 0.8, area: CGRect(x: s.w * 0.30, y: s.h * 0.22, width: s.w * 0.5, height: floorY - s.h * 0.22))
     }
 
     /// Младенец на руках: пелёнки, нимб и золотое сияние
-    private static func bundle(_ ctx: inout GraphicsContext, at c: CGPoint, u: CGFloat, ambient: Double) {
-        NativityPainter.glow(&ctx, at: c, radius: 120 * u, color: NP.rgb(255, 230, 168), alpha: 0.75 + 0.1 * sin(ambient * 2))
+    private static func bundle(_ ctx: inout GraphicsContext, at c: CGPoint, u: CGFloat) {
         ctx.drawLayer { g in
             g.translateBy(x: c.x, y: c.y)
             g.rotate(by: .radians(-0.22))

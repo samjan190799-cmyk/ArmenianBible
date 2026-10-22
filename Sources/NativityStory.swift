@@ -249,7 +249,7 @@ struct NativityStoryView: View {
             }
             .padding(.horizontal, 32)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.top, 150)
+            .padding(.top, 92)
             .opacity(alpha)
             .allowsHitTesting(false)
         }
