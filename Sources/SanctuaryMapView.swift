@@ -127,12 +127,13 @@ struct SanctuaryMapView: View {
             }
         }
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "map")
         }
         .fullScreenCover(item: $manuscriptLaunch) { launch in
             ManuscriptStudioView(source: launch.source)
         }
         .onAppear {
+            Funnel.track("feature_used", ["feature": "sanctuary_map"])
             runLaunchArguments()
             if location.isAuthorized { location.request() }
         }

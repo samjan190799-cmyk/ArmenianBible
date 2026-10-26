@@ -137,7 +137,7 @@ final class AIModelRegistry: @unchecked Sendable {
     // MARK: - Универсальное выполнение запроса с каскадным переключением (Fail-Safe Fallback)
     
     /// Запрос к ИИ. Подписчик без своего ключа идёт через сервер. Если свой ключ человека не принят (устарел, отозван),
-    /// подписчик не остаётся с ошибкой: запрос повторяется через сервер.
+    /// подписчик не остаётся с ошибкой: запрос повторяется через сервер. Итог каждого запроса идёт в воронку.
     func executeRequest(
         provider: AIProvider,
         apiKey: String,
@@ -147,15 +147,39 @@ final class AIModelRegistry: @unchecked Sendable {
         maxTokens: Int = 1024
     ) async throws -> (text: String, usedModel: String) {
         if apiKey == AIProxy.sentinelKey {
-            let text = try await AIProxy.generate(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
-            return (text, "server")
+            return try await serverRequest(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
         }
         do {
-            return try await executeDirectRequest(provider: provider, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            let result = try await executeDirectRequest(provider: provider, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            Funnel.track("ai_result", ["result": "ok", "via": "own"])
+            return result
         } catch {
-            guard AIProxy.isAvailableForCurrentUser, Self.isCredentialFailure(error) else { throw error }
+            guard AIProxy.isAvailableForCurrentUser, Self.isCredentialFailure(error) else {
+                Funnel.track("ai_result", ["result": Self.aiOutcome(error), "via": "own"])
+                throw error
+            }
+            return try await serverRequest(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+        }
+    }
+
+    private func serverRequest(prompt: String, systemPrompt: String?, jsonMode: Bool, maxTokens: Int) async throws -> (text: String, usedModel: String) {
+        do {
             let text = try await AIProxy.generate(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            Funnel.track("ai_result", ["result": "ok", "via": "server"])
             return (text, "server")
+        } catch {
+            Funnel.track("ai_result", ["result": Self.aiOutcome(error), "via": "server"])
+            throw error
+        }
+    }
+
+    /// Итог запроса одним словом для воронки
+    private static func aiOutcome(_ error: Error) -> String {
+        switch (error as NSError).code {
+        case 429: return "quota"
+        case 451: return "declined"
+        case 401, 403: return "auth"
+        default: return "error"
         }
     }
 

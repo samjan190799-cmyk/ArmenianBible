@@ -268,6 +268,8 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             return
         }
 
+        Funnel.track("feature_used", ["feature": "narek_audio"])
+
         // Останавливаем прежний плеер, не затирая сохранённую позицию промежуточным состоянием
         setSleepTimer(.off)
         cleanupPlayer()

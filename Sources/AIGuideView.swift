@@ -158,7 +158,7 @@ struct AIGuideView: View {
             }
         }
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "ai")
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
@@ -503,6 +503,8 @@ extension AIGuideView {
             }
             return
         }
+        
+        Funnel.track("feature_used", ["feature": "ai_question"])
         
         // Добавляем вопрос пользователя в историю чата
         let userMessage = AIChatMessage(isUser: true, text: trimmed)

@@ -338,7 +338,7 @@ struct ManuscriptPenSheet: View {
             .padding(16)
         }
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "manuscript_pen")
         }
     }
 

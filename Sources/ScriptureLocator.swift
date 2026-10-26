@@ -93,6 +93,7 @@ enum ScriptureLocator {
     @discardableResult
     static func open(_ verse: BibleVerse) -> Bool {
         let manager = BibleManager.shared
+        Funnel.track("feature_used", ["feature": "verse_link"])
         if isNarekatsi(verse) {
             manager.openNarekatsi()
             return true

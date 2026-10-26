@@ -660,7 +660,7 @@ struct HomeView: View {
             manager.scheduleDailyNotifications()
         }
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "home")
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings)

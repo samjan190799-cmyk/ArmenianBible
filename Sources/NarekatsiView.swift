@@ -328,7 +328,7 @@ struct NarekatsiView: View {
             .animation(.spring(), value: toastMessage)
         )
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "narek_audio")
         }
         .onAppear {
             // Отладочный запуск для съёмки в CI: -openTab narek -narek_reader_chapter N открывает чтение главы N

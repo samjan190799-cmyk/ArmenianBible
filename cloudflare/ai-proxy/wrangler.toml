@@ -22,3 +22,12 @@ class_name = "Quota"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Quota"]
+
+# Воронка: счётчики событий приложения (анонимные), читаются на странице /dashboard по токену STATS_TOKEN
+[[durable_objects.bindings]]
+name = "STATS"
+class_name = "Stats"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Stats"]

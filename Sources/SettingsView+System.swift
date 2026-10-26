@@ -63,6 +63,45 @@ extension SettingsView {
                 
                 Divider().opacity(0.3)
 
+                // Анонимная статистика: какие экраны открывают и где останавливаются
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Paper.plum.opacity(0.15))
+                            .frame(width: 34, height: 34)
+
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Paper.plum)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(selectedLanguage.pick(hy: "Անանուն վիճակագրություն", ru: "Анонимная статистика", en: "Anonymous statistics"))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+
+                        Text(selectedLanguage.pick(
+                            hy: "Որ էկրաններն են բացվում: Առանց անվան, փոստի և գովազդային նույնացուցչի",
+                            ru: "Какие экраны открывают и где останавливаются. Без имени, почты и рекламного идентификатора",
+                            en: "Which screens are opened and where people stop. No name, email or advertising identifier"
+                        ))
+                            .font(PaperFont.font(size: 11.5))
+                            .foregroundColor(Paper.inkSecondary)
+                            .lineLimit(3)
+                    }
+
+                    Spacer()
+
+                    Toggle("", isOn: $isFunnelEnabled)
+                        .labelsHidden()
+                        .tint(selectedTheme.color)
+                        .onChange(of: isFunnelEnabled) { newVal in
+                            UserDefaults.standard.set(newVal, forKey: Funnel.enabledKey)
+                        }
+                }
+
+                Divider().opacity(0.3)
+
                 // 2. Блокировка Face ID / Touch ID
                 HStack(spacing: 12) {
                     ZStack {

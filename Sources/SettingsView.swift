@@ -76,6 +76,8 @@ struct SettingsView: View {
     
     // 🔐 Панель тестировщика: 5 быстрых тапов по «О приложении», только TestFlight/DEBUG
     @State var secretTapCount = 0
+    /// Анонимная статистика (воронка): человек может выключить
+    @State var isFunnelEnabled = Funnel.isEnabled
     @State var secretLastTap = Date.distantPast
     @State var isShowingDevPasscodeAlert = false
     @State var devPasscodeInput = ""
@@ -338,7 +340,7 @@ struct SettingsView: View {
                 appIconManager.syncWithSystem()
             }
             .sheet(isPresented: $isShowingPaywall) {
-                PaywallView()
+                PaywallView(source: "settings")
             }
             .sheet(isPresented: $isShowingWidgetInstruction) {
                 WidgetInstructionSheetView(

@@ -553,7 +553,7 @@ struct LightCandleFormSheetView: View {
             .navigationTitle(sheetTitle)
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $isShowingPaywall) {
-                PaywallView()
+                PaywallView(source: "candle")
             }
             .fullScreenCover(isPresented: $isShowingWriter, onDismiss: {
                 if pendingLight {

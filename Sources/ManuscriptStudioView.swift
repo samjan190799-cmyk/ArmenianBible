@@ -190,6 +190,7 @@ struct ManuscriptStudioView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear {
+            Funnel.track("feature_used", ["feature": "manuscript"])
             motion.start()
             scheduleHaptics()
             exportForTestsIfNeeded()

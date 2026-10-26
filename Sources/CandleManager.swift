@@ -86,6 +86,7 @@ final class CandleManager: ObservableObject {
         PomegranateTreeManager.shared.nourishWithDew(amount: 1)
         
         Haptics.notify(.success)
+        Funnel.track("feature_used", ["feature": "candle"])
         return true
     }
     
@@ -132,6 +133,7 @@ final class CandleManager: ObservableObject {
         showInIsland(candle)
         PomegranateTreeManager.shared.nourishWithDew(amount: 1)
         Haptics.notify(.success)
+        Funnel.track("feature_used", ["feature": "candle"])
         return true
     }
 

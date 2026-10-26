@@ -28,7 +28,23 @@ struct PaywallView: View {
         Paper.inkSecondary
     }
     
-    init() {}
+    /// Откуда открыт экран: попадает в воронку, чтобы видеть, какие замки приводят к подписке
+    private let source: String
+    @State private var appearedAt = Date()
+
+    init(source: String = "unknown") {
+        self.source = source
+    }
+
+    private func planCode(_ plan: SubscriptionPlan) -> String {
+        plan == .yearly ? "yearly" : "monthly"
+    }
+
+    /// Есть ли у годового тарифа бесплатный пробный период в App Store (пока тарифы не загрузились, неизвестно)
+    private var trialStatus: String {
+        guard let yearly = subscriptionManager.products.first(where: { $0.id == SubscriptionPlan.yearly.rawValue }) else { return "unknown" }
+        return yearly.subscription?.introductoryOffer?.paymentMode == .freeTrial ? "yes" : "no"
+    }
     
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -217,9 +233,15 @@ struct PaywallView: View {
             withAnimation(.easeInOut(duration: 3).loops(autoreverses: true)) {
                 animateGlow = true
             }
+            appearedAt = Date()
+            Funnel.track("paywall_shown", ["source": source, "trial": trialStatus])
             Task {
                 await subscriptionManager.requestProducts()
+                Funnel.track("products_loaded", ["result": subscriptionManager.products.isEmpty ? "none" : "ok"])
             }
+        }
+        .onDisappear {
+            Funnel.track("paywall_closed", ["source": source, "secs": Funnel.secondsBucket(Date().timeIntervalSince(appearedAt))])
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(
@@ -272,6 +294,7 @@ struct PaywallView: View {
         
         return Button {
             triggerHaptic(.selection)
+            Funnel.track("paywall_plan", ["plan": planCode(plan)])
             withAnimation(.spring(response: 0.3, dampingFraction: 0.72)) {
                 selectedPlan = plan
             }
@@ -341,9 +364,12 @@ struct PaywallView: View {
     
     private func executePurchase() {
         isPurchasing = true
+        Funnel.track("purchase_started", ["plan": planCode(selectedPlan), "source": source])
         Task {
             let success = await subscriptionManager.purchase(plan: selectedPlan)
             isPurchasing = false
+            let outcome = success ? "success" : (subscriptionManager.wasCancelled ? "cancelled" : (subscriptionManager.products.isEmpty ? "unavailable" : "failed"))
+            Funnel.track("purchase_result", ["result": outcome, "plan": planCode(selectedPlan)])
             if success {
                 triggerHaptic(.success)
                 showSuccessAlert = true
@@ -367,6 +393,7 @@ struct PaywallView: View {
         Task {
             let success = await subscriptionManager.restorePurchases()
             isPurchasing = false
+            Funnel.track("restore_result", ["result": success ? "success" : "none"])
             if success {
                 triggerHaptic(.success)
                 showSuccessAlert = true

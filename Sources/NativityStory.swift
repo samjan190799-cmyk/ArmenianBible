@@ -182,7 +182,10 @@ struct NativityStoryView: View {
             }
         }
         .statusBarHidden(true)
-        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
+            Funnel.track("feature_used", ["feature": "nativity"])
+        }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
         .onChange(of: scenePhase) { phase in
             // Свернули приложение: останавливаем историю там, где она была

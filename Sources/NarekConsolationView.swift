@@ -73,8 +73,9 @@ struct NarekConsolationView: View {
                 }
             }
         }
+        .onAppear { Funnel.track("feature_used", ["feature": "consolation"]) }
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "consolation")
         }
         .fullScreenCover(item: $manuscriptLaunch) { launch in
             ManuscriptStudioView(source: launch.source)

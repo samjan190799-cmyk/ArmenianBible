@@ -4,10 +4,14 @@
 
 import { verifyAppleJws, checkEntitlement, VerifyError } from './apple.js';
 import { generate, GenerateError } from './gemini.js';
+import { parseBatch } from './events.js';
+import { dashboardHtml } from './dashboard.js';
 
 export { Quota } from './quota.js';
+export { Stats } from './stats.js';
 
 const MAX_BODY_BYTES = 24_000;
+const MAX_EVENTS_BODY_BYTES = 12_000;
 const MAX_PROMPT_CHARS = 8_000;
 const MAX_SYSTEM_CHARS = 2_000;
 
@@ -68,6 +72,47 @@ async function handleGenerate(request, env, deps) {
   }
 }
 
+// --- Воронка: приём событий от приложения и сводка для владельца
+
+function statsStub(env) {
+  return env.STATS.get(env.STATS.idFromName('main'));
+}
+
+async function handleEvents(request, env) {
+  if (!env.STATS) return json({ error: 'not_configured' }, 503);
+  if (Number(request.headers.get('content-length') || 0) > MAX_EVENTS_BODY_BYTES) return json({ error: 'too_large' }, 413);
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'bad_json' }, 400);
+  }
+  const batch = parseBatch(body);
+  if (!batch) return json({ error: 'bad_request' }, 400);
+  const day = new Date().toISOString().slice(0, 10);
+  const res = await statsStub(env).fetch('https://stats/ingest', { method: 'POST', body: JSON.stringify({ day, ...batch }) });
+  const { accepted } = await res.json();
+  return json({ ok: true, accepted });
+}
+
+/** Сравнение без утечки по времени: сначала хэши одинаковой длины, потом побайтово */
+async function sameSecret(given, expected) {
+  const hash = async (value) => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
+  const [a, b] = await Promise.all([hash(given), hash(expected)]);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+async function handleStats(request, env, url) {
+  if (!env.STATS || !env.STATS_TOKEN) return json({ error: 'not_configured' }, 503);
+  const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!token || !(await sameSecret(token, env.STATS_TOKEN))) return json({ error: 'unauthorized' }, 401);
+  const days = Number(url.searchParams.get('days')) || 14;
+  const res = await statsStub(env).fetch(`https://stats/report?days=${days}`);
+  return json(await res.json());
+}
+
 export default {
   async fetch(request, env, ctx, deps = {}) {
     const url = new URL(request.url);
@@ -76,6 +121,15 @@ export default {
     }
     if (request.method === 'POST' && url.pathname === '/v1/generate') {
       return handleGenerate(request, env, deps);
+    }
+    if (request.method === 'POST' && url.pathname === '/v1/events') {
+      return handleEvents(request, env);
+    }
+    if (request.method === 'GET' && url.pathname === '/v1/stats') {
+      return handleStats(request, env, url);
+    }
+    if (request.method === 'GET' && url.pathname === '/dashboard') {
+      return new Response(dashboardHtml(), { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex' } });
     }
     return json({ error: 'not_found' }, 404);
   }
