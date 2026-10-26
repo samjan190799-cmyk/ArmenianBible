@@ -156,6 +156,7 @@ final class CloudSyncManager: ObservableObject {
         store.synchronize()
         if needsReload {
             BibleManager.shared.reloadFromCloudSync()
+            ManuscriptLibrary.shared.reloadFromStorage()
             WidgetCenter.shared.reloadAllTimelines()
         }
         let now = Date()
@@ -346,8 +347,37 @@ final class CloudSyncManager: ObservableObject {
                 let remote = (try? JSONDecoder().decode(QuizPayload.self, from: r))?.best ?? 0
                 return (try? encoder().encode(QuizPayload(best: max(local, remote)))) ?? l
             }
+        ),
+        // «Матенадаран»: собранные листы рукописи (при общем листе побеждает локальный, листы не теряются)
+        Spec(
+            name: "manuscripts",
+            read: {
+                guard let raw = UserDefaults.standard.data(forKey: ManuscriptLibrary.storageKey),
+                      let pages = try? JSONDecoder().decode([ManuscriptPage].self, from: raw) else { return nil }
+                return encodeManuscripts(pages)
+            },
+            write: { data in
+                guard (try? JSONDecoder().decode([ManuscriptPage].self, from: data)) != nil else { return }
+                UserDefaults.standard.set(data, forKey: ManuscriptLibrary.storageKey)
+            },
+            merge: { l, r in
+                let local = (try? JSONDecoder().decode([ManuscriptPage].self, from: l)) ?? []
+                let remote = (try? JSONDecoder().decode([ManuscriptPage].self, from: r)) ?? []
+                var byId: [UUID: ManuscriptPage] = [:]
+                for page in remote { byId[page.id] = page }
+                for page in local { byId[page.id] = page }
+                return encodeManuscripts(Array(byId.values)) ?? l
+            }
         )
     ]
+
+    /// Один и тот же порядок на всех устройствах (новые вперёд), иначе хеши разошлись бы без причины
+    private static func encodeManuscripts(_ pages: [ManuscriptPage]) -> Data? {
+        let ordered = pages.sorted {
+            $0.createdAt != $1.createdAt ? $0.createdAt > $1.createdAt : $0.id.uuidString > $1.id.uuidString
+        }
+        return try? encoder().encode(ordered)
+    }
 
     struct SettingsPayload: Codable {
         var language: String?

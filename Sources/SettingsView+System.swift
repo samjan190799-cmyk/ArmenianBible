@@ -378,9 +378,9 @@ extension SettingsView {
 
     private var iCloudSyncDescription: String {
         switch selectedLanguage {
-        case .armenian: return "Ընտրյալները, նշումները, ընթերցանության առաջընթացը և կարգավորումները՝ ձեր բոլոր սարքերում։ ԱԲ-ի բանալիները և գնումները չեն փոխանցվում։"
-        case .russian:  return "Избранное, заметки, прогресс чтения и настройки — на всех ваших устройствах. Ключи ИИ и покупки не передаются."
-        case .english:  return "Favorites, notes, reading progress and settings on all your devices. AI keys and purchases are not sent."
+        case .armenian: return "Ընտրյալները, նշումները, Մատենադարանի էջերը, ընթերցանության առաջընթացը և կարգավորումները՝ ձեր բոլոր սարքերում։ ԱԲ-ի բանալիները և գնումները չեն փոխանցվում։"
+        case .russian:  return "Избранное, заметки, листы Матенадарана, прогресс чтения и настройки — на всех ваших устройствах. Ключи ИИ и покупки не передаются."
+        case .english:  return "Favorites, notes, Matenadaran pages, reading progress and settings on all your devices. AI keys and purchases are not sent."
         }
     }
 

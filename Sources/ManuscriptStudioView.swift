@@ -603,21 +603,7 @@ struct ManuscriptStudioView: View {
     /// Картинка 1080×1920 для сторис и фотоальбома: готовая страница, золото с бликом, подпись Luys
     @MainActor
     private func renderImage() -> UIImage? {
-        let content = ManuscriptPageView(page: currentPage, reveal: .complete, sheen: CGPoint(x: 0.18, y: -0.12), showsWatermark: true, pen: activePen)
-        let renderer = ImageRenderer(content: content)
-        renderer.scale = 3
-        if let image = renderer.uiImage {
-            return image
-        }
-        let host = UIHostingController(rootView: content)
-        host.view.frame = CGRect(origin: .zero, size: ManuscriptGeometry.size)
-        host.view.backgroundColor = .clear
-        host.view.layoutIfNeeded()
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 3
-        return UIGraphicsImageRenderer(size: ManuscriptGeometry.size, format: format).image { _ in
-            host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
-        }
+        ManuscriptExport.pageImage(currentPage, pen: activePen, scale: 3)
     }
 
     /// Для CI: сохраняет экспортную картинку в Documents, чтобы её можно было забрать с симулятора
@@ -666,6 +652,12 @@ struct ManuscriptLibraryView: View {
     @Environment(\.dismiss) private var dismiss
     let onOpen: (ManuscriptPage) -> Void
 
+    @ObservedObject private var subscription = SubscriptionManager.shared
+    @State private var shareItem: ShareItem?
+    @State private var codexFile: CodexFile?
+    @State private var isExporting = false
+    @State private var isShowingPaywall = false
+
     private var language: AppLanguage { BibleManager.shared.appLanguage }
 
     var body: some View {
@@ -694,6 +686,11 @@ struct ManuscriptLibraryView: View {
                                 }
                                 .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
                                 .contextMenu {
+                                    Button {
+                                        sharePage(page)
+                                    } label: {
+                                        Label(ManuscriptText.pick(language, hy: "Կիսվել", ru: "Поделиться", en: "Share"), systemImage: "square.and.arrow.up")
+                                    }
                                     Button(role: .destructive) {
                                         library.delete(page)
                                     } label: {
@@ -710,6 +707,22 @@ struct ManuscriptLibraryView: View {
             .navigationTitle(ManuscriptText.pick(language, hy: "Իմ Մատենադարանը", ru: "Мой Матенадаран", en: "My Matenadaran"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !library.pages.isEmpty {
+                        Button {
+                            exportCodex()
+                        } label: {
+                            if isExporting {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(Paper.inkSecondary)
+                            }
+                        }
+                        .accessibilityLabel(Text(ManuscriptText.pick(language, hy: "Կոդեքսը PDF-ով", ru: "Кодекс в PDF", en: "Codex as PDF")))
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         dismiss()
@@ -719,6 +732,42 @@ struct ManuscriptLibraryView: View {
                             .foregroundColor(Paper.inkSecondary)
                     }
                 }
+            }
+            .sheet(item: $shareItem) { item in
+                ActivityView(activityItems: [item.image])
+            }
+            .sheet(item: $codexFile) { file in
+                ActivityView(activityItems: [file.url])
+            }
+            .sheet(isPresented: $isShowingPaywall) {
+                PaywallView(source: "codex_pdf")
+            }
+        }
+    }
+
+    @MainActor
+    private func sharePage(_ page: ManuscriptPage) {
+        guard let image = ManuscriptExport.pageImage(page, pen: ManuscriptPen.effective, scale: 3) else { return }
+        shareItem = ShareItem(image: image)
+    }
+
+    /// Кодекс в PDF для подписчиков: титульный лист и все собранные страницы по порядку
+    @MainActor
+    private func exportCodex() {
+        guard !isExporting else { return }
+        guard subscription.isPremium else {
+            isShowingPaywall = true
+            return
+        }
+        isExporting = true
+        Task { @MainActor in
+            // Даём кнопке показать индикатор, прежде чем главный поток займётся рисованием страниц
+            try? await Task.sleep(nanoseconds: 80_000_000)
+            let url = ManuscriptExport.codexPDF(pages: library.pages, owner: ManuscriptPage.rememberedName, language: language, pen: ManuscriptPen.effective)
+            isExporting = false
+            if let url {
+                Funnel.track("feature_used", ["feature": "codex_pdf"])
+                codexFile = CodexFile(url: url)
             }
         }
     }

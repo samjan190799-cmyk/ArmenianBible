@@ -300,10 +300,10 @@ final class ManuscriptLibrary: ObservableObject {
 
     @Published private(set) var pages: [ManuscriptPage] = []
 
-    private let storageKey = "luys_manuscripts_v1"
+    static let storageKey = "luys_manuscripts_v1"
 
     private init() {
-        if let data = UserDefaults.standard.data(forKey: storageKey),
+        if let data = UserDefaults.standard.data(forKey: Self.storageKey),
            let decoded = try? JSONDecoder().decode([ManuscriptPage].self, from: data) {
             pages = decoded
         }
@@ -311,6 +311,13 @@ final class ManuscriptLibrary: ObservableObject {
 
     func contains(_ page: ManuscriptPage) -> Bool {
         pages.contains { $0.id == page.id }
+    }
+
+    /// Листы пришли из iCloud: перечитываем собрание из хранилища
+    func reloadFromStorage() {
+        guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
+              let decoded = try? JSONDecoder().decode([ManuscriptPage].self, from: data) else { return }
+        pages = decoded
     }
 
     /// Новая страница встаёт первой; уже сохранённая обновляется на месте (стиль, имя)
@@ -332,7 +339,7 @@ final class ManuscriptLibrary: ObservableObject {
 
     private func persist() {
         if let data = try? JSONEncoder().encode(pages) {
-            UserDefaults.standard.set(data, forKey: storageKey)
+            UserDefaults.standard.set(data, forKey: Self.storageKey)
         }
     }
 }
