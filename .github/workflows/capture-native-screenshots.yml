@@ -362,6 +362,9 @@ jobs:
               shoot "s11_quiz" -openTab quiz
               shoot "s12_calendar" -openTab calendar
               shoot "s13_settings" -openTab settings
+              shoot "s14_codex" -openTab manuscript -manuscript_seed_library 12 -manuscript_open_library YES -manuscript_library_scroll top -manuscript_language "$STORE_LANG" -manuscript_time 30
+              shoot "s15_tree_tasks" -openTab tree -pomegranate_debug_days 20 -pomegranate_demo YES -pomegranate_scroll tasks
+              shoot "s16_nativity" -openTab nativity -nativity_scene 3 -nativity_t 4
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Скриншоты для магазина ($STORE_LANG) сняты"
               return 0
