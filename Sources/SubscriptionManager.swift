@@ -96,6 +96,13 @@ final class SubscriptionManager: ObservableObject {
         Bundle.isTestFlightOrDebug
     }
 
+    /// Человек сам купил подписку или восстановил покупки: принудительный Free из панели тестировщика не должен её перекрывать
+    /// (раньше он оставался включённым и после покупки, и приложение показывало Free при действующей подписке)
+    private func clearDeveloperFreeMode() {
+        guard Self.devToolsAvailable else { return }
+        UserDefaults.standard.removeObject(forKey: kForceFreeModeKey)
+    }
+
     /// Стирает следы панели разработчика, включённой в прежних версиях приложения.
     private func purgeDeveloperOverrides() {
         let defaults = UserDefaults.standard
@@ -228,6 +235,7 @@ final class SubscriptionManager: ObservableObject {
             switch result {
             case .success(let verification):
                 let transaction = try Self.checkVerified(verification)
+                clearDeveloperFreeMode()
                 await updatePurchasedStatus()
                 await transaction.finish()
                 isPurchasing = false
@@ -274,6 +282,7 @@ final class SubscriptionManager: ObservableObject {
         
         do {
             try await AppStore.sync()
+            clearDeveloperFreeMode()
             await updatePurchasedStatus()
             isPurchasing = false
             return isPremium
