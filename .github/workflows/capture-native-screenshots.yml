@@ -222,7 +222,8 @@ jobs:
                   sleep 4
                 done
                 echo "готово кадров: $(ls "$CONTAINER/Documents/promo_$KIND" 2>/dev/null | wc -l)"
-                (cd "$CONTAINER/Documents" && zip -qr "$OUT_DIR/promo_frames_${KIND}_$STORE_LANG.zip" "promo_$KIND") || echo "⚠️ кадры $KIND не найдены"
+                local ABS_OUT="$(cd "$OUT_DIR" && pwd)"
+                (cd "$CONTAINER/Documents" && zip -qr "$ABS_OUT/promo_frames_${KIND}_$STORE_LANG.zip" "promo_$KIND") || echo "⚠️ кадры $KIND не найдены"
                 xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
                 sleep 2
               }
