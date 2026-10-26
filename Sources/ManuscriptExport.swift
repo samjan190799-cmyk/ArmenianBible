@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Листы рукописи как картинки и кодекс как PDF
+// MARK: - Листы рукописи как картинки и том кодекса как PDF
 enum ManuscriptExport {
     /// Готовая страница с золотом, бликом и подписью Luys
     @MainActor
@@ -27,15 +27,15 @@ enum ManuscriptExport {
         }
     }
 
-    /// Кодекс одним файлом: титульный лист и страницы по порядку создания, от старых к новым
+    /// Том одним файлом: титульный лист и страницы в том порядке, в каком они стоят в книге.
+    /// volume — номер тома для титула; nil, когда том единственный
     @MainActor
-    static func codexPDF(pages: [ManuscriptPage], owner: String, language: AppLanguage, pen: ManuscriptPen) -> URL? {
-        let ordered = pages.sorted { $0.createdAt < $1.createdAt }
+    static func codexPDF(pages: [ManuscriptPage], owner: String, language: AppLanguage, pen: ManuscriptPen, volume: Int?) -> URL? {
         var images: [UIImage] = []
-        if let cover = render(ManuscriptCodexTitleView(count: ordered.count, owner: owner, language: language), scale: 2) {
+        if let cover = render(ManuscriptCodexTitleView(count: pages.count, volume: volume, owner: owner, language: language), scale: 2) {
             images.append(cover)
         }
-        for page in ordered {
+        for page in pages {
             if let image = pageImage(page, pen: pen, scale: 2) {
                 images.append(image)
             }
@@ -43,12 +43,13 @@ enum ManuscriptExport {
         guard images.count > 1 else { return nil }
 
         let bounds = CGRect(origin: .zero, size: ManuscriptGeometry.size)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Luys-Matenadaran.pdf")
+        let fileName = volume.map { "Luys-Matenadaran-\($0).pdf" } ?? "Luys-Matenadaran.pdf"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         do {
             try UIGraphicsPDFRenderer(bounds: bounds).writePDF(to: url) { context in
                 for image in images {
                     context.beginPage()
-                    // Через JPEG кодекс из десятков страниц занимает несколько мегабайт, а не сотни
+                    // Через JPEG том из двенадцати страниц занимает несколько мегабайт, а не сотни
                     let compact = image.jpegData(compressionQuality: 0.85).flatMap { UIImage(data: $0) } ?? image
                     compact.draw(in: bounds)
                 }
@@ -60,15 +61,23 @@ enum ManuscriptExport {
     }
 }
 
+extension ManuscriptText {
+    /// «Том 2»: название тома кодекса
+    static func volume(_ number: Int, _ language: AppLanguage) -> String {
+        pick(language, hy: "Հատոր \(number)", ru: "Том \(number)", en: "Volume \(number)")
+    }
+}
+
 /// Файл для окна «Поделиться»
 struct CodexFile: Identifiable {
     let id = UUID()
     let url: URL
 }
 
-// MARK: - Титульный лист кодекса: переплёт, название, имя владельца
+// MARK: - Титульный лист тома: переплёт, название, имя владельца
 struct ManuscriptCodexTitleView: View {
     let count: Int
+    let volume: Int?
     let owner: String
     let language: AppLanguage
 
@@ -86,6 +95,11 @@ struct ManuscriptCodexTitleView: View {
                 Text(ManuscriptText.pick(language, hy: "Մատենադարան", ru: "Матенадаран", en: "Matenadaran"))
                     .font(PaperFont.font(size: 34, weight: .semibold))
                     .foregroundColor(Self.gold)
+                if let volume {
+                    Text(ManuscriptText.volume(volume, language))
+                        .font(PaperFont.font(size: 20, weight: .semibold))
+                        .foregroundColor(Self.gold.opacity(0.9))
+                }
                 Text(subtitle)
                     .font(PaperFont.font(size: 15))
                     .foregroundColor(Self.gold.opacity(0.8))
@@ -95,7 +109,7 @@ struct ManuscriptCodexTitleView: View {
                     .foregroundColor(Self.gold.opacity(0.55))
                     .padding(.top, 18)
             }
-            .padding(.top, 450)
+            .padding(.top, 440)
         }
         .frame(width: ManuscriptGeometry.size.width, height: ManuscriptGeometry.size.height)
     }

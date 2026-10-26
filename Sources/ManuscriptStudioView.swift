@@ -552,13 +552,13 @@ struct ManuscriptStudioView: View {
         let wasSaved = library.contains(page)
         library.save(page)
         guard !wasSaved else { return }
-        let count = library.pages.count
-        if count == ManuscriptLibrary.codexSize {
+        if library.isCodexBound {
             Haptics.notify(.success)
-            showToast(language.pick(hy: "Կոդեքսը կազմված է", ru: "Кодекс переплетён!", en: "Your codex is bound!"))
+            let volume = ManuscriptText.volume(library.activeVolume, language)
+            showToast(language.pick(hy: "\(volume) կազմված է", ru: "\(volume) переплетён!", en: "\(volume) is bound!"))
         } else {
             Haptics.impact(.soft)
-            let progress = "\(min(count, ManuscriptLibrary.codexSize))/\(ManuscriptLibrary.codexSize)"
+            let progress = "\(library.volumeProgress)/\(ManuscriptLibrary.codexSize)"
             showToast(language.pick(
                 hy: "Պահվեց Մատենադարանում · \(progress)",
                 ru: "Сохранено в Матенадаран · \(progress)",
@@ -646,83 +646,58 @@ extension ManuscriptPage {
     }
 }
 
-// MARK: - «Матенадаран»: собранные страницы и будущий кодекс
+// MARK: - «Матенадаран»: тома кодекса, листы по порядку книги
 struct ManuscriptLibraryView: View {
     @ObservedObject private var library = ManuscriptLibrary.shared
+    @ObservedObject private var subscription = SubscriptionManager.shared
     @Environment(\.dismiss) private var dismiss
     let onOpen: (ManuscriptPage) -> Void
 
-    @ObservedObject private var subscription = SubscriptionManager.shared
     @State private var shareItem: ShareItem?
     @State private var codexFile: CodexFile?
-    @State private var isExporting = false
+    @State private var reader: ManuscriptReaderLaunch?
+    @State private var exportingVolume: Int?
     @State private var isShowingPaywall = false
+    @State private var captionPage: ManuscriptPage?
+    @State private var captionDraft = ""
+    @State private var isEditingCaption = false
 
     private var language: AppLanguage { BibleManager.shared.appLanguage }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    codexHeader
-                    if library.pages.isEmpty {
-                        Text(ManuscriptText.pick(
-                            language,
-                            hy: "Այստեղ կպահվեն ձեր ձեռագիր էջերը: Ստեղծեք առաջինը ցանկացած համարից:",
-                            ru: "Здесь будут храниться ваши рукописные страницы. Создайте первую из любого стиха.",
-                            en: "Your manuscript pages will be kept here. Create the first one from any verse."
-                        ))
-                        .font(PaperFont.font(size: 15))
-                        .foregroundColor(Paper.inkSecondary)
-                        .padding(.top, 20)
-                    } else {
-                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 18) {
-                            ForEach(library.pages) { page in
-                                Button {
-                                    onOpen(page)
-                                    dismiss()
-                                } label: {
-                                    thumbnail(page)
-                                }
-                                .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
-                                .contextMenu {
-                                    Button {
-                                        sharePage(page)
-                                    } label: {
-                                        Label(ManuscriptText.pick(language, hy: "Կիսվել", ru: "Поделиться", en: "Share"), systemImage: "square.and.arrow.up")
-                                    }
-                                    Button(role: .destructive) {
-                                        library.delete(page)
-                                    } label: {
-                                        Label(ManuscriptText.pick(language, hy: "Ջնջել", ru: "Удалить", en: "Delete"), systemImage: "trash")
-                                    }
-                                }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        codexHeader
+                        if library.pages.isEmpty {
+                            Text(ManuscriptText.pick(
+                                language,
+                                hy: "Այստեղ կպահվեն ձեր ձեռագիր էջերը: Ստեղծեք առաջինը ցանկացած համարից:",
+                                ru: "Здесь будут храниться ваши рукописные страницы. Создайте первую из любого стиха.",
+                                en: "Your manuscript pages will be kept here. Create the first one from any verse."
+                            ))
+                            .font(PaperFont.font(size: 15))
+                            .foregroundColor(Paper.inkSecondary)
+                            .padding(.top, 20)
+                        } else {
+                            ForEach(Array(library.volumes.enumerated()), id: \.offset) { index, pages in
+                                volumeSection(number: index + 1, pages: pages)
                             }
                         }
                     }
+                    .padding(20)
                 }
-                .padding(20)
+                .onAppear {
+                    // Новые листы встают в конец книги: если их много, открываем «Матенадаран» на последнем
+                    guard library.pages.count > 6, let last = library.ordered.last else { return }
+                    DispatchQueue.main.async { proxy.scrollTo(last.id, anchor: .bottom) }
+                }
             }
             .background(PaperBackground())
             .navigationTitle(ManuscriptText.pick(language, hy: "Իմ Մատենադարանը", ru: "Мой Матенадаран", en: "My Matenadaran"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if !library.pages.isEmpty {
-                        Button {
-                            exportCodex()
-                        } label: {
-                            if isExporting {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(Paper.inkSecondary)
-                            }
-                        }
-                        .accessibilityLabel(Text(ManuscriptText.pick(language, hy: "Կոդեքսը PDF-ով", ru: "Кодекс в PDF", en: "Codex as PDF")))
-                    }
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         dismiss()
@@ -742,7 +717,191 @@ struct ManuscriptLibraryView: View {
             .sheet(isPresented: $isShowingPaywall) {
                 PaywallView(source: "codex_pdf")
             }
+            .fullScreenCover(item: $reader) { launch in
+                ManuscriptCodexReaderView(title: launch.title, pages: launch.pages, startId: launch.startId)
+            }
+            .alert(
+                ManuscriptText.pick(language, hy: "Էջի մակագրություն", ru: "Подпись к листу", en: "Page caption"),
+                isPresented: $isEditingCaption
+            ) {
+                TextField(
+                    ManuscriptText.pick(language, hy: "Օրինակ՝ մայրիկի համար", ru: "Например: для мамы", en: "For example: for Mom"),
+                    text: $captionDraft
+                )
+                Button(ManuscriptText.pick(language, hy: "Պատրաստ է", ru: "Готово", en: "Done")) {
+                    if let page = captionPage {
+                        library.setNote(captionDraft, for: page)
+                    }
+                }
+                Button(ManuscriptText.pick(language, hy: "Չեղարկել", ru: "Отмена", en: "Cancel"), role: .cancel) {}
+            }
         }
+    }
+
+    // MARK: Шапка: какой том собирается сейчас
+    private var codexHeader: some View {
+        let size = ManuscriptLibrary.codexSize
+        return HStack(spacing: 14) {
+            ManuscriptCodexCover(isBound: library.isCodexBound)
+                .frame(width: 52, height: 68)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(headerTitle)
+                    .font(PaperFont.font(size: 17, weight: .semibold))
+                    .foregroundColor(Paper.ink)
+                Text(headerSubtitle)
+                    .font(PaperFont.font(size: 13))
+                    .foregroundColor(Paper.inkSecondary)
+                ProgressView(value: Double(library.volumeProgress), total: Double(size))
+                    .tint(Paper.gold)
+            }
+        }
+        .padding(16)
+        .paperSheet(cornerRadius: 18)
+    }
+
+    private var headerTitle: String {
+        if library.pages.isEmpty {
+            return ManuscriptText.pick(language, hy: "Ձեր կոդեքսը", ru: "Ваш кодекс", en: "Your codex")
+        }
+        let name = ManuscriptText.volume(library.activeVolume, language)
+        guard library.isCodexBound else { return name }
+        return name + " · " + ManuscriptText.pick(language, hy: "կազմված է", ru: "переплетён", en: "bound")
+    }
+
+    private var headerSubtitle: String {
+        let count = library.pages.count
+        if library.isCodexBound {
+            return ManuscriptText.pick(
+                language,
+                hy: "Հաջորդ հատորը կսկսվի նոր էջից · ընդհանուր \(count) էջ",
+                ru: "Следующий том начнётся с нового листа · всего \(count) стр.",
+                en: "The next volume starts with your next page · \(count) pages in all"
+            )
+        }
+        let fill = library.currentVolumeFill
+        let left = ManuscriptLibrary.codexSize - fill
+        let base = ManuscriptText.pick(
+            language,
+            hy: "\(fill) էջ · մինչև կազմը՝ \(left)",
+            ru: "\(fill) стр. · до переплёта: \(left)",
+            en: "\(fill) pages · \(left) to bind it"
+        )
+        guard count > fill else { return base }
+        return base + " · " + ManuscriptText.pick(language, hy: "ընդհանուր \(count)", ru: "всего \(count)", en: "\(count) in all")
+    }
+
+    // MARK: Том: заголовок с кнопками и листы
+    private func volumeSection(number: Int, pages: [ManuscriptPage]) -> some View {
+        let isFull = pages.count == ManuscriptLibrary.codexSize
+        let count = ManuscriptText.pick(language, hy: "\(pages.count) էջ", ru: "\(pages.count) стр.", en: "\(pages.count) pages")
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                ManuscriptCodexCover(isBound: isFull)
+                    .frame(width: 26, height: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(ManuscriptText.volume(number, language))
+                        .font(PaperFont.font(size: 15, weight: .semibold))
+                        .foregroundColor(Paper.ink)
+                    Text(count)
+                        .font(PaperFont.font(size: 12))
+                        .foregroundColor(Paper.inkSecondary)
+                }
+                Spacer()
+                sectionButton(
+                    icon: "book",
+                    label: ManuscriptText.pick(language, hy: "Կարդալ", ru: "Читать", en: "Read"),
+                    isBusy: false
+                ) {
+                    openReader(number: number, pages: pages, start: pages[0].id)
+                }
+                sectionButton(
+                    icon: "square.and.arrow.up",
+                    label: ManuscriptText.pick(language, hy: "Հատորը PDF-ով", ru: "Том в PDF", en: "Volume as PDF"),
+                    isBusy: exportingVolume == number
+                ) {
+                    exportVolume(number: number, pages: pages)
+                }
+            }
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 18) {
+                ForEach(pages) { page in
+                    cell(page, volume: number, pages: pages)
+                }
+            }
+        }
+    }
+
+    private func sectionButton(icon: String, label: String, isBusy: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Group {
+                if isBusy {
+                    ProgressView()
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Paper.gold)
+                }
+            }
+            .frame(width: 36, height: 36)
+            .background(Circle().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 1))
+        }
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.9))
+        .accessibilityLabel(Text(label))
+    }
+
+    private func cell(_ page: ManuscriptPage, volume: Int, pages: [ManuscriptPage]) -> some View {
+        Button {
+            onOpen(page)
+            dismiss()
+        } label: {
+            thumbnail(page)
+        }
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
+        .id(page.id)
+        .contextMenu {
+            Button {
+                openReader(number: volume, pages: pages, start: page.id)
+            } label: {
+                Label(ManuscriptText.pick(language, hy: "Կարդալ այս էջից", ru: "Читать с этого листа", en: "Read from this page"), systemImage: "book")
+            }
+            Button {
+                captionPage = page
+                captionDraft = page.note ?? ""
+                isEditingCaption = true
+            } label: {
+                Label(ManuscriptText.pick(language, hy: "Մակագրություն…", ru: "Подпись…", en: "Caption…"), systemImage: "pencil")
+            }
+            if library.canMove(page, by: -1) {
+                Button {
+                    library.move(page, by: -1)
+                } label: {
+                    Label(ManuscriptText.pick(language, hy: "Ավելի շուտ գրքում", ru: "Раньше в книге", en: "Earlier in the book"), systemImage: "arrow.left")
+                }
+            }
+            if library.canMove(page, by: 1) {
+                Button {
+                    library.move(page, by: 1)
+                } label: {
+                    Label(ManuscriptText.pick(language, hy: "Ավելի ուշ գրքում", ru: "Позже в книге", en: "Later in the book"), systemImage: "arrow.right")
+                }
+            }
+            Button {
+                sharePage(page)
+            } label: {
+                Label(ManuscriptText.pick(language, hy: "Կիսվել", ru: "Поделиться", en: "Share"), systemImage: "square.and.arrow.up")
+            }
+            Button(role: .destructive) {
+                library.delete(page)
+            } label: {
+                Label(ManuscriptText.pick(language, hy: "Ջնջել", ru: "Удалить", en: "Delete"), systemImage: "trash")
+            }
+        }
+    }
+
+    private func openReader(number: Int, pages: [ManuscriptPage], start: UUID) {
+        guard !pages.isEmpty else { return }
+        Haptics.impact(.soft)
+        Funnel.track("feature_used", ["feature": "codex_reader"])
+        reader = ManuscriptReaderLaunch(title: ManuscriptText.volume(number, language), pages: pages, startId: start)
     }
 
     @MainActor
@@ -751,55 +910,26 @@ struct ManuscriptLibraryView: View {
         shareItem = ShareItem(image: image)
     }
 
-    /// Кодекс в PDF для подписчиков: титульный лист и все собранные страницы по порядку
+    /// Том в PDF для подписчиков: титульный лист и все листы тома по порядку
     @MainActor
-    private func exportCodex() {
-        guard !isExporting else { return }
+    private func exportVolume(number: Int, pages: [ManuscriptPage]) {
+        guard exportingVolume == nil else { return }
         guard subscription.isPremium else {
             isShowingPaywall = true
             return
         }
-        isExporting = true
+        exportingVolume = number
+        let volume: Int? = library.volumes.count > 1 ? number : nil
         Task { @MainActor in
             // Даём кнопке показать индикатор, прежде чем главный поток займётся рисованием страниц
             try? await Task.sleep(nanoseconds: 80_000_000)
-            let url = ManuscriptExport.codexPDF(pages: library.pages, owner: ManuscriptPage.rememberedName, language: language, pen: ManuscriptPen.effective)
-            isExporting = false
+            let url = ManuscriptExport.codexPDF(pages: pages, owner: ManuscriptPage.rememberedName, language: language, pen: ManuscriptPen.effective, volume: volume)
+            exportingVolume = nil
             if let url {
                 Funnel.track("feature_used", ["feature": "codex_pdf"])
                 codexFile = CodexFile(url: url)
             }
         }
-    }
-
-    private var codexHeader: some View {
-        let count = library.pages.count
-        let total = ManuscriptLibrary.codexSize
-        return HStack(spacing: 14) {
-            ManuscriptCodexCover(isBound: library.isCodexBound)
-                .frame(width: 52, height: 68)
-            VStack(alignment: .leading, spacing: 6) {
-                Text(library.isCodexBound
-                     ? ManuscriptText.pick(language, hy: "Կոդեքսը կազմված է", ru: "Кодекс переплетён", en: "Codex bound")
-                     : ManuscriptText.pick(language, hy: "Ձեր կոդեքսը", ru: "Ваш кодекс", en: "Your codex"))
-                    .font(PaperFont.font(size: 17, weight: .semibold))
-                    .foregroundColor(Paper.ink)
-                Text(library.isCodexBound
-                     ? ManuscriptText.pick(language, hy: "\(count) էջ", ru: "\(count) стр.", en: "\(count) pages")
-                     : ManuscriptText.pick(
-                        language,
-                        hy: "\(count) էջ · մինչև կազմը՝ \(total - count)",
-                        ru: "\(count) стр. · до переплёта: \(total - count)",
-                        en: "\(count) pages · \(total - count) to bind it"
-                     ))
-                    .font(PaperFont.font(size: 13))
-                    .foregroundColor(Paper.inkSecondary)
-                ProgressView(value: Double(min(count, total)), total: Double(total))
-                    .tint(Paper.gold)
-            }
-        }
-        .padding(16)
-        .paperSheet(cornerRadius: 18)
     }
 
     private func thumbnail(_ page: ManuscriptPage) -> some View {
@@ -816,9 +946,17 @@ struct ManuscriptLibraryView: View {
                 .font(PaperFont.font(size: 12, weight: .semibold))
                 .foregroundColor(Paper.ink)
                 .lineLimit(1)
-            Text(page.createdAt, style: .date)
-                .font(PaperFont.font(size: 11))
-                .foregroundColor(Paper.inkTertiary)
+            if let note = page.note {
+                Text(note)
+                    .font(PaperFont.font(size: 11))
+                    .foregroundColor(Paper.inkSecondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            } else {
+                Text(page.createdAt, style: .date)
+                    .font(PaperFont.font(size: 11))
+                    .foregroundColor(Paper.inkTertiary)
+            }
         }
     }
 }
@@ -882,12 +1020,14 @@ struct ManuscriptBannerCardView: View {
                 en: "Codex bound · \(count) pages"
             )
         }
-        return ManuscriptText.pick(
+        let fill = library.currentVolumeFill
+        let status = ManuscriptText.pick(
             language,
-            hy: "\(count) էջ · մինչև կազմը՝ \(total - count)",
-            ru: "\(count) стр. · до переплёта: \(total - count)",
-            en: "\(count) pages · \(total - count) to bind it"
+            hy: "\(fill) էջ · մինչև կազմը՝ \(total - fill)",
+            ru: "\(fill) стр. · до переплёта: \(total - fill)",
+            en: "\(fill) pages · \(total - fill) to bind it"
         )
+        return library.activeVolume > 1 ? ManuscriptText.volume(library.activeVolume, language) + " · " + status : status
     }
 
     var body: some View {
@@ -922,7 +1062,7 @@ struct ManuscriptBannerCardView: View {
                                     .padding(.vertical, 2)
                                     .overlay(Capsule().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 0.8))
                             } else {
-                                Text("\(library.pages.count)/\(ManuscriptLibrary.codexSize)")
+                                Text("\(library.volumeProgress)/\(ManuscriptLibrary.codexSize)")
                                     .font(PaperFont.font(size: 8, weight: .semibold))
                                     .foregroundColor(Paper.inkSecondary)
                                     .padding(.horizontal, 5)

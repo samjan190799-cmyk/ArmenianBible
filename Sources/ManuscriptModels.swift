@@ -107,6 +107,10 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
     var surfaceChoice: ManuscriptSurface?
     var name: String
     let createdAt: Date
+    /// Подпись владельца под листом в «Матенадаране»; на самой странице не рисуется
+    var note: String?
+    /// Место листа в книге; пока не задано, лист стоит по времени создания
+    var position: Double?
 
     init(
         id: UUID = UUID(),
@@ -132,6 +136,9 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
         get { surfaceChoice ?? .parchment }
         set { surfaceChoice = newValue }
     }
+
+    /// Ключ порядка в книге: заданное место или время создания (оба числа в одной шкале)
+    var sortKey: Double { position ?? createdAt.timeIntervalSince1970 }
 
     /// Стиль миниатюры и основа вместе: от них зависят все цвета страницы
     var look: ManuscriptLook { ManuscriptLook(style: style, surface: surface) }
@@ -313,6 +320,30 @@ final class ManuscriptLibrary: ObservableObject {
         pages.contains { $0.id == page.id }
     }
 
+    /// Листы в порядке книги: ранние первыми
+    var ordered: [ManuscriptPage] {
+        pages.sorted { $0.sortKey != $1.sortKey ? $0.sortKey < $1.sortKey : $0.id.uuidString < $1.id.uuidString }
+    }
+
+    /// Тома по порядку: каждые codexSize листов — отдельный кодекс
+    var volumes: [[ManuscriptPage]] {
+        let list = ordered
+        return stride(from: 0, to: list.count, by: Self.codexSize).map {
+            Array(list[$0..<min($0 + Self.codexSize, list.count)])
+        }
+    }
+
+    /// Листов в томе, который сейчас собирается (0 — прошлый том только что переплетён, новый ещё пуст)
+    var currentVolumeFill: Int { pages.count % Self.codexSize }
+
+    /// Сколько листов показывать в счётчиках: после переплёта том полный
+    var volumeProgress: Int { isCodexBound ? Self.codexSize : currentVolumeFill }
+
+    /// Номер тома, о котором говорят счётчики
+    var activeVolume: Int {
+        pages.isEmpty ? 1 : (isCodexBound ? pages.count / Self.codexSize : pages.count / Self.codexSize + 1)
+    }
+
     /// Листы пришли из iCloud: перечитываем собрание из хранилища
     func reloadFromStorage() {
         guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
@@ -323,7 +354,11 @@ final class ManuscriptLibrary: ObservableObject {
     /// Новая страница встаёт первой; уже сохранённая обновляется на месте (стиль, имя)
     func save(_ page: ManuscriptPage) {
         if let index = pages.firstIndex(where: { $0.id == page.id }) {
-            pages[index] = page
+            // Подпись и место в книге меняются только здесь, из «Матенадарана»; студия о них не знает
+            var updated = page
+            updated.note = pages[index].note
+            updated.position = pages[index].position
+            pages[index] = updated
         } else {
             pages.insert(page, at: 0)
         }
@@ -335,7 +370,40 @@ final class ManuscriptLibrary: ObservableObject {
         persist()
     }
 
-    var isCodexBound: Bool { pages.count >= Self.codexSize }
+    /// Последний том полон и переплетён
+    var isCodexBound: Bool { !pages.isEmpty && currentVolumeFill == 0 }
+
+    static let noteLimit = 80
+
+    func setNote(_ note: String, for page: ManuscriptPage) {
+        guard let index = pages.firstIndex(where: { $0.id == page.id }) else { return }
+        let trimmed = String(note.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.noteLimit))
+        pages[index].note = trimmed.isEmpty ? nil : trimmed
+        persist()
+    }
+
+    func canMove(_ page: ManuscriptPage, by step: Int) -> Bool {
+        let list = ordered
+        guard let index = list.firstIndex(where: { $0.id == page.id }) else { return false }
+        return list.indices.contains(index + step)
+    }
+
+    /// Сдвигает лист на одно место раньше (-1) или позже (+1): новое место берётся между новыми соседями
+    func move(_ page: ManuscriptPage, by step: Int) {
+        let list = ordered
+        guard let index = list.firstIndex(where: { $0.id == page.id }), list.indices.contains(index + step),
+              let stored = pages.firstIndex(where: { $0.id == page.id }) else { return }
+        let target = index + step
+        let neighbour = list[target].sortKey
+        if step < 0 {
+            let before = target > 0 ? list[target - 1].sortKey : neighbour - 60
+            pages[stored].position = (before + neighbour) / 2
+        } else {
+            let after = target + 1 < list.count ? list[target + 1].sortKey : neighbour + 60
+            pages[stored].position = (neighbour + after) / 2
+        }
+        persist()
+    }
 
     private func persist() {
         if let data = try? JSONEncoder().encode(pages) {
