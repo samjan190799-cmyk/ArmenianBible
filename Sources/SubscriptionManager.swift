@@ -253,8 +253,21 @@ final class SubscriptionManager: ObservableObject {
         }
     }
     
+    // MARK: - Подтверждение подписки для сервера ИИ
+
+    /// Подписанное Apple подтверждение действующей подписки (JWS из StoreKit 2): сервер ИИ проверяет его подпись и срок
+    func currentEntitlementJWS() async -> String? {
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }),
+                  transaction.revocationDate == nil else { continue }
+            return result.jwsRepresentation
+        }
+        return nil
+    }
+
     // MARK: - Восстановление покупок (Restore Purchases)
-    
+
     func restorePurchases() async -> Bool {
         isPurchasing = true
         purchaseErrorMessage = nil

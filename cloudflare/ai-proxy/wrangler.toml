@@ -1,0 +1,24 @@
+name = "luys-ai"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# Настройки без секретов. Ключ ИИ сюда не кладём: он задаётся командой `wrangler secret put GEMINI_API_KEY`
+[vars]
+BUNDLE_ID = "com.samvel.armenianbible"
+PRODUCT_IDS = "com.samvel.armenianbible.subscription.monthly,com.samvel.armenianbible.subscription.yearly"
+# Сколько запросов к ИИ в сутки (по UTC) у одного подписчика и у всего сервиса вместе (потолок расходов)
+DAILY_LIMIT = "30"
+GLOBAL_DAILY_LIMIT = "3000"
+# Подписки из TestFlight приходят как Sandbox. После выпуска в App Store можно поставить "false"
+ALLOW_SANDBOX = "true"
+# Модели Gemini по порядку: если первая недоступна, пробуется следующая
+GEMINI_MODELS = "gemini-2.5-flash,gemini-2.0-flash"
+
+# Счётчики вопросов: по одному объекту на подписчика и один общий
+[[durable_objects.bindings]]
+name = "QUOTA"
+class_name = "Quota"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Quota"]

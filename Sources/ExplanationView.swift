@@ -179,15 +179,7 @@ struct ExplanationView: View {
     }
     
     private func runTheologicalExplanation() {
-        let key: String
-        switch manager.activeProvider {
-        case .gemini:
-            key = manager.geminiApiKey
-        case .chatgpt:
-            key = manager.openaiApiKey
-        case .claude:
-            key = manager.anthropicApiKey
-        }
+        let key = manager.effectiveAPIKey(for: manager.activeProvider)
         
         if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             triggerHaptic(.medium)

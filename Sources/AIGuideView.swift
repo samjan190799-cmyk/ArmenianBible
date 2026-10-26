@@ -491,16 +491,16 @@ extension AIGuideView {
             return
         }
         
-        let key: String
-        switch manager.activeProvider {
-        case .gemini: key = manager.geminiApiKey
-        case .chatgpt: key = manager.openaiApiKey
-        case .claude: key = manager.anthropicApiKey
-        }
-        
-        if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let key = manager.effectiveAPIKey(for: manager.activeProvider)
+
+        if key.isEmpty {
             triggerHaptic(.medium)
-            showingNoKeyAlert = true
+            // Без своего ключа ИИ даёт подписка (сервер): не подписчику предлагаем её, а не ввод ключа
+            if subscriptionManager.isPremium || !AIProxy.isConfigured {
+                showingNoKeyAlert = true
+            } else {
+                isShowingPaywall = true
+            }
             return
         }
         

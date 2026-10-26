@@ -30,11 +30,7 @@ struct NarekConsolationView: View {
     private var voice: AppLanguage { language == .armenian ? .armenian : .russian }
 
     private var hasAIKey: Bool {
-        switch manager.activeProvider {
-        case .gemini: return !manager.geminiApiKey.trimmingCharacters(in: .whitespaces).isEmpty
-        case .chatgpt: return !manager.openaiApiKey.trimmingCharacters(in: .whitespaces).isEmpty
-        case .claude: return !manager.anthropicApiKey.trimmingCharacters(in: .whitespaces).isEmpty
-        }
+        !manager.effectiveAPIKey(for: manager.activeProvider).isEmpty
     }
 
     var body: some View {

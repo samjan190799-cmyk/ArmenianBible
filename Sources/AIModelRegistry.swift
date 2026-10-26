@@ -147,6 +147,12 @@ final class AIModelRegistry: @unchecked Sendable {
         jsonMode: Bool = false,
         maxTokens: Int = 1024
     ) async throws -> (text: String, usedModel: String) {
+        // Подписчик без своего ключа: запрос идёт на сервер ИИ (ключ там), а не напрямую к провайдеру
+        if apiKey == AIProxy.sentinelKey {
+            let text = try await AIProxy.generate(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            return (text, "server")
+        }
+
         var modelsToTry = candidateModels(for: provider)
         var lastError: Error?
         var attemptErrors: [String] = []

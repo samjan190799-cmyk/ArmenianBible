@@ -486,9 +486,10 @@ struct PaywallView: View {
     
     private var featureDesc2: String {
         switch language {
-        case .armenian: return "Մեկնաբանություններ Եկեղեցու Հայրերի ավանդությամբ"
-        case .russian: return "Толкования в традиции Святых Отцов ААЦ"
-        case .english: return "Explanations in the Armenian Church tradition"
+        // Про «без ключей» пишем, только когда сервер ИИ подключён (AIProxy.baseURL задан)
+        case .armenian: return "Մեկնաբանություններ Եկեղեցու Հայրերի ավանդությամբ" + (AIProxy.isConfigured ? "։ Աշխատում է անմիջապես՝ առանց բանալիների" : "")
+        case .russian: return "Толкования в традиции Святых Отцов ААЦ" + (AIProxy.isConfigured ? ". Работает сразу, без ключей" : "")
+        case .english: return "Explanations in the Armenian Church tradition" + (AIProxy.isConfigured ? ". Works right away, no keys needed" : "")
         }
     }
     
