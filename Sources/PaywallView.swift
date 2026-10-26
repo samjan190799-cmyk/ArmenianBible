@@ -82,54 +82,9 @@ struct PaywallView: View {
                     
                     // MARK: - Список Преимуществ (Feature List)
                     VStack(spacing: 14) {
-                        featureRow(
-                            icon: "flame.fill",
-                            iconColor: Paper.cinnabar,
-                            title: featureTitleCandles,
-                            subtitle: featureDescCandles
-                        )
-                        featureRow(
-                            icon: "app.dashed",
-                            iconColor: Paper.gold,
-                            title: featureTitleIcons,
-                            subtitle: featureDescIcons
-                        )
-                        featureRow(
-                            icon: "brain.head.profile",
-                            iconColor: Paper.plum,
-                            title: featureTitleQuiz,
-                            subtitle: featureDescQuiz
-                        )
-                        featureRow(
-                            icon: "headphones",
-                            iconColor: Paper.lapis,
-                            title: featureTitle1,
-                            subtitle: featureDesc1
-                        )
-                        featureRow(
-                            icon: "sparkles",
-                            iconColor: Paper.plum,
-                            title: featureTitle2,
-                            subtitle: featureDesc2
-                        )
-                        featureRow(
-                            icon: "paintpalette.fill",
-                            iconColor: Paper.gold,
-                            title: featureTitle3,
-                            subtitle: featureDesc3
-                        )
-                        featureRow(
-                            icon: "lock.square.fill",
-                            iconColor: Paper.moss,
-                            title: featureTitle4,
-                            subtitle: featureDesc4
-                        )
-                        featureRow(
-                            icon: "heart.fill",
-                            iconColor: Paper.plum,
-                            title: featureTitle5,
-                            subtitle: featureDesc5
-                        )
+                        ForEach(features) { feature in
+                            featureRow(icon: feature.icon, iconColor: feature.color, title: feature.title, subtitle: feature.subtitle)
+                        }
                     }
                     .padding(18)
                     .paperSheet(cornerRadius: 22)
@@ -432,142 +387,120 @@ struct PaywallView: View {
     }
     
     private var headerSubtitle: String {
-        switch language {
-        case .armenian: return "Բացեք Նարեկացու բոլոր 95 աղոթքների ձայնագրությունները և անսահմանափակ AI-ն"
-        case .russian: return "Откройте все 95 аудио-глав Нарекаци, безлимитный ИИ и эксклюзивные шрифты"
-        case .english: return "Unlock all 95 Narekatsi audio chapters, unlimited AI & exclusive wallpapers"
-        }
-    }
-    
-    private var featureTitleCandles: String {
-        switch language {
-        case .armenian: return "Անսահմանափակ աղոթքի մոմեր"
-        case .russian: return "Молитвенные свечи без ограничений"
-        case .english: return "Unlimited Prayer Candles"
-        }
+        language.pick(
+            hy: "Ձեռագիր և կոդեքս, Նարեկացի, սրբավայրերի քարտեզ և անսահմանափակ AI",
+            ru: "Рукопись и кодекс, Нарекаци, карта святынь и безлимитный ИИ",
+            en: "Manuscript & codex, Narekatsi, the map of sanctuaries and unlimited AI"
+        )
     }
 
-    private var featureDescCandles: String {
-        switch language {
-        case .armenian: return "Վառեք մոմեր 24 ժամով՝ նաև Dynamic Island-ում և կողպէկրանին"
-        case .russian: return "Сколько угодно свечей на 24 часа, в том числе в Dynamic Island и на экране блокировки"
-        case .english: return "Light as many 24-hour candles as you wish, including in the Dynamic Island and on the Lock Screen"
-        }
+    // MARK: - Что входит в Premium
+    private struct Feature: Identifiable {
+        let id: String
+        let icon: String
+        let color: Color
+        let title: String
+        let subtitle: String
     }
-    
-    private var featureTitleIcons: String {
-        switch language {
-        case .armenian: return "Հավելվածի Բացառիկ Պատկերակներ"
-        case .russian: return "Эксклюзивные Иконки Приложения"
-        case .english: return "Exclusive App Icons"
-        }
-    }
-    
-    private var featureDescIcons: String {
-        switch language {
-        case .armenian: return "OLED Pitch Black, Ոսկեգույն փայլ և Արքայական ինդիգո"
-        case .russian: return "OLED Pitch Black, Золотое сияние и Королевский индиго"
-        case .english: return "OLED Pitch Black, Golden Glow & Royal Indigo"
-        }
-    }
-    
-    private var featureTitleQuiz: String {
-        switch language {
-        case .armenian: return "Անսահմանափակ AI Վիկտորինա"
-        case .russian: return "Безлимитная ИИ-Викторина"
-        case .english: return "Unlimited AI Bible Quiz"
-        }
-    }
-    
-    private var featureDescQuiz: String {
-        switch language {
-        case .armenian: return "Անհատական նոր հարցերի գեներացիա առանց կրկնությունների"
-        case .russian: return "Генерация новых вопросов без повторов с адаптацией"
-        case .english: return "Dynamic question generation with zero repetition"
-        }
-    }
-    
-    private var featureTitle1: String {
-        switch language {
-        case .armenian: return "Նարեկացու 95 Գլուխ Աուդիո"
-        case .russian: return "95 Глав Аудио Нарекаци"
-        case .english: return "95 Audio Chapters of Narekatsi"
-        }
-    }
-    
-    private var featureDesc1: String {
-        switch language {
-        case .armenian: return "Սոս Սարգսյան և Օլեգ Մոլենկո • Անցանց ռեժիմ"
-        case .russian: return "Сос Саргсян и о. Моленко • Офлайн доступ"
-        case .english: return "Sos Sargsyan & Oleg Molenko • Offline playback"
-        }
-    }
-    
-    private var featureTitle2: String {
-        switch language {
-        case .armenian: return "Անսահմանափակ Հոգևոր Օգնական (AI)"
-        case .russian: return "Безлимитный Духовный Наставник (ИИ)"
-        case .english: return "Unlimited Spiritual AI Guide"
-        }
-    }
-    
-    private var featureDesc2: String {
-        switch language {
+
+    /// Список повторяет то, что на самом деле закрыто подпиской: добавляя платную функцию, добавляйте её и сюда
+    private var features: [Feature] {
         // Про «без ключей» пишем, только когда сервер ИИ подключён (AIProxy.baseURL задан)
-        case .armenian: return "Մեկնաբանություններ Եկեղեցու Հայրերի ավանդությամբ" + (AIProxy.isConfigured ? "։ Աշխատում է անմիջապես՝ առանց բանալիների" : "")
-        case .russian: return "Толкования в традиции Святых Отцов ААЦ" + (AIProxy.isConfigured ? ". Работает сразу, без ключей" : "")
-        case .english: return "Explanations in the Armenian Church tradition" + (AIProxy.isConfigured ? ". Works right away, no keys needed" : "")
-        }
+        let aiTail = AIProxy.isConfigured
+            ? language.pick(hy: "։ Աշխատում է անմիջապես՝ առանց բանալիների", ru: ". Работает сразу, без ключей", en: ". Works right away, no keys needed")
+            : ""
+        return [
+            Feature(
+                id: "manuscript",
+                icon: "scroll.fill",
+                color: Paper.gold,
+                title: language.pick(hy: "«Ձեռագիր» և Մատենադարան", ru: "«Рукопись» и Матенадаран", en: "Manuscript & Matenadaran"),
+                subtitle: language.pick(
+                    hy: "Բոլոր գրիչները և էջի հիմքերը, հատորները PDF-ով՝ տպելու կամ նվիրելու համար",
+                    ru: "Все перья и основы листа, тома кодекса в PDF для печати и подарка",
+                    en: "Every pen and page surface, codex volumes as PDF to print or give"
+                )
+            ),
+            Feature(
+                id: "candles",
+                icon: "flame.fill",
+                color: Paper.cinnabar,
+                title: language.pick(hy: "Անսահմանափակ աղոթքի մոմեր", ru: "Молитвенные свечи без ограничений", en: "Unlimited Prayer Candles"),
+                subtitle: language.pick(
+                    hy: "Վառեք մոմեր 24 ժամով՝ նաև Dynamic Island-ում և կողպէկրանին",
+                    ru: "Сколько угодно свечей на 24 часа, в том числе в Dynamic Island и на экране блокировки",
+                    en: "Light as many 24-hour candles as you wish, including in the Dynamic Island and on the Lock Screen"
+                )
+            ),
+            Feature(
+                id: "narek",
+                icon: "headphones",
+                color: Paper.lapis,
+                title: language.pick(hy: "Նարեկացի. 95 գլուխ աուդիո", ru: "Нарекаци: 95 глав аудио", en: "Narekatsi: 95 audio chapters"),
+                subtitle: language.pick(
+                    hy: "Սոս Սարգսյան և Օլեգ Մոլենկո, անցանց: «Նարեկը մխիթարում է»՝ առանց օրական սահմանի",
+                    ru: "Сос Саргсян и о. Моленко, офлайн. «Нарек утешает» без дневного лимита",
+                    en: "Sos Sargsyan & Oleg Molenko, offline. “Narek Consoles” without a daily limit"
+                )
+            ),
+            Feature(
+                id: "map",
+                icon: "map.fill",
+                color: Paper.moss,
+                title: language.pick(hy: "Սրբավայրերի քարտեզ", ru: "Карта святынь Армении", en: "Map of Sanctuaries"),
+                subtitle: language.pick(
+                    hy: "Բոլոր 16 վանքերն ու եկեղեցիները՝ պատմությամբ, տեղի համարով և հեռավորությամբ",
+                    ru: "Все 16 монастырей и храмов: история, стих места и расстояние до вас",
+                    en: "All 16 monasteries and churches: history, the place's verse and the distance to you"
+                )
+            ),
+            Feature(
+                id: "ai",
+                icon: "sparkles",
+                color: Paper.plum,
+                title: language.pick(hy: "Անսահմանափակ AI. օգնական և վիկտորինա", ru: "Безлимитный ИИ: наставник и викторина", en: "Unlimited AI: guide & quiz"),
+                subtitle: language.pick(
+                    hy: "Մեկնաբանություններ Եկեղեցու Հայրերի ավանդությամբ, վիկտորինայի նոր հարցեր առանց կրկնությունների",
+                    ru: "Толкования в традиции Святых Отцов ААЦ, новые вопросы викторины без повторов",
+                    en: "Explanations in the Armenian Church tradition, new quiz questions without repeats"
+                ) + aiTail
+            ),
+            Feature(
+                id: "widgets",
+                icon: "paintpalette.fill",
+                color: Paper.gold,
+                title: language.pick(hy: "Վիջեթներ և պաստառներ PRO", ru: "Виджеты, постеры и обои PRO", en: "Widgets, posters & wallpapers PRO"),
+                subtitle: language.pick(
+                    hy: "«Խաչքար» և «Բեթղեհեմ» պաստառներ, համարներ կողպէկրանին, 4K պաստառներ ոսկե հարդարանքով",
+                    ru: "Постеры «Хачкар» и «Вифлеем», стихи на экране блокировки, 4K-обои с золотым тиснением",
+                    en: "“Khachkar” and “Bethlehem” posters, Lock Screen verses, 4K wallpapers with gold foil"
+                )
+            ),
+            Feature(
+                id: "icons",
+                icon: "app.dashed",
+                color: Paper.gold,
+                title: language.pick(hy: "Հավելվածի բացառիկ պատկերակներ", ru: "Эксклюзивные иконки приложения", en: "Exclusive App Icons"),
+                subtitle: language.pick(
+                    hy: "Ոսկեգույն Փայլ, Արքայական Ինդիգո, Արքայական Նուռ, Սրբազան Զմրուխտ, Ձեռագիր և Մատյան",
+                    ru: "Золотое сияние, Королевский Индиго, Королевский Гранат, Священный Изумруд, Рукопись и Кодекс",
+                    en: "Golden Glow, Royal Indigo, Royal Pomegranate, Sacred Emerald, Manuscript & Codex"
+                )
+            ),
+            Feature(
+                id: "mission",
+                icon: "heart.fill",
+                color: Paper.plum,
+                title: language.pick(hy: "Աջակցություն հավելվածին", ru: "Поддержка Христианской Миссии", en: "Support the Mission"),
+                subtitle: language.pick(
+                    hy: "Նպաստեք հայկական հոգևոր ժառանգության տարածմանը",
+                    ru: "Вклад в развитие армянского духовного наследия",
+                    en: "Help spread the Armenian Christian heritage"
+                )
+            )
+        ]
     }
-    
-    private var featureTitle3: String {
-        switch language {
-        case .armenian: return "Պաստառներ PRO & Երկաթագիր"
-        case .russian: return "Wallpaper Studio PRO & Еркатагир"
-        case .english: return "Wallpaper Studio PRO & Calligraphy"
-        }
-    }
-    
-    private var featureDesc3: String {
-        switch language {
-        case .armenian: return "4K որակ, հնագույն տառատեսակներ և ոսկյա ոճեր"
-        case .russian: return "4K качество, древние шрифты и золотое тиснение"
-        case .english: return "4K quality, ancient fonts and golden themes"
-        }
-    }
-    
-    private var featureTitle4: String {
-        switch language {
-        case .armenian: return "Պրեմիում Վիջեթներ Lock Screen"
-        case .russian: return "Премиум Виджеты на Экран Блокировки"
-        case .english: return "Premium Lock Screen Widgets"
-        }
-    }
-    
-    private var featureDesc4: String {
-        switch language {
-        case .armenian: return "Ավտոմատ թարմացվող սուրբ գրային համարներ"
-        case .russian: return "Авто-обновление стихов и церковных постов"
-        case .english: return "Auto-updating verses and church feasts"
-        }
-    }
-    
-    private var featureTitle5: String {
-        switch language {
-        case .armenian: return "Աջակցություն Հավելվածին"
-        case .russian: return "Поддержка Христианской Миссии"
-        case .english: return "Support the Mission"
-        }
-    }
-    
-    private var featureDesc5: String {
-        switch language {
-        case .armenian: return "Նպաստեք հայկական հոգևոր ժառանգության տարածմանը"
-        case .russian: return "Вклад в развитие армянского духовного наследия"
-        case .english: return "Help spread the Armenian Christian heritage"
-        }
-    }
-    
+
     private var ctaButtonTitle: String {
         switch language {
         case .armenian: return "Շարունակել"
