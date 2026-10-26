@@ -31,6 +31,7 @@ on:
           - nativityvideo
           - nativityend
           - tree
+          - promo
           - verselink
           - matenadaran
       language:
@@ -200,6 +201,35 @@ jobs:
               xcrun simctl shutdown "$UDID" || true
               ls -la "$OUT_DIR"
               echo "✅ Видео «Рождества» ($STORE_LANG) записано"
+              return 0
+            fi
+
+            # 23. Ролик для соцсетей: куски экрана симулятора, где что-то движется (пишется перо, горит свеча, играет мультфильм)
+            if [ "$SCOPE" = "promo" ]; then
+              case "$STORE_LANG" in
+                armenian) PERSON="Սամվել" ;;
+                english) PERSON="Samvel" ;;
+                *) PERSON="Самвел" ;;
+              esac
+              clip() {
+                local NAME="$1"; local SECS="$2"; shift; shift
+                echo "🎬 Запись $NAME ($SECS с)..."
+                xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$OUT_DIR/$NAME.mp4" &
+                local REC_PID=$!
+                sleep 2
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@"
+                sleep "$SECS"
+                kill -INT "$REC_PID" || true
+                wait "$REC_PID" || true
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
+                sleep 2
+              }
+              clip "clip_manuscript_$STORE_LANG" 18 -openTab manuscript -manuscript_language "$STORE_LANG" -manuscript_style roslin -manuscript_name "$PERSON" -manuscript_verse long -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+              clip "clip_candles_$STORE_LANG" 12 -openTab sanctuary -candle_seed YES -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+              clip "clip_nativity_$STORE_LANG" 16 -openTab nativity -luys_debug_language "$STORE_LANG"
+              xcrun simctl shutdown "$UDID" || true
+              ls -la "$OUT_DIR"
+              echo "✅ Записи для ролика ($STORE_LANG) сделаны"
               return 0
             fi
 
