@@ -136,9 +136,8 @@ final class AIModelRegistry: @unchecked Sendable {
     
     // MARK: - Универсальное выполнение запроса с каскадным переключением (Fail-Safe Fallback)
     
-    /// Выполняет запрос к ИИ. Если основная модель возвращает ошибку несовместимости/доступности (404/400/410/429),
-    /// код автоматически переходит к следующей резервной модели из списка, парсит рекомендации Google из 404
-    /// или запрашивает актуальный список доступных моделей с сервера.
+    /// Запрос к ИИ. Подписчик без своего ключа идёт через сервер. Если свой ключ человека не принят (устарел, отозван),
+    /// подписчик не остаётся с ошибкой: запрос повторяется через сервер.
     func executeRequest(
         provider: AIProvider,
         apiKey: String,
@@ -147,12 +146,39 @@ final class AIModelRegistry: @unchecked Sendable {
         jsonMode: Bool = false,
         maxTokens: Int = 1024
     ) async throws -> (text: String, usedModel: String) {
-        // Подписчик без своего ключа: запрос идёт на сервер ИИ (ключ там), а не напрямую к провайдеру
         if apiKey == AIProxy.sentinelKey {
             let text = try await AIProxy.generate(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
             return (text, "server")
         }
+        do {
+            return try await executeDirectRequest(provider: provider, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+        } catch {
+            guard AIProxy.isAvailableForCurrentUser, Self.isCredentialFailure(error) else { throw error }
+            let text = try await AIProxy.generate(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            return (text, "server")
+        }
+    }
 
+    /// Провайдер отказал из-за самого ключа (неверный, просрочен, отозван), а не из-за запроса
+    private static func isCredentialFailure(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.code == 401 || nsError.code == 403 { return true }
+        let text = error.localizedDescription.lowercased()
+        let markers = ["api key not valid", "api_key_invalid", "api key expired", "invalid api key", "invalid_api_key", "incorrect api key", "authentication_error", "unauthorized", "permission_denied"]
+        return markers.contains { text.contains($0) }
+    }
+
+    /// Выполняет запрос к ИИ. Если основная модель возвращает ошибку несовместимости/доступности (404/400/410/429),
+    /// код автоматически переходит к следующей резервной модели из списка, парсит рекомендации Google из 404
+    /// или запрашивает актуальный список доступных моделей с сервера.
+    private func executeDirectRequest(
+        provider: AIProvider,
+        apiKey: String,
+        prompt: String,
+        systemPrompt: String? = nil,
+        jsonMode: Bool = false,
+        maxTokens: Int = 1024
+    ) async throws -> (text: String, usedModel: String) {
         var modelsToTry = candidateModels(for: provider)
         var lastError: Error?
         var attemptErrors: [String] = []
