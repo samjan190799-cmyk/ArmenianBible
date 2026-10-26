@@ -173,6 +173,85 @@ struct SpiritualFruit: Identifiable, Codable, Hashable {
     }
 }
 
+// MARK: - Что питает древо и задания дня
+/// Действия в приложении, которые питают древо
+enum PomegranateActivity {
+    /// Глава Библии, которую читали достаточно долго
+    case chapter(book: Int, chapter: Int)
+    /// Зажжена молитвенная свеча
+    case candle
+    /// Викторина пройдена до конца
+    case quiz
+    /// Запущена глава Нарекаци
+    case narek
+    /// Выполнен шаг плана чтения: задания нет, но древо питается
+    case plan
+}
+
+/// Задания дня: чтение главы и свеча каждый день, ещё два из трёх по кругу
+enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
+    case readChapter, readThree, candle, quiz, narek
+
+    var id: String { rawValue }
+
+    /// Сколько раз нужно сделать
+    var target: Int { self == .readThree ? 3 : 1 }
+
+    /// Сколько росинок получает древо за выполненное задание
+    var dew: Int { self == .readThree ? 2 : 1 }
+
+    var icon: String {
+        switch self {
+        case .readChapter: return "book.fill"
+        case .readThree: return "books.vertical.fill"
+        case .candle: return "flame.fill"
+        case .quiz: return "questionmark.bubble.fill"
+        case .narek: return "headphones"
+        }
+    }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .readChapter:
+            return language.pick(hy: "Կարդացեք Աստվածաշնչի մի գլուխ", ru: "Прочитайте главу Библии", en: "Read a chapter of the Bible")
+        case .readThree:
+            return language.pick(hy: "Կարդացեք երեք գլուխ", ru: "Прочитайте три главы", en: "Read three chapters")
+        case .candle:
+            return language.pick(hy: "Վառեք աղոթքի մոմ", ru: "Зажгите молитвенную свечу", en: "Light a prayer candle")
+        case .quiz:
+            return language.pick(hy: "Անցեք Աստվածաշնչի վիկտորինա", ru: "Пройдите библейскую викторину", en: "Finish a Bible quiz")
+        case .narek:
+            return language.pick(hy: "Լսեք Նարեկացու մի գլուխ", ru: "Послушайте главу Нарекаци", en: "Listen to a chapter of Narekatsi")
+        }
+    }
+
+    func hint(for language: AppLanguage) -> String {
+        switch self {
+        case .readChapter:
+            return language.pick(hy: "Գլուխը կարդացեք առնվազն 20 վայրկյան", ru: "Читайте главу не меньше 20 секунд", en: "Read a chapter for at least 20 seconds")
+        case .readThree:
+            return language.pick(hy: "Երեք տարբեր գլուխ այսօր", ru: "Три разные главы за день", en: "Three different chapters today")
+        case .candle:
+            return language.pick(hy: "Մոմ աղոթքի տաճարում", ru: "Свеча в храме молитвы", en: "A candle in the sanctuary")
+        case .quiz:
+            return language.pick(hy: "Վիկտորինան ավարտեք մինչև վերջ", ru: "Пройдите викторину до конца", en: "Finish a quiz to the end")
+        case .narek:
+            return language.pick(hy: "Միացրեք ցանկացած գլուխ", ru: "Включите любую главу", en: "Play any chapter")
+        }
+    }
+}
+
+/// Всплывающая подсказка поверх приложения: задание выполнено или выполнены все задания дня
+struct PomegranateToast: Identifiable, Equatable {
+    enum Kind: Equatable {
+        case task(PomegranateTask, dew: Int)
+        case perfectDay(bonus: Int)
+    }
+
+    let id = UUID()
+    let kind: Kind
+}
+
 // MARK: - Центральный Менеджер Гранатового Древа Духовного Роста
 @MainActor
 final class PomegranateTreeManager: ObservableObject {
@@ -187,6 +266,14 @@ final class PomegranateTreeManager: ObservableObject {
     private let kLastWateredDateKey = "pomegranate_last_watered_date"
     private let kCollectedFruitsKey = "pomegranate_collected_fruit_ids"
     private let kTreeDaysStreakKey = "pomegranate_tree_days_streak"
+    private let kTasksDayKey = "pomegranate_tasks_day"
+    private let kTasksProgressKey = "pomegranate_tasks_progress"
+    private let kTasksChaptersKey = "pomegranate_tasks_chapters"
+    private let kTasksDoneKey = "pomegranate_tasks_done"
+    private let kPerfectDaysKey = "pomegranate_perfect_days"
+
+    /// Росинки за день, когда выполнены все задания
+    static let perfectDayBonus = 3
 
     // MARK: - Опубликованные свойства
     @Published var totalSeeds: Int = 0
@@ -196,6 +283,17 @@ final class PomegranateTreeManager: ObservableObject {
     @Published var selectedFruit: SpiritualFruit? = nil
     @Published var isShowingSanctuarySheet: Bool = false
     @Published var newlyWateredTrigger: Bool = false
+
+    // Задания дня
+    @Published private(set) var todayTasks: [PomegranateTask] = []
+    @Published private(set) var taskProgress: [PomegranateTask: Int] = [:]
+    @Published private(set) var completedTasks: Set<PomegranateTask> = []
+    /// Сколько дней человек выполнил все задания
+    @Published private(set) var perfectDays: Int = 0
+    /// Что только что произошло: показывается подсказкой поверх приложения
+    @Published var taskToast: PomegranateToast?
+    /// Главы, засчитанные сегодня: одна и та же глава за день считается один раз
+    private var chaptersToday: Set<String> = []
 
     // 9 Плодов Духа
     let spiritualFruits: [SpiritualFruit] = [
@@ -330,6 +428,7 @@ final class PomegranateTreeManager: ObservableObject {
     private init() {
         loadState()
         refreshDewAndStreakStatus()
+        refreshTasksForToday()
     }
 
     // MARK: - Текущая Стадия Древа
@@ -427,6 +526,129 @@ final class PomegranateTreeManager: ObservableObject {
 
         // Тактильный благородный отклик
         Haptics.notify(.success)
+    }
+
+    // MARK: - Ступень сада: шкала росинок
+    /// Росинок до ступени: 0, 5, 15, 30, 50… (шаг каждой следующей ступени на 5 больше)
+    private static func seedsNeeded(forLevel level: Int) -> Int {
+        5 * level * (level - 1) / 2
+    }
+
+    var gardenLevel: Int {
+        var level = 1
+        while totalSeeds >= Self.seedsNeeded(forLevel: level + 1) { level += 1 }
+        return level
+    }
+
+    /// Росинок набрано на текущей ступени
+    var seedsIntoLevel: Int { totalSeeds - Self.seedsNeeded(forLevel: gardenLevel) }
+
+    /// Сколько росинок нужно, чтобы пройти текущую ступень
+    var seedsForLevel: Int { 5 * gardenLevel }
+
+    var levelProgress: Double { min(1, Double(seedsIntoLevel) / Double(seedsForLevel)) }
+
+    // MARK: - Задания дня
+    private static func dayString(_ date: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    /// Задания дня: чтение главы и свеча всегда, а из «три главы», «викторина», «Нарекаци» по кругу пропускается одно
+    static func tasks(forDayIndex index: Int) -> [PomegranateTask] {
+        let rotating: [PomegranateTask] = [.readThree, .quiz, .narek]
+        let skipped = index % rotating.count
+        let chosen = rotating.enumerated().filter { $0.offset != skipped }.map { $0.element }
+        return [.readChapter] + chosen + [.candle]
+    }
+
+    /// Подтягивает состояние заданий на сегодня; новый день начинается с нуля
+    func refreshTasksForToday() {
+        let dayIndex = Calendar.current.ordinality(of: .day, in: .era, for: Date()) ?? 0
+        todayTasks = Self.tasks(forDayIndex: dayIndex)
+        perfectDays = defaults.integer(forKey: kPerfectDaysKey)
+
+        let today = Self.dayString()
+        guard defaults.string(forKey: kTasksDayKey) == today else {
+            defaults.set(today, forKey: kTasksDayKey)
+            defaults.removeObject(forKey: kTasksProgressKey)
+            defaults.removeObject(forKey: kTasksChaptersKey)
+            defaults.removeObject(forKey: kTasksDoneKey)
+            taskProgress = [:]
+            completedTasks = []
+            chaptersToday = []
+            return
+        }
+        let stored = defaults.dictionary(forKey: kTasksProgressKey) as? [String: Int] ?? [:]
+        var progress: [PomegranateTask: Int] = [:]
+        for (key, value) in stored {
+            if let task = PomegranateTask(rawValue: key) { progress[task] = value }
+        }
+        taskProgress = progress
+        completedTasks = Set((defaults.stringArray(forKey: kTasksDoneKey) ?? []).compactMap { PomegranateTask(rawValue: $0) })
+        chaptersToday = Set(defaults.stringArray(forKey: kTasksChaptersKey) ?? [])
+    }
+
+    private func persistTasks() {
+        var stored: [String: Int] = [:]
+        for (task, value) in taskProgress { stored[task.rawValue] = value }
+        defaults.set(stored, forKey: kTasksProgressKey)
+        defaults.set(completedTasks.map { $0.rawValue }, forKey: kTasksDoneKey)
+        defaults.set(Array(chaptersToday), forKey: kTasksChaptersKey)
+    }
+
+    private func advance(_ task: PomegranateTask, to value: Int) {
+        taskProgress[task] = min(task.target, max(taskProgress[task] ?? 0, value))
+    }
+
+    /// Действие в приложении питает древо: засчитывается в задания дня, а первое за день ещё и поливает древо
+    func record(_ activity: PomegranateActivity) {
+        refreshTasksForToday()
+
+        switch activity {
+        case .chapter(let book, let chapter):
+            guard chaptersToday.insert("\(book):\(chapter)").inserted else { return }
+            advance(.readChapter, to: chaptersToday.count)
+            advance(.readThree, to: chaptersToday.count)
+        case .candle:
+            advance(.candle, to: (taskProgress[.candle] ?? 0) + 1)
+        case .quiz:
+            advance(.quiz, to: (taskProgress[.quiz] ?? 0) + 1)
+        case .narek:
+            advance(.narek, to: (taskProgress[.narek] ?? 0) + 1)
+        case .plan:
+            break
+        }
+
+        let finished = todayTasks.filter { !completedTasks.contains($0) && (taskProgress[$0] ?? 0) >= $0.target }
+        completedTasks.formUnion(finished)
+
+        var dew = finished.reduce(0) { $0 + $1.dew }
+        var bonus = 0
+        if !finished.isEmpty, completedTasks.isSuperset(of: todayTasks) {
+            bonus = Self.perfectDayBonus
+            dew += bonus
+            perfectDays += 1
+            defaults.set(perfectDays, forKey: kPerfectDaysKey)
+        }
+        persistTasks()
+
+        if dew > 0 {
+            nourishWithDew(amount: dew)
+        } else if !isWateredToday {
+            nourishWithDew(amount: 1)
+        }
+
+        for task in finished {
+            Funnel.track("feature_used", ["feature": "tree_task"])
+            if bonus == 0 { taskToast = PomegranateToast(kind: .task(task, dew: task.dew)) }
+        }
+        if bonus > 0 {
+            Funnel.track("feature_used", ["feature": "tree_perfect_day"])
+            taskToast = PomegranateToast(kind: .perfectDay(bonus: bonus))
+        }
     }
 
     // Открыть модальное окно Древа

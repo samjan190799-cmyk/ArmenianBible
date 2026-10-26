@@ -179,7 +179,7 @@ final class ReadingPlanManager: ObservableObject {
         saveStreak()
         
         // Питаем Гранатовое Древо Духовного Роста небесной росой
-        PomegranateTreeManager.shared.nourishWithDew(amount: 1)
+        PomegranateTreeManager.shared.record(.plan)
     }
     
     // MARK: - Быстрый переход к чтению в Библии

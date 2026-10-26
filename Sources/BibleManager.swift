@@ -57,6 +57,8 @@ class BibleManager: ObservableObject {
     @Published var lastReadChapter: Int? = nil
     @Published var readChaptersByBook: [Int: Set<Int>] = [:]
     private let readChaptersKey = "bible_read_chapters_by_book"
+    /// Ожидание, после которого прочитанная глава питает Гранатовое древо
+    private var readingDewTask: Task<Void, Never>?
     
     // MARK: - История сообщений чата Духовного Помощника
     @Published var aiChatMessages: [AIChatMessage] = []
@@ -521,6 +523,22 @@ class BibleManager: ObservableObject {
             }
         }
         markChapterAsRead(bookId: bookId, chapter: chapter)
+        scheduleTreeDewForReading(bookId: bookId, chapter: chapter)
+    }
+    
+    /// Глава питает древо, когда её читают хотя бы 20 секунд: простое пролистывание глав не считается
+    private func scheduleTreeDewForReading(bookId: Int, chapter: Int) {
+        readingDewTask?.cancel()
+        readingDewTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 20_000_000_000)
+            guard !Task.isCancelled else { return }
+            PomegranateTreeManager.shared.record(.chapter(book: bookId, chapter: chapter))
+        }
+    }
+    
+    /// Человек ушёл с экрана чтения раньше, чем прошло время: глава древу не засчитывается
+    func cancelReadingDew() {
+        readingDewTask?.cancel()
     }
     
     // MARK: - Учет прогресса чтения Библии

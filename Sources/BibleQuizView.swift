@@ -760,6 +760,7 @@ struct BibleQuizView: View {
                 quizFinished = true
             }
             ReviewManager.shared.recordPositiveAction()
+            PomegranateTreeManager.shared.record(.quiz)
         }
     }
     

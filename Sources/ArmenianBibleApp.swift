@@ -12,6 +12,7 @@ struct ArmenianBibleApp: App {
                 .paperMotionRoot()
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
                 .tint(manager.accentTheme.color)
+                .overlay(alignment: .top) { PomegranateTaskToastView() }
                 .task {
                     // Предотвращение Watchdog 0x8BADF00D: тяжёлые сервисы стартуют строго после того,
                     // как сцена приложения (UIWindowScene) полностью активна и отрисована.

@@ -269,6 +269,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         }
 
         Funnel.track("feature_used", ["feature": "narek_audio"])
+        Task { @MainActor in PomegranateTreeManager.shared.record(.narek) }
 
         // Останавливаем прежний плеер, не затирая сохранённую позицию промежуточным состоянием
         setSleepTimer(.off)

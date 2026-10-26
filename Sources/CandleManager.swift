@@ -83,7 +83,7 @@ final class CandleManager: ObservableObject {
         hasUsedDailyFreeCandle = true
         
         // Омовение Гранатового Древа Веры утренней росой за молитву
-        PomegranateTreeManager.shared.nourishWithDew(amount: 1)
+        PomegranateTreeManager.shared.record(.candle)
         
         Haptics.notify(.success)
         Funnel.track("feature_used", ["feature": "candle"])
@@ -131,7 +131,7 @@ final class CandleManager: ObservableObject {
         activeCandles.insert(candle, at: 0)
         saveCandles()
         showInIsland(candle)
-        PomegranateTreeManager.shared.nourishWithDew(amount: 1)
+        PomegranateTreeManager.shared.record(.candle)
         Haptics.notify(.success)
         Funnel.track("feature_used", ["feature": "candle"])
         return true
