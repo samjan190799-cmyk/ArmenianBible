@@ -30,6 +30,7 @@ on:
           - nativity
           - nativityvideo
           - nativityend
+          - tree
           - verselink
           - matenadaran
       language:
@@ -199,6 +200,24 @@ jobs:
               xcrun simctl shutdown "$UDID" || true
               ls -la "$OUT_DIR"
               echo "✅ Видео «Рождества» ($STORE_LANG) записано"
+              return 0
+            fi
+
+            # 22. Гранатовое древо: шкала сада и задания дня (две главы и свеча уже засчитаны)
+            if [ "$SCOPE" = "tree" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@"
+                sleep 10
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "tree_top_$STORE_LANG" -openTab tree -pomegranate_debug_days 20 -pomegranate_demo YES -luys_debug_language "$STORE_LANG"
+              shoot "tree_tasks_$STORE_LANG" -openTab tree -pomegranate_debug_days 20 -pomegranate_demo YES -pomegranate_scroll tasks -luys_debug_language "$STORE_LANG"
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Древо ($STORE_LANG) снято"
               return 0
             fi
 

@@ -29,6 +29,7 @@ struct PomegranateSanctuarySheetView: View {
                 // MARK: - Фоновый градиент священного храмового сада
                 PaperBackground()
                 
+                ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
                         // 1. Верхний заголовок стадии
@@ -89,6 +90,7 @@ struct PomegranateSanctuarySheetView: View {
                         // 5. Задания дня
                         dailyTasksCard
                             .padding(.horizontal, 20)
+                            .id("tasks")
                         
                         // 6. Карточка прогресса до следующей стадии
                         growthProgressBarCard
@@ -103,6 +105,13 @@ struct PomegranateSanctuarySheetView: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 36)
                     }
+                }
+                .onAppear {
+                    // Для CI: -pomegranate_scroll tasks прокручивает экран к заданиям дня
+                    if UserDefaults.standard.string(forKey: "pomegranate_scroll") == "tasks" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { proxy.scrollTo("tasks", anchor: .top) }
+                    }
+                }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)

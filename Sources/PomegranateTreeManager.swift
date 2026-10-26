@@ -429,6 +429,15 @@ final class PomegranateTreeManager: ObservableObject {
         loadState()
         refreshDewAndStreakStatus()
         refreshTasksForToday()
+        // Для CI: -pomegranate_demo YES засчитывает две главы и свечу, чтобы снять экран с заданиями
+        if ProcessInfo.processInfo.arguments.contains("-pomegranate_demo") {
+            DispatchQueue.main.async {
+                let tree = PomegranateTreeManager.shared
+                tree.record(.chapter(book: 43, chapter: 3))
+                tree.record(.chapter(book: 43, chapter: 4))
+                tree.record(.candle)
+            }
+        }
     }
 
     // MARK: - Текущая Стадия Древа
