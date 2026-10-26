@@ -30,6 +30,7 @@ on:
           - nativity
           - nativityvideo
           - verselink
+          - matenadaran
       language:
         description: 'Язык интерфейса для scope=store (russian, armenian, english)'
         required: false
@@ -326,6 +327,31 @@ jobs:
               shoot "14_Candle_ignite_1.4" -openTab sanctuary -candle_seed YES -candle_detail 1 -candle_burn 0.0 -candle_time 2.5 -candle_ignite_age 1.4
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Скриншоты свечей для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 16. «Матенадаран»: тома, читалка-книга и PDF тома (Premium в симуляторе включает отладочный флаг)
+            if [ "$SCOPE" = "matenadaran" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@"
+                sleep 9
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "16_Matenadaran_library_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              shoot "16_Matenadaran_reader_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_open_reader YES -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              shoot "16_Matenadaran_library_en" -openTab manuscript -manuscript_seed_library 5 -manuscript_open_library YES -luys_debug_language english -manuscript_language english -manuscript_time 30
+              echo "📸 PDF тома..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_pdf_test YES -k_debug_premium_unlocked YES -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              sleep 20
+              CONTAINER=$(xcrun simctl get_app_container "$UDID" com.samvel.armenianbible data)
+              cp "$CONTAINER/Documents/codex_test.pdf" "$OUT_DIR/16_Codex_volume1.pdf" || echo "⚠️ PDF не найден"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты «Матенадарана» для $DEV_LABEL сняты"
               return 0
             fi
 

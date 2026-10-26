@@ -194,6 +194,11 @@ struct ManuscriptStudioView: View {
             motion.start()
             scheduleHaptics()
             exportForTestsIfNeeded()
+            // Для CI: собрание из N листов и «Матенадаран» поверх студии (-manuscript_seed_library 17 -manuscript_open_library YES)
+            ManuscriptLibrary.shared.seedForTestsIfNeeded()
+            if UserDefaults.standard.bool(forKey: "manuscript_open_library") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { isShowingLibrary = true }
+            }
             // Для CI: имитация свайпа к следующему листу (-manuscript_autoswipe YES)
             if UserDefaults.standard.bool(forKey: "manuscript_autoswipe") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { advance() }
@@ -689,6 +694,7 @@ struct ManuscriptLibraryView: View {
                     .padding(20)
                 }
                 .onAppear {
+                    runLaunchArguments()
                     // Новые листы встают в конец книги: если их много, открываем «Матенадаран» на последнем
                     guard library.pages.count > 6, let last = library.ordered.last else { return }
                     DispatchQueue.main.async { proxy.scrollTo(last.id, anchor: .bottom) }
@@ -893,6 +899,25 @@ struct ManuscriptLibraryView: View {
                 library.delete(page)
             } label: {
                 Label(ManuscriptText.pick(language, hy: "Ջնջել", ru: "Удалить", en: "Delete"), systemImage: "trash")
+            }
+        }
+    }
+
+    /// Для CI: -manuscript_open_reader YES открывает читалку первого тома, -manuscript_pdf_test YES кладёт PDF первого тома в Documents
+    private func runLaunchArguments() {
+        let defaults = UserDefaults.standard
+        guard let first = library.volumes.first, let start = first.first else { return }
+        if defaults.bool(forKey: "manuscript_open_reader") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { openReader(number: 1, pages: first, start: start.id) }
+        }
+        if defaults.bool(forKey: "manuscript_pdf_test") {
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let url = ManuscriptExport.codexPDF(pages: first, owner: "Самвел", language: language, pen: ManuscriptPen.effective, volume: 1),
+                      let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+                let target = folder.appendingPathComponent("codex_test.pdf")
+                try? FileManager.default.removeItem(at: target)
+                try? FileManager.default.copyItem(at: url, to: target)
             }
         }
     }

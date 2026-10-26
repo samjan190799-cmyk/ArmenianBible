@@ -344,6 +344,23 @@ final class ManuscriptLibrary: ObservableObject {
         pages.isEmpty ? 1 : (isCodexBound ? pages.count / Self.codexSize : pages.count / Self.codexSize + 1)
     }
 
+    /// Для CI: -manuscript_seed_library N кладёт в пустое собрание N листов (каждый третий с подписью),
+    /// чтобы снять «Матенадаран», читалку и PDF
+    func seedForTestsIfNeeded() {
+        let count = UserDefaults.standard.integer(forKey: "manuscript_seed_library")
+        guard count > 0, pages.isEmpty else { return }
+        let language = BibleManager.shared.appLanguage
+        let notes = [
+            ManuscriptText.pick(language, hy: "Մայրիկի համար", ru: "Для мамы", en: "For Mom"),
+            ManuscriptText.pick(language, hy: "Օրհնության օրը", ru: "На день благословения", en: "For a day of blessing")
+        ]
+        for (index, var page) in ManuscriptPool.curatedPages(language: language, excluding: [], count: count).enumerated() {
+            page.position = Double(index)
+            if index % 3 == 0 { page.note = notes[(index / 3) % notes.count] }
+            save(page)
+        }
+    }
+
     /// Листы пришли из iCloud: перечитываем собрание из хранилища
     func reloadFromStorage() {
         guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
