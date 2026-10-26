@@ -90,7 +90,7 @@ struct ManuscriptCodexTitleView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            ManuscriptCodexCover(isBound: true)
+            ManuscriptCodexCover(isBound: true, crossScale: 0.55)
             VStack(spacing: 8) {
                 Text(ManuscriptText.pick(language, hy: "Մատենադարան", ru: "Матенадаран", en: "Matenadaran"))
                     .font(PaperFont.font(size: 34, weight: .semibold))

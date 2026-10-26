@@ -1000,6 +1000,8 @@ struct ManuscriptLibraryView: View {
 // MARK: - Переплёт кодекса: кожа, золотая рама, крест и наугольники
 struct ManuscriptCodexCover: View {
     let isBound: Bool
+    /// Размер креста относительно обложки; на титуле PDF обложка крупная, и полноразмерный крест похож на кость
+    var crossScale: CGFloat = 1
 
     var body: some View {
         Canvas { context, size in
@@ -1010,7 +1012,7 @@ struct ManuscriptCodexCover: View {
             let goldShading: GraphicsContext.Shading = isBound ? gold.shading : .color(ManuscriptPalette.color(0x8A7A68, 0.7))
             context.stroke(Path(roundedRect: rect.insetBy(dx: 4, dy: 4), cornerRadius: 2), with: goldShading, lineWidth: 1)
             let scale = size.width / 52
-            let cross = ManuscriptRenderer.blossomCross(center: CGPoint(x: rect.midX, y: rect.midY), size: 26 * scale)
+            let cross = ManuscriptRenderer.blossomCross(center: CGPoint(x: rect.midX, y: rect.midY), size: 26 * scale * crossScale)
             context.fill(cross, with: goldShading)
             for corner in [CGPoint(x: 8, y: 8), CGPoint(x: size.width - 8, y: 8),
                            CGPoint(x: 8, y: size.height - 8), CGPoint(x: size.width - 8, y: size.height - 8)] {
