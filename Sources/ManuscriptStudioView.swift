@@ -695,6 +695,16 @@ struct ManuscriptLibraryView: View {
                 }
                 .onAppear {
                     runLaunchArguments()
+                    // Для CI: -manuscript_library_scroll top показывает начало «Матенадарана», volume2 — второй том
+                    switch UserDefaults.standard.string(forKey: "manuscript_library_scroll") {
+                    case "top":
+                        return
+                    case "volume2":
+                        DispatchQueue.main.async { proxy.scrollTo("volume-2", anchor: .top) }
+                        return
+                    default:
+                        break
+                    }
                     // Новые листы встают в конец книги: если их много, открываем «Матенадаран» на последнем
                     guard library.pages.count > 6, let last = library.ordered.last else { return }
                     DispatchQueue.main.async { proxy.scrollTo(last.id, anchor: .bottom) }
@@ -834,6 +844,7 @@ struct ManuscriptLibraryView: View {
                 }
             }
         }
+        .id("volume-\(number)")
     }
 
     private func sectionButton(icon: String, label: String, isBusy: Bool, action: @escaping () -> Void) -> some View {

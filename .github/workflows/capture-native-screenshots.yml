@@ -342,6 +342,8 @@ jobs:
                 sleep 2
               }
               shoot "16_Matenadaran_library_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              shoot "16_Matenadaran_top_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_library_scroll top -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              shoot "16_Matenadaran_volume2_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_library_scroll volume2 -luys_debug_language russian -manuscript_language russian -manuscript_time 30
               shoot "16_Matenadaran_reader_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_open_reader YES -luys_debug_language russian -manuscript_language russian -manuscript_time 30
               shoot "16_Matenadaran_library_en" -openTab manuscript -manuscript_seed_library 5 -manuscript_open_library YES -luys_debug_language english -manuscript_language english -manuscript_time 30
               echo "📸 PDF тома..."
@@ -527,4 +529,5 @@ jobs:
           path: |
             ./Real_Screenshots_Output/**/*.png
             ./Real_Screenshots_Output/**/*.mp4
+            ./Real_Screenshots_Output/**/*.pdf
           if-no-files-found: error
