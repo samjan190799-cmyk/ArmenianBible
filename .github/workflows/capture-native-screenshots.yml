@@ -29,6 +29,7 @@ on:
           - narek
           - nativity
           - nativityvideo
+          - verselink
       language:
         description: 'Язык интерфейса для scope=store (russian, armenian, english)'
         required: false
@@ -164,6 +165,22 @@ jobs:
               xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Скриншоты свечи в острове для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 21. Переход по ссылке на стих: глава должна открыться на самом стихе, а не с начала
+            if [ "$SCOPE" = "verselink" ]; then
+              for SHOT in "40 5 14" "19 119 105" "42 2 11" "19 23 4"; do
+                set -- $SHOT
+                echo "📸 Ссылка на стих: книга $1, глава $2, стих $3 ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bibleverse -bible_book "$1" -bible_chapter "$2" -bible_verse "$3" -luys_debug_language "$STORE_LANG"
+                sleep 9
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/verselink_$1_$2_$3.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 1
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры ссылок на стихи ($STORE_LANG) сняты"
               return 0
             fi
 

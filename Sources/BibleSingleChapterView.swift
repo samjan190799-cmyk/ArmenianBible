@@ -10,11 +10,16 @@ struct BibleSingleChapterView: View {
     @ObservedObject var manager = BibleManager.shared
     @State private var chapterText: BibleChapterText? = nil
     @State private var highlightedVerseId: Int? = nil
+    /// Расстояние от верха текста главы до строки целевого стиха; приходит из раскладки текста, когда известна ширина
+    @State private var targetOffset: CGFloat? = nil
     @State private var selectedVerseForSheet: BibleVerseText? = nil
     @State private var toastMessage: String? = nil
     
     @Environment(\.colorScheme) private var colorScheme
-    
+
+    /// Невидимая метка в тексте главы на уровне целевого стиха: к ней прокручивает ScrollViewReader
+    private static let verseAnchorId = "verse-scroll-anchor"
+
     private var accentColor: Color {
         manager.accentTheme.color
     }
@@ -98,10 +103,23 @@ struct BibleSingleChapterView: View {
                                         verseNumber: verseNum,
                                         colorHex: nil
                                     )
+                                },
+                                scrollToVerse: targetVerse,
+                                onVerseOffset: { offset in
+                                    targetOffset = offset
                                 }
                             )
                             .padding(.horizontal, 24)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(alignment: .topLeading) {
+                                // Метка на высоте целевого стиха: отступ сверху снаружи от id, поэтому сам элемент стоит ровно там
+                                if let offset = targetOffset {
+                                    Color.clear
+                                        .frame(width: 1, height: 1)
+                                        .id(Self.verseAnchorId)
+                                        .padding(.top, offset)
+                                }
+                            }
                             
                             // MARK: - Заметки и теги к стихам этой главы (если есть)
                             let chapterAnnotations = text.verses.compactMap { v -> (BibleVerseText, VerseAnnotation)? in
@@ -178,8 +196,17 @@ struct BibleSingleChapterView: View {
                         }
                         .padding(.bottom, 32)
                     }
+                    .onChange(of: targetOffset) { offset in
+                        // Смещение стиха стало известно: прокручиваем так, чтобы стих лёг в верхнюю треть экрана
+                        guard offset != nil else { return }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                proxy.scrollTo(Self.verseAnchorId, anchor: UnitPoint(x: 0.5, y: 0.22))
+                            }
+                        }
+                    }
                     .onAppear {
-                        // Скроллим к целевому стиху, если он передан (для Deep Link и поиска)
+                        // Подсвечиваем целевой стих, если он передан (ссылка, поиск, избранное); прокрутка к нему — в onChange выше
                         if let target = targetVerse {
                             highlightedVerseId = target
                             

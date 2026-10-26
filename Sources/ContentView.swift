@@ -57,6 +57,18 @@ struct ContentView: View {
                         else if tabArg == "ai" { manager.activeTabSelection = 2 }
                         else if tabArg == "bible" { manager.activeTabSelection = 3 }
                         else if tabArg == "narek" { manager.openNarekatsi() }
+
+                        #if DEBUG || targetEnvironment(simulator)
+                        // Проверка перехода по ссылке на стих в CI: -openTab bibleverse -bible_book N -bible_chapter N -bible_verse N
+                        if tabArg == "bibleverse" {
+                            let defaults = UserDefaults.standard
+                            manager.openBibleReader(
+                                bookId: defaults.integer(forKey: "bible_book"),
+                                chapter: defaults.integer(forKey: "bible_chapter"),
+                                verse: defaults.integer(forKey: "bible_verse")
+                            )
+                        }
+                        #endif
                     }
                 }
             }
