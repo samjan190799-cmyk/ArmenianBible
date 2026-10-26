@@ -78,7 +78,7 @@ enum CandleIntention: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
-// MARK: - Типы свечей (Ежедневный дар и просмотр видеорекламы)
+// MARK: - Типы свечей (ежедневный дар и свеча Premium)
 enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
     case freeDaily = "free_daily"
     case rewarded = "rewarded_candle"
@@ -117,9 +117,9 @@ enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
             }
         case .rewarded:
             switch language {
-            case .armenian: return "Աղոթքի մոմ (Գովազդով)"
-            case .russian: return "Молитвенная свеча (За видео)"
-            case .english: return "Prayer Candle (Watch Video)"
+            case .armenian: return "Աղոթքի մոմ (Premium)"
+            case .russian: return "Молитвенная свеча (Premium)"
+            case .english: return "Prayer Candle (Premium)"
             }
         case .small:
             switch language {
@@ -147,7 +147,7 @@ enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
         case .freeDaily:
             return language == .armenian ? "Անվճար" : (language == .russian ? "Бесплатно" : "Free")
         case .rewarded:
-            return language == .armenian ? "Տեսանյութ" : (language == .russian ? "1 Видео" : "1 Video")
+            return "Premium"
         case .small:
             return "$0.99"
         case .temple:

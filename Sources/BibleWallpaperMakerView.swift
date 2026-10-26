@@ -578,9 +578,6 @@ struct BibleWallpaperMakerView: View {
                         self.showSaveSuccessToast = true
                     }
                     
-                    // Показ межстраничной рекламы при соблюдении кулдауна
-                    AdManager.shared.recordActionAndShowInterstitialIfReady()
-                    
                     // Фиксация полезного действия для оценки приложения
                     ReviewManager.shared.recordPositiveAction()
                     

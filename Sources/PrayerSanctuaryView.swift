@@ -365,7 +365,9 @@ struct LightCandleFormSheetView: View {
     @State private var hideSuccessCandle: Bool = false
     /// Человек нажал «Зажечь свечу» на листе: свеча зажигается, когда лист закроется
     @State private var pendingLight: Bool = false
-    
+    /// Свеча сверх дара дня доступна только с Premium: без него вместо молитвы открывается подписка
+    @State private var isShowingPaywall: Bool = false
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -441,7 +443,7 @@ struct LightCandleFormSheetView: View {
                                 if !candleManager.hasUsedDailyFreeCandle {
                                     candleTierRow(tier: .freeDaily, badge: dailyFreeBadgeText)
                                 }
-                                // Свеча за просмотр видео
+                                // Молитвенная свеча на 24 часа: Premium
                                 candleTierRow(tier: .rewarded, badge: rewardedBadgeText)
                             }
                         }
@@ -454,7 +456,13 @@ struct LightCandleFormSheetView: View {
                         // 5. Кнопка совершения молитвы и возжжения
                         VStack(spacing: 8) {
                             Button {
-                                // Молитва пишется на пергаменте; свеча зажигается кнопкой на листе
+                                // Молитва пишется на пергаменте; свеча зажигается кнопкой на листе.
+                                // Свеча сверх дара дня только с Premium: без него открываем подписку
+                                if selectedTier == .rewarded && !SubscriptionManager.shared.isPremium {
+                                    triggerHaptic(.medium)
+                                    isShowingPaywall = true
+                                    return
+                                }
                                 triggerHaptic(.soft)
                                 isShowingWriter = true
                             } label: {
@@ -483,7 +491,7 @@ struct LightCandleFormSheetView: View {
                             .disabled(candleManager.isPurchasing)
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // Сообщение об ошибке или подготовке рекламы
+                            // Сообщение об ошибке
                             if let error = candleManager.errorMessage {
                                 HStack(spacing: 6) {
                                     Image(systemName: "exclamationmark.triangle.fill")
@@ -544,6 +552,9 @@ struct LightCandleFormSheetView: View {
             }
             .navigationTitle(sheetTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $isShowingPaywall) {
+                PaywallView()
+            }
             .fullScreenCover(isPresented: $isShowingWriter, onDismiss: {
                 if pendingLight {
                     pendingLight = false
@@ -609,7 +620,7 @@ struct LightCandleFormSheetView: View {
                         .foregroundColor(Paper.ink)
                     
                     if tier == .rewarded && SubscriptionManager.shared.isPremium {
-                        Text(language == .armenian ? "PRO • ԱՌԱՆՑ ԳՈՎԱԶԴԻ" : (language == .russian ? "PRO • БЕЗ РЕКЛАМЫ" : "PRO • NO ADS"))
+                        Text(language == .armenian ? "PRO • 24 ԺԱՄ" : (language == .russian ? "PRO • 24 ЧАСА" : "PRO • 24 HOURS"))
                             .font(PaperFont.font(size: 10, weight: .semibold).monospacedDigit())
                             .foregroundColor(Paper.moss)
                     } else {
@@ -762,9 +773,9 @@ struct LightCandleFormSheetView: View {
     }
     private var rewardedBadgeText: String {
         switch language {
-        case .armenian: return "1 ՏԵՍԱՆՅՈՒԹ • 24 ԺԱՄ"
-        case .russian: return "1 ВИДЕО • 24 ЧАСА"
-        case .english: return "1 VIDEO • 24 HOURS"
+        case .armenian: return "PREMIUM • 24 ԺԱՄ"
+        case .russian: return "PREMIUM • 24 ЧАСА"
+        case .english: return "PREMIUM • 24 HOURS"
         }
     }
     private var loadingText: String {
@@ -778,15 +789,15 @@ struct LightCandleFormSheetView: View {
         if selectedTier == .rewarded {
             if SubscriptionManager.shared.isPremium {
                 switch language {
-                case .armenian: return "Վառել մոմը (PRO • Առանց գովազդի)"
-                case .russian: return "Зажечь свечу (PRO • Без рекламы)"
-                case .english: return "Light Candle (PRO • No Ads)"
+                case .armenian: return "Վառել մոմը (PRO)"
+                case .russian: return "Зажечь свечу (PRO)"
+                case .english: return "Light Candle (PRO)"
                 }
             } else {
                 switch language {
-                case .armenian: return "Դիտել գովազդը և վառել մոմը"
-                case .russian: return "Посмотреть видео и зажечь свечу"
-                case .english: return "Watch Video & Light Candle"
+                case .armenian: return "Ակտիվացնել Premium"
+                case .russian: return "Оформить Premium"
+                case .english: return "Get Premium"
                 }
             }
         } else {

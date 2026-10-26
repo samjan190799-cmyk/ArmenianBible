@@ -431,12 +431,6 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 6)
                     
-                    // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-                    LuysHybridBannerView(placement: .home)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 2)
-                        .staggeredEntrance(index: 1)
-
                     // MARK: - Карточка «Мой Матенадаран»: собранные листы рукописи и новый лист
                     // Стих дня на пергаменте открывается кнопкой в верхней карточке стиха
                     ManuscriptBannerCardView(

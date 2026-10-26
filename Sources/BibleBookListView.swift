@@ -35,11 +35,6 @@ struct BibleBookListView: View {
             .padding(.top, 12)
             .tint(accentColor)
             
-            // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-            LuysHybridBannerView(placement: .reader)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 4)
-            
             // Список книг — оглавление на одном листе бумаги
             ScrollView {
                 let filteredBooks = books.filter { selectedTestament == 0 ? !$0.isNewTestament : $0.isNewTestament }

@@ -131,7 +131,7 @@ struct SettingsView: View {
     /// Группа настроек по смыслу: заголовок и секции под ним
     private struct SettingsGroup: Identifiable {
         let id: String
-        /// nil — группа без заголовка (подписка, реклама внизу)
+        /// nil — группа без заголовка (подписка вверху)
         let title: String?
         let icon: String
         let items: [SettingsSectionItem]
@@ -209,13 +209,7 @@ struct SettingsView: View {
                     SettingsSectionItem(id: "system", view: AnyView(systemAndDataSection)),
                     SettingsSectionItem(id: "about", view: AnyView(aboutSection))
                 ]
-            ),
-            SettingsGroup(id: "banner", title: nil, icon: "", items: [
-                SettingsSectionItem(id: "banner", view: AnyView(
-                    LuysHybridBannerView(placement: .settings)
-                        .padding(.top, 4)
-                ))
-            ])
+            )
         ]
     }
 
@@ -370,7 +364,7 @@ struct SettingsView: View {
                 }
             }
             .alert("Панель тестировщика (TestFlight)", isPresented: $isShowingDevPasscodeAlert) {
-                Button("Включить Free (для теста рекламы)") {
+                Button("Включить Free (для теста лимитов)") {
                     handleDevToggle(enablePremium: false)
                 }
                 
@@ -382,7 +376,7 @@ struct SettingsView: View {
                     devPasscodeInput = ""
                 }
             } message: {
-                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")\n\n\(LuysAdManager.shared.diagnosticsSummary)")
+                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")")
             }
             .alert("ai_clear_chat_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingClearAIChatAlert) {
                 Button("ai_clear_chat_btn".localized(for: selectedLanguage), role: .destructive) {
@@ -550,14 +544,14 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Text(selectedLanguage == .armenian ? "Օրական անվճար մոմ և մոմավառություն տեսանյութով" : (selectedLanguage == .russian ? "Бесплатная ежедневная свеча и молитва за просмотр видео" : "Free daily candle & prayer candle with video"))
+                    Text(selectedLanguage == .armenian ? "Օրական անվճար մոմ, ավելին՝ Premium-ով" : (selectedLanguage == .russian ? "Бесплатная ежедневная свеча, больше свечей: в Premium" : "Free daily candle, more candles with Premium"))
                         .font(PaperFont.font(size: 12))
                         .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                 }
             }
             
-            // Список вариантов свечей (бесплатный + за видео)
+            // Список вариантов свечей (бесплатный + Premium)
             VStack(spacing: 8) {
                 // 1. Бесплатная ежедневная свеча
                 settingsCandleTierCard(
@@ -571,14 +565,14 @@ struct SettingsView: View {
                     icon: "flame"
                 )
                 
-                // 2. Свеча за просмотр видео
+                // 2. Молитвенная свеча на 24 часа: Premium
                 settingsCandleTierCard(
                     tier: .rewarded,
                     title: selectedLanguage == .armenian ? "Աղոթքի Մոմ" : (selectedLanguage == .russian ? "Молитвенная свеча" : "Prayer Candle"),
-                    subtitle: selectedLanguage == .armenian ? "24 ժամ • 1 տեսանյութի դիտմամբ" : (selectedLanguage == .russian ? "24 часа • За 1 видео (без оплаты)" : "24 hrs • Watch 1 video (free)"),
-                    badge: selectedLanguage == .armenian ? "ՏԵՍԱՆՅՈՒԹ" : (selectedLanguage == .russian ? "1 ВИДЕО" : "1 VIDEO"),
-                    badgeColor: Paper.lapis,
-                    icon: "play.circle.fill"
+                    subtitle: selectedLanguage == .armenian ? "24 ժամ • Premium-ով, անսահմանափակ քանակ" : (selectedLanguage == .russian ? "24 часа • С Premium, без ограничений" : "24 hrs • With Premium, unlimited"),
+                    badge: "PREMIUM",
+                    badgeColor: Paper.gold,
+                    icon: "crown.fill"
                 )
             }
             

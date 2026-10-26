@@ -313,7 +313,7 @@ final class SubscriptionManager: ObservableObject {
             #endif
         }
         
-        // Если разработчик принудительно включил Free-режим для тестирования рекламы
+        // Если разработчик принудительно включил Free-режим для проверки лимитов
         if Self.devToolsAvailable && UserDefaults.standard.bool(forKey: kForceFreeModeKey) {
             self.isPremium = false
             UserDefaults.standard.set(false, forKey: kPremiumOverrideKey)
@@ -381,7 +381,7 @@ final class SubscriptionManager: ObservableObject {
     private let kDailyAiBonusKey = "daily_ai_bonus_reward_count_key"
     private let kPermanentBonusAiQuestionsKey = "permanent_bonus_ai_questions_accumulated_key"
     
-    /// Накопленные пользователем несгораемые бонусные вопросы за просмотр рекламы (Копилка вопросов)
+    /// Накопленные ранее несгораемые бонусные вопросы (копилка за просмотр рекламы). Новые не начисляются, старые расходуются
     public var accumulatedBonusAiQuestions: Int {
         get {
             // Бесшовная миграция со старого ключа
@@ -417,12 +417,6 @@ final class SubscriptionManager: ObservableObject {
     var remainingFreeAiQuestions: Int {
         if isPremium { return 999 }
         return remainingDailyFreeQuestions + accumulatedBonusAiQuestions
-    }
-    
-    /// Добавление бонусного вопроса к ИИ за просмотр рекламы (сохраняется в несгораемую копилку)
-    func grantBonusAiQuestionFromAd() {
-        accumulatedBonusAiQuestions += 1
-        objectWillChange.send()
     }
     
     /// Фиксация одного использованного вопроса к ИИ
@@ -470,7 +464,7 @@ final class SubscriptionManager: ObservableObject {
         }
     }
     
-    /// Переключение режима разработчика: принудительный Free для теста рекламы или Premium
+    /// Переключение режима разработчика: принудительный Free для проверки лимитов или Premium
     func toggleDeveloperPremium(to enablePremium: Bool) {
         guard Self.devToolsAvailable else { return }
         if enablePremium {

@@ -231,11 +231,6 @@ struct FavoritesView: View {
                 }
                 .padding(.bottom, 6)
                 
-                // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-                LuysHybridBannerView(placement: .favorites)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 6)
-                
                 // MARK: - Список карточек или Пустое состояние
                 let showFavorites = (selectedSectionTab == 0 || selectedSectionTab == 1) && selectedTagFilter == nil
                 let hasAnnotations = !filteredAnnotations.isEmpty

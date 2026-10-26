@@ -55,7 +55,7 @@ struct PrayerManuscriptWriterView: View {
     let reference: String
     /// Каноническая молитва выбранного намерения: её можно вернуть одной кнопкой
     let canonicalPrayer: String
-    /// Подпись кнопки «Зажечь свечу» (учитывает PRO и рекламу)
+    /// Подпись кнопки «Зажечь свечу» (учитывает PRO)
     let lightTitle: String
     /// Человек нажал «Зажечь свечу»: форма зажжёт свечу, когда лист закроется
     let onLight: () -> Void

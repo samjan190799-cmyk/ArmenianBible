@@ -2,8 +2,6 @@ import SwiftUI
 import WidgetKit
 import LocalAuthentication
 import Foundation
-import AdSupport
-import AppTrackingTransparency
 
 extension SettingsView {
     // MARK: - Секция: Система и данные (Haptics, Face ID, Cache, Backup)
@@ -648,12 +646,12 @@ extension SettingsView {
             if enablePremium {
                 devToastIcon = "crown.fill"
                 devToastMessage = "Premium активирован!"
-                devToastSubtitle = "Все возможности открыты, реклама полностью отключена."
+                devToastSubtitle = "Все возможности открыты, лимиты сняты."
                 devToastColor = [Paper.gold, Paper.gold]
             } else {
                 devToastIcon = "hammer.fill"
                 devToastMessage = "🧪 Free-режим включен!"
-                devToastSubtitle = "Реклама Luys включена, лимиты активны для теста."
+                devToastSubtitle = "Лимиты Free включены для теста."
                 devToastColor = [Paper.lapis, Paper.lapis]
             }
             

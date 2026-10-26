@@ -9,10 +9,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         application.beginReceivingRemoteControlEvents()
         PaperAppearance.apply()
-        
-        Task { @MainActor in
-            LuysAdManager.shared.initialize()
-        }
         return true
     }
 }

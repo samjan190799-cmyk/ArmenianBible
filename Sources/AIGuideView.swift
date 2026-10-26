@@ -9,7 +9,6 @@ struct AIGuideView: View {
     @State private var questionText = ""
     @State private var isAskingAI = false
     @State private var isShowingPaywall = false
-    @State private var isShowingRewardedOffer = false
     
     // Ошибки и подтверждения
     @State private var showingErrorAlert = false
@@ -164,29 +163,6 @@ struct AIGuideView: View {
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
         }
-        .confirmationDialog(
-            limitDialogTitle,
-            isPresented: $isShowingRewardedOffer,
-            titleVisibility: .visible
-        ) {
-            Button(limitDialogWatchAdTitle) {
-                triggerHaptic(.soft)
-                AdManager.shared.showRewardedAd {
-                    let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
-                    showToastMessage(msg)
-                    if !questionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        submitQuestion(questionText)
-                    }
-                }
-            }
-            Button(limitDialogPaywallTitle) {
-                triggerHaptic(.light)
-                isShowingPaywall = true
-            }
-            Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
-        } message: {
-            Text(limitDialogMessage)
-        }
         .alert("alert_empty_key_title".localized(for: manager.appLanguage), isPresented: $showingNoKeyAlert) {
             Button("alert_ok_button".localized(for: manager.appLanguage), role: .cancel) {}
         } message: {
@@ -286,42 +262,10 @@ extension AIGuideView {
                                 .background(accentColor.opacity(0.12))
                                 .cornerRadius(4)
                         }
-                        
-                        // Кнопка пополнения копилки за просмотр видео (+1 несгораемый вопрос)
-                        Button {
-                            triggerHaptic(.soft)
-                            let isShown = AdManager.shared.showRewardedAd {
-                                let total = subscriptionManager.remainingFreeAiQuestions
-                                let banked = subscriptionManager.accumulatedBonusAiQuestions
-                                let msg = manager.appLanguage == .armenian ?
-                                    "+1 հարց կուտակվեց: Ընդհանուր՝ \(total) (\(banked) կուտակված)" :
-                                    (manager.appLanguage == .russian ? "+1 вопрос накоплен! Всего: \(total) (\(banked) в копилке)" : "+1 question banked! Total: \(total) (\(banked) banked)")
-                                showToastMessage(msg)
-                            }
-                            if !isShown {
-                                let waitMsg = manager.appLanguage == .armenian ?
-                                    "Գովազդը բեռնվում է, խնդրում ենք սպասել մի քանի վայրկյան..." :
-                                    (manager.appLanguage == .russian ? "Реклама загружается, пожалуйста, подождите пару секунд..." : "Ad is loading, please wait a few seconds...")
-                                showToastMessage(waitMsg)
-                            }
-                        } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 9, weight: .semibold))
-                                Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
-                                    .font(PaperFont.font(size: 9, weight: .semibold))
-                            }
-                            .foregroundColor(Paper.onAccent)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1.5)
-                            .background(Paper.gold)
-                            .cornerRadius(4)
-                            .shadow(color: Paper.shadow, radius: 2, x: 0, y: 1)
-                        }
                     }
                 }
             }
-            
+
             Spacer()
             
             // Кнопка очистки истории диалога
@@ -407,16 +351,6 @@ extension AIGuideView {
             }
             .padding(.vertical, 2)
             
-            // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-            LuysHybridBannerView(placement: .home)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 2)
-            
-            // MARK: - Карточка получения вопросов за просмотр рекламы (+1 вопрос)
-            if !subscriptionManager.isPremium {
-                rewardedBonusCard
-            }
-            
             // Подсказки быстрых вопросов
             VStack(alignment: .leading, spacing: 10) {
                 Text("suggested_questions_title".localized(for: manager.appLanguage))
@@ -476,16 +410,12 @@ extension AIGuideView {
                     
                     Button {
                         triggerHaptic(.soft)
-                        AdManager.shared.showRewardedAd {
-                            let total = subscriptionManager.remainingFreeAiQuestions
-                            let msg = manager.appLanguage == .armenian ? "+1 հարց կուտակվեց: Ընդհանուր՝ \(total)" : (manager.appLanguage == .russian ? "+1 вопрос накоплен! Всего: \(total)" : "+1 question banked! Total: \(total)")
-                            showToastMessage(msg)
-                        }
+                        isShowingPaywall = true
                     } label: {
                         HStack(spacing: 3) {
-                            Image(systemName: "plus.circle.fill")
+                            Image(systemName: "crown.fill")
                                 .font(.system(size: 9, weight: .semibold))
-                            Text(manager.appLanguage == .armenian ? "+1 կուտակել" : (manager.appLanguage == .russian ? "+1 копить" : "+1 bank"))
+                            Text(manager.appLanguage == .armenian ? "Անսահմանափակ" : (manager.appLanguage == .russian ? "Безлимит" : "Unlimited"))
                                 .font(PaperFont.font(size: 11, weight: .semibold))
                         }
                         .foregroundColor(Paper.onAccent)
@@ -557,7 +487,7 @@ extension AIGuideView {
         
         if !subscriptionManager.canAskAI() {
             triggerHaptic(.medium)
-            isShowingRewardedOffer = true
+            isShowingPaywall = true
             return
         }
         
@@ -602,103 +532,6 @@ extension AIGuideView {
                 }
             }
         }
-    }
-    
-    // MARK: - Карточка вознаграждения за просмотр рекламы (+1 вопрос к ИИ)
-    private var rewardedBonusCard: some View {
-        Button {
-            triggerHaptic(.soft)
-            AdManager.shared.showRewardedAd {
-                let msg = manager.appLanguage == .armenian ? "+1 հարց ավելացվեց!" : (manager.appLanguage == .russian ? "+1 вопрос добавлен!" : "+1 question added!")
-                showToastMessage(msg)
-            }
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Paper.gold.opacity(0.2), Paper.gold.opacity(0.12)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 42, height: 42)
-                    
-                    Image(systemName: "archivebox.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Paper.gold)
-                }
-                
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(manager.appLanguage == .armenian ? "Հարցերի Կուտակիչ (+1)" : (manager.appLanguage == .russian ? "Копилка вопросов (+1)" : "Question Bank (+1)"))
-                            .font(PaperFont.font(size: 14, weight: .semibold))
-                            .foregroundColor(primaryTextColor)
-                        
-                        if subscriptionManager.accumulatedBonusAiQuestions > 0 {
-                            HStack(spacing: 2) {
-                                Image(systemName: "archivebox.fill")
-                                    .font(.system(size: 7))
-                                Text("\(subscriptionManager.accumulatedBonusAiQuestions)")
-                                    .font(PaperFont.font(size: 9, weight: .semibold))
-                            }
-                            .foregroundColor(Paper.onAccent)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1.5)
-                            .background(Paper.moss)
-                            .cornerRadius(4)
-                        } else {
-                            Text("REWARD")
-                                .font(PaperFont.font(size: 8, weight: .semibold))
-                                .foregroundColor(Paper.onAccent)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1.5)
-                                .background(Paper.gold)
-                                .cornerRadius(3)
-                        }
-                    }
-                    
-                    Text(manager.appLanguage == .armenian ? "Դիտեք գովազդներ և կուտակեք հարցեր առանց սահմանափակման: Կուտակված հարցերը երբեք չեն սպառվում օրվա ավարտին:" : (manager.appLanguage == .russian ? "Смотрите видео и копите вопросы без ограничений! Накопленные вопросы сохраняются навсегда и не сгорают завтра." : "Watch videos to bank questions with no limit! Banked questions never expire at midnight."))
-                        .font(PaperFont.font(size: 11))
-                        .foregroundColor(Paper.inkSecondary)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(2)
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Text(manager.appLanguage == .armenian ? "Կուտակել" : (manager.appLanguage == .russian ? "Копить" : "Bank"))
-                        .font(PaperFont.font(size: 11, weight: .semibold))
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 8, weight: .semibold))
-                }
-                .foregroundColor(Paper.onAccent)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Paper.gold)
-                .cornerRadius(10)
-                .shadow(color: Paper.shadow, radius: 3, x: 0, y: 1.5)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(cardBackgroundColor)
-            .cornerRadius(14)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Paper.gold.opacity(0.35), Color.clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.2
-                    )
-            )
-        }
-        .buttonStyle(ScaleButtonStyle())
-        .padding(.horizontal, 4)
     }
     
     // Текст статуса вопросов в шапке с учетом накопленной копилки
@@ -769,38 +602,5 @@ extension AIGuideView {
     
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         manager.triggerHapticImpact(style)
-    }
-    
-    // MARK: - Локализация предложений Rewarded рекламы
-    private var limitDialogTitle: String {
-        switch manager.appLanguage {
-        case .armenian: return "Հարցերի սահմանաչափը սպառվել է"
-        case .russian: return "Лимит вопросов исчерпан"
-        case .english: return "Daily Question Limit Reached"
-        }
-    }
-    
-    private var limitDialogMessage: String {
-        switch manager.appLanguage {
-        case .armenian: return "Դիտեք կարճ տեսահոլովակ՝ հարցերի կուտակիչը լիցքավորելու համար (+1 հարց, չի սպառվում), կամ ակտիվացրեք Premium-ը:"
-        case .russian: return "Посмотрите короткий видеоролик, чтобы пополнить копилку вопросов (+1 вопрос, никогда не сгорает), или оформите Premium для безлимита:"
-        case .english: return "Watch a short video ad to bank an extra question (never expires), or upgrade to Premium for unlimited access:"
-        }
-    }
-    
-    private var limitDialogWatchAdTitle: String {
-        switch manager.appLanguage {
-        case .armenian: return "Կուտակել +1 հարց (դիտել)"
-        case .russian: return "Копить +1 вопрос (видео)"
-        case .english: return "Bank +1 Question (Watch)"
-        }
-    }
-    
-    private var limitDialogPaywallTitle: String {
-        switch manager.appLanguage {
-        case .armenian: return "Ակտիվացնել Premium"
-        case .russian: return "Оформить Premium"
-        case .english: return "Upgrade to Premium"
-        }
     }
 }

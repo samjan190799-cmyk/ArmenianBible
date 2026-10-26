@@ -12,11 +12,9 @@ struct ArmenianBibleApp: App {
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
                 .tint(manager.accentTheme.color)
                 .task {
-                    // Предотвращение Watchdog 0x8BADF00D:
-                    // Инициализация рекламных сервисов запускается строго после того,
+                    // Предотвращение Watchdog 0x8BADF00D: тяжёлые сервисы стартуют строго после того,
                     // как сцена приложения (UIWindowScene) полностью активна и отрисована.
                     try? await Task.sleep(nanoseconds: 600_000_000)
-                    LuysAdManager.shared.initialize()
                     CloudSyncManager.shared.start()
                 }
         }

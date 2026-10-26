@@ -67,10 +67,10 @@ struct PaywallView: View {
                     // MARK: - Список Преимуществ (Feature List)
                     VStack(spacing: 14) {
                         featureRow(
-                            icon: "slash.circle.fill",
-                            iconColor: Paper.moss,
-                            title: featureTitleAds,
-                            subtitle: featureDescAds
+                            icon: "flame.fill",
+                            iconColor: Paper.cinnabar,
+                            title: featureTitleCandles,
+                            subtitle: featureDescCandles
                         )
                         featureRow(
                             icon: "app.dashed",
@@ -412,19 +412,19 @@ struct PaywallView: View {
         }
     }
     
-    private var featureTitleAds: String {
+    private var featureTitleCandles: String {
         switch language {
-        case .armenian: return "100% Առանց Գովազդի"
-        case .russian: return "Полное Отключение Рекламы"
-        case .english: return "100% Ad-Free Experience"
+        case .armenian: return "Անսահմանափակ աղոթքի մոմեր"
+        case .russian: return "Молитвенные свечи без ограничений"
+        case .english: return "Unlimited Prayer Candles"
         }
     }
-    
-    private var featureDescAds: String {
+
+    private var featureDescCandles: String {
         switch language {
-        case .armenian: return "Վայելեք Սուրբ Գիրքը առանց ընդհատումների և շեղումների"
-        case .russian: return "Погружайтесь в чтение Писания без баннеров и отвлечений"
-        case .english: return "Immerse in Scripture with zero ads or interruptions"
+        case .armenian: return "Վառեք մոմեր 24 ժամով՝ նաև Dynamic Island-ում և կողպէկրանին"
+        case .russian: return "Сколько угодно свечей на 24 часа, в том числе в Dynamic Island и на экране блокировки"
+        case .english: return "Light as many 24-hour candles as you wish, including in the Dynamic Island and on the Lock Screen"
         }
     }
     

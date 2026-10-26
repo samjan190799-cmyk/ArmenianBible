@@ -158,11 +158,6 @@ struct NarekatsiView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
 
-                        // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-                        LuysHybridBannerView(placement: .narekatsi)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 2)
-
                         originalNotice
 
                         // Подлинный текст: 95 глав
@@ -200,10 +195,6 @@ struct NarekatsiView: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
-                        
-                        // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-                        LuysHybridBannerView(placement: .narekatsi)
-                            .padding(.horizontal, 16)
                         
                         // ЗАГОЛОВОК ПЛЕЙЛИСТА
                         HStack {
