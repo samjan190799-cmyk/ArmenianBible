@@ -60,6 +60,12 @@ extension WidgetVisualStyle {
     var isPremiumRequired: Bool {
         self == .posterKhachkar || self == .posterNight
     }
+
+    /// Стиль, который можно показать этому человеку: платный постер без Premium заменяется бесплатным.
+    /// Проверка стоит в самом виджете: стиль можно выбрать и в галерее виджетов, и он мог остаться от прошлой подписки
+    func allowed(isPremium: Bool) -> WidgetVisualStyle {
+        isPremiumRequired && !isPremium ? .posterArarat : self
+    }
 }
 
 // MARK: - Фон стиля для предпросмотров в настройках

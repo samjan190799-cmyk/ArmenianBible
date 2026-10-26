@@ -372,8 +372,12 @@ struct Provider: AppIntentTimelineProvider {
     private let textCategoryKey = "selected_category"
     private let updateIntervalKey = "widgetUpdateInterval"
     
+    private var isPremium: Bool {
+        AppGroupConstants.sharedBool(forKey: "is_premium_active")
+    }
+
     private func getSharedVisualStyle() -> WidgetVisualStyle {
-        AppGroupConstants.sharedVisualStyle()
+        AppGroupConstants.sharedVisualStyle().allowed(isPremium: isPremium)
     }
     
     private func getSharedStyleTimestamp() -> Double {
@@ -396,8 +400,8 @@ struct Provider: AppIntentTimelineProvider {
         } else {
             chosen = appStyle
         }
-        // Постер «Хачкар»/«Вифлеем» рисуется как выбран, без пометок: короны и PRO на виджете нет
-        return chosen
+        // Короны и PRO на виджете нет: постер «Хачкар»/«Вифлеем» без Premium заменяется бесплатным «Араратом»
+        return chosen.allowed(isPremium: isPremium)
     }
     
     func placeholder(in context: Context) -> SimpleEntry {

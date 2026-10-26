@@ -35,14 +35,15 @@ struct PosterProvider: AppIntentTimelineProvider {
         return converted
     }
 
-    /// Фон у виджета всегда свой
+    /// Фон у виджета всегда свой; платный постер без Premium показывается бесплатным «Араратом»
     private func restyled(_ entry: SimpleEntry) -> SimpleEntry {
-        SimpleEntry(
+        let allowedStyle = style.allowed(isPremium: AppGroupConstants.sharedBool(forKey: "is_premium_active"))
+        return SimpleEntry(
             date: entry.date,
             verse: entry.verse,
             configuration: entry.configuration,
             language: entry.language,
-            visualStyle: style,
+            visualStyle: allowedStyle,
             styleTimestamp: entry.styleTimestamp
         )
     }
