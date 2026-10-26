@@ -29,6 +29,7 @@ on:
           - narek
           - nativity
           - nativityvideo
+          - nativityend
           - verselink
           - matenadaran
       language:
@@ -198,6 +199,18 @@ jobs:
               xcrun simctl shutdown "$UDID" || true
               ls -la "$OUT_DIR"
               echo "✅ Видео «Рождества» ($STORE_LANG) записано"
+              return 0
+            fi
+
+            # 21. Конец мультфильма: предложение Premium (история запускается за полсекунды до конца)
+            if [ "$SCOPE" = "nativityend" ]; then
+              echo "📸 Рождество: конец истории ($STORE_LANG)..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab nativity -nativity_finish YES -luys_debug_language "$STORE_LANG"
+              sleep 9
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/nativity_end_offer_$STORE_LANG.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Конец «Рождества» ($STORE_LANG) снят"
               return 0
             fi
 

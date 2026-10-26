@@ -45,6 +45,18 @@ public final class ReviewManager: ObservableObject {
         UserDefaults.standard.bool(forKey: kHasRatedKey)
     }
     
+    /// Можно ли сейчас показать окно оценки: человек ещё не оценил, и с прошлого показа прошла неделя
+    public var canPromptNow: Bool {
+        guard !hasAlreadyRated else { return false }
+        guard let lastDate = UserDefaults.standard.object(forKey: kLastRequestedDateKey) as? Date else { return true }
+        return (Calendar.current.dateComponents([.day], from: lastDate, to: Date()).day ?? 0) >= 7
+    }
+
+    /// Окно оценки показано (в том числе вне общего механизма): неделя до следующего раза считается отсюда
+    public func markPromptShown() {
+        UserDefaults.standard.set(Date(), forKey: kLastRequestedDateKey)
+    }
+
     /// Запуск показа окна оценки при соблюдении кулдауна
     public func checkAndPresentReviewPrompt() {
         guard !hasAlreadyRated else { return }

@@ -97,11 +97,17 @@ struct NativityStoryView: View {
     @ObservedObject private var manager = BibleManager.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @ObservedObject private var subscription = SubscriptionManager.shared
 
     /// Секунда истории на момент последнего запуска или паузы
     @State private var baseTime: Double
     /// Когда историю запустили; nil — пауза
     @State private var resumeDate: Date?
+
+    /// Конец истории: сначала предложение Premium, потом окно оценки
+    @State private var isShowingOffer = false
+    @State private var isShowingPaywall = false
+    @State private var isShowingReview = false
 
     private let captionTexts: [[NativityCaptionText]]
     private let crossfade = 0.9
@@ -115,6 +121,9 @@ struct NativityStoryView: View {
         if let index = debugScene, NativityStory.scenes.indices.contains(index) {
             _baseTime = State(initialValue: NativityStory.start(of: index) + debugSecond)
             _resumeDate = State(initialValue: nil)
+        } else if UserDefaults.standard.bool(forKey: "nativity_finish") {
+            _baseTime = State(initialValue: NativityStory.total - 0.5)
+            _resumeDate = State(initialValue: Date())
         } else {
             _baseTime = State(initialValue: 0)
             _resumeDate = State(initialValue: Date())
@@ -187,6 +196,28 @@ struct NativityStoryView: View {
             Funnel.track("feature_used", ["feature": "nativity"])
         }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .task(id: resumeDate) {
+            // Ждём конца истории: пауза или перемотка перезапускают этот ожидатель, закрытие экрана отменяет его
+            guard let started = resumeDate else { return }
+            let remaining = NativityStory.total - storyTime(at: started)
+            guard remaining > 0 else { return }
+            // Последний кадр задерживается на секунду, чтобы человек успел его увидеть
+            try? await Task.sleep(nanoseconds: UInt64((remaining + 1.2) * 1_000_000_000))
+            guard !Task.isCancelled, resumeDate == started else { return }
+            finishStory()
+        }
+        .overlay {
+            if isShowingOffer { offerOverlay }
+        }
+        .sheet(isPresented: $isShowingPaywall, onDismiss: {
+            // Купил — самое время спросить об оценке; закрыл подписку без покупки — второй раз не беспокоим
+            if subscription.isPremium { askForReview() }
+        }) {
+            PaywallView(source: "nativity_end")
+        }
+        .sheet(isPresented: $isShowingReview) {
+            ReviewPromptSheetView()
+        }
         .onChange(of: scenePhase) { phase in
             // Свернули приложение: останавливаем историю там, где она была
             if phase != .active, resumeDate != nil {
@@ -194,6 +225,100 @@ struct NativityStoryView: View {
                 resumeDate = nil
             }
         }
+    }
+
+    // MARK: Конец истории: предложение Premium и окно оценки
+
+    /// Предложение показываем не чаще раза в сутки; в TestFlight и отладке всегда, чтобы его можно было проверить
+    private var offerAllowed: Bool {
+        if Bundle.isTestFlightOrDebug { return true }
+        guard let last = UserDefaults.standard.object(forKey: "nativity_offer_last") as? Date else { return true }
+        return Date().timeIntervalSince(last) > 86_400
+    }
+
+    private func finishStory() {
+        Funnel.track("feature_used", ["feature": "nativity_finished"])
+        if !subscription.isPremium, offerAllowed {
+            UserDefaults.standard.set(Date(), forKey: "nativity_offer_last")
+            Funnel.track("feature_used", ["feature": "nativity_offer_shown"])
+            Haptics.notify(.success)
+            withAnimation(.easeInOut(duration: 0.35)) { isShowingOffer = true }
+        } else {
+            askForReview()
+        }
+    }
+
+    private func acceptOffer() {
+        Funnel.track("feature_used", ["feature": "nativity_offer_accepted"])
+        withAnimation(.easeInOut(duration: 0.25)) { isShowingOffer = false }
+        isShowingPaywall = true
+    }
+
+    private func declineOffer() {
+        Funnel.track("feature_used", ["feature": "nativity_offer_declined"])
+        withAnimation(.easeInOut(duration: 0.25)) { isShowingOffer = false }
+        askForReview()
+    }
+
+    /// Окно оценки: не чаще раза в неделю и только тому, кто ещё не оценил
+    private func askForReview() {
+        guard ReviewManager.shared.canPromptNow else { return }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            ReviewManager.shared.markPromptShown()
+            isShowingReview = true
+        }
+    }
+
+    private var offerOverlay: some View {
+        let language = manager.appLanguage
+        return ZStack {
+            Color.black.opacity(0.66).ignoresSafeArea()
+            VStack(spacing: 16) {
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 34))
+                    .foregroundColor(NP.gold)
+                Text(language.pick(hy: "Բացեք Luys-ը ամբողջությամբ", ru: "Откройте Luys целиком", en: "Unlock all of Luys"))
+                    .font(PaperFont.font(size: 24, weight: .semibold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                Text(language.pick(
+                    hy: "Ձեռագիր և կոդեքս, աղոթքի մոմեր, ամբողջ Նարեկացին, սրբավայրերի քարտեզ և անսահմանափակ AI: Չեղարկումը՝ ցանկացած պահի:",
+                    ru: "Рукопись и кодекс, молитвенные свечи, весь Нарекаци, карта святынь и безлимитный ИИ. Отмена в любой момент.",
+                    en: "Manuscript and codex, prayer candles, all of Narekatsi, the map of sanctuaries and unlimited AI. Cancel anytime."
+                ))
+                .font(PaperFont.font(size: 15))
+                .foregroundColor(Color.white.opacity(0.85))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                Button {
+                    Haptics.impact(.medium)
+                    acceptOffer()
+                } label: {
+                    Text(language.pick(hy: "Ձեռք բերել Premium", ru: "Оформить Premium", en: "Get Premium"))
+                        .font(PaperFont.font(size: 17, weight: .semibold))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(Capsule().fill(NP.gold))
+                }
+                .padding(.top, 4)
+                Button {
+                    Haptics.impact(.light)
+                    declineOffer()
+                } label: {
+                    Text(language.pick(hy: "Հիմա ոչ", ru: "Не сейчас", en: "Not now"))
+                        .font(PaperFont.font(size: 15, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.7))
+                        .padding(.vertical, 6)
+                }
+            }
+            .padding(24)
+            .background(RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color(white: 0.09).opacity(0.96)))
+            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+            .padding(.horizontal, 28)
+        }
+        .transition(.opacity)
     }
 
     // MARK: Верх: полоски сцен и закрытие
