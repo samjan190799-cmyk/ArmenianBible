@@ -174,7 +174,7 @@ jobs:
                 set -- $SHOT
                 echo "📸 Ссылка на стих: книга $1, глава $2, стих $3 ($STORE_LANG)..."
                 xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bibleverse -bible_book "$1" -bible_chapter "$2" -bible_verse "$3" -luys_debug_language "$STORE_LANG"
-                sleep 9
+                sleep 5
                 xcrun simctl io "$UDID" screenshot "$OUT_DIR/verselink_$1_$2_$3.png"
                 xcrun simctl terminate "$UDID" com.samvel.armenianbible
                 sleep 1

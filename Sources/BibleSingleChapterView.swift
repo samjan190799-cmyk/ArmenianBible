@@ -112,12 +112,13 @@ struct BibleSingleChapterView: View {
                             .padding(.horizontal, 24)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .overlay(alignment: .topLeading) {
-                                // Метка на высоте целевого стиха: отступ сверху снаружи от id, поэтому сам элемент стоит ровно там
+                                // Метка на высоте целевого стиха. Отступ делаем соседним элементом, а не padding вокруг метки:
+                                // иначе ScrollViewReader берёт рамку вместе с отступом и прокручивает не туда
                                 if let offset = targetOffset {
-                                    Color.clear
-                                        .frame(width: 1, height: 1)
-                                        .id(Self.verseAnchorId)
-                                        .padding(.top, offset)
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Color.clear.frame(width: 1, height: offset)
+                                        Color.clear.frame(width: 1, height: 1).id(Self.verseAnchorId)
+                                    }
                                 }
                             }
                             
