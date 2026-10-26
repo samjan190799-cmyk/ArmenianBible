@@ -83,7 +83,28 @@ final class ChurchCalendarService: @unchecked Sendable {
         components.timeZone = TimeZone(identifier: "Asia/Yerevan") ?? TimeZone.current
         return Calendar.current.date(from: components) ?? Date()
     }
-    
+
+    // Фиксированная дата памяти святого, сдвинутая с воскресенья, среды и пятницы: в эти дни память
+    // не совершается. Остальные дни недели остаются на месте. День недели считается на целых номерах
+    // дней (ChurchFastRules), поэтому не зависит от часового пояса устройства.
+    func fixedDate(year: Int, month: Int, day: Int, sundayShift: Int, wednesdayShift: Int, fridayShift: Int) -> Date {
+        let weekday = ChurchFastRules.weekday(of: ChurchFastRules.dayNumber(year: year, month: month, day: day))
+        let shift: Int
+        switch weekday {
+        case 0: shift = sundayShift
+        case 3: shift = wednesdayShift
+        case 5: shift = fridayShift
+        default: shift = 0
+        }
+        return dateByAdding(days: shift, to: createDate(year: year, month: month, day: day))
+    }
+
+    // Первая суббота, начиная с указанного числа месяца (включая его): диапазон из семи дней
+    func saturdayOnOrAfter(month: Int, day: Int, inYear year: Int) -> Date {
+        let weekday = ChurchFastRules.weekday(of: ChurchFastRules.dayNumber(year: year, month: month, day: day))
+        return dateByAdding(days: (6 - weekday + 7) % 7, to: createDate(year: year, month: month, day: day))
+    }
+
 
     // MARK: - Сортировка по дате приближения праздника (Ближайшие предстоящие первыми)
     func feastsSortedByApproaching(for year: Int, from baseDate: Date = Date()) -> [ArmenianChurchFeast] {

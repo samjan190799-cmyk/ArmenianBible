@@ -3,7 +3,7 @@ import SwiftUI
 import WidgetKit
 
 // MARK: - Центральный менеджер виртуальных свечей (CandleManager)
-/// Управляет зажженными свечами, бесплатной ежедневной молитвой и свечами за просмотр видеорекламы.
+/// Управляет зажженными свечами: бесплатная ежедневная свеча и молитвенные свечи Premium.
 @MainActor
 final class CandleManager: ObservableObject {
     static let shared = CandleManager()
@@ -23,6 +23,36 @@ final class CandleManager: ObservableObject {
         checkDailyFreeStatus()
     }
     
+    #if DEBUG || targetEnvironment(simulator)
+    /// Для скриншотов в CI (-candle_seed YES): четыре свечи на разных стадиях горения, без сохранения на диск
+    func seedDemoCandlesIfRequested() {
+        guard UserDefaults.standard.bool(forKey: "candle_seed") else { return }
+        let demo: [(CandleTier, CandleIntention, String, Double)] = [
+            (.freeDaily, .health, "Анна", 0.05),
+            (.rewarded, .peace, "Армен", 0.40),
+            (.temple, .memory, "Мария", 0.72),
+            (.generous, .gratitude, "Давид", 0.90)
+        ]
+        activeCandles = demo.map { tier, intention, name, progress in
+            PrayerCandle(
+                personName: name,
+                intention: intention,
+                tier: tier,
+                litDate: Date().addingTimeInterval(-Double(tier.burnHours) * 3600 * progress)
+            )
+        }
+    }
+    #endif
+
+    /// Новая свеча сразу загорается в Dynamic Island и на экране блокировки
+    private func showInIsland(_ candle: PrayerCandle) {
+        guard !defersIslandStart else { return }
+        CandleIslandManager.shared.show(candle, language: BibleManager.shared.appLanguage)
+    }
+
+    /// Форма свечи сама запускает остров, когда свеча долетит до него: анимация «свеча взлетает в остров»
+    var defersIslandStart = false
+
     // MARK: - Проверка доступности бесплатной свечи дня
     func checkDailyFreeStatus() {
         guard let lastDate = UserDefaults.standard.object(forKey: kLastFreeCandleDateKey) as? Date else {
@@ -47,18 +77,20 @@ final class CandleManager: ObservableObject {
         
         activeCandles.insert(candle, at: 0)
         saveCandles()
-        
+        showInIsland(candle)
+
         UserDefaults.standard.set(Date(), forKey: kLastFreeCandleDateKey)
         hasUsedDailyFreeCandle = true
         
         // Омовение Гранатового Древа Веры утренней росой за молитву
-        PomegranateTreeManager.shared.nourishWithDew(amount: 1)
+        PomegranateTreeManager.shared.record(.candle)
         
         Haptics.notify(.success)
+        Funnel.track("feature_used", ["feature": "candle"])
         return true
     }
     
-    // MARK: - Зажжение свечи (Бесплатная ежедневная или Rewarded Video)
+    // MARK: - Зажжение свечи (бесплатная ежедневная или Premium)
     func purchaseAndLightCandle(
         tier: CandleTier,
         name: String,
@@ -68,83 +100,43 @@ final class CandleManager: ObservableObject {
         if tier.isFree {
             return lightFreeDailyCandle(name: name, intention: intention, customPrayer: customPrayer)
         }
-        
-        // Все остальные свечи зажигаются за видеорекламу (или мгновенно для PRO)
-        return await lightRewardedCandle(name: name, intention: intention, customPrayer: customPrayer)
+
+        // Все остальные свечи только с Premium
+        return lightPremiumCandle(name: name, intention: intention, customPrayer: customPrayer)
     }
-    
-    // MARK: - Зажжение свечи за просмотр видеорекламы (Rewarded Video)
-    func lightRewardedCandle(
+
+    // MARK: - Молитвенная свеча на 24 часа (Premium)
+    func lightPremiumCandle(
         name: String,
         intention: CandleIntention,
         customPrayer: String?
-    ) async -> Bool {
-        // Если у пользователя активна PRO-подписка, свеча зажигается сразу без рекламы
-        if SubscriptionManager.shared.isPremium {
-            let candle = PrayerCandle(
-                personName: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                intention: intention,
-                customPrayer: customPrayer,
-                tier: .rewarded,
-                litDate: Date()
+    ) -> Bool {
+        guard SubscriptionManager.shared.isPremium else {
+            errorMessage = BibleManager.shared.appLanguage.pick(
+                hy: "Այս մոմը հասանելի է Premium-ով",
+                ru: "Эта свеча доступна с Premium",
+                en: "This candle is available with Premium"
             )
-            activeCandles.insert(candle, at: 0)
-            saveCandles()
-            PomegranateTreeManager.shared.nourishWithDew(amount: 1)
-            Haptics.notify(.success)
-            return true
+            return false
         }
-        
-        isPurchasing = true
+
         errorMessage = nil
-        
-        return await withCheckedContinuation { continuation in
-            var hasResumed = false
-            let resumeOnce: (Bool) -> Void = { result in
-                guard !hasResumed else { return }
-                hasResumed = true
-                continuation.resume(returning: result)
-            }
-            
-            let isShown = LuysAdManager.shared.showRewardedAd(
-                onReward: { [weak self] in
-                    guard let self = self else {
-                        resumeOnce(false)
-                        return
-                    }
-                    let candle = PrayerCandle(
-                        personName: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                        intention: intention,
-                        customPrayer: customPrayer,
-                        tier: .rewarded,
-                        litDate: Date()
-                    )
-                    self.activeCandles.insert(candle, at: 0)
-                    self.saveCandles()
-                    self.isPurchasing = false
-                    PomegranateTreeManager.shared.nourishWithDew(amount: 1)
-                    Haptics.notify(.success)
-                    resumeOnce(true)
-                },
-                onDismissWithoutReward: { [weak self] in
-                    guard let self = self else {
-                        resumeOnce(false)
-                        return
-                    }
-                    self.isPurchasing = false
-                    self.errorMessage = "Для зажжения свечи необходимо досмотреть видеоролик до конца."
-                    resumeOnce(false)
-                }
-            )
-            
-            if !isShown {
-                self.isPurchasing = false
-                self.errorMessage = "Реклама подготавливается. Пожалуйста, подождите пару секунд и нажмите снова."
-                resumeOnce(false)
-            }
-        }
+        let candle = PrayerCandle(
+            personName: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            intention: intention,
+            customPrayer: customPrayer,
+            tier: .rewarded,
+            litDate: Date()
+        )
+        activeCandles.insert(candle, at: 0)
+        saveCandles()
+        showInIsland(candle)
+        PomegranateTreeManager.shared.record(.candle)
+        Haptics.notify(.success)
+        Funnel.track("feature_used", ["feature": "candle"])
+        return true
     }
-    
+
     // MARK: - Выбор свечи для отображения в виджете
     func setSelectedWidgetCandle(id: String?) {
         let cleanedId = (id == nil || id == "latest" || id?.isEmpty == true) ? nil : id
@@ -173,7 +165,8 @@ final class CandleManager: ObservableObject {
         if activeCandles.count != initialCount {
             saveCandles()
         }
-        
+        CandleIslandManager.shared.sync(with: activeCandles, language: BibleManager.shared.appLanguage)
+
         // Если выбранная для виджета свеча угасла, сбрасываем на автовыбор
         if let selectedId = selectedWidgetCandleId,
            !activeCandles.contains(where: { $0.id.uuidString == selectedId }) {
@@ -185,8 +178,22 @@ final class CandleManager: ObservableObject {
     private func saveCandles() {
         if let data = try? JSONEncoder().encode(activeCandles) {
             AppGroupConstants.syncDataToAll(data, forKey: kCandlesStorageKey)
+            // Листы сгоревших свечей больше не нужны
+            let kept = Set(activeCandles.compactMap { $0.pageImageFile })
+            AppGroupConstants.removeSharedFiles(withPrefix: "candle_page_", keeping: kept)
             WidgetCenter.shared.reloadAllTimelines()
         }
+    }
+
+    /// Рисует лист с молитвой и кладёт картинку в общий контейнер: большой виджет показывает её
+    func attachParchment(to candleId: UUID, page: ManuscriptPage) {
+        guard let index = activeCandles.firstIndex(where: { $0.id == candleId }),
+              let image = ManuscriptPageSnapshot.widgetImage(page: page, pen: ManuscriptPen.effective),
+              let data = image.jpegData(compressionQuality: 0.88) else { return }
+        let fileName = PrayerCandle.pageImageFileName(for: candleId)
+        AppGroupConstants.syncFileToAll(data, named: fileName)
+        activeCandles[index] = activeCandles[index].withPageImageFile(fileName)
+        saveCandles()
     }
     
     private func loadSavedCandles() {

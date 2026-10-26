@@ -19,9 +19,10 @@ import Foundation
 //    Утверждается 30 декабря…4 января, 5 января → nil.
 //  • Передовой пост: пять дней (пн–пт), по другим источникам три дня (пн–ср) или пн–чт.
 //    Утверждаются только пн–ср; четверг → nil, пятница считается обычным еженедельным постом.
-//  • Недели поста Хисначка (начало «в понедельник после воскресенья, ближайшего к 18 ноября»
-//    расходится с другой формулой), пост св. Иакова Мцбинского и пост Варагского Креста
-//    не утверждаются: источники не сходятся в датах.
+//  • Хисначк (Адвент, «пятьдесят дней») — молитвенное время, а не строгий пост: начало (воскресенье,
+//    ближайшее к 18 ноября) показано в списке праздников, но постными днями не объявляется.
+//  • Посты св. Иакова Мцбинского и Варагского Креста — пять дней, пн–пт, перед праздником
+//    (по календарю Армянской Церкви в Грузии, сверенному с рядом дат 2021–2030).
 //  • Послабления в попразднства Богоявления (6–13 или 6–14 января), Преображения и Успения
 //    (девять дней) упомянуты не всеми источниками: среды и пятницы в эти окна → nil,
 //    то есть день не называется постным. Пятидесятница покрыта неделей поста Илии.
@@ -39,6 +40,8 @@ enum ChurchFastKind: String, CaseIterable, Sendable {
     case transfiguration       // Վարդավառի պահք: неделя перед Преображением
     case assumption            // Աստվածածնի Վերափոխման պահք: неделя перед Успением
     case exaltation            // Խաչվերացի պահք: неделя перед Воздвижением
+    case varak                 // Վարագա Սուրբ Խաչի պահք: неделя перед праздником Варагского Креста
+    case jacob                 // Սուրբ Հակոբ Մծբնա Հայրապետի պահք: неделя перед памятью св. Иакова Низибийского
     case nativity              // Սուրբ Ծննդյան և Աստվածահայտնության պահք
 
     func title(for language: AppLanguage) -> String {
@@ -96,6 +99,18 @@ enum ChurchFastKind: String, CaseIterable, Sendable {
             case .armenian: return "Խաչվերացի պահք"
             case .russian: return "Пост перед Воздвижением"
             case .english: return "Fast of the Exaltation of the Holy Cross"
+            }
+        case .varak:
+            switch language {
+            case .armenian: return "Վարագա Սուրբ Խաչի պահք"
+            case .russian: return "Пост Варагского Креста"
+            case .english: return "Fast of the Holy Cross of Varak"
+            }
+        case .jacob:
+            switch language {
+            case .armenian: return "Սուրբ Հակոբ Մծբնա Հայրապետի պահք"
+            case .russian: return "Пост св. Иакова Низибийского"
+            case .english: return "Fast of St. James of Nisibis"
             }
         case .nativity:
             switch language {
@@ -197,7 +212,7 @@ enum ChurchFastRules {
             break
         }
 
-        // Недели поста перед Успением и Воздвижением: пн–пт перед праздничным воскресеньем
+        // Недели поста перед Успением, Воздвижением и Варагским Крестом: пн–пт перед праздничным воскресеньем
         let assumptionSunday = sundayNearest(year: year, month: 8, day: 15)
         if (assumptionSunday - 6 ... assumptionSunday - 2).contains(today) {
             return .assumption
@@ -205,6 +220,17 @@ enum ChurchFastRules {
         let exaltationSunday = sundayNearest(year: year, month: 9, day: 14)
         if (exaltationSunday - 6 ... exaltationSunday - 2).contains(today) {
             return .exaltation
+        }
+        let varakSunday = exaltationSunday + 14
+        if (varakSunday - 6 ... varakSunday - 2).contains(today) {
+            return .varak
+        }
+
+        // Пост св. Иакова Низибийского: пн–пт перед субботой памяти (начало Адвента + 27 дней)
+        let adventStart = sundayNearest(year: year, month: 11, day: 18)
+        let jacobSaturday = adventStart + 27
+        if (jacobSaturday - 5 ... jacobSaturday - 1).contains(today) {
+            return .jacob
         }
 
         // Еженедельный пост: среда и пятница

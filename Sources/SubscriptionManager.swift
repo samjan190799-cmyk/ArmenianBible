@@ -96,6 +96,13 @@ final class SubscriptionManager: ObservableObject {
         Bundle.isTestFlightOrDebug
     }
 
+    /// Человек сам купил подписку или восстановил покупки: принудительный Free из панели тестировщика не должен её перекрывать
+    /// (раньше он оставался включённым и после покупки, и приложение показывало Free при действующей подписке)
+    private func clearDeveloperFreeMode() {
+        guard Self.devToolsAvailable else { return }
+        UserDefaults.standard.removeObject(forKey: kForceFreeModeKey)
+    }
+
     /// Стирает следы панели разработчика, включённой в прежних версиях приложения.
     private func purgeDeveloperOverrides() {
         let defaults = UserDefaults.standard
@@ -228,6 +235,7 @@ final class SubscriptionManager: ObservableObject {
             switch result {
             case .success(let verification):
                 let transaction = try Self.checkVerified(verification)
+                clearDeveloperFreeMode()
                 await updatePurchasedStatus()
                 await transaction.finish()
                 isPurchasing = false
@@ -253,14 +261,28 @@ final class SubscriptionManager: ObservableObject {
         }
     }
     
+    // MARK: - Подтверждение подписки для сервера ИИ
+
+    /// Подписанное Apple подтверждение действующей подписки (JWS из StoreKit 2): сервер ИИ проверяет его подпись и срок
+    func currentEntitlementJWS() async -> String? {
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }),
+                  transaction.revocationDate == nil else { continue }
+            return result.jwsRepresentation
+        }
+        return nil
+    }
+
     // MARK: - Восстановление покупок (Restore Purchases)
-    
+
     func restorePurchases() async -> Bool {
         isPurchasing = true
         purchaseErrorMessage = nil
         
         do {
             try await AppStore.sync()
+            clearDeveloperFreeMode()
             await updatePurchasedStatus()
             isPurchasing = false
             return isPremium
@@ -313,7 +335,7 @@ final class SubscriptionManager: ObservableObject {
             #endif
         }
         
-        // Если разработчик принудительно включил Free-режим для тестирования рекламы
+        // Если разработчик принудительно включил Free-режим для проверки лимитов
         if Self.devToolsAvailable && UserDefaults.standard.bool(forKey: kForceFreeModeKey) {
             self.isPremium = false
             UserDefaults.standard.set(false, forKey: kPremiumOverrideKey)
@@ -381,7 +403,7 @@ final class SubscriptionManager: ObservableObject {
     private let kDailyAiBonusKey = "daily_ai_bonus_reward_count_key"
     private let kPermanentBonusAiQuestionsKey = "permanent_bonus_ai_questions_accumulated_key"
     
-    /// Накопленные пользователем несгораемые бонусные вопросы за просмотр рекламы (Копилка вопросов)
+    /// Накопленные ранее несгораемые бонусные вопросы (копилка за просмотр рекламы). Новые не начисляются, старые расходуются
     public var accumulatedBonusAiQuestions: Int {
         get {
             // Бесшовная миграция со старого ключа
@@ -417,12 +439,6 @@ final class SubscriptionManager: ObservableObject {
     var remainingFreeAiQuestions: Int {
         if isPremium { return 999 }
         return remainingDailyFreeQuestions + accumulatedBonusAiQuestions
-    }
-    
-    /// Добавление бонусного вопроса к ИИ за просмотр рекламы (сохраняется в несгораемую копилку)
-    func grantBonusAiQuestionFromAd() {
-        accumulatedBonusAiQuestions += 1
-        objectWillChange.send()
     }
     
     /// Фиксация одного использованного вопроса к ИИ
@@ -470,7 +486,7 @@ final class SubscriptionManager: ObservableObject {
         }
     }
     
-    /// Переключение режима разработчика: принудительный Free для теста рекламы или Premium
+    /// Переключение режима разработчика: принудительный Free для проверки лимитов или Premium
     func toggleDeveloperPremium(to enablePremium: Bool) {
         guard Self.devToolsAvailable else { return }
         if enablePremium {

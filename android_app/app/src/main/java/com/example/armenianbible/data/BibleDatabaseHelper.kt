@@ -13,6 +13,8 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
     companion object {
         private const val DB_NAME = "bible.db"
         private const val DB_VERSION = 1
+        /** Менять при каждой замене bible.db в ассетах */
+        private const val ASSET_STAMP = "2026-10-21-ru-synod-ararat"
         @Volatile private var instance: BibleDatabaseHelper? = null
 
         fun getInstance(context: Context): BibleDatabaseHelper {
@@ -28,16 +30,27 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
         copyDatabaseIfNeeded()
     }
 
+    /** Копирует базу из ассетов при первом запуске и каждый раз, когда в приложении лежит новая версия базы
+     *  (иначе на телефоне оставалась бы старая база без колонки text_hy_ararat, и приложение падало бы при запуске). */
     private fun copyDatabaseIfNeeded() {
+        val prefs = context.getSharedPreferences("bible_db", Context.MODE_PRIVATE)
         val dbFile = File(dbPath)
-        if (!dbFile.exists()) {
+        val stale = prefs.getString("asset_stamp", null) != ASSET_STAMP
+        if (!dbFile.exists() || stale) {
             dbFile.parentFile?.mkdirs()
             try {
+                if (dbFile.exists()) {
+                    dbFile.delete()
+                    File("$dbPath-journal").delete()
+                    File("$dbPath-wal").delete()
+                    File("$dbPath-shm").delete()
+                }
                 context.assets.open(DB_NAME).use { input ->
                     FileOutputStream(dbFile).use { output ->
                         input.copyTo(output)
                     }
                 }
+                prefs.edit().putString("asset_stamp", ASSET_STAMP).apply()
             } catch (e: Exception) {
                 e.printStackTrace()
             }

@@ -118,7 +118,7 @@ class NarekAudioPlayer private constructor(private val context: Context) {
             val afd = try {
                 context.assets.openFd(assetPath)
             } catch (e: Exception) {
-                context.assets.openFd("audio/narek_russian_prayers.mp3")
+                context.assets.openFd("audio/narek_oleg_molenko.mp3")
             }
             playFromAsset(afd, prayer, startAtMs)
             return

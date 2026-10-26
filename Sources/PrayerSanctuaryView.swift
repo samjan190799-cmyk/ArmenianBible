@@ -151,6 +151,21 @@ struct PrayerSanctuaryView: View {
             }
             .onAppear {
                 candleManager.cleanExpiredCandles()
+                #if DEBUG || targetEnvironment(simulator)
+                candleManager.seedDemoCandlesIfRequested()
+                // -candle_island_demo YES: сразу показать первую свечу в острове
+                if UserDefaults.standard.bool(forKey: "candle_island_demo"), let first = candleManager.activeCandles.first {
+                    CandleIslandManager.shared.show(first, language: manager.appLanguage)
+                }
+                // -candle_detail 1: сразу открыть лист свечи с этим номером
+                if let raw = UserDefaults.standard.string(forKey: "candle_detail"), let index = Int(raw) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        if candleManager.activeCandles.indices.contains(index) {
+                            selectedCandleForPrayer = candleManager.activeCandles[index]
+                        }
+                    }
+                }
+                #endif
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 candleManager.cleanExpiredCandles()
@@ -245,23 +260,23 @@ struct CandleStandCellView: View {
             onTap()
         } label: {
             ZStack(alignment: .top) {
-                // Мягкое свечение пламени на верхнюю часть карточки подсвечника
-                RadialGradient(
-                    colors: [Paper.gold.opacity(isSelectedForWidget ? 0.28 : 0.18), Color.clear],
-                    center: .top,
-                    startRadius: 10,
-                    endRadius: 85
-                )
-                
                 VStack(spacing: 8) {
-                    // Реалистичная армянская восковая свеча с живым пламенем и физическим таянием воска
+                    // Свеча в тёмной нише: живое пламя, таящий воск, латунный подсвечник
                     RealisticArmenianCandleView(
                         tier: candle.tier,
                         burnProgress: candle.burnProgress(),
                         isLit: candle.isLit,
-                        randomSeed: Double(abs(candle.id.hashValue))
+                        randomSeed: Double(abs(candle.id.hashValue % 100_000))
+                    )
+                    .frame(height: 150)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Paper.gold.opacity(isSelectedForWidget ? 0.6 : 0.25), lineWidth: 1)
                     )
                     .padding(.top, 8)
+                    .padding(.horizontal, 8)
                     
                     // Имя близкого или название намерения
                     Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
@@ -344,7 +359,15 @@ struct LightCandleFormSheetView: View {
     @State private var selectedTier: CandleTier = .rewarded
     @State private var customPrayer: String = ""
     @State private var isShowingSuccessAnimation: Bool = false
-    
+    @State private var isShowingWriter: Bool = false
+    /// Рамка свечи в оверлее успеха (экранные координаты): отсюда она взлетает в остров
+    @State private var successCandleFrame: CGRect = .zero
+    @State private var hideSuccessCandle: Bool = false
+    /// Человек нажал «Зажечь свечу» на листе: свеча зажигается, когда лист закроется
+    @State private var pendingLight: Bool = false
+    /// Свеча сверх дара дня доступна только с Premium: без него вместо молитвы открывается подписка
+    @State private var isShowingPaywall: Bool = false
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -420,120 +443,28 @@ struct LightCandleFormSheetView: View {
                                 if !candleManager.hasUsedDailyFreeCandle {
                                     candleTierRow(tier: .freeDaily, badge: dailyFreeBadgeText)
                                 }
-                                // Свеча за просмотр видео
+                                // Молитвенная свеча на 24 часа: Premium
                                 candleTierRow(tier: .rewarded, badge: rewardedBadgeText)
                             }
                         }
                         .padding(.horizontal, 20)
                         
-                        // 4. Текст молитвы (с возможностью ручного написания)
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text(prayerSectionTitle)
-                                    .font(PaperFont.font(size: 13, weight: .semibold))
-                                    .foregroundColor(Paper.gold)
-                                
-                                Spacer()
-                                
-                                // Кнопка подстановки канонической молитвы
-                                Button {
-                                    triggerHaptic(.light)
-                                    customPrayer = selectedIntention.defaultPrayer(for: language)
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "book.closed")
-                                            .font(.system(size: 10))
-                                        Text(canonicalPrayerButtonTitle)
-                                            .font(PaperFont.font(size: 11, weight: .semibold))
-                                    }
-                                    .foregroundColor(Paper.gold)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Paper.gold.opacity(0.15))
-                                    .cornerRadius(8)
-                                }
-                                .buttonStyle(ScaleButtonStyle())
-                                
-                                if !customPrayer.isEmpty {
-                                    Button {
-                                        triggerHaptic(.light)
-                                        customPrayer = ""
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(Paper.inkTertiary)
-                                    }
-                                }
-                            }
-                            
-                            // Многострочный редактор молитвы с поддержкой ручного ввода
-                            ZStack(alignment: .topLeading) {
-                                if customPrayer.isEmpty {
-                                    Text(prayerPlaceholderText)
-                                        .font(PaperFont.font(size: 14))
-                                        .foregroundColor(Paper.inkTertiary)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 14)
-                                        .allowsHitTesting(false)
-                                }
-                                
-                                TextEditor(text: $customPrayer)
-                                    .font(PaperFont.font(size: 14, weight: .medium))
-                                    .foregroundColor(Paper.ink)
-                                    .lineSpacing(4)
-                                    .scrollContentBackground(.hidden)
-                                    .background(Color.clear)
-                                    .frame(minHeight: 100, maxHeight: 150)
-                                    .padding(8)
-                            }
-                            .background(Paper.fillSubtle)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Paper.hairline, lineWidth: 1)
-                            )
-                            
-                            HStack {
-                                Text(prayerHintText)
-                                    .font(PaperFont.font(size: 10.5))
-                                    .foregroundColor(Paper.inkSecondary)
-                                
-                                Spacer()
-                                
-                                Text("\(customPrayer.count)/500")
-                                    .font(PaperFont.font(size: 10, weight: .medium).monospacedDigit())
-                                    .foregroundColor(customPrayer.count > 500 ? Paper.cinnabar : Paper.inkSecondary.opacity(0.6))
-                            }
-                        }
-                        .padding(.horizontal, 20)
+                        // 4. Приватность: показывать ли начало молитвы без разблокировки
+                        CandleLockPrayerRow(language: language)
+                            .padding(.horizontal, 20)
                         
                         // 5. Кнопка совершения молитвы и возжжения
                         VStack(spacing: 8) {
                             Button {
-                                triggerHaptic(.soft)
-                                Task {
-                                    let name = personName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                        ? selectedIntention.title(for: language)
-                                        : personName
-                                    
-                                    let prayer = customPrayer.isEmpty ? selectedIntention.defaultPrayer(for: language) : customPrayer
-                                    
-                                    let success = await candleManager.purchaseAndLightCandle(
-                                        tier: selectedTier,
-                                        name: name,
-                                        intention: selectedIntention,
-                                        customPrayer: prayer
-                                    )
-                                    
-                                    if success {
-                                        withAnimation(.spring()) {
-                                            isShowingSuccessAnimation = true
-                                        }
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                                            dismiss()
-                                        }
-                                    }
+                                // Молитва пишется на пергаменте; свеча зажигается кнопкой на листе.
+                                // Свеча сверх дара дня только с Premium: без него открываем подписку
+                                if selectedTier == .rewarded && !SubscriptionManager.shared.isPremium {
+                                    triggerHaptic(.medium)
+                                    isShowingPaywall = true
+                                    return
                                 }
+                                triggerHaptic(.soft)
+                                isShowingWriter = true
                             } label: {
                                 HStack(spacing: 10) {
                                     if candleManager.isPurchasing {
@@ -543,14 +474,10 @@ struct LightCandleFormSheetView: View {
                                             .font(PaperFont.font(size: 15, weight: .semibold))
                                             .foregroundColor(Paper.onAccent)
                                     } else {
-                                        if selectedTier == .rewarded && !SubscriptionManager.shared.isPremium {
-                                            Image(systemName: "play.rectangle.fill")
-                                                .font(.system(size: 18, weight: .semibold))
-                                                .foregroundColor(Paper.onAccent)
-                                        } else {
-                                            FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20, showsAura: false)
-                                        }
-                                        Text(submitButtonText)
+                                        Image(systemName: "pencil.and.outline")
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundColor(Paper.onAccent)
+                                        Text(continueToPrayerTitle)
                                             .font(PaperFont.font(size: 16, weight: .semibold))
                                             .foregroundColor(Paper.onAccent)
                                     }
@@ -564,7 +491,7 @@ struct LightCandleFormSheetView: View {
                             .disabled(candleManager.isPurchasing)
                             .buttonStyle(ScaleButtonStyle())
                             
-                            // Сообщение об ошибке или подготовке рекламы
+                            // Сообщение об ошибке
                             if let error = candleManager.errorMessage {
                                 HStack(spacing: 6) {
                                     Image(systemName: "exclamationmark.triangle.fill")
@@ -589,7 +516,26 @@ struct LightCandleFormSheetView: View {
                     ZStack {
                         Paper.scrim.ignoresSafeArea()
                         VStack(spacing: 18) {
-                            FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 48)
+                            RealisticArmenianCandleView(
+                                tier: selectedTier,
+                                burnProgress: 0,
+                                isLit: true,
+                                randomSeed: 3,
+                                quality: .hero,
+                                ignitesOnAppear: true
+                            )
+                            .frame(width: 180, height: 240)
+                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .strokeBorder(Paper.gold.opacity(0.4), lineWidth: 1)
+                            )
+                            .opacity(hideSuccessCandle ? 0 : 1)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.onAppear { successCandleFrame = geo.frame(in: .global) }
+                                }
+                            )
                             GoldenSparkBurstView(isTriggered: true)
                             Text(successTitle)
                                 .font(PaperFont.font(size: 20, weight: .semibold))
@@ -606,6 +552,24 @@ struct LightCandleFormSheetView: View {
             }
             .navigationTitle(sheetTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $isShowingPaywall) {
+                PaywallView(source: "candle")
+            }
+            .fullScreenCover(isPresented: $isShowingWriter, onDismiss: {
+                if pendingLight {
+                    pendingLight = false
+                    lightCandle()
+                }
+            }) {
+                PrayerManuscriptWriterView(
+                    language: language,
+                    reference: parchmentReference,
+                    canonicalPrayer: selectedIntention.defaultPrayer(for: language),
+                    lightTitle: submitButtonText,
+                    onLight: { pendingLight = true },
+                    text: $customPrayer
+                )
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -656,7 +620,7 @@ struct LightCandleFormSheetView: View {
                         .foregroundColor(Paper.ink)
                     
                     if tier == .rewarded && SubscriptionManager.shared.isPremium {
-                        Text(language == .armenian ? "PRO • ԱՌԱՆՑ ԳՈՎԱԶԴԻ" : (language == .russian ? "PRO • БЕЗ РЕКЛАМЫ" : "PRO • NO ADS"))
+                        Text(language == .armenian ? "PRO • 24 ԺԱՄ" : (language == .russian ? "PRO • 24 ЧАСА" : "PRO • 24 HOURS"))
                             .font(PaperFont.font(size: 10, weight: .semibold).monospacedDigit())
                             .foregroundColor(Paper.moss)
                     } else {
@@ -709,6 +673,76 @@ struct LightCandleFormSheetView: View {
         case .english: return "2. NAME OF LOVED ONE (OR FAMILY)"
         }
     }
+    /// Строка над молитвой на листе: намерение и, если есть, имя
+    private var parchmentReference: String {
+        let intent = selectedIntention.title(for: language)
+        let name = personName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? intent : "\(intent) · \(name)"
+    }
+
+    private var continueToPrayerTitle: String {
+        language == .armenian ? "Շարունակել՝ գրել աղոթքը" : (language == .russian ? "Далее: написать молитву" : "Next: write the prayer")
+    }
+
+    /// Зажигает свечу с молитвой с листа; лист попадает в большой виджет и в «Мой Матенадаран»
+    private func lightCandle() {
+        Task {
+            let name = personName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? selectedIntention.title(for: language)
+                : personName
+            let prayer = customPrayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? selectedIntention.defaultPrayer(for: language)
+                : customPrayer
+
+            // Остров запускается, когда свеча до него долетит
+            candleManager.defersIslandStart = true
+            let success = await candleManager.purchaseAndLightCandle(
+                tier: selectedTier,
+                name: name,
+                intention: selectedIntention,
+                customPrayer: prayer
+            )
+            candleManager.defersIslandStart = false
+            guard success else { return }
+
+            let page = ManuscriptPage(
+                text: prayer,
+                reference: parchmentReference,
+                language: language,
+                style: ManuscriptPage.preferredStyle,
+                name: ManuscriptPage.rememberedName
+            )
+            if let lit = candleManager.activeCandles.first {
+                candleManager.attachParchment(to: lit.id, page: page)
+            }
+            ManuscriptLibrary.shared.save(page)
+            withAnimation(.spring()) {
+                isShowingSuccessAnimation = true
+            }
+            let lit = candleManager.activeCandles.first
+            let appLanguage = language
+            // Свеча успела зажечься на листе благословения; дальше она взлетает в остров, а лист закрывается
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard let lit else {
+                dismiss()
+                return
+            }
+            if CandleIslandFlight.canFly, successCandleFrame != .zero {
+                hideSuccessCandle = true
+                CandleIslandFlight.play(tier: lit.tier, from: successCandleFrame) {
+                    CandleIslandManager.shared.show(lit, language: appLanguage)
+                }
+            } else {
+                CandleIslandManager.shared.show(lit, language: appLanguage)
+            }
+            dismiss()
+        }
+    }
+
+    private var writeOnVellumTitle: String {
+        language == .armenian ? "Գրել մագաղաթի վրա" : (language == .russian ? "Написать на пергаменте" : "Write on vellum")
+    }
+
     private var namePlaceholder: String {
         switch language {
         case .armenian: return "Օրինակ՝ Աննա, Արամ, ընտանիք..."
@@ -739,9 +773,9 @@ struct LightCandleFormSheetView: View {
     }
     private var rewardedBadgeText: String {
         switch language {
-        case .armenian: return "1 ՏԵՍԱՆՅՈՒԹ • 24 ԺԱՄ"
-        case .russian: return "1 ВИДЕО • 24 ЧАСА"
-        case .english: return "1 VIDEO • 24 HOURS"
+        case .armenian: return "PREMIUM • 24 ԺԱՄ"
+        case .russian: return "PREMIUM • 24 ЧАСА"
+        case .english: return "PREMIUM • 24 HOURS"
         }
     }
     private var loadingText: String {
@@ -755,15 +789,15 @@ struct LightCandleFormSheetView: View {
         if selectedTier == .rewarded {
             if SubscriptionManager.shared.isPremium {
                 switch language {
-                case .armenian: return "Վառել մոմը (PRO • Առանց գովազդի)"
-                case .russian: return "Зажечь свечу (PRO • Без рекламы)"
-                case .english: return "Light Candle (PRO • No Ads)"
+                case .armenian: return "Վառել մոմը (PRO)"
+                case .russian: return "Зажечь свечу (PRO)"
+                case .english: return "Light Candle (PRO)"
                 }
             } else {
                 switch language {
-                case .armenian: return "Դիտել գովազդը և վառել մոմը"
-                case .russian: return "Посмотреть видео и зажечь свечу"
-                case .english: return "Watch Video & Light Candle"
+                case .armenian: return "Ակտիվացնել Premium"
+                case .russian: return "Оформить Premium"
+                case .english: return "Get Premium"
                 }
             }
         } else {
@@ -823,13 +857,20 @@ struct CandleDetailPrayerSheetView: View {
     let language: AppLanguage
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var candleManager = CandleManager.shared
-    
+    @ObservedObject private var islandManager = CandleIslandManager.shared
+
     @State private var previewBurnProgress: Double? = nil
     @State private var isSimulatingMelting: Bool = false
     @State private var selectedDuration: Double = 4.0 // 4 секунды по умолчанию
     
     private var currentBurnProgress: Double {
-        previewBurnProgress ?? candle.burnProgress()
+        #if DEBUG || targetEnvironment(simulator)
+        // -candle_burn 0.5: показать свечу на этой стадии горения (для скриншотов в CI)
+        if let raw = UserDefaults.standard.string(forKey: "candle_burn"), let value = Double(raw) {
+            return value
+        }
+        #endif
+        return previewBurnProgress ?? candle.burnProgress()
     }
     
     var body: some View {
@@ -843,14 +884,21 @@ struct CandleDetailPrayerSheetView: View {
                         // Интерактивная свеча с живым пламенем и физическим таянием
                         RealisticArmenianCandleView(
                             tier: candle.tier,
-                            candleHeight: 68,
-                            candleWidth: 22,
-                            flameSize: 32,
                             burnProgress: currentBurnProgress,
                             isLit: currentBurnProgress < 0.99,
-                            randomSeed: Double(abs(candle.id.hashValue))
+                            randomSeed: Double(abs(candle.id.hashValue % 100_000)),
+                            quality: .hero
                         )
-                        .padding(.top, 16)
+                        .frame(height: 340)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .strokeBorder(Paper.gold.opacity(0.35), lineWidth: 1)
+                        )
+                        .shadow(color: Paper.shadow, radius: 14, y: 6)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
                         .animation(.easeInOut(duration: isSimulatingMelting ? selectedDuration : 0.25), value: currentBurnProgress)
                         
                         Text(candle.personName.isEmpty ? candle.intention.title(for: language) : candle.personName)
@@ -1015,7 +1063,39 @@ struct CandleDetailPrayerSheetView: View {
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())
-                        
+
+                        // Кнопка: показать эту свечу в Dynamic Island и на экране блокировки
+                        if candle.isLit && (islandManager.isAvailable || islandManager.isShowing(candle)) {
+                            let isInIsland = islandManager.isShowing(candle)
+                            Button {
+                                Haptics.notify(.success)
+                                if isInIsland {
+                                    islandManager.hide()
+                                } else {
+                                    islandManager.show(candle, language: language)
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: isInIsland ? "checkmark.circle.fill" : "flame")
+                                        .font(.system(size: 15, weight: .semibold))
+                                    Text(isInIsland
+                                         ? (language == .armenian ? "✓ Ցուցադրվում է Dynamic Island-ում" : (language == .russian ? "✓ Свеча в острове" : "✓ Showing in Dynamic Island"))
+                                         : (language == .armenian ? "Ցուցադրել Dynamic Island-ում" : (language == .russian ? "Показать в острове" : "Show in Dynamic Island")))
+                                        .font(PaperFont.font(size: 14, weight: .semibold))
+                                }
+                                .foregroundColor(isInIsland ? Paper.gold : Paper.ink)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .background(isInIsland ? Paper.gold.opacity(0.25) : Paper.fillMuted)
+                                .cornerRadius(14)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(isInIsland ? Paper.gold : Paper.fillMuted, lineWidth: 1.2)
+                                )
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+
                         Button {
                             Haptics.notify(.success)
                             dismiss()

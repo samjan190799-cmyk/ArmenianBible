@@ -55,7 +55,7 @@
 • AI Spiritual Guide — Deep biblical reflections powered by Gemini, ChatGPT, and Claude.
 • Bible Quiz & Trivia — Strengthen your faith with interactive knowledge tests.
 • Spiritual Wallpapers & Bookmarks — Create elegant quote cards with ancient Armenian khachkars.
-• Offline Reading — The Bible works without internet or an account. The free version shows ads (Meta Audience Network, VK); Premium is ad-free.
+• Offline Reading — The Bible works without internet or an account. No ads and no tracking.
 
 ─────────────────────────
 🇷🇺 РУССКИЙ:
@@ -68,7 +68,7 @@
 • ИИ-помощник (AI Guide) — Духовные ответы и толкования (Gemini, ChatGPT, Claude).
 • Библейская викторина — Интерактивные тесты на знание Священного Писания.
 • Духовные обои и открытки — Создание премиальных карточек со стихами дня и древними хачкарами.
-• Чтение без интернета — Библия работает без интернета и регистрации. В бесплатной версии есть реклама (Meta Audience Network, VK); Premium — без рекламы.
+• Чтение без интернета — Библия работает без интернета и регистрации. Без рекламы и отслеживания.
 ```
 
 ---

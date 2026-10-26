@@ -78,7 +78,7 @@ enum CandleIntention: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
-// MARK: - Типы свечей (Ежедневный дар и просмотр видеорекламы)
+// MARK: - Типы свечей (ежедневный дар и свеча Premium)
 enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
     case freeDaily = "free_daily"
     case rewarded = "rewarded_candle"
@@ -117,9 +117,9 @@ enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
             }
         case .rewarded:
             switch language {
-            case .armenian: return "Աղոթքի մոմ (Գովազդով)"
-            case .russian: return "Молитвенная свеча (За видео)"
-            case .english: return "Prayer Candle (Watch Video)"
+            case .armenian: return "Աղոթքի մոմ (Premium)"
+            case .russian: return "Молитвенная свеча (Premium)"
+            case .english: return "Prayer Candle (Premium)"
             }
         case .small:
             switch language {
@@ -147,7 +147,7 @@ enum CandleTier: String, CaseIterable, Identifiable, Codable, Sendable {
         case .freeDaily:
             return language == .armenian ? "Անվճար" : (language == .russian ? "Бесплатно" : "Free")
         case .rewarded:
-            return language == .armenian ? "Տեսանյութ" : (language == .russian ? "1 Видео" : "1 Video")
+            return "Premium"
         case .small:
             return "$0.99"
         case .temple:
@@ -166,6 +166,8 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
     let customPrayer: String?
     let tier: CandleTier
     let litDate: Date
+    /// Картинка листа с молитвой в общем контейнере (для большого виджета); nil — у старых свечей
+    let pageImageFile: String?
     
     init(
         id: UUID = UUID(),
@@ -173,7 +175,8 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
         intention: CandleIntention,
         customPrayer: String? = nil,
         tier: CandleTier,
-        litDate: Date = Date()
+        litDate: Date = Date(),
+        pageImageFile: String? = nil
     ) {
         self.id = id
         self.personName = personName
@@ -181,6 +184,19 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
         self.customPrayer = customPrayer
         self.tier = tier
         self.litDate = litDate
+        self.pageImageFile = pageImageFile
+    }
+
+    /// Имя файла листа этой свечи в общем контейнере
+    static func pageImageFileName(for id: UUID) -> String {
+        "candle_page_\(id.uuidString).jpg"
+    }
+
+    func withPageImageFile(_ file: String?) -> PrayerCandle {
+        PrayerCandle(
+            id: id, personName: personName, intention: intention, customPrayer: customPrayer,
+            tier: tier, litDate: litDate, pageImageFile: file
+        )
     }
     
     var duration: TimeInterval {
@@ -246,4 +262,6 @@ struct PrayerCandle: Identifiable, Codable, Sendable {
 enum CandleConstants {
     public static let candlesStorageKey = "luys_saved_prayer_candles_v1"
     public static let selectedWidgetCandleKey = "luys_selected_widget_candle_id_v1"
+    /// Показывать текст молитвы там, где его видно без разблокировки (экран блокировки, StandBy)
+    public static let showPrayerOnLockKey = "luys_candle_show_prayer_on_lock_v1"
 }

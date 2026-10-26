@@ -92,17 +92,10 @@ final class QuizAIEngine {
     
     private init() {}
     
-    /// Проверка: доступна ли генерация через ИИ (требуется введенный API-ключ активного провайдера)
+    /// Проверка: доступна ли генерация через ИИ (свой API-ключ активного провайдера или серверный режим подписчика)
     var isAIAvailable: Bool {
         let manager = BibleManager.shared
-        switch manager.activeProvider {
-        case .gemini:
-            return !manager.geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .chatgpt:
-            return !manager.openaiApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .claude:
-            return !manager.anthropicApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
+        return !manager.effectiveAPIKey(for: manager.activeProvider).isEmpty
     }
     
     /// Отображаемое название активного ИИ-провайдера с актуальной моделью
@@ -120,15 +113,7 @@ final class QuizAIEngine {
         let manager = BibleManager.shared
         let provider = manager.activeProvider
         
-        let apiKey: String
-        switch provider {
-        case .gemini:
-            apiKey = manager.geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        case .chatgpt:
-            apiKey = manager.openaiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        case .claude:
-            apiKey = manager.anthropicApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        let apiKey = manager.effectiveAPIKey(for: provider)
         
         guard !apiKey.isEmpty else {
             throw QuizAIError.missingApiKey

@@ -70,6 +70,9 @@ struct BibleChapterReaderView: View {
             currentChapterIndex = initialChapter - 1
             manager.saveLastReadLocation(bookId: book.id, chapter: initialChapter)
         }
+        .onDisappear {
+            manager.cancelReadingDew()
+        }
         .onChange(of: currentChapterIndex) { newValue in
             let newChapter = newValue + 1
             manager.saveLastReadLocation(bookId: book.id, chapter: newChapter)

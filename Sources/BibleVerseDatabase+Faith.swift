@@ -5,9 +5,9 @@ extension BibleVerse {
     // MARK: - 6. ⚓ Короткие стихи о Вере и Мужестве (PRO) — до 45 символов
     static let shortFaith: [BibleVerse] = [
         BibleVerse(
-            textHy: "Հավատքո՛վ ենք ընթանում։",
+            textHy: "Հավատքո՛վ ենք ընթանում, ոչ թե տեսողությամբ։",
             textRu: "Мы ходим верою, а не видением.",
-            textEn: "For we walk by faith, not by sight.",
+            textEn: "We walk by faith, not by sight.",
             refHy: "Բ Կորնթացիս 5:7",
             refRu: "2 Коринфянам 5:7",
             refEn: "2 Corinthians 5:7"
@@ -55,7 +55,7 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Տիրոջն ապավինողները կնորոգվեն ուժով։",
             textRu: "Надеющиеся на Господа обновятся в силе.",
-            textEn: "They that wait upon the Lord renew strength.",
+            textEn: "They who trust the Lord renew their strength.",
             refHy: "Եսայի 40:31",
             refRu: "Исаия 40:31",
             refEn: "Isaiah 40:31"

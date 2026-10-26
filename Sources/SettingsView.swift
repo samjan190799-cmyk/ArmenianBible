@@ -9,7 +9,8 @@ struct SettingsView: View {
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
     @ObservedObject var appIconManager = AppIconManager.shared
     @ObservedObject var candleManager = CandleManager.shared
-    
+    @ObservedObject var cloudSync = CloudSyncManager.shared
+
     @State var isShowingPaywall = false
     @State var isShowingSanctuarySheet = false
     @State var selectedCandleTierForDirectLight: CandleTier? = nil
@@ -75,6 +76,8 @@ struct SettingsView: View {
     
     // 🔐 Панель тестировщика: 5 быстрых тапов по «О приложении», только TestFlight/DEBUG
     @State var secretTapCount = 0
+    /// Анонимная статистика (воронка): человек может выключить
+    @State var isFunnelEnabled = Funnel.isEnabled
     @State var secretLastTap = Date.distantPast
     @State var isShowingDevPasscodeAlert = false
     @State var devPasscodeInput = ""
@@ -123,34 +126,148 @@ struct SettingsView: View {
     private struct SettingsSectionItem: Identifiable {
         let id: String
         let view: AnyView
+        /// Секция без собственной карточки: подряд идущие такие секции собираются на одну общую карточку
+        var isFlat = false
     }
-    
-    private var settingSections: [SettingsSectionItem] {
-        [
-            SettingsSectionItem(id: "premium", view: AnyView(premiumMembershipSection)),
-            SettingsSectionItem(id: "candles", view: AnyView(sanctuaryCandlesSection)),
-            SettingsSectionItem(id: "language", view: AnyView(appLanguageSection)),
-            SettingsSectionItem(id: "appearance", view: AnyView(appearanceModeSection)),
-            SettingsSectionItem(id: "theme", view: AnyView(colorThemeSection)),
-            SettingsSectionItem(id: "icon", view: AnyView(appIconSection)),
-            SettingsSectionItem(id: "notifications", view: AnyView(spiritualNotificationsSection)),
-            SettingsSectionItem(id: "widgets", view: AnyView(widgetsUnifiedSection)),
-            SettingsSectionItem(id: "interval", view: AnyView(updateIntervalSection)),
-            SettingsSectionItem(id: "scope", view: AnyView(verseSourceScopeSection)),
-            SettingsSectionItem(id: "content", view: AnyView(contentTypeSection)),
-            SettingsSectionItem(id: "wallpaper", view: AnyView(autoWallpaperSection)),
-            SettingsSectionItem(id: "ai", view: AnyView(aiAssistantSection)),
-            SettingsSectionItem(id: "quiz", view: AnyView(quizSettingsSection)),
-            SettingsSectionItem(id: "audio", view: AnyView(narekAudioSection)),
-            SettingsSectionItem(id: "system", view: AnyView(systemAndDataSection)),
-            SettingsSectionItem(id: "about", view: AnyView(aboutSection)),
-            SettingsSectionItem(id: "banner", view: AnyView(
-                LuysHybridBannerView(placement: .settings)
-                    .padding(.top, 4)
-            ))
+
+    /// Группа настроек по смыслу: заголовок и секции под ним
+    private struct SettingsGroup: Identifiable {
+        let id: String
+        /// nil — группа без заголовка (подписка вверху)
+        let title: String?
+        let icon: String
+        let items: [SettingsSectionItem]
+    }
+
+    /// Либо секция со своей карточкой, либо несколько плоских секций на общей карточке
+    private enum SettingsBlock: Identifiable {
+        case single(SettingsSectionItem)
+        case flatCard(id: String, items: [SettingsSectionItem])
+
+        var id: String {
+            switch self {
+            case .single(let item): return item.id
+            case .flatCard(let id, _): return id
+            }
+        }
+    }
+
+    /// Порядок экрана: от того, что нужно всем (подписка, внешний вид), к узким возможностям и системным настройкам.
+    /// Похожее стоит рядом: что показывать, как часто и где (стих дня → виджеты → обои); свечи и напоминания;
+    /// помощник, викторина и аудио; данные (iCloud, резервная копия, кэш) — в одной карточке.
+    private var settingGroups: [SettingsGroup] {
+        let language = selectedLanguage
+        return [
+            SettingsGroup(id: "premium", title: nil, icon: "", items: [
+                SettingsSectionItem(id: "premium", view: AnyView(premiumMembershipSection))
+            ]),
+            SettingsGroup(
+                id: "look",
+                title: language.pick(hy: "Արտաքին տեսք և լեզու", ru: "Внешний вид и язык", en: "Appearance & Language"),
+                icon: "paintbrush.pointed",
+                items: [
+                    SettingsSectionItem(id: "language", view: AnyView(appLanguageSection), isFlat: true),
+                    SettingsSectionItem(id: "appearance", view: AnyView(appearanceModeSection), isFlat: true),
+                    SettingsSectionItem(id: "theme", view: AnyView(colorThemeSection), isFlat: true),
+                    SettingsSectionItem(id: "icon", view: AnyView(appIconSection), isFlat: true)
+                ]
+            ),
+            SettingsGroup(
+                id: "verse",
+                title: language.pick(hy: "Օրվա տողը և վիջեթներ", ru: "Стих дня и виджеты", en: "Verse of the Day & Widgets"),
+                icon: "text.quote",
+                items: [
+                    SettingsSectionItem(id: "scope", view: AnyView(verseSourceScopeSection), isFlat: true),
+                    SettingsSectionItem(id: "content", view: AnyView(contentTypeSection), isFlat: true),
+                    SettingsSectionItem(id: "interval", view: AnyView(updateIntervalSection), isFlat: true),
+                    SettingsSectionItem(id: "widgets", view: AnyView(widgetsUnifiedSection)),
+                    SettingsSectionItem(id: "wallpaper", view: AnyView(autoWallpaperSection))
+                ]
+            ),
+            SettingsGroup(
+                id: "prayer",
+                title: language.pick(hy: "Աղոթք և հիշեցումներ", ru: "Молитва и напоминания", en: "Prayer & Reminders"),
+                icon: "flame",
+                items: [
+                    SettingsSectionItem(id: "candles", view: AnyView(sanctuaryCandlesSection)),
+                    SettingsSectionItem(id: "notifications", view: AnyView(spiritualNotificationsSection))
+                ]
+            ),
+            SettingsGroup(
+                id: "learning",
+                title: language.pick(hy: "Օգնական և ուսուցում", ru: "Помощник и обучение", en: "Assistant & Learning"),
+                icon: "sparkles",
+                items: [
+                    SettingsSectionItem(id: "ai", view: AnyView(aiAssistantSection)),
+                    SettingsSectionItem(id: "quiz", view: AnyView(quizSettingsSection), isFlat: true),
+                    SettingsSectionItem(id: "audio", view: AnyView(narekAudioSection), isFlat: true)
+                ]
+            ),
+            SettingsGroup(
+                id: "app",
+                title: language.pick(hy: "Հավելված", ru: "Приложение", en: "App"),
+                icon: "gearshape",
+                items: [
+                    SettingsSectionItem(id: "system", view: AnyView(systemAndDataSection)),
+                    SettingsSectionItem(id: "about", view: AnyView(aboutSection))
+                ]
+            )
         ]
     }
-    
+
+    private func blocks(of items: [SettingsSectionItem]) -> [SettingsBlock] {
+        var result: [SettingsBlock] = []
+        var pending: [SettingsSectionItem] = []
+        func flush() {
+            guard !pending.isEmpty else { return }
+            result.append(.flatCard(id: pending.map { $0.id }.joined(separator: "+"), items: pending))
+            pending = []
+        }
+        for item in items {
+            if item.isFlat {
+                pending.append(item)
+            } else {
+                flush()
+                result.append(.single(item))
+            }
+        }
+        flush()
+        return result
+    }
+
+    private func blockView(_ block: SettingsBlock) -> AnyView {
+        switch block {
+        case .single(let item):
+            return item.view
+        case .flatCard(_, let items):
+            return AnyView(
+                VStack(alignment: .leading, spacing: 18) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        if index > 0 {
+                            Divider().opacity(0.3)
+                        }
+                        item.view
+                    }
+                }
+                .padding(16)
+                .paperSheet(cornerRadius: 18)
+            )
+        }
+    }
+
+    private func settingsGroupHeader(title: String, icon: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+            Text(title.uppercased())
+                .font(PaperFont.font(size: 12, weight: .semibold))
+                .tracking(1.2)
+        }
+        .foregroundColor(Paper.inkSecondary)
+        .padding(.horizontal, 6)
+        .accessibilityAddTraits(.isHeader)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -158,9 +275,16 @@ struct SettingsView: View {
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
-                        ForEach(settingSections) { section in
-                            section.view
+                    VStack(alignment: .leading, spacing: 30) {
+                        ForEach(settingGroups) { group in
+                            VStack(alignment: .leading, spacing: 14) {
+                                if let title = group.title {
+                                    settingsGroupHeader(title: title, icon: group.icon)
+                                }
+                                ForEach(blocks(of: group.items)) { block in
+                                    blockView(block)
+                                }
+                            }
                         }
                     }
                     .padding(20)
@@ -216,7 +340,7 @@ struct SettingsView: View {
                 appIconManager.syncWithSystem()
             }
             .sheet(isPresented: $isShowingPaywall) {
-                PaywallView()
+                PaywallView(source: "settings")
             }
             .sheet(isPresented: $isShowingWidgetInstruction) {
                 WidgetInstructionSheetView(
@@ -242,7 +366,7 @@ struct SettingsView: View {
                 }
             }
             .alert("Панель тестировщика (TestFlight)", isPresented: $isShowingDevPasscodeAlert) {
-                Button("Включить Free (для теста рекламы)") {
+                Button("Включить Free (для теста лимитов)") {
                     handleDevToggle(enablePremium: false)
                 }
                 
@@ -254,7 +378,7 @@ struct SettingsView: View {
                     devPasscodeInput = ""
                 }
             } message: {
-                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")\n\n\(LuysAdManager.shared.diagnosticsSummary)")
+                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")")
             }
             .alert("ai_clear_chat_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingClearAIChatAlert) {
                 Button("ai_clear_chat_btn".localized(for: selectedLanguage), role: .destructive) {
@@ -384,7 +508,6 @@ struct SettingsView: View {
     }
     
     // MARK: - Секция Храмовых Молитвенных Свечей
-    // MARK: - Секция Храмовых Молитвенных Свечей
     @ViewBuilder
     var sanctuaryCandlesSection: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -423,14 +546,14 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Text(selectedLanguage == .armenian ? "Օրական անվճար մոմ և մոմավառություն տեսանյութով" : (selectedLanguage == .russian ? "Бесплатная ежедневная свеча и молитва за просмотр видео" : "Free daily candle & prayer candle with video"))
+                    Text(selectedLanguage == .armenian ? "Օրական անվճար մոմ, ավելին՝ Premium-ով" : (selectedLanguage == .russian ? "Бесплатная ежедневная свеча, больше свечей: в Premium" : "Free daily candle, more candles with Premium"))
                         .font(PaperFont.font(size: 12))
                         .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
                 }
             }
             
-            // Список вариантов свечей (бесплатный + за видео)
+            // Список вариантов свечей (бесплатный + Premium)
             VStack(spacing: 8) {
                 // 1. Бесплатная ежедневная свеча
                 settingsCandleTierCard(
@@ -444,14 +567,14 @@ struct SettingsView: View {
                     icon: "flame"
                 )
                 
-                // 2. Свеча за просмотр видео
+                // 2. Молитвенная свеча на 24 часа: Premium
                 settingsCandleTierCard(
                     tier: .rewarded,
                     title: selectedLanguage == .armenian ? "Աղոթքի Մոմ" : (selectedLanguage == .russian ? "Молитвенная свеча" : "Prayer Candle"),
-                    subtitle: selectedLanguage == .armenian ? "24 ժամ • 1 տեսանյութի դիտմամբ" : (selectedLanguage == .russian ? "24 часа • За 1 видео (без оплаты)" : "24 hrs • Watch 1 video (free)"),
-                    badge: selectedLanguage == .armenian ? "ՏԵՍԱՆՅՈՒԹ" : (selectedLanguage == .russian ? "1 ВИДЕО" : "1 VIDEO"),
-                    badgeColor: Paper.lapis,
-                    icon: "play.circle.fill"
+                    subtitle: selectedLanguage == .armenian ? "24 ժամ • Premium-ով, անսահմանափակ քանակ" : (selectedLanguage == .russian ? "24 часа • С Premium, без ограничений" : "24 hrs • With Premium, unlimited"),
+                    badge: "PREMIUM",
+                    badgeColor: Paper.gold,
+                    icon: "crown.fill"
                 )
             }
             
@@ -578,6 +701,15 @@ struct SettingsView: View {
                     .lineSpacing(2)
             }
             .padding(.top, 2)
+
+            // Молитва на пергаменте и экран блокировки: относятся к свечам, а не к системным настройкам
+            Divider().opacity(0.3)
+
+            ManuscriptSpeedSettingsRow(language: selectedLanguage, primaryTextColor: primaryTextColor)
+
+            Divider().opacity(0.3)
+
+            CandleLockPrayerRow(language: selectedLanguage)
         }
         .padding(16)
         .paperSheet(cornerRadius: 16)

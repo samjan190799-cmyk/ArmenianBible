@@ -108,6 +108,14 @@
 "widget_style_sunset_desc" = "Абрикосовое золото, теплая роза и индиго";
 "widget_style_stone" = "Древний Базальт";
 "widget_style_stone_desc" = "Камень хачкаров и чеканное серебро";
+"widget_style_poster_ararat" = "Постер · Арарат";
+"widget_style_poster_ararat_desc" = "Рассвет над Араратом, крупная фраза";
+"widget_style_poster_khachkar" = "Постер · Хачкар";
+"widget_style_poster_khachkar_desc" = "Золотой хачкар на тёмном камне";
+"widget_style_poster_parchment" = "Постер · Пергамент";
+"widget_style_poster_parchment_desc" = "Рукописный лист с золотой рамкой";
+"widget_style_poster_night" = "Постер · Вифлеем";
+"widget_style_poster_night_desc" = "Ночное небо со звездой";
 "check_models" = "Проверить обновления";
 "checking_models" = "Проверка...";
 "auto_upgrade_active" = "Автообновление активно";
@@ -300,13 +308,13 @@
 
 /* Narekatsi & Audio Player */
 "narekatsi_title" = "Св. Григор Нарекаци";
-"narekatsi_subtitle" = "Книга скорбных песнопений (Из глубины сердца)";
+"narekatsi_subtitle" = "Книга скорбных песнопений";
 "button_listen_audio" = "Слушать";
 "button_pause_audio" = "Пауза";
-"narek_tab_text" = "Текст (Матьян)";
+"narek_tab_text" = "Текст";
 "narek_tab_audio" = "Аудиозапись";
 "narek_playlist_title" = "📻 Все 95 Глав (Плейлист)";
-"narek_prayers_count" = "95 молитв";
+"narek_prayers_count" = "95 глав";
 "narek_loading_audio" = "• Загрузка аудио...";
 "narek_saved_position_format" = "Сохраненная позиция: %@ (Глава %d)";
 "narek_continue_format" = "Продолжить: %@ (Глава %d)";
@@ -408,6 +416,11 @@
 "system_storage_section_desc" = "Тактильный отклик, безопасность Face ID, очистка кэша и резервное копирование:";
 "haptics_title" = "Тактильный отклик (Haptic)";
 "haptics_desc" = "Виброотклик при взаимодействии и переключениях";
+"manuscript_speed_title" = "Скорость письма в «Рукописи»";
+"manuscript_speed_desc" = "Как быстро перо выводит буквы стиха";
+"manuscript_speed_slow" = "Медленно";
+"manuscript_speed_medium" = "Средне";
+"manuscript_speed_fast" = "Быстро";
 "biometric_lock_title" = "Блокировка Face ID / Touch ID";
 "biometric_lock_desc" = "Защита закладок, заметок и истории чтения";
 "biometric_auth_reason" = "Разблокируйте для доступа к приложению";

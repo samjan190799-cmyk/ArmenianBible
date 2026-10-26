@@ -76,6 +76,35 @@ enum TextCategoryAppEnum: String, AppEnum {
     }
 }
 
+// MARK: - Какие подборки соответствуют выбранному содержимому виджета
+@available(iOS 17.0, *)
+extension TextCategoryAppEnum {
+    /// Короткая подборка для экрана блокировки и малого виджета; у остальных пунктов берётся категория из настроек приложения
+    var lockCategory: LockScreenCategory? {
+        switch self {
+        case .pearls: return .pearls
+        case .narekatsi: return .narekatsi
+        case .psalms: return .psalms
+        case .wisdom: return .wisdom
+        case .love: return .love
+        case .faith: return .faith
+        default: return nil
+        }
+    }
+
+    /// Подборка для среднего и большого виджета; «Жемчужины», «Любовь» и «Вера» берут категорию из настроек приложения
+    var homeCategory: HomeWidgetCategory? {
+        switch self {
+        case .narekatsi: return .narekatsi
+        case .psalms: return .psalms
+        case .wisdom: return .wisdom
+        case .prayers: return .prayers
+        case .favorites: return .favorites
+        default: return nil
+        }
+    }
+}
+
 // MARK: - Перечисление стиля оформления виджета и StandBy
 @available(iOS 17.0, *)
 enum WidgetStyleAppEnum: String, AppEnum {
@@ -89,6 +118,10 @@ enum WidgetStyleAppEnum: String, AppEnum {
     case crimsonGospel = "crimsonGospel"
     case auroraSunset = "auroraSunset"
     case monasticStone = "monasticStone"
+    case posterArarat = "posterArarat"
+    case posterKhachkar = "posterKhachkar"
+    case posterParchment = "posterParchment"
+    case posterNight = "posterNight"
     
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         "Widget & StandBy Style"
@@ -105,7 +138,11 @@ enum WidgetStyleAppEnum: String, AppEnum {
             .celestialEmerald: DisplayRepresentation(title: "🌿 Celestial Emerald", subtitle: "Liturgical malachite and glowing mint gold"),
             .crimsonGospel: DisplayRepresentation(title: "🍷 Sacred Pomegranate", subtitle: "Cilician royal crimson ruby and champagne gold"),
             .auroraSunset: DisplayRepresentation(title: "🌅 Ararat Sunset", subtitle: "Warm apricot amber, rose and mountain twilight"),
-            .monasticStone: DisplayRepresentation(title: "⛰️ Monastic Stone", subtitle: "Khachkar volcanic basalt and chiseled silver")
+            .monasticStone: DisplayRepresentation(title: "⛰️ Monastic Stone", subtitle: "Khachkar volcanic basalt and chiseled silver"),
+            .posterArarat: DisplayRepresentation(title: "🏔️ Poster · Ararat", subtitle: "Dawn over Ararat with a big phrase"),
+            .posterKhachkar: DisplayRepresentation(title: "✝️ Poster · Khachkar (PRO)", subtitle: "A golden khachkar on dark stone"),
+            .posterParchment: DisplayRepresentation(title: "📜 Poster · Parchment", subtitle: "A manuscript page with a gold frame"),
+            .posterNight: DisplayRepresentation(title: "⭐ Poster · Bethlehem (PRO)", subtitle: "Night sky with a star")
         ]
     }
     
@@ -121,6 +158,10 @@ enum WidgetStyleAppEnum: String, AppEnum {
         case .crimsonGospel: return .crimsonGospel
         case .auroraSunset: return .auroraSunset
         case .monasticStone: return .monasticStone
+        case .posterArarat: return .posterArarat
+        case .posterKhachkar: return .posterKhachkar
+        case .posterParchment: return .posterParchment
+        case .posterNight: return .posterNight
         }
     }
 }
@@ -161,59 +202,47 @@ struct NextVerseIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         let defaults = AppGroupConstants.sharedDefaults
         let isPremium = AppGroupConstants.sharedBool(forKey: "is_premium_active")
+        let lang = getSharedLanguage()
         let savedLockCatRaw = defaults.string(forKey: "lock_screen_category") ?? "pearls"
-        let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
-        let cat = (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls
-        let rawLockPool = BibleVerse.lockScreenVerses(for: cat).filter { $0.textHy.count <= 46 }
-        let lockPool = !rawLockPool.isEmpty ? rawLockPool : BibleVerse.shortPearls
-        
+        let lockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
+        let savedMedRaw = defaults.string(forKey: "medium_widget_category") ?? "all"
+        let medCategory = HomeWidgetCategory(rawValue: savedMedRaw) ?? .all
+        let savedLargeRaw = defaults.string(forKey: "large_widget_category") ?? "all"
+        let largeCategory = HomeWidgetCategory(rawValue: savedLargeRaw) ?? .all
+
+        // Длина цитаты по месту показа (QuoteTier): экран блокировки и малый — короткие, средний — средние, большой — длинные
+        func pick(_ tier: QuoteTier) -> BibleVerse? {
+            BibleVerse.quotes(
+                for: tier, lang: lang, isPremium: isPremium,
+                lockCategory: lockCategory,
+                homeCategory: tier == .large ? largeCategory : medCategory
+            ).randomElement()
+        }
+
         let target = targetSize
-        
+        let smallVerse = (target == "small" || target == "all") ? pick(.small) : nil
+        let mediumVerse = (target == "medium" || target == "all") ? pick(.medium) : nil
+        let largeVerse = (target == "large" || target == "all") ? pick(.large) : nil
+        let lockVerse = (target == "lockScreen" || target == "all") ? pick(.lockScreen) : nil
+
         AppGroupConstants.syncToAll { defs in
-            // 1. Для малого виджета (System Small) - строго короткие стихи активной категории
-            if target == "small" || target == "all" {
-                if let v = lockPool.randomElement() {
-                    defs.set(v.id.uuidString, forKey: "currentSmallVerseId")
-                }
+            if let v = smallVerse {
+                defs.set(v.id.uuidString, forKey: "currentSmallVerseId")
             }
-            
-            // 2. Для среднего виджета (System Medium) - стихи 35-100 символов с учетом medium_widget_category
-            if target == "medium" || target == "all" {
-                let savedMedRaw = defaults.string(forKey: "medium_widget_category") ?? "all"
-                let medCat = HomeWidgetCategory(rawValue: savedMedRaw) ?? .all
-                let activeMedCat = (isPremium || !medCat.isPremiumRequired) ? medCat : .all
-                let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
-                let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
-                let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
-                if let v = medPool.randomElement() {
-                    defs.set(v.id.uuidString, forKey: "currentMediumVerseId")
-                }
+            if let v = mediumVerse {
+                defs.set(v.id.uuidString, forKey: "currentMediumVerseId")
             }
-            
-            // 3. Для большого виджета (System Large) - глубокие отрывки от 75 символов с учетом large_widget_category
-            if target == "large" || target == "all" {
-                let savedLargeRaw = defaults.string(forKey: "large_widget_category") ?? "all"
-                let largeCat = HomeWidgetCategory(rawValue: savedLargeRaw) ?? .all
-                let activeLargeCat = (isPremium || !largeCat.isPremiumRequired) ? largeCat : .all
-                let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
-                let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
-                let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
-                if let v = largePool.randomElement() {
-                    defs.set(v.id.uuidString, forKey: "currentLargeVerseId")
-                }
+            if let v = largeVerse {
+                defs.set(v.id.uuidString, forKey: "currentLargeVerseId")
             }
-            
-            // 4. Для экрана блокировки (Lock Screen)
-            if target == "lockScreen" || target == "all" {
-                if let v = lockPool.randomElement() {
-                    defs.set(v.id.uuidString, forKey: "currentLockScreenVerseId")
-                    defs.set(v.textHy, forKey: "currentLockScreenTextHy")
-                    defs.set(v.textRu, forKey: "currentLockScreenTextRu")
-                    defs.set(v.textEn, forKey: "currentLockScreenTextEn")
-                    defs.set(v.refHy, forKey: "currentLockScreenRefHy")
-                    defs.set(v.refRu, forKey: "currentLockScreenRefRu")
-                    defs.set(v.refEn, forKey: "currentLockScreenRefEn")
-                }
+            if let v = lockVerse {
+                defs.set(v.id.uuidString, forKey: "currentLockScreenVerseId")
+                defs.set(v.textHy, forKey: "currentLockScreenTextHy")
+                defs.set(v.textRu, forKey: "currentLockScreenTextRu")
+                defs.set(v.textEn, forKey: "currentLockScreenTextEn")
+                defs.set(v.refHy, forKey: "currentLockScreenRefHy")
+                defs.set(v.refRu, forKey: "currentLockScreenRefRu")
+                defs.set(v.refEn, forKey: "currentLockScreenRefEn")
             }
         }
         
@@ -343,8 +372,12 @@ struct Provider: AppIntentTimelineProvider {
     private let textCategoryKey = "selected_category"
     private let updateIntervalKey = "widgetUpdateInterval"
     
+    private var isPremium: Bool {
+        AppGroupConstants.sharedBool(forKey: "is_premium_active")
+    }
+
     private func getSharedVisualStyle() -> WidgetVisualStyle {
-        AppGroupConstants.sharedVisualStyle()
+        AppGroupConstants.sharedVisualStyle().allowed(isPremium: isPremium)
     }
     
     private func getSharedStyleTimestamp() -> Double {
@@ -359,13 +392,16 @@ struct Provider: AppIntentTimelineProvider {
     
     private func resolveVisualStyle(for configuration: ConfigurationAppIntent) -> WidgetVisualStyle {
         let appStyle = getSharedVisualStyle()
+        let chosen: WidgetVisualStyle
         if configuration.visualStyle == .followApp {
-            return appStyle
+            chosen = appStyle
         } else if let custom = configuration.visualStyle.widgetStyle {
-            return custom
+            chosen = custom
         } else {
-            return appStyle
+            chosen = appStyle
         }
+        // Короны и PRO на виджете нет: постер «Хачкар»/«Вифлеем» без Premium заменяется бесплатным «Араратом»
+        return chosen.allowed(isPremium: isPremium)
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
@@ -409,8 +445,8 @@ struct Provider: AppIntentTimelineProvider {
         
         let minutesStep = interval.minutes
         let totalEntries = max(1, min(12, 1440 / max(1, minutesStep)))
-        let isLockScreen = (family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular)
-        
+        let tier = QuoteTier(family: family)
+
         var currentVerse = getSharedVerse(for: configuration, family: family)
         
         for i in 0..<totalEntries {
@@ -423,11 +459,10 @@ struct Provider: AppIntentTimelineProvider {
                 rawVerse = database.randomElement() ?? fallback
             }
             
-            // Гарантия: на экране блокировки стих ВСЕГДА строго <= 46 символов
+            // Страховка: цитата не должна выходить за допустимую длину для этого размера виджета
             let entryVerse: BibleVerse
-            if isLockScreen && rawVerse.text(for: lang).count > 46 {
-                let safeList = database.filter { $0.text(for: lang).count <= 46 }
-                entryVerse = safeList.randomElement() ?? BibleVerse.shortPearls.randomElement() ?? BibleVerse.shortPearls[0]
+            if let tier, !tier.limit.contains(rawVerse.text(for: lang).count) {
+                entryVerse = database.randomElement() ?? rawVerse
             } else {
                 entryVerse = rawVerse
             }
@@ -447,231 +482,81 @@ struct Provider: AppIntentTimelineProvider {
         return Timeline(entries: entries, policy: .after(reloadDate))
     }
     
+    /// Подборка цитат для виджета: категория из настроек виджета, длина — по его размеру (QuoteTier)
     private func getFilteredDatabase(for category: TextCategory, configuration: ConfigurationAppIntent? = nil, family: WidgetFamily? = nil, lang: AppLanguage) -> [BibleVerse] {
+        guard let family, let tier = QuoteTier(family: family) else {
+            return BibleVerse.database
+        }
         let defaults = AppGroupConstants.sharedDefaults
         let isPremium = AppGroupConstants.sharedBool(forKey: "is_premium_active")
         let savedLockCatRaw = defaults.string(forKey: "lock_screen_category") ?? "pearls"
-        let activeLockCategory = LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
-        let activeLockVerses = BibleVerse.lockScreenVerses(for: (isPremium || !activeLockCategory.isPremiumRequired) ? activeLockCategory : .pearls)
-        
-        // Для виджетов экрана блокировки - строго короткие стихи <= 46 символов
-        if let family = family, family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular {
-            let pool: [BibleVerse]
-            if let config = configuration {
-                switch config.category {
-                case .pearls:
-                    pool = BibleVerse.shortPearls
-                case .narekatsi:
-                    pool = isPremium ? BibleVerse.shortNarekatsi : BibleVerse.shortPearls
-                case .psalms:
-                    pool = isPremium ? BibleVerse.shortPsalms : BibleVerse.shortPearls
-                case .wisdom:
-                    pool = isPremium ? BibleVerse.shortWisdom : BibleVerse.shortPearls
-                case .love:
-                    pool = isPremium ? BibleVerse.shortLove : BibleVerse.shortPearls
-                case .faith:
-                    pool = isPremium ? BibleVerse.shortFaith : BibleVerse.shortPearls
-                default:
-                    pool = activeLockVerses
-                }
-            } else {
-                pool = activeLockVerses
-            }
-            let validPool = pool.filter { $0.text(for: lang).count <= 46 }
-            return !validPool.isEmpty ? validPool : BibleVerse.shortPearls
+        let savedMedRaw = defaults.string(forKey: "medium_widget_category") ?? "all"
+        let savedLargeRaw = defaults.string(forKey: "large_widget_category") ?? "all"
+        let chosen = configuration?.category
+
+        // Своя категория виджета важнее общей из настроек приложения
+        let lockCategory = chosen?.lockCategory ?? LockScreenCategory(rawValue: savedLockCatRaw) ?? .pearls
+        let homeCategory = chosen?.homeCategory
+            ?? HomeWidgetCategory(rawValue: tier == .large ? savedLargeRaw : savedMedRaw)
+            ?? .all
+
+        // «Молитвы» и «Избранное» в виджете были бесплатными, поэтому их Premium не ограничивает
+        let isHomeTier = (tier == .medium || tier == .large)
+        let unlocked = isPremium || (isHomeTier && (chosen == .prayers || chosen == .favorites))
+
+        let pool = BibleVerse.quotes(for: tier, lang: lang, isPremium: unlocked, lockCategory: lockCategory, homeCategory: homeCategory)
+        if chosen == .verses {
+            let verses = pool.filter { !$0.isPrayer }
+            return verses.isEmpty ? pool : verses
         }
-        
-        var base: [BibleVerse] = BibleVerse.database
-        
-        if let config = configuration {
-            switch config.category {
-            case .pearls:
-                return BibleVerse.shortPearls
-            case .narekatsi:
-                return isPremium ? BibleVerse.shortNarekatsi : BibleVerse.shortPearls
-            case .psalms:
-                return isPremium ? BibleVerse.shortPsalms : BibleVerse.shortPearls
-            case .wisdom:
-                return isPremium ? BibleVerse.shortWisdom : BibleVerse.shortPearls
-            case .love:
-                return isPremium ? BibleVerse.shortLove : BibleVerse.shortPearls
-            case .faith:
-                return isPremium ? BibleVerse.shortFaith : BibleVerse.shortPearls
-            case .verses:
-                base = BibleVerse.database.filter { !$0.isPrayer }
-            case .prayers:
-                base = BibleVerse.database.filter { $0.isPrayer }
-            case .favorites:
-                if let savedFavoritesData = defaults.data(forKey: "favorite_verses"),
-                   let decoded = try? JSONDecoder().decode([FavoriteItem].self, from: savedFavoritesData),
-                   !decoded.isEmpty {
-                    base = decoded.map { item in
-                        BibleVerse(
-                            id: item.id,
-                            textHy: item.textHy,
-                            textRu: item.textRu,
-                            textEn: item.textEn,
-                            refHy: item.refHy,
-                            refRu: item.refRu,
-                            refEn: item.refEn,
-                            isPrayer: false
-                        )
-                    }
-                } else {
-                    base = activeLockVerses
-                }
-            case .both:
-                base = BibleVerse.database
-            }
-        }
-        
-        guard let family = family else {
-            return base
-        }
-        
-        switch family {
-        case .accessoryRectangular, .accessoryInline, .accessoryCircular:
-            let validPool = activeLockVerses.filter { $0.text(for: lang).count <= 46 }
-            return !validPool.isEmpty ? validPool : BibleVerse.shortPearls
-            
-        case .systemSmall:
-            return activeLockVerses
-            
-        case .systemMedium:
-            let pool: [BibleVerse]
-            if let config = configuration, config.category != .both && config.category != .pearls {
-                pool = base
-            } else {
-                let savedCatRaw = defaults.string(forKey: "medium_widget_category") ?? "all"
-                let cat = HomeWidgetCategory(rawValue: savedCatRaw) ?? .all
-                pool = BibleVerse.verses(for: cat, isPremium: isPremium)
-            }
-            let medVerses = pool.filter { $0.text(for: lang).count >= 35 && $0.text(for: lang).count <= 100 }
-            return !medVerses.isEmpty ? medVerses : (!pool.isEmpty ? pool : base)
-            
-        case .systemLarge:
-            let pool: [BibleVerse]
-            if let config = configuration, config.category != .both && config.category != .pearls {
-                pool = base
-            } else {
-                let savedCatRaw = defaults.string(forKey: "large_widget_category") ?? "all"
-                let cat = HomeWidgetCategory(rawValue: savedCatRaw) ?? .all
-                pool = BibleVerse.verses(for: cat, isPremium: isPremium)
-            }
-            let largeVerses = pool.filter { $0.text(for: lang).count >= 75 }
-            return !largeVerses.isEmpty ? largeVerses : (!pool.isEmpty ? pool : base)
-            
-        @unknown default:
-            return base
-        }
+        return pool
     }
-    
+
     private func getSharedVerse(for configuration: ConfigurationAppIntent, family: WidgetFamily? = nil) -> BibleVerse {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
-        let fallback = database.isEmpty ? BibleVerse.shortPearls[0] : database[0]
+        let fallback = database.first ?? BibleVerse.shortPearls[0]
         let defaults = AppGroupConstants.sharedDefaults
-        let isLockScreen: Bool = {
-            guard let family = family else { return false }
-            return family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular
-        }()
-        
+        let tier = family.flatMap { QuoteTier(family: $0) }
+        let isLockScreen = (tier == .lockScreen)
+
         let key: String
-        if let family {
-            switch family {
-            case .accessoryRectangular, .accessoryInline, .accessoryCircular:
-                key = "currentLockScreenVerseId"
-            case .systemSmall:
-                key = "currentSmallVerseId"
-            case .systemMedium:
-                key = "currentMediumVerseId"
-            case .systemLarge:
-                key = "currentLargeVerseId"
-            default:
-                key = "currentVerseId"
-            }
-        } else {
-            key = "currentVerseId"
+        switch tier {
+        case .lockScreen?: key = "currentLockScreenVerseId"
+        case .small?: key = "currentSmallVerseId"
+        case .medium?: key = "currentMediumVerseId"
+        case .large?: key = "currentLargeVerseId"
+        case nil: key = "currentVerseId"
         }
-        
-        let def = defaults
-        if isLockScreen {
-                // Строгая изоляция экрана блокировки: используем только проверенные короткие стихи (<= 46 символов)
-                let idStr = def.string(forKey: "currentLockScreenVerseId")
-                if let idStr, let uuid = UUID(uuidString: idStr),
-                   let found = database.first(where: { $0.id == uuid }),
-                   found.text(for: lang).count <= 46 {
-                    return found
-                }
-                
-                // Если сохранен отдельный короткий текст для экрана блокировки
-                if let lockTextHy = def.string(forKey: "currentLockScreenTextHy"),
-                   !lockTextHy.isEmpty,
-                   lockTextHy.count <= 46 {
-                    let textRu = def.string(forKey: "currentLockScreenTextRu") ?? ""
-                    let textEn = def.string(forKey: "currentLockScreenTextEn") ?? ""
-                    let refHy = def.string(forKey: "currentLockScreenRefHy") ?? ""
-                    let refRu = def.string(forKey: "currentLockScreenRefRu") ?? ""
-                    let refEn = def.string(forKey: "currentLockScreenRefEn") ?? ""
-                    let lockTextHyArarat = def.string(forKey: "currentLockScreenTextHyArarat") ?? ""
-                    let lockTextHyEchmiadzin = def.string(forKey: "currentLockScreenTextHyEchmiadzin") ?? lockTextHy
-                    let id = idStr.flatMap { UUID(uuidString: $0) } ?? UUID()
-                    let customVerse = BibleVerse(
-                        id: id,
-                        textHy: lockTextHyEchmiadzin,
-                        textHyArarat: lockTextHyArarat,
-                        textRu: textRu,
-                        textEn: textEn,
-                        refHy: refHy,
-                        refRu: refRu,
-                        refEn: refEn
-                    )
-                    if customVerse.text(for: lang).count <= 46 {
-                        return customVerse
-                    }
-                }
-                
-                // Категорически запрещено брать currentVerseTextHy из основного приложения для экрана блокировки!
-                let safeLockList = database.filter { $0.text(for: lang).count <= 46 }
-                return safeLockList.randomElement() ?? BibleVerse.shortPearls.randomElement() ?? BibleVerse.shortPearls[0]
-            }
-            
-            // Логика для виджетов домашнего экрана (Small / Medium / Large)
-            let idStr = def.string(forKey: key) ?? def.string(forKey: "currentVerseId")
-            if let idStr, let uuid = UUID(uuidString: idStr), let found = database.first(where: { $0.id == uuid }) {
-                return found
-            }
-            
-            // Если стих был сгенерирован ИИ или выбран из базы SQLite
-            if let textHy = def.string(forKey: "currentVerseTextHy"), !textHy.isEmpty {
-                let textRu = def.string(forKey: "currentVerseTextRu") ?? ""
-                let textEn = def.string(forKey: "currentVerseTextEn") ?? ""
-                let refHy = def.string(forKey: "currentVerseRefHy") ?? ""
-                let refRu = def.string(forKey: "currentVerseRefRu") ?? ""
-                let refEn = def.string(forKey: "currentVerseRefEn") ?? ""
-                let textHyArarat = def.string(forKey: "currentVerseTextHyArarat") ?? ""
-                let textHyEchmiadzin = def.string(forKey: "currentVerseTextHyEchmiadzin") ?? textHy
-                let id = idStr.flatMap { UUID(uuidString: $0) } ?? UUID()
-                return BibleVerse(
-                    id: id,
-                    textHy: textHyEchmiadzin,
-                    textHyArarat: textHyArarat,
-                    textRu: textRu,
-                    textEn: textEn,
-                    refHy: refHy,
-                    refRu: refRu,
-                    refEn: refEn
-                )
-            }
-        
-        if isLockScreen {
-            let safeLockList = database.filter { $0.text(for: lang).count <= 46 }
-            return safeLockList.randomElement() ?? BibleVerse.shortPearls.randomElement() ?? BibleVerse.shortPearls[0]
+
+        // Сохранённый стих этого размера: берём, только если он есть в подборке (а она уже отобрана по длине)
+        let idStr = defaults.string(forKey: key) ?? (isLockScreen ? nil : defaults.string(forKey: "currentVerseId"))
+        if let idStr, let uuid = UUID(uuidString: idStr), let found = database.first(where: { $0.id == uuid }) {
+            return found
         }
-        
+
+        // Отдельный текст для экрана блокировки или стих приложения (в том числе от ИИ или из SQLite):
+        // берём, только если он подходит по длине для этого размера. Стих из основного приложения в малый виджет не попадает.
+        let prefix = isLockScreen ? "currentLockScreen" : "currentVerse"
+        if let tier, let textHy = defaults.string(forKey: "\(prefix)TextHy"), !textHy.isEmpty {
+            let custom = BibleVerse(
+                id: idStr.flatMap { UUID(uuidString: $0) } ?? UUID(),
+                textHy: defaults.string(forKey: "\(prefix)TextHyEchmiadzin") ?? textHy,
+                textHyArarat: defaults.string(forKey: "\(prefix)TextHyArarat") ?? "",
+                textRu: defaults.string(forKey: "\(prefix)TextRu") ?? "",
+                textEn: defaults.string(forKey: "\(prefix)TextEn") ?? "",
+                refHy: defaults.string(forKey: "\(prefix)RefHy") ?? "",
+                refRu: defaults.string(forKey: "\(prefix)RefRu") ?? "",
+                refEn: defaults.string(forKey: "\(prefix)RefEn") ?? ""
+            )
+            if tier.limit.contains(custom.text(for: lang).count) {
+                return custom
+            }
+        }
+
         return database.randomElement() ?? fallback
     }
-    
+
     private func getSharedUpdateInterval() -> UpdateInterval {
         let defaults = AppGroupConstants.sharedDefaults
         if let savedRaw = defaults.string(forKey: updateIntervalKey),
@@ -683,30 +568,8 @@ struct Provider: AppIntentTimelineProvider {
 }
 
 // MARK: - Вспомогательные функции локализации и тем оформления для виджета
-private func getSharedLanguage() -> AppLanguage {
-    let defaults = AppGroupConstants.sharedDefaults
-    
-    if let widgetLangRaw = defaults.string(forKey: "widget_language"),
-       let widgetLang = WidgetLanguage(rawValue: widgetLangRaw) {
-        switch widgetLang {
-        case .followApp:
-            break
-        case .armenian:
-            return .armenian
-        case .russian:
-            return .russian
-        case .english:
-            return .english
-        }
-    }
-    
-    if let savedRaw = defaults.string(forKey: "app_language"),
-       let lang = AppLanguage(rawValue: savedRaw) {
-        return lang
-    }
-    
-    // Если настройки не найдены (или нет доступа к App Group), по умолчанию для ArmenianBible используем армянский язык
-    return .armenian
+func getSharedLanguage() -> AppLanguage {
+    sharedWidgetLanguage()
 }
 
 private func getSharedTheme() -> AccentColorTheme {
@@ -916,91 +779,66 @@ struct BibleWidgetEntryView: View {
         return list.contains { $0.refHy == entry.verse.refHy || $0.textHy == entry.verse.textHy }
     }
 
-    private func dynamicFontSize(for family: WidgetFamily) -> CGFloat {
-        let text = entry.verse.text(for: getLanguage())
-        let count = text.count
-        
-        switch family {
-        case .accessoryRectangular:
-            // Строго короткие фразы (до 46 символов): красивый, четкий и читаемый размер
-            if count <= 25 { return 13.5 }
-            else if count <= 36 { return 12.5 }
-            else { return 11.5 }
-            
-        case .systemSmall:
-            // Малый виджет: строго короткие стихи до 45 символов -> Крупный яркий шрифт
-            if count <= 25 { return 20.5 }
-            else if count <= 35 { return 19.0 }
-            else { return 17.5 }
-            
-        case .systemMedium:
-            // Средний виджет: 38-95 символов
-            if count <= 55 { return 22.5 }
-            else if count <= 75 { return 20.0 }
-            else { return 18.0 }
-            
-        case .systemLarge:
-            // Большой виджет: 85+ символов
-            if count <= 100 { return 25.0 }
-            else if count <= 150 { return 22.5 }
-            else if count <= 200 { return 20.5 }
-            else { return 18.5 }
-            
-        default:
-            return 16.0
+
+    /// Постер рисуется только в системных размерах; экран блокировки остаётся как был
+    private var posterArt: PosterArt? {
+        guard family == .systemSmall || family == .systemMedium || family == .systemLarge else { return nil }
+        return activeStyle.posterArt
+    }
+
+    @ViewBuilder
+    private func posterContent(_ art: PosterArt) -> some View {
+        let size: PosterSize = family == .systemSmall ? .small : (family == .systemMedium ? .medium : .large)
+        let target = family == .systemSmall ? "small" : (family == .systemMedium ? "medium" : "large")
+        let tint = art.mainColor
+        PosterWidgetLayout(
+            art: art,
+            size: size,
+            text: entry.verse.text(for: getLanguage()),
+            reference: entry.verse.reference(for: getLanguage())
+        ) {
+            HStack(spacing: 8) {
+                if size == .large {
+                    Button(intent: TogglePrayerCompletedWidgetIntent()) {
+                        PosterGlassIcon(symbol: isPrayerDone ? "checkmark.circle.fill" : "hands.sparkles.fill", tint: isPrayerDone ? .green : tint, size: 34)
+                    }
+                    .buttonStyle(.plain)
+                    Button(intent: ToggleFavoriteWidgetIntent()) {
+                        PosterGlassIcon(symbol: isFavorite ? "heart.fill" : "heart", tint: isFavorite ? .red : tint, size: 34)
+                    }
+                    .buttonStyle(.plain)
+                }
+                Button(intent: NextVerseIntent(targetSize: target)) {
+                    PosterGlassIcon(symbol: "arrow.clockwise", tint: tint, size: size == .large ? 34 : 30)
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
     var body: some View {
         Group {
+            if let art = posterArt {
+                posterContent(art)
+            } else {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: строгие 2 строки для текста стиха + гарантированно видимая ссылка внизу
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .accessoryRectangular), weight: .semibold, design: lockScreenFontDesign))
-                        .lineLimit(2)
-                        .lineSpacing(-0.5)
-                        .minimumScaleFactor(0.75)
-                        .multilineTextAlignment(.leading)
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .layoutPriority(0)
-                    
-                    Spacer(minLength: 0)
-                    
-                    HStack(spacing: 3) {
-                        Text("✝")
-                            .font(.system(size: 8, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 9.5, weight: .semibold, design: lockScreenFontDesign))
-                            .italic()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                            .foregroundColor(.secondary)
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(1)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                
+                // Прямоугольный виджет на экране блокировки: вертикальная черта и подпись с линейкой (LockScreenQuoteViews.swift);
+                // цитата — самая крупная, при которой помещается
+                LockQuoteCard(
+                    text: entry.verse.text(for: getLanguage()),
+                    reference: entry.verse.reference(for: getLanguage()),
+                    design: lockScreenFontDesign
+                )
+
             case .accessoryInline:
                 // Строчный виджет на экране блокировки над часами
-                Text("\(isPrayerDone ? "✓ " : "✝️ ")\(entry.verse.reference(for: getLanguage()))")
-                
+                Text("\(isPrayerDone ? "✓ " : "✠ ")\(entry.verse.reference(for: getLanguage()))")
+
             case .accessoryCircular:
-                // Круглый виджет на экране блокировки
-                ZStack {
-                    AccessoryWidgetBackground()
-                    VStack(spacing: 1) {
-                        Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "book.closed.fill")
-                            .font(.system(size: 16))
-                        Text(isPrayerDone ? "OK" : "widget_circular_text".localized(for: getLanguage()))
-                            .font(.system(size: 8, weight: .bold))
-                    }
-                }
-                
+                // Круглый виджет на экране блокировки: хачкар в кольце, при прочитанной молитве — галочка
+                LockQuoteCircle(prayerDone: isPrayerDone)
+
             case .systemSmall:
                 // Маленький виджет на домашнем экране (System Small 2x2) / Режим StandBy
                 VStack(alignment: .leading, spacing: 4) {
@@ -1022,14 +860,16 @@ struct BibleWidgetEntryView: View {
                         .buttonStyle(.plain)
                     }
                     
-                    Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .systemSmall), weight: .bold, design: fontDesign))
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.75)
-                        .lineSpacing(2.0)
-                        .foregroundColor(primaryTextColor)
-                    
-                    Spacer(minLength: 2)
+                    FittedQuoteText(
+                        text: entry.verse.text(for: getLanguage()),
+                        maxSize: 30,
+                        minScale: 0.55,
+                        weight: .bold,
+                        design: fontDesign,
+                        lineSpacing: 2.0
+                    )
+                    .foregroundColor(primaryTextColor)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     
                     HStack {
                         Button(intent: TogglePrayerCompletedWidgetIntent()) {
@@ -1071,14 +911,16 @@ struct BibleWidgetEntryView: View {
                             .foregroundColor(secondaryTextColor)
                     }
                     
-                    Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .systemMedium), weight: .bold, design: fontDesign))
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.78)
-                        .lineSpacing(3.5)
-                        .foregroundColor(primaryTextColor)
-                    
-                    Spacer(minLength: 2)
+                    FittedQuoteText(
+                        text: entry.verse.text(for: getLanguage()),
+                        maxSize: 28,
+                        minScale: 0.55,
+                        weight: .bold,
+                        design: fontDesign,
+                        lineSpacing: 3.5
+                    )
+                    .foregroundColor(primaryTextColor)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     
                     // Интерактивная панель действий с 3 крупными кнопками
                     HStack(spacing: 6) {
@@ -1156,14 +998,16 @@ struct BibleWidgetEntryView: View {
                             .foregroundColor(secondaryTextColor)
                     }
                     
-                    Text(entry.verse.text(for: getLanguage()))
-                        .font(.system(size: dynamicFontSize(for: .systemLarge), weight: .bold, design: fontDesign))
-                        .lineLimit(8)
-                        .minimumScaleFactor(0.75)
-                        .lineSpacing(5.5)
-                        .foregroundColor(primaryTextColor)
-                    
-                    Spacer(minLength: 4)
+                    FittedQuoteText(
+                        text: entry.verse.text(for: getLanguage()),
+                        maxSize: 34,
+                        minScale: 0.42,
+                        weight: .bold,
+                        design: fontDesign,
+                        lineSpacing: 5.5
+                    )
+                    .foregroundColor(primaryTextColor)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     
                     // Интерактивная панель действий с 3 крупными кнопками
                     HStack(spacing: 8) {
@@ -1230,6 +1074,7 @@ struct BibleWidgetEntryView: View {
             default:
                 EmptyView()
             }
+            }
         }
         .widgetURL(URL(string: "armenianbible://next-verse"))
         .widgetBackground(
@@ -1270,7 +1115,12 @@ struct BibleWidget: Widget {
 struct ArmenianBibleWidgetBundle: WidgetBundle {
     var body: some Widget {
         BibleWidget()
+        PosterAraratWidget()
+        PosterKhachkarWidget()
+        PosterParchmentWidget()
+        PosterNightWidget()
         PrayerCandleWidget()
+        CandleLiveActivity()
     }
 }
 

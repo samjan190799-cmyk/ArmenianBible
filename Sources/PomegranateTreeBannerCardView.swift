@@ -83,10 +83,10 @@ struct PomegranateTreeBannerCardView: View {
                             .foregroundColor(Paper.inkTertiary)
                         
                         HStack(spacing: 3) {
-                            Image(systemName: "heart.fill")
+                            Image(systemName: "checklist")
                                 .font(.system(size: 9))
                                 .foregroundColor(Paper.cinnabar)
-                            Text("\(treeManager.visibleFruitsCount)/9 " + (language == .armenian ? "պտուղ" : (language == .russian ? "плодов" : "fruits")))
+                            Text("\(treeManager.completedTasks.count)/\(treeManager.todayTasks.count) " + (language == .armenian ? "առաջադրանք" : (language == .russian ? "заданий" : "tasks")))
                                 .font(PaperFont.font(size: 12, weight: .medium))
                                 .foregroundColor(Paper.cinnabar)
                         }
@@ -104,5 +104,9 @@ struct PomegranateTreeBannerCardView: View {
             .padding(.horizontal, 20)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
+        .onAppear {
+            treeManager.refreshTasksForToday()
+            treeManager.refreshDewAndStreakStatus()
+        }
     }
 }

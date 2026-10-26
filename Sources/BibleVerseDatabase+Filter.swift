@@ -2,6 +2,16 @@ import Foundation
 import SwiftUI
 
 extension BibleVerse {
+    // MARK: - Общая база стихов: основные стихи + стихи из «Веры и Мужества»
+    /// Стихи из shortFaith2 (кроме молитв), которых ещё нет в основной базе: раньше нигде не показывались
+    static let faithScriptures: [BibleVerse] = {
+        let known = Set(baseDatabase.map { $0.refEn })
+        return shortFaith2.filter { !$0.isPrayer && !known.contains($0.refEn) }
+    }()
+
+    /// Плюс цельные отрывки из bible.db (BibleVerseDatabase+Library.swift): они дают среднему и большому виджету разнообразие по длине
+    static let database: [BibleVerse] = baseDatabase + faithScriptures + libraryQuotes
+
     // MARK: - Объединённая категория «Вера и Мужество» (shortFaith + shortFaith2)
     static var allShortFaith: [BibleVerse] { shortFaith + shortFaith2 }
 
@@ -44,12 +54,15 @@ extension BibleVerse {
                 let r = (v.refHy + " " + v.refRu + " " + v.refEn).lowercased()
                 return r.contains("նարեկ") || r.contains("нарекаци") || r.contains("narek")
             }
-            let list = n + BibleVerse.shortNarekatsi
+            // Короткие строки идут в средний виджет, строфы — в средний и большой (по длине)
+            let list = n + BibleVerse.shortNarekatsi + BibleVerse.narekStanzas
             return !list.isEmpty ? list : BibleVerse.shortNarekatsi
             
         case .prayers:
-            let prayers = BibleVerse.database.filter { $0.isPrayer }
-            return !prayers.isEmpty ? prayers : BibleVerse.database
+            // Молитвы лежат отдельно от стихов (BibleVerseDatabase+Prayers.swift): целые и законченные куски,
+            // виджет сам берёт те, что помещаются по длине
+            let units = BibleVerse.prayerUnits
+            return !units.isEmpty ? units : BibleVerse.database
             
         case .favorites:
             if let savedFavoritesData = AppGroupConstants.sharedDefaults.data(forKey: "favorite_verses"),

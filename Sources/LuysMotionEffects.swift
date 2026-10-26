@@ -206,208 +206,99 @@ struct FlickeringCandleFlame: View {
 }
 
 // MARK: - 3.1. Реалистичная армянская храмовая свеча (Realistic Armenian Candle)
-/// Детализированная модель церковной восковой свечи:
-/// живое пламя с синим основанием, восковой столб с цилиндрическим бликом,
-/// чаша оплавленного воска у фитиля, капли воска и латунный храмовый подсвечник.
+/// Свеча в тёмной храмовой нише: живое пламя, фитиль с тлеющим кончиком, восковой столб с просветом,
+/// озеро расплавленного воска, капли, латунная чашка и поднос. Рисуется в Canvas (см. CandleRenderer).
+/// Таяние плавное: burnProgress анимируется как обычное число.
 struct RealisticArmenianCandleView: View {
     let tier: CandleTier
-    let candleHeight: CGFloat?
-    let candleWidth: CGFloat?
-    let flameSize: CGFloat
-    let randomSeed: Double
     let burnProgress: Double
     let isLit: Bool
-    
+    let randomSeed: Double
+    let showsNiche: Bool
+    let quality: CandleQuality
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var ignitionStart: Date?
+
     init(
         tier: CandleTier,
-        candleHeight: CGFloat? = nil,
-        candleWidth: CGFloat? = nil,
-        flameSize: CGFloat? = nil,
         burnProgress: Double = 0.0,
         isLit: Bool = true,
-        randomSeed: Double = 0.0
+        randomSeed: Double = 0.0,
+        showsNiche: Bool = true,
+        quality: CandleQuality = .compact,
+        ignitesOnAppear: Bool = false
     ) {
         self.tier = tier
-        self.candleHeight = candleHeight
-        self.candleWidth = candleWidth
         self.burnProgress = max(0.0, min(1.0, burnProgress))
         self.isLit = isLit
         self.randomSeed = randomSeed
-        
-        if let flameSize {
-            self.flameSize = flameSize
-        } else {
-            switch tier {
-            case .generous: self.flameSize = 25
-            case .temple: self.flameSize = 23
-            case .rewarded: self.flameSize = 21
-            case .small: self.flameSize = 20
-            case .freeDaily: self.flameSize = 18
-            }
-        }
+        self.showsNiche = showsNiche
+        self.quality = quality
+        _ignitionStart = State(initialValue: ignitesOnAppear ? Date() : nil)
     }
-    
-    private var resolvedWidth: CGFloat {
-        if let candleWidth { return candleWidth }
-        switch tier {
-        case .generous: return 20
-        case .temple: return 17
-        case .rewarded: return 15
-        case .small: return 14
-        case .freeDaily: return 12
-        }
+
+    #if DEBUG || targetEnvironment(simulator)
+    /// Для скриншотов в CI: застывшая секунда (-candle_time 3.2) и возраст зажжения (-candle_ignite_age 0.9)
+    private static let frozenTime: Double? = {
+        let value = UserDefaults.standard.double(forKey: "candle_time")
+        return value > 0 ? value : nil
+    }()
+    private static let frozenIgniteAge: Double? = {
+        let value = UserDefaults.standard.double(forKey: "candle_ignite_age")
+        return value > 0 ? value : nil
+    }()
+    #else
+    private static let frozenTime: Double? = nil
+    private static let frozenIgniteAge: Double? = nil
+    #endif
+
+    private func ignitionAge(at date: Date) -> Double? {
+        if let frozen = Self.frozenIgniteAge { return frozen }
+        guard let start = ignitionStart else { return nil }
+        let age = date.timeIntervalSince(start)
+        return age < 2.0 ? age : nil
     }
-    
-    private var baseHeight: CGFloat {
-        if let candleHeight { return candleHeight }
-        switch tier {
-        case .generous: return 52
-        case .temple: return 44
-        case .rewarded: return 38
-        case .small: return 34
-        case .freeDaily: return 28
-        }
-    }
-    
-    /// Реалистичная высота свечи с учетом таяния (от 100% до 22% огарка)
-    private var meltedHeight: CGFloat {
-        let minHeight: CGFloat = max(9.0, baseHeight * 0.22)
-        return max(minHeight, baseHeight - (CGFloat(burnProgress) * (baseHeight - minHeight)))
-    }
-    
+
     var body: some View {
-        VStack(spacing: 0) {
-            // 1. Живой огонь с естественным разбросом фазы и уменьшением при догорании
-            if isLit && burnProgress < 1.0 {
-                let flameScale: CGFloat = burnProgress > 0.88 ? max(0.6, 1.0 - (CGFloat(burnProgress - 0.88) * 2.5)) : 1.0
-                FlickeringCandleFlame(
-                    baseColor: Color(hex: "F59E0B"),
-                    iconSize: flameSize * flameScale,
-                    randomDelay: randomSeed.truncatingRemainder(dividingBy: 0.8)
-                )
-                .offset(y: 4)
-                .zIndex(2)
-            } else {
-                // Остывший обугленный фитилек
-                Capsule()
-                    .fill(Color(hex: "4B5563"))
-                    .frame(width: 1.5, height: 5)
-                    .offset(y: 2)
-                    .zIndex(2)
-            }
-            
-            // 2. Восковой столбик свечи (тает по мере сгорания)
-            ZStack(alignment: .top) {
-                // Чаша расплавленного полупрозрачного воска у вершины
-                Capsule()
-                    .fill(Color(hex: "FEF9C3"))
-                    .frame(width: resolvedWidth, height: 3.5)
-                    .zIndex(1)
-                
-                // Основной восковой цилиндр с текстурой медового пчелиного воска
-                RoundedRectangle(cornerRadius: 2.5)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: "FEF08A"),
-                                Color(hex: "FDE047"),
-                                Color(hex: "F59E0B"),
-                                Color(hex: "D97706"),
-                                Color(hex: "92400E")
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
+        CandleBurnAnimator(burn: burnProgress) { burn in
+            TimelineView(.animation(minimumInterval: 1.0 / quality.framesPerSecond, paused: reduceMotion || Self.frozenTime != nil)) { timeline in
+                Canvas(rendersAsynchronously: true) { context, size in
+                    let time = Self.frozenTime
+                        ?? (reduceMotion ? 2.0 : timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
+                    CandleRenderer.draw(
+                        context,
+                        size: size,
+                        scene: CandleScene(
+                            tier: tier,
+                            time: time,
+                            seed: randomSeed,
+                            burn: burn,
+                            isLit: isLit,
+                            showsNiche: showsNiche,
+                            ignitionAge: reduceMotion ? nil : ignitionAge(at: timeline.date),
+                            quality: quality
                         )
                     )
-                    .frame(width: resolvedWidth, height: meltedHeight)
-                    .overlay(
-                        HStack {
-                            LinearGradient(
-                                colors: [Color.clear, Color.white.opacity(0.35), Color.clear],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                            .frame(width: max(2, resolvedWidth * 0.28))
-                            .offset(x: resolvedWidth * 0.15)
-                            Spacer()
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 2.5))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 2.5)
-                            .stroke(Color.white.opacity(0.18), lineWidth: 0.6)
-                    )
-                
-                // Восковые потеки (увеличиваются по мере таяния)
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "FEF3C7"), Color(hex: "FDE68A")],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(width: 2.2, height: max(4.0, meltedHeight * (0.35 + CGFloat(burnProgress) * 0.45)))
-                    .offset(x: (resolvedWidth / 2) - 1.2, y: 3)
-                    .shadow(color: Color.black.opacity(0.18), radius: 0.8, x: -0.5, y: 0.5)
-                
-                if burnProgress > 0.15 {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "FEF3C7"), Color(hex: "FDE68A")],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(width: 1.8, height: max(3.0, meltedHeight * (0.2 + CGFloat(burnProgress) * 0.35)))
-                        .offset(x: -(resolvedWidth / 2) + 1.0, y: 4)
-                        .shadow(color: Color.black.opacity(0.15), radius: 0.6, x: 0.5, y: 0.5)
                 }
             }
-            .zIndex(1)
-            
-            // 3. Лужица расплавленного воска и латунный подсвечник
-            VStack(spacing: 0) {
-                // Растущая лужица оплавленного воска у основания свечи
-                let poolWidth = resolvedWidth + 2 + (CGFloat(burnProgress) * 12)
-                let poolHeight = 2.5 + (CGFloat(burnProgress) * 2.0)
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "FEF9C3"), Color(hex: "FDE047"), Color(hex: "D97706")],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: poolWidth, height: poolHeight)
-                    .shadow(color: Color(hex: "F59E0B").opacity(0.25 * burnProgress), radius: 2)
-                    .zIndex(1)
-                
-                // Кольцо-воскоуловитель (латунь)
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "FDE68A"), Color(hex: "D97706"), Color(hex: "78350F")],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: resolvedWidth + 8, height: 3)
-                
-                // Нижнее массивное блюдце подсвечника
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(hex: "D97706"), Color(hex: "92400E"), Color(hex: "451A03")],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(width: max(38, resolvedWidth + 18), height: 4)
-                    .shadow(color: Color.black.opacity(0.4), radius: 3, y: 2)
-            }
         }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Делает burn анимируемым: Canvas сам по себе не интерполирует захваченные числа
+struct CandleBurnAnimator<Content: View>: View, Animatable {
+    var burn: Double
+    let content: (Double) -> Content
+
+    var animatableData: Double {
+        get { burn }
+        set { burn = newValue }
+    }
+
+    var body: some View {
+        content(burn)
     }
 }
 

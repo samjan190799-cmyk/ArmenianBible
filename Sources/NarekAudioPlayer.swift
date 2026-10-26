@@ -268,6 +268,9 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             return
         }
 
+        Funnel.track("feature_used", ["feature": "narek_audio"])
+        Task { @MainActor in PomegranateTreeManager.shared.record(.narek) }
+
         // Останавливаем прежний плеер, не затирая сохранённую позицию промежуточным состоянием
         setSleepTimer(.off)
         cleanupPlayer()
@@ -853,7 +856,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         guard let currentPrayer = p else { return }
 
         var info = [String: Any]()
-        info[MPMediaItemPropertyTitle] = currentPrayer.title(for: voiceLanguage)
+        info[MPMediaItemPropertyTitle] = currentPrayer.chapterLabel(for: voiceLanguage)
         info[MPMediaItemPropertyArtist] = (voiceLanguage == .armenian) ? "Սոս Սարգսյան (Գրիգոր Նարեկացի)" : "Олег Моленко (Григор Нарекаци)"
         info[MPMediaItemPropertyAlbumTitle] = "Մատյան Ողբերգության"
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime

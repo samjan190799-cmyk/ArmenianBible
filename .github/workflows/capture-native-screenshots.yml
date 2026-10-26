@@ -13,6 +13,36 @@ on:
           - ipad_13
           - iphone_6_9
           - iphone_6_5
+      scope:
+        description: 'Что снимать: all — все экраны, manuscript — «Рукопись», features — листание, «Нарек утешает» и карта святынь'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - manuscript
+          - features
+          - candles
+          - island
+          - store
+          - posters
+          - narek
+          - nativity
+          - nativityvideo
+          - nativityend
+          - tree
+          - promo
+          - verselink
+          - matenadaran
+      language:
+        description: 'Язык интерфейса для scope=store (russian, armenian, english)'
+        required: false
+        default: 'russian'
+        type: choice
+        options:
+          - russian
+          - armenian
+          - english
 
 jobs:
   capture-screenshots:
@@ -50,6 +80,8 @@ jobs:
       - name: Capture Native Screenshots
         env:
           TARGET_DEVICE: ${{ github.event.inputs.device || 'all' }}
+          SCOPE: ${{ github.event.inputs.scope || 'all' }}
+          STORE_LANG: ${{ github.event.inputs.language || 'russian' }}
         run: |
           set -e
           mkdir -p ./Real_Screenshots_Output
@@ -86,7 +118,20 @@ jobs:
               CODE_SIGNING_REQUIRED=NO
 
             local APP_PATH=$(find ./DerivedData -name "ArmenianBible.app" | head -1)
-            rm -rf "$APP_PATH/PlugIns"
+            # Для сцены «island» расширение виджетов нужно: именно оно рисует свечу в острове
+            if [ "$SCOPE" != "island" ]; then rm -rf "$APP_PATH/PlugIns"; fi
+            if [ "$SCOPE" = "island" ]; then
+              echo "--- Info.plist расширения"
+              plutil -p "$APP_PATH/PlugIns/BibleWidget.appex/Info.plist" | head -40 || true
+              # В сборке для симулятора у расширения нет CFBundleVersion, и симулятор не создаёт заглушку
+              # («Invalid placeholder attributes»): дописываем версию и подписываем ad-hoc
+              for PLIST in "$APP_PATH/PlugIns/BibleWidget.appex/Info.plist" "$APP_PATH/Info.plist"; do
+                /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST" >/dev/null 2>&1                   || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 1" "$PLIST"
+                /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST" || true
+              done
+              codesign --force --sign - "$APP_PATH/PlugIns/BibleWidget.appex" || true
+              codesign --force --sign - "$APP_PATH" || true
+            fi
             xcrun simctl install "$UDID" "$APP_PATH"
 
             # Настройка: скрываем экранную клавиатуру, ставим эталонный статус-бар Apple (9:41 AM, 100% батарея)
@@ -105,9 +150,355 @@ jobs:
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
 
+            # 15. Свеча в острове: макет раскрытого острова и экрана блокировки, настоящий свёрнутый остров
+            if [ "$SCOPE" = "island" ]; then
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab islandpreview -luys_debug_language russian
+              sleep 8
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/15_Island_preview.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              sleep 2
+              echo "📸 Настоящий остров: приложение зажигает свечу и уходит в фон"
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab sanctuary -candle_seed YES -candle_island_demo YES -luys_debug_language russian
+              sleep 10
+              xcrun simctl launch "$UDID" com.apple.Preferences
+              sleep 5
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/15_Island_compact.png"
+              sleep 20
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/15_Island_compact_later.png"
+              xcrun simctl terminate "$UDID" com.apple.Preferences || true
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты свечи в острове для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 21. Переход по ссылке на стих: глава должна открыться на самом стихе, а не с начала
+            if [ "$SCOPE" = "verselink" ]; then
+              for SHOT in "40 5 14" "19 119 105" "42 2 11" "19 23 4"; do
+                set -- $SHOT
+                echo "📸 Ссылка на стих: книга $1, глава $2, стих $3 ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bibleverse -bible_book "$1" -bible_chapter "$2" -bible_verse "$3" -luys_debug_language "$STORE_LANG"
+                sleep 5
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/verselink_$1_$2_$3.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 1
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры ссылок на стихи ($STORE_LANG) сняты"
+              return 0
+            fi
+
+            # 20. Мультфильм «Рождество Христово»: видеозапись экрана симулятора, история играет с начала до конца
+            if [ "$SCOPE" = "nativityvideo" ]; then
+              xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$OUT_DIR/nativity.mp4" &
+              REC_PID=$!
+              sleep 3
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab nativity -luys_debug_language "$STORE_LANG"
+              sleep 92
+              kill -INT "$REC_PID" || true
+              wait "$REC_PID" || true
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
+              xcrun simctl shutdown "$UDID" || true
+              ls -la "$OUT_DIR"
+              echo "✅ Видео «Рождества» ($STORE_LANG) записано"
+              return 0
+            fi
+
+            # 23. Ролик для соцсетей: куски экрана симулятора, где что-то движется (пишется перо, горит свеча, играет мультфильм)
+            if [ "$SCOPE" = "promo" ]; then
+              case "$STORE_LANG" in
+                armenian) PERSON="Սամվել" ;;
+                english) PERSON="Samvel" ;;
+                *) PERSON="Самвел" ;;
+              esac
+              clip() {
+                local NAME="$1"; local SECS="$2"; shift; shift
+                echo "🎬 Запись $NAME ($SECS с)..."
+                xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$OUT_DIR/$NAME.mp4" &
+                local REC_PID=$!
+                sleep 2
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@"
+                sleep "$SECS"
+                kill -INT "$REC_PID" || true
+                wait "$REC_PID" || true
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible || true
+                sleep 2
+              }
+              clip "clip_manuscript_$STORE_LANG" 18 -openTab manuscript -manuscript_language "$STORE_LANG" -manuscript_style roslin -manuscript_name "$PERSON" -manuscript_verse long -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+              clip "clip_candles_$STORE_LANG" 12 -openTab sanctuary -candle_seed YES -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+              clip "clip_nativity_$STORE_LANG" 16 -openTab nativity -luys_debug_language "$STORE_LANG"
+              xcrun simctl shutdown "$UDID" || true
+              ls -la "$OUT_DIR"
+              echo "✅ Записи для ролика ($STORE_LANG) сделаны"
+              return 0
+            fi
+
+            # 22. Гранатовое древо: шкала сада и задания дня (две главы и свеча уже засчитаны)
+            if [ "$SCOPE" = "tree" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@"
+                sleep 10
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "tree_top_$STORE_LANG" -openTab tree -pomegranate_debug_days 20 -pomegranate_demo YES -luys_debug_language "$STORE_LANG"
+              shoot "tree_tasks_$STORE_LANG" -openTab tree -pomegranate_debug_days 20 -pomegranate_demo YES -pomegranate_scroll tasks -luys_debug_language "$STORE_LANG"
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Древо ($STORE_LANG) снято"
+              return 0
+            fi
+
+            # 21. Конец мультфильма: предложение Premium (история запускается за полсекунды до конца)
+            if [ "$SCOPE" = "nativityend" ]; then
+              echo "📸 Рождество: конец истории ($STORE_LANG)..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab nativity -nativity_finish YES -luys_debug_language "$STORE_LANG"
+              sleep 9
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/nativity_end_offer_$STORE_LANG.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Конец «Рождества» ($STORE_LANG) снят"
+              return 0
+            fi
+
+            # 19. Мультфильм «Рождество Христово»: кадры по сценам и секундам (история стоит на паузе в заданном кадре)
+            if [ "$SCOPE" = "nativity" ]; then
+              for SHOT in "0 2" "0 7" "0 11" "1 3" "1 9" "2 1" "2 3" "2 6" "2 12" "3 1" "3 4" "3 7" "3 12" "4 3" "4 8" "4 11" "5 3" "5 6" "5 11" "6 3"; do
+                set -- $SHOT
+                echo "📸 Рождество: сцена $1, секунда $2 ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab nativity -nativity_scene "$1" -nativity_t "$2" -luys_debug_language "$STORE_LANG"
+                sleep 6
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/nativity_$1_$(printf '%02d' $2).png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 1
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры «Рождества» ($STORE_LANG) сняты"
+              return 0
+            fi
+
+            # 18. «Нарек»: подлинный текст (список и чтение глав)
+            if [ "$SCOPE" = "narek" ]; then
+              for SHOT in "list|" "reader1|-narek_reader_chapter 1" "reader93|-narek_reader_chapter 93" "reader41|-narek_reader_chapter 41"; do
+                NAME="${SHOT%%|*}"
+                ARGS="${SHOT#*|}"
+                echo "📸 Нарек: $NAME ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab narek $ARGS -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+                sleep 10
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/narek_${NAME}.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры «Нарека» ($STORE_LANG) сняты"
+              return 0
+            fi
+
+            # 17. Виджеты-постеры: малый, средний и большой размер на одном экране, по одному кадру на фон
+            if [ "$SCOPE" = "posters" ]; then
+              for ART in ararat khachkar parchment night; do
+                echo "📸 Постер $ART ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$ART" -luys_debug_language "$STORE_LANG"
+                sleep 7
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/poster_${ART}.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              done
+              # Худшие случаи: самая длинная цитата на «Пергаменте» и «Хачкаре» (у них меньше места) и самая короткая на «Арарате»
+              for COMBO in "parchment long" "khachkar long" "ararat long" "ararat short"; do
+                set -- $COMBO
+                echo "📸 Постер $1, цитата: $2 ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$1" -poster_extreme "$2" -luys_debug_language "$STORE_LANG"
+                sleep 7
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/poster_${1}_${2}.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              done
+              # Самая длинная подпись стиха под тремя постерами: видно, что она не обрезается многоточием
+              for ART in khachkar night parchment; do
+                echo "📸 Постер $ART, самая длинная подпись ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$ART" -poster_ref long -luys_debug_language "$STORE_LANG"
+                sleep 7
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/poster_${ART}_longref.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры постеров ($STORE_LANG) сняты"
+              return 0
+            fi
+
+            # 16. Скриншоты для магазина: ключевые экраны на одном языке, Premium включён
+            if [ "$SCOPE" = "store" ]; then
+              case "$STORE_LANG" in
+                armenian)
+                  PERSON="Աննա"; CONSOLE_TEXT="Ես վախենում եմ և մենակ եմ զգում"; CONSOLE_CHIP="fear" ;;
+                english)
+                  PERSON="Anna"; CONSOLE_TEXT="I am afraid and I feel so alone"; CONSOLE_CHIP="fear" ;;
+                *)
+                  PERSON="Анна"; CONSOLE_TEXT="Мне страшно, и я чувствую себя одиноко"; CONSOLE_CHIP="fear" ;;
+              esac
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@" -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+                sleep 9
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "s01_home" -openTab home
+              shoot "s02_bible" -openTab bible
+              shoot "s03_ai" -openTab ai
+              shoot "s04_favorites" -openTab favorites
+              shoot "s05_manuscript" -openTab manuscript -manuscript_source chapter -manuscript_language "$STORE_LANG" -manuscript_time 30 -manuscript_name "$PERSON" -manuscript_verse long
+              shoot "s06_candles" -openTab sanctuary -candle_seed YES -candle_time 5.9
+              shoot "s07_consolation" -openTab consolation -consolation_reset YES -consolation_text "$CONSOLE_TEXT" -consolation_chips "$CONSOLE_CHIP" -consolation_full YES
+              shoot "s08_map" -openTab map -sanctuary_select khor_virap
+              shoot "s09_tree" -openTab tree -pomegranate_debug_days 45
+              shoot "s10_wallpaper" -openTab wallpaper
+              shoot "s11_quiz" -openTab quiz
+              shoot "s12_calendar" -openTab calendar
+              shoot "s13_settings" -openTab settings
+              shoot "s14_codex" -openTab manuscript -manuscript_seed_library 12 -manuscript_open_library YES -manuscript_library_scroll top -manuscript_language "$STORE_LANG" -manuscript_time 30
+              shoot "s15_tree_tasks" -openTab tree -pomegranate_debug_days 20 -pomegranate_demo YES -pomegranate_scroll tasks
+              shoot "s16_nativity" -openTab nativity -nativity_scene 3 -nativity_t 4
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты для магазина ($STORE_LANG) сняты"
+              return 0
+            fi
+
+            # 14. Свечи: притвор, лист свечи на разных стадиях горения, зажжение
+            if [ "$SCOPE" = "candles" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@" -luys_debug_language russian
+                sleep 8
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "14_Candles_stand_t3.2" -openTab sanctuary -candle_seed YES -candle_time 3.2
+              shoot "14_Candles_stand_t5.9" -openTab sanctuary -candle_seed YES -candle_time 5.9
+              shoot "14_Candle_hero_burn0.05" -openTab sanctuary -candle_seed YES -candle_detail 3 -candle_burn 0.05 -candle_time 4.1
+              shoot "14_Candle_hero_burn0.5" -openTab sanctuary -candle_seed YES -candle_detail 3 -candle_burn 0.5 -candle_time 7.7
+              shoot "14_Candle_hero_burn0.9" -openTab sanctuary -candle_seed YES -candle_detail 3 -candle_burn 0.9 -candle_time 9.4
+              shoot "14_Candle_hero_out" -openTab sanctuary -candle_seed YES -candle_detail 3 -candle_burn 1.0 -candle_time 1.6
+              shoot "14_Candle_ignite_0.5" -openTab sanctuary -candle_seed YES -candle_detail 1 -candle_burn 0.0 -candle_time 2.5 -candle_ignite_age 0.5
+              shoot "14_Candle_ignite_0.9" -openTab sanctuary -candle_seed YES -candle_detail 1 -candle_burn 0.0 -candle_time 2.5 -candle_ignite_age 0.9
+              shoot "14_Candle_ignite_1.4" -openTab sanctuary -candle_seed YES -candle_detail 1 -candle_burn 0.0 -candle_time 2.5 -candle_ignite_age 1.4
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты свечей для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 16. «Матенадаран»: тома, читалка-книга и PDF тома (Premium в симуляторе включает отладочный флаг)
+            if [ "$SCOPE" = "matenadaran" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@"
+                sleep 9
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "16_Matenadaran_library_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              shoot "16_Matenadaran_top_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_library_scroll top -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              shoot "16_Matenadaran_volume2_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_library_scroll volume2 -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              shoot "16_Matenadaran_reader_ru" -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_open_reader YES -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              shoot "16_Matenadaran_library_en" -openTab manuscript -manuscript_seed_library 5 -manuscript_open_library YES -luys_debug_language english -manuscript_language english -manuscript_time 30
+              echo "📸 PDF тома..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript -manuscript_seed_library 17 -manuscript_open_library YES -manuscript_pdf_test YES -k_debug_premium_unlocked YES -luys_debug_language russian -manuscript_language russian -manuscript_time 30
+              sleep 20
+              CONTAINER=$(xcrun simctl get_app_container "$UDID" com.samvel.armenianbible data)
+              cp "$CONTAINER/Documents/codex_test.pdf" "$OUT_DIR/16_Codex_volume1.pdf" || echo "⚠️ PDF не найден"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты «Матенадарана» для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 11. Листание «Рукописи», «Нарек утешает», «Карта святынь»
+            if [ "$SCOPE" = "features" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@"
+                sleep 8
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "11_Deck_chapter_John3_16" -openTab manuscript -manuscript_source chapter -manuscript_language russian -manuscript_time 30 -manuscript_name "Самвел"
+              shoot "11_Deck_turned_t1.2" -openTab manuscript -manuscript_source chapter -manuscript_language russian -manuscript_time 1.2 -manuscript_turned YES -manuscript_name "Самвел"
+              shoot "11_Deck_autoswipe_t1.2" -openTab manuscript -manuscript_source chapter -manuscript_language russian -manuscript_time 1.2 -manuscript_autoswipe YES -manuscript_name "Самвел"
+              shoot "12_Consolation_empty_ru" -openTab consolation -luys_debug_language russian
+              shoot "12_Consolation_fear_ru" -openTab consolation -luys_debug_language russian -consolation_reset YES -consolation_text "Мне страшно за близкого, и очень тяжело на душе" -consolation_chips fear,weariness
+              shoot "12_Consolation_sorrow_full_ru" -openTab consolation -luys_debug_language russian -consolation_reset YES -consolation_text "Я потерял близкого человека и не нахожу себе места" -consolation_chips sorrow -consolation_full YES
+              shoot "12_Consolation_guilt_en" -openTab consolation -luys_debug_language english -consolation_reset YES -consolation_text "I feel guilty and ashamed about what I did" -consolation_chips guilt
+              shoot "12_Consolation_hy" -openTab consolation -luys_debug_language armenian -consolation_reset YES -consolation_text "Ես մենակ եմ և վախենում եմ" -consolation_chips loneliness
+              shoot "13_Map_ru" -openTab map -luys_debug_language russian
+              shoot "13_Map_khor_virap_ru" -openTab map -luys_debug_language russian -sanctuary_select khor_virap
+              shoot "13_Map_tatev_locked_ru" -openTab map -luys_debug_language russian -sanctuary_select tatev
+              shoot "13_Map_list_ru" -openTab map -luys_debug_language russian -sanctuary_mode list
+              shoot "13_Map_etchmiadzin_en" -openTab map -luys_debug_language english -sanctuary_select etchmiadzin
+              shoot "13_Home_cards_ru" -openTab home -luys_debug_language russian
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты новых функций для $DEV_LABEL сняты"
+              return 0
+            fi
+
+            # 9. «Рукопись»: кадры анимации (секунда задаётся аргументом), языки и стили
+            for SPEC in "russian roslin 2.4 Самвел short" "russian roslin 3.6 Самвел long" \
+                        "russian roslin 30 Самвел short" "russian roslin 30 Самвел long" "armenian roslin 30 Սամվել long" \
+                        "english cilicia 30 Samvel long" "armenian narek 30 Սամվել short"; do
+              set -- $SPEC
+              echo "📸 Снятие 09 Manuscript $1 $2 t=$3 $5..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript \
+                -manuscript_language "$1" -manuscript_style "$2" -manuscript_time "$3" -manuscript_name "$4" -manuscript_verse "$5"
+              sleep 7
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/09_Manuscript_${1}_${2}_t${3}_${5}.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              sleep 2
+            done
+
+            # 9b. Основы листа (Premium): пурпур с золотом и хачкар; Premium в симуляторе включает отладочный флаг
+            for SPEC in "purple roslin 2.4 short" "purple roslin 30 long" "purple cilicia 30 short" \
+                        "khachkar roslin 2.4 short" "khachkar roslin 30 long" "khachkar narek 30 short"; do
+              set -- $SPEC
+              echo "📸 Снятие 09b Manuscript surface $1 $2 t=$3 $4..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript \
+                -k_debug_premium_unlocked YES -manuscript_language russian -manuscript_surface "$1" -manuscript_style "$2" \
+                -manuscript_time "$3" -manuscript_name "Самвел" -manuscript_verse "$4"
+              sleep 7
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/09b_Surface_${1}_${2}_t${3}_${4}.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              sleep 2
+            done
+
+            # 10. Картинка для «Поделиться» (ImageRenderer): приложение кладёт её в Documents
+            echo "📸 Снятие 10 Manuscript export..."
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab manuscript \
+              -manuscript_language russian -manuscript_style roslin -manuscript_time 30 -manuscript_name "Самвел" -manuscript_export_test YES
+            sleep 9
+            CONTAINER=$(xcrun simctl get_app_container "$UDID" com.samvel.armenianbible data)
+            cp "$CONTAINER/Documents/manuscript_export_test.png" "$OUT_DIR/10_Manuscript_Export.png" || echo "⚠️ Экспортная картинка не найдена"
+            xcrun simctl terminate "$UDID" com.samvel.armenianbible
+            sleep 2
+
+            if [ "$SCOPE" = "manuscript" ]; then
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Скриншоты «Рукописи» для $DEV_LABEL сняты"
+              return 0
+            fi
+
             # 0. Экран блокировки / виджеты
             echo "📸 Снятие 00 Lock Screen / Widgets..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab lockscreen -luys_ads_enabled NO
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab lockscreen
             sleep 6
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/00_Native_LockScreen.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -115,7 +506,7 @@ jobs:
 
             # 1. Главный экран (Home)
             echo "📸 Снятие 01 Home..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home -luys_ads_enabled NO
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab home
             sleep 6
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/01_Native_Home.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -123,7 +514,7 @@ jobs:
 
             # 2. Избранное (Favorites)
             echo "📸 Снятие 02 Favorites..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab favorites -luys_ads_enabled NO
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab favorites
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/02_Native_Favorites.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -131,7 +522,7 @@ jobs:
 
             # 3. Чтение Библии (Bible Reader)
             echo "📸 Снятие 03 Bible Reader..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bible -luys_ads_enabled NO
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab bible
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/03_Native_BibleReader.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -139,7 +530,7 @@ jobs:
 
             # 4. Церковный Календарь (Calendar)
             echo "📸 Снятие 04 Calendar..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab calendar -luys_ads_enabled NO
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab calendar
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/04_Native_Calendar.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -147,7 +538,7 @@ jobs:
 
             # 5. Викторина (Quiz)
             echo "📸 Снятие 05 Quiz..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab quiz -luys_ads_enabled NO
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab quiz
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/05_Native_Quiz.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -155,7 +546,7 @@ jobs:
 
             # 6. ИИ-помощник
             echo "📸 Снятие 06 AI..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab ai -luys_ads_enabled NO
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab ai
             sleep 5
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/06_Native_AI.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
@@ -163,11 +554,21 @@ jobs:
 
             # 7. Духовные обои (Wallpaper Maker)
             echo "📸 Снятие 07 Wallpaper..."
-            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab wallpaper -luys_ads_enabled NO
+            xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab wallpaper
             sleep 6
             xcrun simctl io "$UDID" screenshot "$OUT_DIR/07_Native_Wallpaper.png"
             xcrun simctl terminate "$UDID" com.samvel.armenianbible
             sleep 2
+
+            # 8. Гранатовое древо на всех стадиях (дни задаются аргументом запуска)
+            for DAYS in 1 4 10 20 45 70; do
+              echo "📸 Снятие 08 Tree ${DAYS}d..."
+              xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab tree -pomegranate_debug_days $DAYS
+              sleep 9
+              xcrun simctl io "$UDID" screenshot "$OUT_DIR/08_Tree_${DAYS}d.png"
+              xcrun simctl terminate "$UDID" com.samvel.armenianbible
+              sleep 2
+            done
 
             # Выключение симулятора
             xcrun simctl shutdown "$UDID" || true
@@ -190,5 +591,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Real-AppStore-Native-Screenshots
-          path: ./Real_Screenshots_Output/**/*.png
+          path: |
+            ./Real_Screenshots_Output/**/*.png
+            ./Real_Screenshots_Output/**/*.mp4
+            ./Real_Screenshots_Output/**/*.pdf
           if-no-files-found: error

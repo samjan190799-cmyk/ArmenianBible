@@ -26,7 +26,10 @@ struct BibleReaderView: View {
         } else {
             navigationPath = []
         }
-        manager.selectedReaderSection = 0
+        // Если только что просили открыть «Нарек», раздел не сбрасываем
+        if !manager.isNarekOpenPending {
+            manager.selectedReaderSection = 0
+        }
     }
     
     var body: some View {
@@ -98,20 +101,26 @@ struct BibleReaderView: View {
             .navigationDestination(for: BibleNavigationState.self) { state in
                 switch state {
                 case .reader(let book, let chapter, let targetVerse):
+                    // Без .id при замене пути (Библия уже открыта на прошлом стихе, а пришла новая ссылка) SwiftUI оставляет
+                    // тот же экран со старым состоянием: initialChapter и страница остаются от прежнего места
                     BibleChapterReaderView(book: book, initialChapter: chapter, targetVerse: targetVerse)
+                        .id(state)
                 }
             }
             .onReceive(manager.$deepLinkBookId) { bookId in
                 guard let bId = bookId else { return }
-                manager.deepLinkBookId = nil
-                
-                if let book = BibleDatabase.shared.getBook(id: bId) {
-                    let chapter = manager.deepLinkChapter ?? 1
-                    let verse = manager.deepLinkVerse
-                    
+                let chapter = manager.deepLinkChapter ?? 1
+                let verse = manager.deepLinkVerse
+
+                // @Published сообщает о новом значении до того, как запишет его: обнулить номер книги прямо здесь нельзя,
+                // после выхода из обработчика в нём снова оказалась бы книга прошлой ссылки
+                DispatchQueue.main.async {
+                    manager.deepLinkBookId = nil
                     manager.deepLinkChapter = nil
                     manager.deepLinkVerse = nil
-                    
+                }
+
+                if let book = BibleDatabase.shared.getBook(id: bId) {
                     let target = BibleNavigationState.reader(book: book, chapter: chapter, targetVerse: verse)
                     pendingDeepLink = target
                     navigationPath = [target]

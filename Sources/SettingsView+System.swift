@@ -2,8 +2,6 @@ import SwiftUI
 import WidgetKit
 import LocalAuthentication
 import Foundation
-import AdSupport
-import AppTrackingTransparency
 
 extension SettingsView {
     // MARK: - Секция: Система и данные (Haptics, Face ID, Cache, Backup)
@@ -64,7 +62,46 @@ extension SettingsView {
                 }
                 
                 Divider().opacity(0.3)
-                
+
+                // Анонимная статистика: какие экраны открывают и где останавливаются
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Paper.plum.opacity(0.15))
+                            .frame(width: 34, height: 34)
+
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Paper.plum)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(selectedLanguage.pick(hy: "Անանուն վիճակագրություն", ru: "Анонимная статистика", en: "Anonymous statistics"))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+
+                        Text(selectedLanguage.pick(
+                            hy: "Որ էկրաններն են բացվում: Առանց անվան, փոստի և գովազդային նույնացուցչի",
+                            ru: "Какие экраны открывают и где останавливаются. Без имени, почты и рекламного идентификатора",
+                            en: "Which screens are opened and where people stop. No name, email or advertising identifier"
+                        ))
+                            .font(PaperFont.font(size: 11.5))
+                            .foregroundColor(Paper.inkSecondary)
+                            .lineLimit(3)
+                    }
+
+                    Spacer()
+
+                    Toggle("", isOn: $isFunnelEnabled)
+                        .labelsHidden()
+                        .tint(selectedTheme.color)
+                        .onChange(of: isFunnelEnabled) { newVal in
+                            UserDefaults.standard.set(newVal, forKey: Funnel.enabledKey)
+                        }
+                }
+
+                Divider().opacity(0.3)
+
                 // 2. Блокировка Face ID / Touch ID
                 HStack(spacing: 12) {
                     ZStack {
@@ -101,10 +138,120 @@ extension SettingsView {
                             }
                         }
                 }
-                
+
                 Divider().opacity(0.3)
+
+                // 3. Синхронизация через iCloud (по умолчанию выключена)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Paper.teal.opacity(0.15))
+                                .frame(width: 34, height: 34)
+
+                            Image(systemName: "icloud.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Paper.teal)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(iCloudSyncTitle)
+                                .font(PaperFont.font(size: 14, weight: .semibold))
+                                .foregroundColor(primaryTextColor)
+
+                            Text(iCloudSyncDescription)
+                                .font(PaperFont.font(size: 11.5))
+                                .foregroundColor(Paper.inkSecondary)
+                                .lineLimit(3)
+                        }
+
+                        Spacer()
+
+                        Toggle("", isOn: Binding(
+                            get: { cloudSync.isEnabled },
+                            set: { newValue in
+                                Haptics.impact(.light)
+                                cloudSync.setEnabled(newValue)
+                            }
+                        ))
+                        .labelsHidden()
+                        .tint(selectedTheme.color)
+                    }
+
+                    if cloudSync.isEnabled {
+                        HStack(spacing: 6) {
+                            Image(systemName: iCloudStatusIcon)
+                                .font(.system(size: 12))
+                                .foregroundColor(iCloudStatusColor)
+                            Text(iCloudStatusText)
+                                .font(PaperFont.font(size: 12, weight: .medium))
+                                .foregroundColor(iCloudStatusColor)
+
+                            Spacer()
+
+                            Button {
+                                Haptics.impact(.soft)
+                                cloudSync.syncNow()
+                            } label: {
+                                Text(iCloudSyncNowTitle)
+                                    .font(PaperFont.font(size: 12, weight: .semibold))
+                                    .foregroundColor(selectedTheme.color)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                }
+
+                Divider().opacity(0.3)
+
                 
-                // 3. Очистка кэша
+                // 4. Резервное копирование и экспорт
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Paper.plum.opacity(0.15))
+                            .frame(width: 34, height: 34)
+                        
+                        Image(systemName: "square.and.arrow.up.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Paper.plum)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("export_backup_title".localized(for: selectedLanguage))
+                            .font(PaperFont.font(size: 14, weight: .semibold))
+                            .foregroundColor(primaryTextColor)
+                        
+                        Text("export_backup_desc".localized(for: selectedLanguage))
+                            .font(PaperFont.font(size: 11.5))
+                            .foregroundColor(Paper.inkSecondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        Haptics.impact(.soft)
+                        
+                        if let url = manager.generateBackupArchive() {
+                            self.backupShareUrl = url
+                            self.isShowingShareSheet = true
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(selectedTheme.color)
+                            .padding(8)
+                            .background(selectedTheme.color.opacity(0.12))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+
+                Divider().opacity(0.3)
+
+                
+                // 5. Очистка кэша
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -180,51 +327,6 @@ extension SettingsView {
                     .padding(.vertical, 2)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                
-                Divider().opacity(0.3)
-                
-                // 4. Резервное копирование и экспорт
-                HStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Paper.plum.opacity(0.15))
-                            .frame(width: 34, height: 34)
-                        
-                        Image(systemName: "square.and.arrow.up.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(Paper.plum)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("export_backup_title".localized(for: selectedLanguage))
-                            .font(PaperFont.font(size: 14, weight: .semibold))
-                            .foregroundColor(primaryTextColor)
-                        
-                        Text("export_backup_desc".localized(for: selectedLanguage))
-                            .font(PaperFont.font(size: 11.5))
-                            .foregroundColor(Paper.inkSecondary)
-                            .lineLimit(2)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        Haptics.impact(.soft)
-                        
-                        if let url = manager.generateBackupArchive() {
-                            self.backupShareUrl = url
-                            self.isShowingShareSheet = true
-                        }
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(selectedTheme.color)
-                            .padding(8)
-                            .background(selectedTheme.color.opacity(0.12))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                }
             }
             .padding(14)
             .background(inputFieldBgColor)
@@ -265,6 +367,90 @@ extension SettingsView {
         }
     }
     
+    // MARK: iCloud: подписи и статус
+    private var iCloudSyncTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Համաժամեցում iCloud-ով"
+        case .russian:  return "Синхронизация через iCloud"
+        case .english:  return "iCloud Sync"
+        }
+    }
+
+    private var iCloudSyncDescription: String {
+        switch selectedLanguage {
+        case .armenian: return "Ընտրյալները, նշումները, Մատենադարանի էջերը, ընթերցանության առաջընթացը և կարգավորումները՝ ձեր բոլոր սարքերում։ ԱԲ-ի բանալիները և գնումները չեն փոխանցվում։"
+        case .russian:  return "Избранное, заметки, листы Матенадарана, прогресс чтения и настройки — на всех ваших устройствах. Ключи ИИ и покупки не передаются."
+        case .english:  return "Favorites, notes, Matenadaran pages, reading progress and settings on all your devices. AI keys and purchases are not sent."
+        }
+    }
+
+    private var iCloudSyncNowTitle: String {
+        switch selectedLanguage {
+        case .armenian: return "Համաժամեցնել"
+        case .russian:  return "Синхронизировать"
+        case .english:  return "Sync now"
+        }
+    }
+
+    private var iCloudStatusIcon: String {
+        switch cloudSync.status {
+        case .unavailable, .tooLarge: return "exclamationmark.icloud.fill"
+        case .syncing: return "arrow.triangle.2.circlepath.icloud"
+        case .idle: return "checkmark.icloud.fill"
+        case .off: return "icloud"
+        }
+    }
+
+    private var iCloudStatusColor: Color {
+        switch cloudSync.status {
+        case .unavailable, .tooLarge: return Paper.cinnabar
+        case .syncing, .off: return Paper.inkSecondary
+        case .idle: return Paper.moss
+        }
+    }
+
+    private var iCloudStatusText: String {
+        switch cloudSync.status {
+        case .off:
+            return ""
+        case .syncing:
+            switch selectedLanguage {
+            case .armenian: return "Համաժամեցում…"
+            case .russian:  return "Синхронизация…"
+            case .english:  return "Syncing…"
+            }
+        case .unavailable:
+            switch selectedLanguage {
+            case .armenian: return "Մուտք գործեք iCloud iPhone-ի կարգավորումներում"
+            case .russian:  return "Войдите в iCloud в настройках iPhone"
+            case .english:  return "Sign in to iCloud in iPhone Settings"
+            }
+        case .tooLarge:
+            switch selectedLanguage {
+            case .armenian: return "Տվյալները չափազանց շատ են iCloud-ի համար"
+            case .russian:  return "Слишком много данных для iCloud"
+            case .english:  return "Too much data for iCloud"
+            }
+        case .idle(let date):
+            guard let date else {
+                switch selectedLanguage {
+                case .armenian: return "Պատրաստ է համաժամեցման"
+                case .russian:  return "Готово к синхронизации"
+                case .english:  return "Ready to sync"
+                }
+            }
+            let formatter = RelativeDateTimeFormatter()
+            formatter.locale = Locale(identifier: selectedLanguage.localeCode)
+            formatter.unitsStyle = .short
+            let relative = formatter.localizedString(for: date, relativeTo: Date())
+            switch selectedLanguage {
+            case .armenian: return "Համաժամեցվել է՝ \(relative)"
+            case .russian:  return "Синхронизировано: \(relative)"
+            case .english:  return "Synced \(relative)"
+            }
+        }
+    }
+
     private var rateAppButtonTitle: String {
         switch selectedLanguage {
         case .armenian: return "Գնահատել Luys-ը App Store-ում ⭐⭐⭐⭐⭐"
@@ -327,7 +513,7 @@ extension SettingsView {
         HStack {
             Text("about_app_version".localized(for: selectedLanguage))
             Spacer()
-            Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "3.7")
+            Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "4.1")
                 .foregroundColor(Paper.inkSecondary)
             
             Button {
@@ -499,12 +685,12 @@ extension SettingsView {
             if enablePremium {
                 devToastIcon = "crown.fill"
                 devToastMessage = "Premium активирован!"
-                devToastSubtitle = "Все возможности открыты, реклама полностью отключена."
+                devToastSubtitle = "Все возможности открыты, лимиты сняты."
                 devToastColor = [Paper.gold, Paper.gold]
             } else {
                 devToastIcon = "hammer.fill"
                 devToastMessage = "🧪 Free-режим включен!"
-                devToastSubtitle = "Реклама Luys включена, лимиты активны для теста."
+                devToastSubtitle = "Лимиты Free включены для теста."
                 devToastColor = [Paper.lapis, Paper.lapis]
             }
             
@@ -522,22 +708,28 @@ extension SettingsView {
     
     // MARK: - Выбор стиха для текущего размера виджета в предпросмотре
     func pickVerseForCurrentSize(_ size: PreviewWidgetSize) {
+        let lang = selectedWidgetLanguage.appLanguage ?? selectedLanguage
+        // Категории экрана блокировки в предпросмотре показываем и без Premium, как раньше
+        func pick(_ tier: QuoteTier) -> BibleVerse? {
+            let isHomeTier = (tier == .medium || tier == .large)
+            return BibleVerse.quotes(
+                for: tier, lang: lang,
+                isPremium: isHomeTier ? subscriptionManager.isPremium : true,
+                lockCategory: selectedLockCategory,
+                homeCategory: tier == .large ? selectedLargeCategory : selectedMediumCategory
+            ).randomElement()
+        }
+
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             switch size {
             case .lockScreen:
-                let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
-                previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+                previewVerse = pick(.lockScreen) ?? BibleVerse.shortPearls[0]
             case .small:
-                let pool = BibleVerse.lockScreenVerses(for: selectedLockCategory)
-                previewVerse = pool.randomElement() ?? BibleVerse.shortPearls[0]
+                previewVerse = pick(.small) ?? BibleVerse.shortPearls[0]
             case .medium:
-                let pool = BibleVerse.verses(for: selectedMediumCategory, isPremium: subscriptionManager.isPremium)
-                let filtered = pool.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
-                previewVerse = (!filtered.isEmpty ? filtered : pool).randomElement() ?? BibleVerse.database[1]
+                previewVerse = pick(.medium) ?? BibleVerse.database[1]
             case .large:
-                let pool = BibleVerse.verses(for: selectedLargeCategory, isPremium: subscriptionManager.isPremium)
-                let filtered = pool.filter { $0.textHy.count >= 75 }
-                previewVerse = (!filtered.isEmpty ? filtered : pool).randomElement() ?? BibleVerse.database[0]
+                previewVerse = pick(.large) ?? BibleVerse.database[0]
             }
         }
     }

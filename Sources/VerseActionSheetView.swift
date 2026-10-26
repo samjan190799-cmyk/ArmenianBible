@@ -17,7 +17,8 @@ struct VerseActionSheetView: View {
     @State private var selectedColorHex: String? = nil
     @State private var noteText: String = ""
     @State private var selectedTags: Set<VerseTag> = []
-    
+    @State private var manuscriptLaunch: ManuscriptLaunch? = nil
+
     let onPinToWidget: () -> Void
     let onToggleFavorite: () -> Void
     let onCopy: () -> Void
@@ -188,6 +189,43 @@ struct VerseActionSheetView: View {
                     
                     // Кнопки быстрых действий
                     VStack(spacing: 10) {
+                        // «Рукопись»: стих на странице армянского манускрипта
+                        Button {
+                            Haptics.impact(.soft)
+                            // Листание влево и вправо идёт по стихам этой же главы
+                            let source = ManuscriptPool.chapterSource(book: book, chapter: chapter, startVerse: verse.verseNumber, language: language)
+                                ?? .curated(first: ManuscriptPage.from(book: book, chapter: chapter, verse: verse, language: language))
+                            manuscriptLaunch = ManuscriptLaunch(source: source)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "scroll")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(Paper.gold)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(language.pick(hy: "Ստեղծել ձեռագիր", ru: "Создать рукопись", en: "Create a manuscript"))
+                                        .font(PaperFont.font(size: 15, weight: .semibold))
+                                        .foregroundColor(primaryTextColor)
+                                    Text(ManuscriptText.pick(
+                                        language,
+                                        hy: "Այս համարը՝ հայկական ձեռագրի էջի վրա",
+                                        ru: "Этот стих на странице армянской рукописи",
+                                        en: "This verse on an Armenian manuscript page"
+                                    ))
+                                    .font(PaperFont.font(size: 12))
+                                    .foregroundColor(Paper.inkSecondary)
+                                }
+                                Spacer()
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Paper.gold)
+                            }
+                            .padding(14)
+                            .background(Paper.gold.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Paper.gold.opacity(0.55), lineWidth: 1))
+                        }
+                        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
+
                         Button {
                             onPinToWidget()
                             dismiss()
@@ -262,6 +300,9 @@ struct VerseActionSheetView: View {
                 .padding(20)
             }
             .scrollDismissesKeyboard(.interactively)
+            .fullScreenCover(item: $manuscriptLaunch) { launch in
+                ManuscriptStudioView(source: launch.source)
+            }
             .navigationTitle("\(book.name) \(chapter):\(verse.verseNumber)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -508,7 +508,7 @@ struct BibleWallpaperMakerView: View {
                 selectedLanguage = manager.appLanguage
             }
             .sheet(isPresented: $isShowingPaywall) {
-                PaywallView()
+                PaywallView(source: "wallpaper")
             }
             .sheet(isPresented: $isShowingAutomationSheet) {
                 WallpaperAutomationSheetView()
@@ -578,8 +578,7 @@ struct BibleWallpaperMakerView: View {
                         self.showSaveSuccessToast = true
                     }
                     
-                    // Показ межстраничной рекламы при соблюдении кулдауна
-                    AdManager.shared.recordActionAndShowInterstitialIfReady()
+                    Funnel.track("feature_used", ["feature": "wallpaper"])
                     
                     // Фиксация полезного действия для оценки приложения
                     ReviewManager.shared.recordPositiveAction()

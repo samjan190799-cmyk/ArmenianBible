@@ -4,18 +4,24 @@ import WidgetKit
 import UserNotifications
 
 extension BibleManager {
-    
+
+    // MARK: - Какой ключ использовать для запроса к ИИ
+    /// Свой ключ человека; если его нет, у подписчика маркер серверного ИИ (запрос уйдёт на Worker); иначе пустая строка
+    func effectiveAPIKey(for provider: AIProvider) -> String {
+        let own: String
+        switch provider {
+        case .gemini: own = geminiApiKey
+        case .chatgpt: own = openaiApiKey
+        case .claude: own = anthropicApiKey
+        }
+        let trimmed = own.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        return AIProxy.isAvailableForCurrentUser ? AIProxy.sentinelKey : ""
+    }
+
     // MARK: - Генерация цитаты через Gemini API / ChatGPT / Claude
     func generateVerseWithAI(completion: @escaping (Result<BibleVerse, Error>) -> Void) {
-        let apiKey: String
-        switch activeProvider {
-        case .gemini:
-            apiKey = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        case .chatgpt:
-            apiKey = openaiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        case .claude:
-            apiKey = anthropicApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        let apiKey = effectiveAPIKey(for: activeProvider)
         
         guard !apiKey.isEmpty else {
             completion(.failure(NSError(domain: "BibleManager", code: 401, userInfo: [NSLocalizedDescriptionKey: "API Key is empty"])))
@@ -83,15 +89,7 @@ extension BibleManager {
     
     // MARK: - Общая генерация текста через ИИ (для толкований и свободных молитв)
     func generateTextFromAI(prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
-        let apiKey: String
-        switch activeProvider {
-        case .gemini:
-            apiKey = geminiApiKey
-        case .chatgpt:
-            apiKey = openaiApiKey
-        case .claude:
-            apiKey = anthropicApiKey
-        }
+        let apiKey = effectiveAPIKey(for: activeProvider)
         
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             DispatchQueue.main.async {
@@ -142,15 +140,7 @@ extension BibleManager {
             prompt = "You are a Bible expert. Find or generate a Bible quote in English (KJV or ESV translation) that perfectly fits the following theme or mood: \"\(targetTopic)\". Write the COMPLETE text of the quote without abbreviations. Return only the quote text and the reference in the following format: [Quote] | [Reference] (example: The Lord is my shepherd; I shall not want. | Psalm 23:1). Do not write anything else."
         }
         
-        let apiKey: String
-        switch activeProvider {
-        case .gemini:
-            apiKey = geminiApiKey
-        case .chatgpt:
-            apiKey = openaiApiKey
-        case .claude:
-            apiKey = anthropicApiKey
-        }
+        let apiKey = effectiveAPIKey(for: activeProvider)
         
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             DispatchQueue.main.async {
@@ -209,6 +199,10 @@ extension BibleManager {
     
     // MARK: - Парсинг и локализация ошибок ИИ
     func getFriendlyErrorMessage(for provider: AIProvider, statusCode: Int, rawMessage: String) -> String {
+        // Ошибки серверного ИИ уже написаны для человека
+        if rawMessage.hasPrefix(AIProxy.messagePrefix) {
+            return String(rawMessage.dropFirst(AIProxy.messagePrefix.count))
+        }
         let msg = rawMessage.lowercased()
         
         // 1. Проверяем нехватку баланса (Out of Credits)

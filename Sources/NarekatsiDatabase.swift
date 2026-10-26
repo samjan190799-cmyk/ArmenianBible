@@ -1116,7 +1116,49 @@ And establish my feet upon the rock of Your faith.
     ]  // prayersPart1 (главы 1-32)
 
     /// Полная коллекция: все 95 глав из трёх частей
-    lazy var prayers: [NarekPrayer] = NarekatsiDatabase.prayersPart1
+    lazy var prayers: [NarekPrayer] = (NarekatsiDatabase.prayersPart1
         + NarekatsiDatabase.prayersPart2
-        + NarekatsiDatabase.prayersPart3
+        + NarekatsiDatabase.prayersPart3)
+        .map { NarekatsiInspired.apply(to: $0) }
+}
+
+// MARK: - Что в приложении настоящее, а что нет
+// В приложении есть две полные студийные записи «Книги скорбных песнопений» (армянская и русская). А текст под номерами
+// 1–15 — это пятнадцать молитв «в духе Нарекаци» (1–5 написаны первыми, 6–15 — в NarekatsiInspired.swift); остальные номера раньше
+// повторяли первые пять по кругу. Дословным текстом книги молитвы не являются. Подлинный армянский текст всех 95 глав
+// лежит отдельно (NarekOriginal.swift, narek_original_hy.json) и показывается на вкладке «Оригинал».
+extension NarekPrayer {
+    /// Собственный текст есть у первых пятнадцати номеров; остальные восемьдесят раньше повторяли первые пять по кругу
+    var hasOwnText: Bool { id <= 5 || NarekatsiInspired.entries[id] != nil }
+
+    /// Подпись главы записи: только номер, без придуманных названий
+    func chapterLabel(for language: AppLanguage) -> String {
+        switch language {
+        case .armenian: return banNumber
+        case .russian: return "Глава \(id)"
+        case .english: return "Chapter \(id)"
+        }
+    }
+
+    /// Название молитвы без хвоста «(Глава N)»
+    func inspiredTitle(for language: AppLanguage) -> String {
+        let full = title(for: language)
+        guard let open = full.lastIndex(of: "(") else { return full }
+        return String(full[..<open]).trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Отметка времени точная только для глав, которые размечены по записи; остальные рассчитаны примерно
+    func isTimestampExact(for language: AppLanguage) -> Bool {
+        language == .armenian ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 41].contains(id) : id <= 10
+    }
+
+    /// Отметка времени для списка: приблизительная помечается «≈»
+    func timestampLabel(for language: AppLanguage) -> String {
+        (isTimestampExact(for: language) ? "" : "≈ ") + formattedTimestamp(for: language)
+    }
+}
+
+extension NarekatsiDatabase {
+    /// Пятнадцать молитв «в духе Нарекаци» с собственным текстом
+    var inspiredPrayers: [NarekPrayer] { prayers.filter { $0.hasOwnText } }
 }

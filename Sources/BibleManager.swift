@@ -57,6 +57,8 @@ class BibleManager: ObservableObject {
     @Published var lastReadChapter: Int? = nil
     @Published var readChaptersByBook: [Int: Set<Int>] = [:]
     private let readChaptersKey = "bible_read_chapters_by_book"
+    /// Ожидание, после которого прочитанная глава питает Гранатовое древо
+    private var readingDewTask: Task<Void, Never>?
     
     // MARK: - История сообщений чата Духовного Помощника
     @Published var aiChatMessages: [AIChatMessage] = []
@@ -85,14 +87,36 @@ class BibleManager: ObservableObject {
         }
     }
     
+    /// Когда в последний раз просили открыть «Нарека» с другого экрана. Экран Библии при входе на вкладку возвращает
+    /// каталог книг и сбрасывал раздел на «Библию», из-за чего баннер на главном и подпись цитаты открывали каталог.
+    var narekOpenRequestedAt: Date? = nil
+
+    /// Переход в «Нарек» ещё не дошёл до экрана (вход на вкладку вызывает сброс раздела один-два раза за долю секунды)
+    var isNarekOpenPending: Bool {
+        guard let requestedAt = narekOpenRequestedAt else { return false }
+        return Date().timeIntervalSince(requestedAt) < 1.5
+    }
+
     func openNarekatsi() {
+        self.narekOpenRequestedAt = Date()
         self.selectedReaderSection = 1
         self.activeTabSelection = 3
     }
     
     func openBibleReader() {
+        self.narekOpenRequestedAt = nil
         self.selectedReaderSection = 0
         self.activeTabSelection = 3
+    }
+
+    /// Открывает главу Библии, на стихе, если он задан. Главу и стих записываем раньше номера книги: читалка забирает
+    /// все три поля в тот момент, когда приходит deepLinkBookId. Если номер книги записать первым, она возьмёт главу
+    /// и стих прошлой ссылки.
+    func openBibleReader(bookId: Int, chapter: Int, verse: Int?) {
+        self.deepLinkChapter = chapter
+        self.deepLinkVerse = verse
+        self.deepLinkBookId = bookId
+        openBibleReader()
     }
     
     // Идентификатор App Group для совместного доступа к данным между приложением и виджетом
@@ -250,6 +274,15 @@ class BibleManager: ObservableObject {
             }
         } else {
             self.appLanguage = .armenian
+        }
+        // Язык из аргумента запуска (-luys_debug_language russian): для скриншотов в CI, на устройствах не используется
+        if let override = UserDefaults.standard.string(forKey: "luys_debug_language"),
+           let debugLanguage = AppLanguage(rawValue: override) {
+            self.appLanguage = debugLanguage
+            // BibleVerse.text и список книг читают язык из общих настроек: для кадров записываем его и туда
+            AppGroupConstants.syncToAll { defs in
+                defs.set(debugLanguage.rawValue, forKey: appLanguageKey)
+            }
         }
         
         // Загрузка Избранного
@@ -490,6 +523,22 @@ class BibleManager: ObservableObject {
             }
         }
         markChapterAsRead(bookId: bookId, chapter: chapter)
+        scheduleTreeDewForReading(bookId: bookId, chapter: chapter)
+    }
+    
+    /// Глава питает древо, когда её читают хотя бы 20 секунд: простое пролистывание глав не считается
+    private func scheduleTreeDewForReading(bookId: Int, chapter: Int) {
+        readingDewTask?.cancel()
+        readingDewTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 20_000_000_000)
+            guard !Task.isCancelled else { return }
+            PomegranateTreeManager.shared.record(.chapter(book: bookId, chapter: chapter))
+        }
+    }
+    
+    /// Человек ушёл с экрана чтения раньше, чем прошло время: глава древу не засчитывается
+    func cancelReadingDew() {
+        readingDewTask?.cancel()
     }
     
     // MARK: - Учет прогресса чтения Библии
@@ -638,30 +687,25 @@ class BibleManager: ObservableObject {
     // MARK: - Мгновенная синхронизация и случайные стихи для всех размеров виджетов
     func syncLockScreenWidget() {
         let isPremium = AppGroupConstants.sharedBool(forKey: "is_premium_active")
-        let activeCategory = (isPremium || !lockScreenCategory.isPremiumRequired) ? lockScreenCategory : .pearls
-        let rawList = BibleVerse.lockScreenVerses(for: activeCategory).filter { $0.textHy.count <= 46 }
-        let list = !rawList.isEmpty ? rawList : BibleVerse.shortPearls
-        
-        let randomPearl = list.randomElement() ?? BibleVerse.shortPearls.first
+        let lang = sharedWidgetLanguage()
+
+        // Длина цитаты по месту показа (QuoteTier): экран блокировки и малый виджет — короткие, средний — средние, большой — длинные
+        func pick(_ tier: QuoteTier) -> BibleVerse? {
+            BibleVerse.quotes(
+                for: tier, lang: lang, isPremium: isPremium,
+                lockCategory: lockScreenCategory,
+                homeCategory: tier == .large ? largeWidgetCategory : mediumWidgetCategory
+            ).randomElement()
+        }
+
+        let randomPearl = pick(.lockScreen) ?? BibleVerse.shortPearls.first
         let enrichedPearl = randomPearl.map { BibleDatabase.shared.enrichVerse($0) }
-        
-        let smallPool = list
-        let randomSmall = smallPool.randomElement() ?? BibleVerse.shortPearls.first
-        
-        let activeMedCat = (isPremium || !mediumWidgetCategory.isPremiumRequired) ? mediumWidgetCategory : .all
-        let medVerses = BibleVerse.verses(for: activeMedCat, isPremium: isPremium)
-        let medFiltered = medVerses.filter { $0.textHy.count >= 35 && $0.textHy.count <= 100 }
-        let medPool = !medFiltered.isEmpty ? medFiltered : (!medVerses.isEmpty ? medVerses : BibleVerse.database)
-        let randomMed = medPool.randomElement()
-        
-        let activeLargeCat = (isPremium || !largeWidgetCategory.isPremiumRequired) ? largeWidgetCategory : .all
-        let largeVerses = BibleVerse.verses(for: activeLargeCat, isPremium: isPremium)
-        let largeFiltered = largeVerses.filter { $0.textHy.count >= 75 }
-        let largePool = !largeFiltered.isEmpty ? largeFiltered : (!largeVerses.isEmpty ? largeVerses : BibleVerse.database)
-        let randomLarge = largePool.randomElement()
-        
+        let randomSmall = pick(.small) ?? BibleVerse.shortPearls.first
+        let randomMed = pick(.medium)
+        let randomLarge = pick(.large)
+
         AppGroupConstants.syncToAll { defaults in
-            // 1. Экран блокировки (Lock Screen) - строго короткие фразы <= 46 символов
+            // 1. Экран блокировки (Lock Screen) - короткие фразы
             if let enrichedPearl {
                 defaults.set(enrichedPearl.id.uuidString, forKey: "currentLockScreenVerseId")
                 defaults.set(enrichedPearl.textHy, forKey: "currentLockScreenTextHy")
@@ -674,17 +718,17 @@ class BibleManager: ObservableObject {
                 defaults.set(enrichedPearl.refEn, forKey: "currentLockScreenRefEn")
             }
             
-            // 2. Малый виджет (System Small 2x2) - строго короткие стихи активной категории
+            // 2. Малый виджет (System Small 2x2) - короткие стихи активной категории
             if let randomSmall {
                 defaults.set(randomSmall.id.uuidString, forKey: "currentSmallVerseId")
             }
             
-            // 3. Средний виджет (System Medium 4x2) - стихи 35-100 символов с учетом mediumWidgetCategory
+            // 3. Средний виджет (System Medium 4x2) - стихи средней длины с учетом mediumWidgetCategory
             if let randomMed {
                 defaults.set(randomMed.id.uuidString, forKey: "currentMediumVerseId")
             }
             
-            // 4. Большой виджет (System Large 4x4) - стихи от 75 символов с учетом largeWidgetCategory
+            // 4. Большой виджет (System Large 4x4) - длинные отрывки с учетом largeWidgetCategory
             if let randomLarge {
                 defaults.set(randomLarge.id.uuidString, forKey: "currentLargeVerseId")
             }
@@ -722,7 +766,8 @@ class BibleManager: ObservableObject {
         case .verses:
             return BibleVerse.database.filter { !$0.isPrayer }
         case .prayers:
-            return BibleVerse.database.filter { $0.isPrayer }
+            // Целые молитвы (BibleVerseDatabase+Prayers.swift); куски для среднего виджета нужны только виджету
+            return BibleVerse.prayers
         case .favorites:
             // Фильтруем элементы избранного, которые применимы к виджетам (isDailyVerse = true)
             let dailyFavorites = favoriteVerses.filter { $0.isDailyVerse }
@@ -742,10 +787,10 @@ class BibleManager: ObservableObject {
                 )
             }
         case .both:
-            return BibleVerse.database
+            return BibleVerse.database + BibleVerse.prayers
         }
     }
-    
+
     // MARK: - Управление Избранным
     func addToFavorites(_ verse: BibleVerse) {
         if !favoriteVerses.contains(where: { $0.textHy == verse.textHy || $0.textRu == verse.textRu }) {

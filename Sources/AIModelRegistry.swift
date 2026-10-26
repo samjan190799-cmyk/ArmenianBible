@@ -136,10 +136,66 @@ final class AIModelRegistry: @unchecked Sendable {
     
     // MARK: - Универсальное выполнение запроса с каскадным переключением (Fail-Safe Fallback)
     
+    /// Запрос к ИИ. Подписчик без своего ключа идёт через сервер. Если свой ключ человека не принят (устарел, отозван),
+    /// подписчик не остаётся с ошибкой: запрос повторяется через сервер. Итог каждого запроса идёт в воронку.
+    func executeRequest(
+        provider: AIProvider,
+        apiKey: String,
+        prompt: String,
+        systemPrompt: String? = nil,
+        jsonMode: Bool = false,
+        maxTokens: Int = 1024
+    ) async throws -> (text: String, usedModel: String) {
+        if apiKey == AIProxy.sentinelKey {
+            return try await serverRequest(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+        }
+        do {
+            let result = try await executeDirectRequest(provider: provider, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            Funnel.track("ai_result", ["result": "ok", "via": "own"])
+            return result
+        } catch {
+            guard AIProxy.isAvailableForCurrentUser, Self.isCredentialFailure(error) else {
+                Funnel.track("ai_result", ["result": Self.aiOutcome(error), "via": "own"])
+                throw error
+            }
+            return try await serverRequest(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+        }
+    }
+
+    private func serverRequest(prompt: String, systemPrompt: String?, jsonMode: Bool, maxTokens: Int) async throws -> (text: String, usedModel: String) {
+        do {
+            let text = try await AIProxy.generate(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            Funnel.track("ai_result", ["result": "ok", "via": "server"])
+            return (text, "server")
+        } catch {
+            Funnel.track("ai_result", ["result": Self.aiOutcome(error), "via": "server"])
+            throw error
+        }
+    }
+
+    /// Итог запроса одним словом для воронки
+    private static func aiOutcome(_ error: Error) -> String {
+        switch (error as NSError).code {
+        case 429: return "quota"
+        case 451: return "declined"
+        case 401, 403: return "auth"
+        default: return "error"
+        }
+    }
+
+    /// Провайдер отказал из-за самого ключа (неверный, просрочен, отозван), а не из-за запроса
+    private static func isCredentialFailure(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.code == 401 || nsError.code == 403 { return true }
+        let text = error.localizedDescription.lowercased()
+        let markers = ["api key not valid", "api_key_invalid", "api key expired", "invalid api key", "invalid_api_key", "incorrect api key", "authentication_error", "unauthorized", "permission_denied"]
+        return markers.contains { text.contains($0) }
+    }
+
     /// Выполняет запрос к ИИ. Если основная модель возвращает ошибку несовместимости/доступности (404/400/410/429),
     /// код автоматически переходит к следующей резервной модели из списка, парсит рекомендации Google из 404
     /// или запрашивает актуальный список доступных моделей с сервера.
-    func executeRequest(
+    private func executeDirectRequest(
         provider: AIProvider,
         apiKey: String,
         prompt: String,

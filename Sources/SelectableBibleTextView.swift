@@ -7,7 +7,11 @@ struct SelectableBibleTextView: UIViewRepresentable {
     let language: AppLanguage
     let onVerseTapped: (Int) -> Void
     let onRemoveHighlight: (Int) -> Void
-    
+    /// Стих, к которому надо прокрутить главу (переход по ссылке); вместе с `onVerseOffset`
+    var scrollToVerse: Int? = nil
+    /// Сообщает, на каком расстоянии от верха текста начинается нужный стих при текущей ширине
+    var onVerseOffset: ((CGFloat) -> Void)? = nil
+
     func makeUIView(context: Context) -> UITextView {
         let textView = UITextView()
         textView.isEditable = false
@@ -38,7 +42,42 @@ struct SelectableBibleTextView: UIViewRepresentable {
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
         let width = proposal.width ?? UIScreen.main.bounds.width
         let size = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        reportVerseOffset(width: width, coordinator: context.coordinator)
         return CGSize(width: width, height: size.height)
+    }
+
+    /// Положение стиха считаем отдельной раскладкой текста той же ширины, а сообщаем о нём уже после текущего прохода вёрстки:
+    /// менять состояние SwiftUI прямо во время вёрстки нельзя
+    private func reportVerseOffset(width: CGFloat, coordinator: Coordinator) {
+        guard let verse = scrollToVerse, let report = onVerseOffset else { return }
+        let key = "\(verse)@\(Int(width))"
+        guard coordinator.reportedOffsetKey != key else { return }
+        coordinator.reportedOffsetKey = key
+        guard let offset = Self.verseOffset(in: attributedText, verse: verse, width: width) else { return }
+        DispatchQueue.main.async { report(offset) }
+    }
+
+    /// Расстояние от верха текста до строки, с которой начинается стих (по номеру стиха в атрибутах строки)
+    static func verseOffset(in text: NSAttributedString, verse: Int, width: CGFloat) -> CGFloat? {
+        let verseKey = NSAttributedString.Key("verseNumber")
+        var location: Int? = nil
+        text.enumerateAttribute(verseKey, in: NSRange(location: 0, length: text.length)) { value, range, stop in
+            if let number = value as? Int, number == verse {
+                location = range.location
+                stop.pointee = true
+            }
+        }
+        guard let start = location else { return nil }
+
+        let storage = NSTextStorage(attributedString: text)
+        let layoutManager = NSLayoutManager()
+        let container = NSTextContainer(size: CGSize(width: width, height: .greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        layoutManager.addTextContainer(container)
+        storage.addLayoutManager(layoutManager)
+        layoutManager.ensureLayout(for: container)
+        let glyph = layoutManager.glyphIndexForCharacter(at: start)
+        return layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil).minY
     }
     
     func makeCoordinator() -> Coordinator {
@@ -49,7 +88,9 @@ struct SelectableBibleTextView: UIViewRepresentable {
         var language: AppLanguage
         var onVerseTapped: (Int) -> Void
         var onRemoveHighlight: (Int) -> Void
-        
+        /// Для какого стиха и ширины смещение уже сообщено
+        var reportedOffsetKey: String? = nil
+
         init(language: AppLanguage, onVerseTapped: @escaping (Int) -> Void, onRemoveHighlight: @escaping (Int) -> Void) {
             self.language = language
             self.onVerseTapped = onVerseTapped

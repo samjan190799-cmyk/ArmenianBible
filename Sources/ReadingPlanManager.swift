@@ -179,16 +179,13 @@ final class ReadingPlanManager: ObservableObject {
         saveStreak()
         
         // Питаем Гранатовое Древо Духовного Роста небесной росой
-        PomegranateTreeManager.shared.nourishWithDew(amount: 1)
+        PomegranateTreeManager.shared.record(.plan)
     }
     
     // MARK: - Быстрый переход к чтению в Библии
     func openReadingInBible(target: PlanReadingTarget) {
-        let manager = BibleManager.shared
-        manager.deepLinkBookId = target.bookId
-        manager.deepLinkChapter = target.chapter
-        manager.openBibleReader()
-        
+        BibleManager.shared.openBibleReader(bookId: target.bookId, chapter: target.chapter, verse: nil)
+
         Haptics.impact(.soft)
     }
 }

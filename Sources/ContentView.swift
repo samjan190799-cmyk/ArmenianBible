@@ -15,6 +15,14 @@ struct ContentView: View {
         ZStack {
             if UserDefaults.standard.string(forKey: "openTab") == "lockscreen" {
                 iPadLockScreenShowcaseView()
+            } else if UserDefaults.standard.string(forKey: "openTab") == "widgetposters" {
+                WidgetPosterShowcaseView()
+            } else if UserDefaults.standard.string(forKey: "openTab") == "nativity" {
+                // Отладка для съёмки в CI: -nativity_scene N -nativity_t СЕКУНДА ставят мультфильм на паузу в этом кадре
+                NativityStoryView(
+                    debugScene: UserDefaults.standard.object(forKey: "nativity_scene") == nil ? nil : UserDefaults.standard.integer(forKey: "nativity_scene"),
+                    debugSecond: UserDefaults.standard.double(forKey: "nativity_t")
+                )
             } else {
                 TabView(selection: $manager.activeTabSelection) {
                     HomeView()
@@ -48,6 +56,19 @@ struct ContentView: View {
                         if tabArg == "favorites" { manager.activeTabSelection = 1 }
                         else if tabArg == "ai" { manager.activeTabSelection = 2 }
                         else if tabArg == "bible" { manager.activeTabSelection = 3 }
+                        else if tabArg == "narek" { manager.openNarekatsi() }
+
+                        #if DEBUG || targetEnvironment(simulator)
+                        // Проверка перехода по ссылке на стих в CI: -openTab bibleverse -bible_book N -bible_chapter N -bible_verse N
+                        if tabArg == "bibleverse" {
+                            let defaults = UserDefaults.standard
+                            manager.openBibleReader(
+                                bookId: defaults.integer(forKey: "bible_book"),
+                                chapter: defaults.integer(forKey: "bible_chapter"),
+                                verse: defaults.integer(forKey: "bible_verse")
+                            )
+                        }
+                        #endif
                     }
                 }
             }
@@ -75,6 +96,7 @@ struct ContentView: View {
                     manager.authenticateWithBiometrics()
                 }
                 updateManager.checkForUpdates(language: manager.appLanguage)
+                CandleIslandManager.shared.sync(with: CandleManager.shared.activeCandles, language: manager.appLanguage)
             }
         }
         .onAppear {
@@ -82,6 +104,7 @@ struct ContentView: View {
                 manager.authenticateWithBiometrics()
             }
             updateManager.checkForUpdates(language: manager.appLanguage)
+            CandleIslandManager.shared.sync(with: CandleManager.shared.activeCandles, language: manager.appLanguage)
         }
     }
 }
@@ -180,7 +203,12 @@ struct HomeView: View {
     @State private var isShowingSanctuary = false
     @State private var isShowingPomegranateSanctuary = false
     @State private var isShowingPaywall = false
-    
+    @State private var manuscriptLaunch: ManuscriptLaunch? = nil
+    @State private var isShowingCodex = false
+    @State private var isShowingConsolation = false
+    @State private var isShowingSanctuaryMap = false
+    @State private var isShowingNativity = false
+
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
@@ -271,12 +299,35 @@ struct HomeView: View {
                             .opacity(animateVerse ? 1 : 0)
                             .offset(y: animateVerse ? 0 : 15)
 
-                        Text(manager.currentVerse.reference.uppercased())
-                            .font(PaperFont.font(size: 13, weight: .medium))
-                            .tracking(1.6)
-                            .foregroundColor(accentColor)
-                            .opacity(animateVerse ? 1 : 0)
-                            .offset(y: animateVerse ? 0 : 10)
+                        // Подпись стиха: если это место из Библии (или строка «в духе Нарекаци»), по нажатию открывается глава на этом стихе
+                        Group {
+                            if ScriptureLocator.canOpen(manager.currentVerse) {
+                                Button {
+                                    triggerHaptic(.light)
+                                    ScriptureLocator.open(manager.currentVerse)
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Text(manager.currentVerse.reference.uppercased())
+                                            .font(PaperFont.font(size: 13, weight: .medium))
+                                            .tracking(1.6)
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 10, weight: .semibold))
+                                    }
+                                    .foregroundColor(accentColor)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
+                            } else {
+                                Text(manager.currentVerse.reference.uppercased())
+                                    .font(PaperFont.font(size: 13, weight: .medium))
+                                    .tracking(1.6)
+                                    .foregroundColor(accentColor)
+                            }
+                        }
+                        .opacity(animateVerse ? 1 : 0)
+                        .offset(y: animateVerse ? 0 : 10)
 
                         Rectangle()
                             .fill(Paper.hairline)
@@ -322,7 +373,21 @@ struct HomeView: View {
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
 
-                            // 2. Кнопка Генератора Обоев для LockScreen
+                            // 2. Кнопка «На пергаменте»: этот же стих на странице армянского манускрипта
+                            Button {
+                                triggerHaptic(.soft)
+                                manuscriptLaunch = ManuscriptLaunch(source: .curated(first: ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)))
+                            } label: {
+                                Image(systemName: "scroll")
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundColor(Paper.inkSecondary)
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
+                            .accessibilityLabel(Text(ManuscriptText.pick(manager.appLanguage, hy: "Մագաղաթի վրա", ru: "На пергаменте", en: "On vellum")))
+
+                            // 3. Кнопка Генератора Обоев для LockScreen
                             Button {
                                 triggerHaptic(.soft)
                                 isShowingWallpaperMaker = true
@@ -335,7 +400,7 @@ struct HomeView: View {
                             }
                             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.88))
 
-                            // 3. Кнопка Поделиться открыткой
+                            // 4. Кнопка Поделиться открыткой
                             Button {
                                 triggerHaptic(.soft)
                                 shareVerseAsImage()
@@ -378,12 +443,24 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 6)
                     
-                    // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-                    LuysHybridBannerView(placement: .home)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 2)
-                        .staggeredEntrance(index: 1)
-                    
+                    // MARK: - Карточка «Мой Матенадаран»: собранные листы рукописи и новый лист
+                    // Стих дня на пергаменте открывается кнопкой в верхней карточке стиха
+                    ManuscriptBannerCardView(
+                        language: manager.appLanguage,
+                        primaryTextColor: primaryTextColor,
+                        onOpenCodex: {
+                            triggerHaptic(.soft)
+                            isShowingCodex = true
+                        },
+                        onNewLeaf: {
+                            triggerHaptic(.soft)
+                            let fresh = ManuscriptPool.curatedPages(language: manager.appLanguage, excluding: [], count: 1).first
+                                ?? ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)
+                            manuscriptLaunch = ManuscriptLaunch(source: .curated(first: fresh))
+                        }
+                    )
+                    .staggeredEntrance(index: 2)
+
                     // MARK: - Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
                     NarekatsiBannerCardView(
                         language: manager.appLanguage,
@@ -399,6 +476,31 @@ struct HomeView: View {
                     )
                     .staggeredEntrance(index: 2)
                     
+                    // MARK: - Карточка «Нарек утешает»: глава «Книги скорбных песнопений» под состояние человека
+                    NarekConsolationBannerCardView(
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        secondaryAccentColor: secondaryAccentColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpen: {
+                            triggerHaptic(.soft)
+                            isShowingConsolation = true
+                        }
+                    )
+                    .staggeredEntrance(index: 3)
+
+                    // MARK: - Карточка мультфильма «Рождество Христово»
+                    NativityBannerCardView(
+                        language: manager.appLanguage,
+                        secondaryAccentColor: secondaryAccentColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpen: {
+                            triggerHaptic(.soft)
+                            isShowingNativity = true
+                        }
+                    )
+                    .staggeredEntrance(index: 3)
+
                     // MARK: - Карточка Храмовой Молитвы и Свечей (Մոմավառություն)
                     PrayerSanctuaryBannerCardView(
                         language: manager.appLanguage,
@@ -475,6 +577,18 @@ struct HomeView: View {
                     )
                     .staggeredEntrance(index: 7)
                     
+                    // MARK: - Карточка «Карта святынь»
+                    SanctuaryMapBannerCardView(
+                        language: manager.appLanguage,
+                        secondaryAccentColor: secondaryAccentColor,
+                        primaryTextColor: primaryTextColor,
+                        onOpen: {
+                            triggerHaptic(.soft)
+                            isShowingSanctuaryMap = true
+                        }
+                    )
+                    .staggeredEntrance(index: 8)
+                    
                     // MARK: - Карточка Armenian Bible Premium
                     PremiumPromoBannerCardView(
                         language: manager.appLanguage,
@@ -497,6 +611,7 @@ struct HomeView: View {
             }
         }
         .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
+        .modifier(CandleIslandPreviewHook())
         .onAppear {
             if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
                 if tabArg == "calendar" {
@@ -515,6 +630,26 @@ struct HomeView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         isShowingWallpaperMaker = true
                     }
+                } else if tabArg == "tree" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingPomegranateSanctuary = true
+                    }
+                } else if tabArg == "consolation" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingConsolation = true
+                    }
+                } else if tabArg == "map" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingSanctuaryMap = true
+                    }
+                } else if tabArg == "sanctuary" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingSanctuary = true
+                    }
+                } else if tabArg == "manuscript" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        manuscriptLaunch = ManuscriptLaunch(source: ManuscriptPage.debugSource(fallbackLanguage: manager.appLanguage))
+                    }
                 }
                 UserDefaults.standard.removeObject(forKey: "openTab")
             }
@@ -525,7 +660,7 @@ struct HomeView: View {
             manager.scheduleDailyNotifications()
         }
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "home")
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings)
@@ -554,6 +689,28 @@ struct HomeView: View {
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
+        }
+        .sheet(isPresented: $isShowingCodex) {
+            ManuscriptLibraryView { opened in
+                // Библиотека сама закрывается после выбора; мастерская открывается, когда она уйдёт
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    manuscriptLaunch = ManuscriptLaunch(source: .curated(first: opened))
+                }
+            }
+        }
+        .fullScreenCover(item: $manuscriptLaunch) { launch in
+            ManuscriptStudioView(source: launch.source)
+        }
+        .fullScreenCover(isPresented: $isShowingNativity) {
+            NativityStoryView()
+        }
+        .sheet(isPresented: $isShowingConsolation) {
+            NarekConsolationView()
+                .preferredColorScheme(manager.appearanceMode.colorScheme)
+        }
+        .sheet(isPresented: $isShowingSanctuaryMap) {
+            SanctuaryMapView()
+                .preferredColorScheme(manager.appearanceMode.colorScheme)
         }
         .onReceive(PomegranateTreeManager.shared.$isShowingSanctuarySheet) { show in
             if show {
@@ -607,14 +764,8 @@ struct HomeView: View {
                     if let bIdStr = bookIdStr, let bId = Int(bIdStr),
                        let cStr = chapterStr, let chapter = Int(cStr) {
                         triggerHaptic(.soft)
-                        
-                        manager.deepLinkBookId = bId
-                        manager.deepLinkChapter = chapter
-                        if let vStr = verseStr, let verse = Int(vStr) {
-                            manager.deepLinkVerse = verse
-                        }
-                        
-                        manager.openBibleReader()
+
+                        manager.openBibleReader(bookId: bId, chapter: chapter, verse: verseStr.flatMap { Int($0) })
                     }
                 } else if url.host == "tab" {
                     if let components = URLComponents(url: url, resolvingAgainstBaseURL: true),

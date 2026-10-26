@@ -411,7 +411,7 @@ struct WidgetStyleCardButton: View {
             }
             .padding(11)
             .frame(width: 130, height: 120)
-            .background(style.backgroundGradient(for: colorScheme))
+            .background(WidgetStyleBackground(style: style, colorScheme: colorScheme))
             .cornerRadius(15)
             .overlay(
                 RoundedRectangle(cornerRadius: 15)
@@ -439,58 +439,19 @@ struct LockScreenPreviewCardView: View {
     let style: WidgetVisualStyle
     let colorScheme: ColorScheme
     var accentHex: String = "6366F1"
-    
-    private var fontSize: CGFloat {
-        let count = verse.text(for: language).count
-        if count <= 25 {
-            return 16.5
-        } else if count <= 42 {
-            return 15.0
-        } else {
-            return 13.5
-        }
-    }
-    
+
+    /// Показываем виджет так, как он выглядит на экране блокировки: обои, часы и цитата с вертикальной чертой
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(verse.text(for: language))
-                    .font(.system(size: fontSize, weight: .semibold, design: style.fontDesign))
-                    .lineLimit(2)
-                    .lineSpacing(-0.5)
-                    .foregroundColor(style.primaryTextColor(for: colorScheme))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            
-            HStack(spacing: 4) {
-                Text("✝")
-                    .font(PaperFont.font(size: 10, weight: .semibold))
-                    .foregroundColor(style.quoteIconColor(for: colorScheme, accentHex: accentHex))
-                Text(verse.reference(for: language))
-                    .font(.system(size: 11.5, weight: .bold, design: style.fontDesign))
-                    .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: accentHex))
-                
-                Spacer()
-                
-                HStack(spacing: 3) {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 8.5))
-                    Text("Lock Screen")
-                        .font(PaperFont.font(size: 9.5, weight: .semibold))
-                }
-                .foregroundColor(style.secondaryTextColor(for: colorScheme, accentHex: accentHex).opacity(0.85))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2.5)
-                .background(style.buttonBackground(for: colorScheme))
-                .cornerRadius(6)
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(style.backgroundGradient(for: colorScheme))
-        .cornerRadius(18)
+        LockWidgetPreviewScene(
+            text: verse.text(for: language),
+            reference: verse.reference(for: language),
+            design: AppGroupConstants.sharedLockScreenFontDesign().fontDesign
+        )
+        .frame(maxWidth: .infinity)
+        .frame(height: 184)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(style.borderStroke(for: colorScheme), lineWidth: 1.3)
         )
         .shadow(color: Color.black.opacity(0.18), radius: 8, y: 3)

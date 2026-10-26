@@ -29,6 +29,7 @@ struct PomegranateSanctuarySheetView: View {
                 // MARK: - Фоновый градиент священного храмового сада
                 PaperBackground()
                 
+                ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
                         // 1. Верхний заголовок стадии
@@ -82,7 +83,16 @@ struct PomegranateSanctuarySheetView: View {
                         morningDewStatusCard
                             .padding(.horizontal, 20)
                         
-                        // 4. Карточка прогресса до следующей стадии
+                        // 4. Шкала сада: росинки за чтение, свечи и задания
+                        gardenLevelCard
+                            .padding(.horizontal, 20)
+                        
+                        // 5. Задания дня
+                        dailyTasksCard
+                            .padding(.horizontal, 20)
+                            .id("tasks")
+                        
+                        // 6. Карточка прогресса до следующей стадии
                         growthProgressBarCard
                             .padding(.horizontal, 20)
                         
@@ -96,8 +106,19 @@ struct PomegranateSanctuarySheetView: View {
                             .padding(.bottom, 36)
                     }
                 }
+                .onAppear {
+                    // Для CI: -pomegranate_scroll tasks прокручивает экран к заданиям дня
+                    if UserDefaults.standard.string(forKey: "pomegranate_scroll") == "tasks" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { proxy.scrollTo("tasks", anchor: .top) }
+                    }
+                }
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                treeManager.refreshDewAndStreakStatus()
+                treeManager.refreshTasksForToday()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -310,6 +331,191 @@ struct PomegranateSanctuarySheetView: View {
         )
     }
     
+    // MARK: - Шкала сада: росинки
+    private var gardenLevelCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(Paper.lapis)
+                    Text(language.pick(
+                        hy: "Այգու աստիճան \(treeManager.gardenLevel)",
+                        ru: "Ступень сада \(treeManager.gardenLevel)",
+                        en: "Garden level \(treeManager.gardenLevel)"
+                    ))
+                    .font(PaperFont.font(size: 16, weight: .semibold))
+                    .foregroundColor(Paper.ink)
+                }
+
+                Spacer()
+
+                Text("\(treeManager.seedsIntoLevel)/\(treeManager.seedsForLevel)")
+                    .font(PaperFont.font(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.lapis)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Paper.lapis.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Paper.fillSubtle)
+                        .frame(height: 8)
+                    Capsule()
+                        .fill(LinearGradient(colors: [Paper.lapis, Paper.gold], startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(8, geo.size.width * CGFloat(treeManager.levelProgress)), height: 8)
+                }
+            }
+            .frame(height: 8)
+
+            Text(language.pick(
+                hy: "Յուրաքանչյուր կարդացած գլուխ, մոմ և կատարված առաջադրանք ցող է տալիս: Ընդամենը՝ \(treeManager.totalSeeds)",
+                ru: "Каждая прочитанная глава, свеча и выполненное задание дают росинки. Всего собрано: \(treeManager.totalSeeds)",
+                en: "Every chapter you read, candle you light and task you finish gives dew. Collected so far: \(treeManager.totalSeeds)"
+            ))
+            .font(PaperFont.font(size: 12))
+            .foregroundColor(Paper.inkSecondary)
+            .lineSpacing(2)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Paper.sheet)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Paper.lapis.opacity(0.35), lineWidth: 1.2)
+        )
+    }
+
+    // MARK: - Задания дня
+    private var dailyTasksCard: some View {
+        let tasks = treeManager.todayTasks
+        let doneCount = tasks.filter { treeManager.completedTasks.contains($0) }.count
+        let allDone = !tasks.isEmpty && doneCount == tasks.count
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(language.pick(hy: "ՕՐՎԱ ԱՌԱՋԱԴՐԱՆՔՆԵՐԸ", ru: "ЗАДАНИЯ ДНЯ", en: "TODAY'S TASKS"))
+                    .font(PaperFont.font(size: 11, weight: .semibold))
+                    .foregroundColor(Paper.cinnabar)
+                    .tracking(1.0)
+
+                Spacer()
+
+                Text("\(doneCount)/\(tasks.count)")
+                    .font(PaperFont.font(size: 14, weight: .semibold))
+                    .foregroundColor(allDone ? Paper.moss : Paper.cinnabar)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background((allDone ? Paper.moss : Paper.cinnabar).opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Paper.fillSubtle)
+                        .frame(height: 8)
+                    Capsule()
+                        .fill(LinearGradient(colors: [Paper.cinnabar, Paper.gold], startPoint: .leading, endPoint: .trailing))
+                        .frame(
+                            width: doneCount == 0 ? 0 : max(8, geo.size.width * CGFloat(doneCount) / CGFloat(max(1, tasks.count))),
+                            height: 8
+                        )
+                }
+            }
+            .frame(height: 8)
+
+            VStack(spacing: 12) {
+                ForEach(tasks) { task in
+                    taskRow(task)
+                }
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: allDone ? "checkmark.seal.fill" : "gift.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(allDone ? Paper.moss : Paper.gold)
+                Text(allDone
+                     ? language.pick(
+                        hy: "Բոլոր առաջադրանքները կատարված են՝ բոնուսը ստացված է",
+                        ru: "Все задания выполнены, награда получена",
+                        en: "All tasks are done, the bonus is yours"
+                     )
+                     : language.pick(
+                        hy: "Բոլոր առաջադրանքների համար՝ +\(PomegranateTreeManager.perfectDayBonus) բոնուս ցող",
+                        ru: "За все задания дня: ещё +\(PomegranateTreeManager.perfectDayBonus) росинки",
+                        en: "For all of today's tasks: another +\(PomegranateTreeManager.perfectDayBonus) dew"
+                     ))
+                    .font(PaperFont.font(size: 12, weight: .medium))
+                    .foregroundColor(Paper.inkSecondary)
+                Spacer()
+                if treeManager.perfectDays > 0 {
+                    Text(language.pick(
+                        hy: "\(treeManager.perfectDays) կատարյալ օր",
+                        ru: "\(treeManager.perfectDays) идеальных дн.",
+                        en: "\(treeManager.perfectDays) perfect days"
+                    ))
+                    .font(PaperFont.font(size: 11, weight: .semibold))
+                    .foregroundColor(Paper.gold)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Paper.sheet)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Paper.cinnabar.opacity(0.35), lineWidth: 1.2)
+        )
+    }
+
+    private func taskRow(_ task: PomegranateTask) -> some View {
+        let done = treeManager.completedTasks.contains(task)
+        let progress = treeManager.taskProgress[task] ?? 0
+        let tint = done ? Paper.moss : Paper.gold
+        return HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(tint.opacity(0.16))
+                    .frame(width: 36, height: 36)
+                Image(systemName: done ? "checkmark" : task.icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.title(for: language))
+                    .font(PaperFont.font(size: 14, weight: .semibold))
+                    .foregroundColor(done ? Paper.inkSecondary : Paper.ink)
+                Text(task.target > 1 ? "\(progress)/\(task.target) · " + task.hint(for: language) : task.hint(for: language))
+                    .font(PaperFont.font(size: 12))
+                    .foregroundColor(Paper.inkSecondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 4)
+
+            HStack(spacing: 2) {
+                Image(systemName: "drop.fill")
+                    .font(.system(size: 10))
+                Text("+\(task.dew)")
+                    .font(PaperFont.font(size: 12, weight: .semibold))
+            }
+            .foregroundColor(done ? Paper.moss : Paper.lapis)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill((done ? Paper.moss : Paper.lapis).opacity(0.12)))
+        }
+    }
+
     // MARK: - 3. Прогресс роста и Дорожная карта 6 Стадий
     private var growthProgressBarCard: some View {
         VStack(spacing: 14) {
@@ -397,21 +603,22 @@ struct PomegranateSanctuarySheetView: View {
                                 showingStageDetail = stage
                             } label: {
                                 VStack(spacing: 4) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(
-                                                isCurrent ? Paper.cinnabar :
-                                                (isCompleted ? Paper.moss : (Paper.fillMuted))
+                                    ZStack(alignment: .topTrailing) {
+                                        PomegranateTreeView(stage: stage, style: .compact(height: 44))
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                                    .fill(Paper.page)
                                             )
-                                            .frame(width: 36, height: 36)
-                                        
+                                            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                            .saturation(stage > treeManager.currentStage ? 0 : 1)
+                                            .opacity(stage > treeManager.currentStage ? 0.45 : 1)
+
                                         if isCompleted {
-                                            Image(systemName: "checkmark")
+                                            Image(systemName: "checkmark.circle.fill")
                                                 .font(.system(size: 13, weight: .semibold))
-                                                .foregroundColor(Paper.ink)
-                                        } else {
-                                            Text(stageIcon(for: stage))
-                                                .font(PaperFont.font(size: 16))
+                                                .symbolRenderingMode(.palette)
+                                            .foregroundStyle(Paper.onAccent, Paper.moss)
+                                                .offset(x: 4, y: -4)
                                         }
                                     }
                                     
@@ -493,27 +700,15 @@ struct PomegranateSanctuarySheetView: View {
                         }
                     } label: {
                         VStack(spacing: 8) {
-                            ZStack {
-                                Circle()
-                                    .fill(
-                                        isUnlocked ?
-                                        LinearGradient(
-                                            colors: [Paper.cinnabar, Paper.cinnabar],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ) :
-                                        LinearGradient(
-                                            colors: [Paper.fillMuted, Paper.fillMuted],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 44, height: 44)
-                                    .shadow(color: isUnlocked ? Paper.cinnabar.opacity(0.4) : Color.clear, radius: 4)
-                                
-                                Image(systemName: fruit.icon)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(isUnlocked ? Paper.onAccent : Paper.inkSecondary)
+                            ZStack(alignment: .bottomTrailing) {
+                                PomegranateFruitGlyph(size: 46, isLocked: !isUnlocked)
+
+                                Image(systemName: isUnlocked ? fruit.icon : "lock.fill")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(isUnlocked ? Paper.cinnabar : Paper.inkTertiary)
+                                    .frame(width: 18, height: 18)
+                                    .background(Circle().fill(Paper.sheet))
+                                    .overlay(Circle().strokeBorder(Paper.hairline, lineWidth: 0.8))
                             }
                             
                             Text(fruit.name(for: language))
@@ -581,17 +776,6 @@ struct PomegranateSanctuarySheetView: View {
         )
     }
     
-    // MARK: - Иконка стадии для Roadmap
-    private func stageIcon(for stage: PomegranateStage) -> String {
-        switch stage {
-        case .seed: return "🌱"
-        case .sprout: return "🌿"
-        case .youngTree: return "🌳"
-        case .bloomingTree: return "🌺"
-        case .fruitfulTree: return "🍎"
-        case .treeOfLife: return "✨"
-        }
-    }
     
     // MARK: - Обработка тапа на плод
     private func handleFruitTap(index: Int) {
@@ -640,29 +824,20 @@ struct SpiritualFruitDetailSheetView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Иконка плода в короне
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Paper.cinnabar, Paper.cinnabar, Paper.cinnabar],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
-                    .shadow(color: Paper.shadow, radius: 10, y: 4)
-                
-                Image(systemName: fruit.icon)
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundColor(Paper.ink)
-            }
-            .padding(.top, 14)
-            
+            // Раскрытый плод граната
+            PomegranateFruitGlyph(size: 104, isOpen: true)
+                .shadow(color: Paper.shadow, radius: 10, y: 4)
+                .padding(.top, 14)
+
             VStack(spacing: 6) {
-                Text(fruit.name(for: language))
-                    .font(PaperFont.font(size: 26, weight: .semibold))
-                    .foregroundColor(Paper.ink)
+                HStack(spacing: 8) {
+                    Image(systemName: fruit.icon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Paper.cinnabar)
+                    Text(fruit.name(for: language))
+                        .font(PaperFont.font(size: 26, weight: .semibold))
+                        .foregroundColor(Paper.ink)
+                }
                 
                 Text(fruit.scriptureRef)
                     .font(PaperFont.font(size: 13, weight: .semibold))
@@ -793,14 +968,12 @@ struct PomegranateGrowthGuideSheetView: View {
                 VStack(spacing: 20) {
                     // 1. Верхняя карточка-интро
                     VStack(spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(Paper.cinnabar.opacity(0.12))
-                                .frame(width: 64, height: 64)
-                            Image(systemName: "tree.fill")
-                                .font(.system(size: 30))
-                                .foregroundColor(Paper.cinnabar)
-                        }
+                        PomegranateTreeView(stage: .treeOfLife, style: .compact(height: 84))
+                            .background(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .fill(Paper.page)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                         
                         Text(language == .armenian ? "Ինչպե՞ս է աճում ծառը" : (language == .russian ? "Как растёт Древо веры?" : "How does the Tree grow?"))
                             .font(PaperFont.font(size: 22, weight: .semibold))
@@ -825,27 +998,38 @@ struct PomegranateGrowthGuideSheetView: View {
                             iconColor: Paper.lapis,
                             title: language == .armenian ? "1. Ամենօրյա ընթերցում" : (language == .russian ? "1. Ежедневное чтение Слова" : "1. Daily Word Reading"),
                             text: language == .armenian ?
-                            "Ամեն օր կարդացեք Աստվածաշունչը կամ օրվա համարը: Յուրաքանչյուր օր ձեր стрик-ը մեծանում է 1-ով:" :
+                            "Կարդացեք Աստվածաշնչի գլուխները. գլուխը հաշվվում է, երբ նրա վրա մնում եք առնվազն 20 վայրկյան: Օրվա առաջին գործողությունը ծառը ցողում է, և օրերի թիվը մեծանում է 1-ով:" :
                             (language == .russian ?
-                             "Каждый день открывайте стих дня или читайте главы Писания. Каждый день непрерывного чтения добавляет +1 день к стрику." :
-                             "Read today's verse or Scripture chapters daily. Each consecutive day adds +1 to your reading streak.")
+                             "Читайте главы Писания: глава засчитывается, когда вы остаётесь на ней хотя бы 20 секунд. Первое за день действие омывает древо и добавляет +1 день." :
+                             "Read chapters of Scripture: a chapter counts once you stay on it for at least 20 seconds. The first action of the day waters the tree and adds +1 day.")
+                        )
+                        
+                        guideRuleCard(
+                            icon: "checklist",
+                            iconColor: Paper.cinnabar,
+                            title: language == .armenian ? "2. Օրվա առաջադրանքներ" : (language == .russian ? "2. Задания дня" : "2. Daily tasks"),
+                            text: language == .armenian ?
+                            "Ամեն օր չորս առաջադրանք է՝ գլուխ կարդալ, մոմ վառել և ևս երկուսը: Յուրաքանչյուրը ցող է տալիս, իսկ բոլորը միասին՝ բոնուս: Ցողը բարձրացնում է այգու աստիճանը:" :
+                            (language == .russian ?
+                             "Каждый день четыре задания: прочитать главу, зажечь свечу и ещё два. За каждое древо получает росинки, а за все вместе ещё бонус. Росинки поднимают ступень сада." :
+                             "Every day brings four tasks: read a chapter, light a candle and two more. Each one gives dew, and all together give a bonus. Dew raises the garden level.")
                         )
                         
                         guideRuleCard(
                             icon: "drop.fill",
                             iconColor: Paper.lapis,
-                            title: language == .armenian ? "2. Երկնային առավոտյան ցող" : (language == .russian ? "2. Небесная утренняя роса" : "2. Morning Heavenly Dew"),
+                            title: language == .armenian ? "3. Երկնային առավոտյան ցող" : (language == .russian ? "3. Небесная утренняя роса" : "3. Morning Heavenly Dew"),
                             text: language == .armenian ?
-                            "Յուրաքանչյուր նոր օր ծառը ստանում է երկնային ցող: Սեղմեք «Ցողել» կամ կարդացեք համարը՝ ծառը սնելու համար:" :
+                            "Յուրաքանչյուր նոր օր ծառը ստանում է երկնային ցող: Սեղմեք «Ցողել», կարդացեք գլուխ կամ վառեք մոմ՝ ծառը սնելու համար:" :
                             (language == .russian ?
-                             "Каждое утро дерево ожидает росы. Нажмите «Омыть» или прочтите стих дня, чтобы напитать корни благодатью." :
-                             "Every morning the tree receives dew. Tap 'Water' or read the verse to nourish its holy roots.")
+                             "Каждое утро дерево ожидает росы. Нажмите «Омыть», прочтите главу или зажгите свечу, чтобы напитать корни благодатью." :
+                             "Every morning the tree receives dew. Tap 'Water', read a chapter or light a candle to nourish its holy roots.")
                         )
                         
                         guideRuleCard(
                             icon: "leaf.arrow.triangle.circlepath",
                             iconColor: Paper.moss,
-                            title: language == .armenian ? "3. 6 Սրբազան Փուլեր" : (language == .russian ? "3. 6 Ступеней роста" : "3. 6 Growth Stages"),
+                            title: language == .armenian ? "4. 6 Սրբազան Փուլեր" : (language == .russian ? "4. 6 Ступеней роста" : "4. 6 Growth Stages"),
                             text: language == .armenian ?
                             "🌱 Սերմ (1-2 օր) ➔ 🌿 Ծիլ (3-6 օր) ➔ 🌳 Տնկի (7-13 օր) ➔ 🌺 Ծաղկած (14-29 օր) ➔ 🍎 Պտղաբեր (30-59 օր) ➔ ✨ Կենաց Ծառ (60+ օր):" :
                             (language == .russian ?
@@ -856,7 +1040,7 @@ struct PomegranateGrowthGuideSheetView: View {
                         guideRuleCard(
                             icon: "heart.fill",
                             iconColor: Paper.cinnabar,
-                            title: language == .armenian ? "4. Հոգու 9 Պտուղները (Գաղ. 5:22-23)" : (language == .russian ? "4. 9 Плодов Духа (Гал. 5:22-23)" : "4. 9 Fruits of the Spirit"),
+                            title: language == .armenian ? "5. Հոգու 9 Պտուղները (Գաղ. 5:22-23)" : (language == .russian ? "5. 9 Плодов Духа (Гал. 5:22-23)" : "5. 9 Fruits of the Spirit"),
                             text: language == .armenian ?
                             "14-րդ օրվանից ծառի ճյուղերին հասունանում են նռան պտուղները: Սեղմեք նռանը՝ բացելու համար Սիրո, Խնդության, Խաղաղության օրհնությունները:" :
                             (language == .russian ?
@@ -867,7 +1051,7 @@ struct PomegranateGrowthGuideSheetView: View {
                         guideRuleCard(
                             icon: "shield.lefthalf.filled",
                             iconColor: Paper.gold,
-                            title: language == .armenian ? "5. Ողորմության Օրենք (Անմահ Ծառ)" : (language == .russian ? "5. Закон Милосердия (Дерево не умирает)" : "5. Law of Grace (Tree Never Dies)"),
+                            title: language == .armenian ? "6. Ողորմության Օրենք (Անմահ Ծառ)" : (language == .russian ? "6. Закон Милосердия (Дерево не умирает)" : "6. Law of Grace (Tree Never Dies)"),
                             text: language == .armenian ?
                             "Եթե բաց եք թողել մի օր, ծառը չի մահանում: Այն պարզապես սպասում է ձեր վերադարձին և արթնանում է հենց որ կարդաք Աստծո Խոսքը:" :
                             (language == .russian ?
@@ -944,18 +1128,19 @@ struct PomegranateStageDetailSheetView: View {
     var body: some View {
         VStack(spacing: 20) {
             // Иконка стадии
-            ZStack {
-                Circle()
-                    .fill(
-                        isCurrent ? Paper.cinnabar.opacity(0.15) :
-                        (isCompleted ? Paper.moss.opacity(0.15) : Paper.fillMuted)
-                    )
-                    .frame(width: 76, height: 76)
-                
-                Text(stageEmoji(for: stage))
-                    .font(PaperFont.font(size: 38))
-            }
-            .padding(.top, 20)
+            PomegranateTreeView(stage: stage, style: .compact(height: 96))
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Paper.page)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(isCurrent ? Paper.cinnabar.opacity(0.5) : Paper.hairline, lineWidth: 1)
+                )
+                .saturation(isLocked ? 0 : 1)
+                .opacity(isLocked ? 0.5 : 1)
+                .padding(.top, 20)
             
             VStack(spacing: 6) {
                 Text(stage.title(for: language))
@@ -1049,16 +1234,6 @@ struct PomegranateStageDetailSheetView: View {
         }
     }
     
-    private func stageEmoji(for stage: PomegranateStage) -> String {
-        switch stage {
-        case .seed: return "🌱"
-        case .sprout: return "🌿"
-        case .youngTree: return "🌳"
-        case .bloomingTree: return "🌺"
-        case .fruitfulTree: return "🍎"
-        case .treeOfLife: return "✨"
-        }
-    }
     
     private func fruitsUnlocked(for stage: PomegranateStage) -> Int {
         switch stage {

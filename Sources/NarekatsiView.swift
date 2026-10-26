@@ -12,6 +12,7 @@ struct NarekatsiView: View {
     @State private var toastMessage: String? = nil
     @State private var searchText: String = ""
     @State private var isShowingPaywall: Bool = false
+    @State private var readerChapter: NarekOriginalChapter? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -39,19 +40,27 @@ struct NarekatsiView: View {
         Paper.ink
     }
     
-    private var filteredPrayers: [NarekPrayer] {
+    /// Главы оригинала: по номеру, подписи («Բան Ա») или любому слову текста
+    private var filteredChapters: [NarekOriginalChapter] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if trimmed.isEmpty {
-            return NarekatsiDatabase.shared.prayers
-        }
-        return NarekatsiDatabase.shared.prayers.filter { prayer in
-            prayer.banNumber.lowercased().contains(trimmed) ||
-            prayer.title(for: manager.appLanguage).lowercased().contains(trimmed) ||
-            prayer.text(for: manager.appLanguage).lowercased().contains(trimmed) ||
-            "\(prayer.id)".contains(trimmed)
-        }
+        let all = NarekOriginal.shared.chapters
+        if trimmed.isEmpty { return all }
+        if let number = Int(trimmed) { return all.filter { $0.id == number } }
+        return all.filter { $0.ban.lowercased().contains(trimmed) || $0.text.lowercased().contains(trimmed) }
     }
-    
+
+    private var originalNotice: some View {
+        Text(manager.appLanguage.pick(
+            hy: "Սա «Մատյան ողբերգության» բնագիրն է գրաբարով (hy.wikisource.org): Աշխարհաբար թարգմանությունը բացվում է գլխի ընթերցման մեջ՝ վերևի աջ պատկերակով: Ռուսերեն և անգլերեն թարգմանությունները հեղինակային իրավունքով պաշտպանված են և ընդգրկված չեն: Ամբողջ գիրքը լսեք ձայնագրության ներդիրում:",
+            ru: "Это оригинал «Книги скорбных песнопений» на древнеармянском (грабар), источник — hy.wikisource.org. Русских и английских переводов здесь нет: они защищены авторским правом. Современный армянский перевод открывается по ссылке в чтении главы (значок вверху справа). Всю книгу можно послушать во вкладке с аудиозаписью.",
+            en: "This is the original text of the Book of Lamentations in Classical Armenian (Grabar), from hy.wikisource.org. A modern Armenian translation opens from a link in the chapter view (the icon at the top right). Russian and English translations are not included: they are under copyright. Listen to the whole book in the audio tab."
+        ))
+        .font(PaperFont.font(size: 13))
+        .foregroundColor(Paper.inkSecondary)
+        .lineSpacing(3)
+        .padding(.horizontal, 20)
+    }
+
     private var currentOrLastPrayer: NarekPrayer {
         let id = audioPlayer.currentlyPlayingId ?? audioPlayer.savedPrayerId
         return NarekatsiDatabase.shared.prayers.first(where: { $0.id == id }) ?? NarekatsiDatabase.shared.prayers[0]
@@ -122,15 +131,15 @@ struct NarekatsiView: View {
             
             // MARK: - Содержимое выбранной вкладки
             if subTab == 0 {
-                // ВКЛАДКА 1: ТЕКСТОВЫЙ ВАРИАНТ
+                // ВКЛАДКА 1: ПОДЛИННЫЙ ТЕКСТ (95 глав на древнеармянском)
                 ScrollView {
                     VStack(spacing: 16) {
-                        
+
                         // Поиск по 95 главам
                         HStack(spacing: 10) {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(Paper.inkSecondary)
-                            TextField("Поиск по 95 главам (напр. Բան Ժ или Глава 10)...", text: $searchText)
+                            TextField(manager.appLanguage.pick(hy: "Որոնել գլուխներում", ru: "Поиск по главам", en: "Search chapters"), text: $searchText)
                                 .font(PaperFont.font(size: 14))
                                 .foregroundColor(primaryTextColor)
                                 .keyboardDismissToolbar()
@@ -148,45 +157,16 @@ struct NarekatsiView: View {
                         .paperField(cornerRadius: 14)
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
-                        
-                        // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-                        LuysHybridBannerView(placement: .narekatsi)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 2)
-                        
-                        // Список 95 молитв
-                        LazyVStack(spacing: 14) {
-                            ForEach(filteredPrayers) { prayer in
-                                let isLocked = !subscriptionManager.canPlayNarekAudio(prayerId: prayer.id)
-                                NarekCardView(
-                                    prayer: prayer,
-                                    language: manager.appLanguage,
-                                    isPlaying: audioPlayer.isPlaying && audioPlayer.currentlyPlayingId == prayer.id,
-                                    isLocked: isLocked,
-                                    accentColor: accentColor,
-                                    secondaryAccentColor: secondaryAccentColor,
-                                    cardBackgroundColor: cardBackgroundColor,
-                                    cardBorderColor: cardBorderColor,
-                                    primaryTextColor: primaryTextColor,
-                                    onToggleAudio: {
-                                        if isLocked {
-                                            triggerHaptic(.soft)
-                                            isShowingPaywall = true
-                                        } else {
-                                            triggerHaptic(.soft)
-                                            audioPlayer.togglePlay(prayer: prayer, language: manager.appLanguage)
-                                        }
-                                    },
-                                    onPinToWidget: {
-                                        pinPrayerToWidget(prayer)
-                                    },
-                                    onCopy: {
-                                        copyPrayer(prayer)
-                                    },
-                                    onShare: {
-                                        sharePrayer(prayer)
-                                    }
-                                )
+
+                        originalNotice
+
+                        // Подлинный текст: 95 глав
+                        LazyVStack(spacing: 10) {
+                            ForEach(filteredChapters) { chapter in
+                                NarekOriginalRow(chapter: chapter, primaryTextColor: primaryTextColor) {
+                                    triggerHaptic(.light)
+                                    readerChapter = chapter
+                                }
                             }
                         }
                         .padding(.horizontal, 16)
@@ -215,10 +195,6 @@ struct NarekatsiView: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
-                        
-                        // MARK: - Баннерная Реклама VK (LuysHybridBannerView)
-                        LuysHybridBannerView(placement: .narekatsi)
-                            .padding(.horizontal, 16)
                         
                         // ЗАГОЛОВОК ПЛЕЙЛИСТА
                         HStack {
@@ -270,7 +246,7 @@ struct NarekatsiView: View {
                                         
                                         VStack(alignment: .leading, spacing: 3) {
                                             HStack(spacing: 6) {
-                                                Text(prayer.banNumber)
+                                                Text(prayer.chapterLabel(for: audioPlayer.voiceLanguage))
                                                     .font(PaperFont.font(size: 13, weight: .semibold))
                                                     .foregroundColor(isCurrent ? accentColor : primaryTextColor)
                                                 
@@ -283,16 +259,11 @@ struct NarekatsiView: View {
                                                         .padding(.vertical, 2)
                                                         .overlay(Capsule().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 0.8))
                                                 } else {
-                                                    Text("• \(prayer.formattedTimestamp(for: audioPlayer.voiceLanguage))")
+                                                    Text("• \(prayer.timestampLabel(for: audioPlayer.voiceLanguage))")
                                                         .font(PaperFont.font(size: 11, weight: .semibold).monospacedDigit())
                                                         .foregroundColor(isCurrent ? accentColor.opacity(0.9) : Paper.inkSecondary)
                                                 }
                                             }
-                                            
-                                            Text(prayer.title(for: audioPlayer.voiceLanguage))
-                                                .font(PaperFont.font(size: 12, weight: .medium))
-                                                .foregroundColor(isCurrent ? primaryTextColor : Paper.inkSecondary)
-                                                .lineLimit(1)
                                         }
                                         
                                         Spacer()
@@ -357,7 +328,28 @@ struct NarekatsiView: View {
             .animation(.spring(), value: toastMessage)
         )
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "narek_audio")
+        }
+        .onAppear {
+            // Отладочный запуск для съёмки в CI: -openTab narek -narek_reader_chapter N открывает чтение главы N
+            let chapterArg = UserDefaults.standard.integer(forKey: "narek_reader_chapter")
+            if chapterArg > 0, let chapter = NarekOriginal.shared.chapter(id: chapterArg) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { readerChapter = chapter }
+            }
+        }
+        .sheet(item: $readerChapter) { chapter in
+            NarekChapterReaderView(startId: chapter.id) { id in
+                // «Слушать»: закрываем чтение и включаем армянскую запись этой главы (если она доступна)
+                readerChapter = nil
+                guard let prayer = NarekatsiDatabase.shared.prayers.first(where: { $0.id == id }) else { return }
+                subTab = 1
+                if subscriptionManager.canPlayNarekAudio(prayerId: id) {
+                    audioPlayer.playPrayer(prayer, language: .armenian)
+                } else {
+                    // Экран подписки показываем, когда шторка чтения уже закрылась
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { isShowingPaywall = true }
+                }
+            }
         }
         .onReceive(audioPlayer.$paywallRequested) { requested in
             if requested {
@@ -376,29 +368,30 @@ struct NarekatsiView: View {
     }
     
     // MARK: - Хелперы
-    
+
     private func pinPrayerToWidget(_ prayer: NarekPrayer) {
         triggerHaptic(.soft)
         manager.pinVerseToWidget(
             textHy: prayer.textHy,
             textRu: prayer.textRu,
             textEn: prayer.textEn,
-            refHy: prayer.banNumber,
-            refRu: prayer.banNumber,
-            refEn: prayer.banNumber
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         )
         showToast("Աղոթքը տեղադրվեց Վիջեթում 📌")
     }
     
     private func copyPrayer(_ prayer: NarekPrayer) {
         triggerHaptic(.light)
-        UIPasteboard.general.string = "\(prayer.title(for: manager.appLanguage))\n\n\(prayer.text(for: manager.appLanguage))"
+        UIPasteboard.general.string = "\(prayer.inspiredTitle(for: manager.appLanguage))\n\n\(prayer.text(for: manager.appLanguage))"
         showToast("Պատճենված է 📋")
     }
     
     private func sharePrayer(_ prayer: NarekPrayer) {
         triggerHaptic(.light)
-        shareText = "«\(prayer.title(for: manager.appLanguage))»\n\n\(prayer.text(for: manager.appLanguage))\n\n(Գրիգոր Նարեկացի — Մատյան Ողբերգության)"
+        let source = manager.appLanguage.pick(hy: "(Գրիգոր Նարեկացու ոգով)", ru: "(В духе Григора Нарекаци)", en: "(In the spirit of Gregory of Narek)")
+        shareText = "«\(prayer.inspiredTitle(for: manager.appLanguage))»\n\n\(prayer.text(for: manager.appLanguage))\n\n\(source)"
     }
     
     private func showToast(_ msg: String) {
@@ -443,7 +436,7 @@ struct NarekHeroPlayerCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(prayer.banNumber)
+                        Text(prayer.chapterLabel(for: audioPlayer.voiceLanguage))
                             .font(PaperFont.font(size: 18, weight: .semibold))
                             .foregroundColor(accentColor)
                         
@@ -465,11 +458,6 @@ struct NarekHeroPlayerCard: View {
                                 .foregroundColor(Paper.inkSecondary)
                         }
                     }
-                    
-                    Text(prayer.title(for: audioPlayer.voiceLanguage))
-                        .font(PaperFont.font(size: 14, weight: .medium))
-                        .foregroundColor(primaryTextColor)
-                        .lineLimit(2)
                 }
                 
                 Spacer()
@@ -744,51 +732,21 @@ struct NarekCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             
-            // Верхняя строка карточки: Номер главы + Кнопка прослушивания
+            // Верхняя строка карточки: пометка, что это молитва «в духе Нарекаци», а не текст книги
             HStack {
-                Text(prayer.banNumber)
+                Text(language.pick(hy: "Նարեկացու ոգով", ru: "В духе Нарекаци", en: "In the spirit of Narekatsi"))
                     .font(PaperFont.font(size: 13, weight: .semibold))
                     .foregroundColor(accentColor)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(accentColor.opacity(0.12))
                     .cornerRadius(8)
-                
+
                 Spacer()
-                
-                // Кнопка быстрого воспроизведения
-                Button {
-                    onToggleAudio()
-                } label: {
-                    HStack(spacing: 5) {
-                        if isLocked {
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Paper.onAccent)
-                            Text("narek_listen_pro".localized(for: language))
-                                .font(PaperFont.font(size: 11, weight: .semibold))
-                                .foregroundColor(Paper.onAccent)
-                        } else {
-                            Image(systemName: isPlaying ? "stop.fill" : "speaker.wave.2.fill")
-                                .font(.system(size: 12, weight: .semibold))
-                            Text(isPlaying ? "narek_stop".localized(for: language) : "narek_listen_prayer".localized(for: language))
-                                .font(PaperFont.font(size: 12, weight: .semibold))
-                        }
-                    }
-                    .foregroundColor(isLocked ? Paper.onAccent : (isPlaying ? Paper.onAccent : accentColor))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        isLocked ? AnyShapeStyle(Paper.gold) :
-                        (isPlaying ? AnyShapeStyle(Paper.cinnabar) : AnyShapeStyle(accentColor.opacity(0.12)))
-                    )
-                    .cornerRadius(12)
-                }
-                .buttonStyle(ScaleButtonStyle())
             }
-            
-            // Заголовок главы
-            Text(prayer.title(for: language))
+
+            // Название молитвы
+            Text(prayer.inspiredTitle(for: language))
                 .font(PaperFont.font(size: 16, weight: .semibold))
                 .foregroundColor(primaryTextColor)
                 .fixedSize(horizontal: false, vertical: true)
@@ -802,7 +760,7 @@ struct NarekCardView: View {
             
             // Нижняя панель действий (Виджет, Копировать, Поделиться)
             HStack {
-                Text("saint_gregory_narekatsi".localized(for: language))
+                Text(language.pick(hy: "Ոգով, ոչ թե բառացի տեքստ", ru: "В духе, не дословный текст", en: "In the spirit, not verbatim"))
                     .font(PaperFont.font(size: 12, weight: .semibold))
                     .foregroundColor(accentColor.opacity(0.8))
                 

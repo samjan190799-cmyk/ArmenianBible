@@ -55,7 +55,7 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Ձեր ամբողջ հոգսը Նրա՛ վրա գցեք։",
             textRu: "Все заботы ваши возложите на Него.",
-            textEn: "Casting all your care upon him.",
+            textEn: "Cast all your care upon him.",
             refHy: "Ա Պետրոս 5:7",
             refRu: "1 Петра 5:7",
             refEn: "1 Peter 5:7"
@@ -87,7 +87,7 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Աստծո համար անհնարին ոչինչ չկա։",
             textRu: "У Бога не останется бессильным никакое слово.",
-            textEn: "For with God nothing shall be impossible.",
+            textEn: "With God nothing shall be impossible.",
             refHy: "Ղուկաս 1:37",
             refRu: "Луки 1:37",
             refEn: "Luke 1:37"
@@ -103,7 +103,7 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Հիսուս Քրիստոսը նույնն է հավիտյան։",
             textRu: "Иисус Христос Тот же вовеки.",
-            textEn: "Jesus Christ the same forever.",
+            textEn: "Jesus Christ is the same forever.",
             refHy: "Եբրայեցիս 13:8",
             refRu: "Евреям 13:8",
             refEn: "Hebrews 13:8"
@@ -151,7 +151,7 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Հույսով ուրախացե՛ք, նեղությանը համբերեցե՛ք։",
             textRu: "Утешайтесь надеждой, терпите в скорби.",
-            textEn: "Rejoice in hope; patient in tribulation.",
+            textEn: "Rejoice in hope; be patient in tribulation.",
             refHy: "Հռոմեացիս 12:12",
             refRu: "Римлянам 12:12",
             refEn: "Romans 12:12"
@@ -166,105 +166,200 @@ extension BibleVerse {
         )
     ]
 
-    // MARK: - 2. 👑 Краткие молитвы Нарекаци (PRO) — до 55 символов
-    static let shortNarekatsi: [BibleVerse] = [
+    // MARK: - 2. 👑 Краткие молитвы Нарекаци (PRO) — до 46 символов
+    // Строки из текстов глав в самом приложении (NarekatsiDatabase*.swift), по строке в законченной мысли;
+    // союз в начале строки («И», «Но») убран, запятая в конце заменена на точку. Все три языка выровнены построчно.
+    static let shortNarekatsiBase: [BibleVerse] = [
         BibleVerse(
-            textHy: "Ընդո՛ւնիր քաղցրությամբ, Տե՛ր, աղաչանքս։",
-            textRu: "Прими с благосклонностью мольбу мою, Господи.",
-            textEn: "Lord God, accept with favor my prayer.",
-            refHy: "Նարեկացի • Բան Ա",
-            refRu: "Нарекаци • Глава 1",
-            refEn: "Narekatsi • Prayer 1"
+            textHy: "Ընդունիր աղօթքս այս խոնարհ հոգու։",
+            textRu: "Прими сие молитвенное пение сокрушенного духа.",
+            textEn: "Accept this prayer of a humble spirit.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Դո՛ւ ես իմ հոգու լույսն ու հույսը։",
-            textRu: "Ты — свет и надежда души моей.",
-            textEn: "Thou art light and hope of my soul.",
-            refHy: "Նարեկացի • Բան ԺԲ",
-            refRu: "Нарекаци • Глава 12",
-            refEn: "Narekatsi • Prayer 12"
+            textHy: "Մի մերժիր աղերսն իմ արցունքոտ։",
+            textRu: "Не отвергни слез моих горьких.",
+            textEn: "Reject not my tearful plea.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Ողորմա՛ծ Տեր, խաղաղությո՛ւն տուր իմ սրտին։",
-            textRu: "Господи милосердный, даруй мир сердцу моему.",
-            textEn: "Merciful Lord, grant peace unto my heart.",
-            refHy: "Նարեկացի • Բան ԺԸ",
-            refRu: "Нарекаци • Глава 18",
-            refEn: "Narekatsi • Prayer 18"
+            textHy: "Նայիր ինձ քո առատ ողորմութեամբ։",
+            textRu: "Призри на меня по великой милости Твоей.",
+            textEn: "Look upon me with Your abundant mercy.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Քո ձեռքն եմ հանձնում հոգիս, Տե՛ր։",
-            textRu: "В Твои руки предаю душу мою, Господи.",
-            textEn: "Into Thy hands I commit my soul, Lord.",
-            refHy: "Նարեկացի • Բան ԻԳ",
-            refRu: "Нарекаци • Глава 23",
-            refEn: "Narekatsi • Prayer 23"
+            textHy: "Տուր ինձ բժշկութիւն ու խաղաղութիւն։",
+            textRu: "Даруй мне исцеление и покой души.",
+            textEn: "Grant me healing and divine peace.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Մաքրի՛ր մեղքերս, Քրիստո՛ս, և նորոգի՛ր հոգիս։",
-            textRu: "Очисти грехи мои и обнови дух мой.",
-            textEn: "Cleanse my sins, Lord, and renew my spirit.",
-            refHy: "Նարեկացի • Բան ԼԳ",
-            refRu: "Нарекаци • Глава 33",
-            refEn: "Narekatsi • Prayer 33"
+            textHy: "Առ քեզ եմ նայում, լոյս ճշմարիտ։",
+            textRu: "К Тебе возвожу взор мой, Свет Истинный.",
+            textEn: "To You I lift up my eyes, O True Light.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Դո՛ւ ես կյանքը և փրկությունը, Աստվա՛ծ։",
-            textRu: "Ты — жизнь и спасение, помилуй, Боже.",
-            textEn: "Thou art life and salvation, O God.",
-            refHy: "Նարեկացի • Բան ԽԱ",
-            refRu: "Нарекаци • Глава 41",
-            refEn: "Narekatsi • Prayer 41"
+            textHy: "Փրկիր ինձ մեղաց ծովից։",
+            textRu: "Избави меня от пучины греховной.",
+            textEn: "Save me from the abyss of sin.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Թո՛ղ Քո շնորհի լույսը ծագի իմ խավարի մեջ։",
-            textRu: "Да воссияет свет благодати Твоей во тьме.",
-            textEn: "Let the light of Thy grace shine on me.",
-            refHy: "Նարեկացի • Բան ԾԵ",
-            refRu: "Нарекаци • Глава 55",
-            refEn: "Narekatsi • Prayer 55"
+            textHy: "Ինչպէ՞ս համարձակուեմ կանգնել քո առաջ։",
+            textRu: "Как дерзну предстать пред ликом Твоим?",
+            textEn: "How shall I dare to stand before Your face?",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Եղի՛ր ինձ պաշտպան և անսասան վեմ, Տե՛ր։",
-            textRu: "Будь мне защитой и твердыней, Господи.",
-            textEn: "Be my defense and rock, O Lord.",
-            refHy: "Նարեկացի • Բան ԿԷ",
-            refRu: "Нарекаци • Глава 67",
-            refEn: "Narekatsi • Prayer 67"
+            textHy: "Ով Ամենասուրբ և Անհասանելի Աստուած։",
+            textRu: "О Пресвятый и Непостижимый Боже!",
+            textEn: "O Most Holy and Incomprehensible God!",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Մխիթարի՛ր սգավոր հոգիս երկնային ուրախությամբ։",
-            textRu: "Утешь скорбящую душу мою небесною радостью.",
-            textEn: "Comfort my sorrowful soul with heavenly joy.",
-            refHy: "Նարեկացի • Բան ՀԹ",
-            refRu: "Нарекаци • Глава 79",
-            refEn: "Narekatsi • Prayer 79"
+            textHy: "Քո քաղցրութիւնն է ինձ ձգում առ քեզ։",
+            textRu: "Благость Твоя влечет меня к Тебе.",
+            textEn: "Your loving-kindness draws me to You.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Տե՛ր, օրհնի՛ր այս օրը Քո խաղաղությամբ։",
-            textRu: "Господи, благослови сей день миром Твоим.",
-            textEn: "Lord, bless this day with Thy peace.",
-            refHy: "Նարեկացի • Բան ՁԸ",
-            refRu: "Нарекаци • Глава 88",
-            refEn: "Narekatsi • Prayer 88"
+            textHy: "Քո խոստումն է տալիս ինձ յոյս։",
+            textRu: "Обещание Твое дарует мне непреложную надежду.",
+            textEn: "Your promise gives me steadfast hope.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Քե՛զ փառք և գոհություն հավիտյանս, Ամեն։",
-            textRu: "Тебе слава и благодарение вовеки, Аминь.",
-            textEn: "To Thee be glory and thanks forever, Amen.",
-            refHy: "Նարեկացի • Բան ՂԳ",
-            refRu: "Нарекаци • Глава 93",
-            refEn: "Narekatsi • Prayer 93"
+            textHy: "Զանօրէնութիւնս իմ ես ինձէն գիտեմ։",
+            textRu: "Беззакония мои знаю я сам.",
+            textEn: "My transgressions I know full well.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         ),
         BibleVerse(
-            textHy: "Նայի՛ր ինձ սիրով և փրկի՛ր, Փրկի՛չ իմ։",
-            textRu: "Взгляни с любовью и спаси, Спаситель мой.",
-            textEn: "Look with love and save me, my Savior.",
-            refHy: "Նարեկացի • Բան ՂԵ",
-            refRu: "Нарекаци • Глава 95",
-            refEn: "Narekatsi • Prayer 95"
+            textHy: "Թող ինձ, Տէր, և ներեա։",
+            textRu: "Прости мне, Господи, и помилуй.",
+            textEn: "Forgive me, O Lord, and have mercy.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Դու ես կեանքը իմ, ով Քրիստոս։",
+            textRu: "Ты — жизнь моя, о Христе.",
+            textEn: "You are my life, O Christ.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Դու ես յարութիւնն և լոյսը հոգւոյս։",
+            textRu: "Ты — воскресение и свет души моей.",
+            textEn: "You are the resurrection and light of my soul.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Քեզ եմ հաւատում և քեզ երկրպագում։",
+            textRu: "В Тебя верую и Тебе поклоняюсь.",
+            textEn: "In You I believe and You I worship.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
         )
     ]
+
+    /// Строфы Нарекаци целиком (3–4 строки) для среднего и большого виджета: виджет берёт те, что влезают по длине
+    static let narekStanzasBase: [BibleVerse] = [
+        BibleVerse(
+            textHy: "Ձայն հառաչանաց, հեծութեան ողբոց,\nԱղաղակ սրտի, քեզ եմ ընծայում,\nՈվ Աստուած իմ, տէր իմ, փրկիչ իմ բարերար։",
+            textRu: "Сконфужен взором, вздохом сокрушен,\nВопль сердца своего, стон исступленный\nТебе возношу я, Господи мой и Спаситель!",
+            textEn: "The voice of sighing, weeping and lamenting,\nThe cry of the heart, I offer to You,\nO my God, my Lord and benevolent Savior!",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Ընդունիր աղօթքս այս խոնարհ հոգու,\nԵւ մի մերժիր աղերսն իմ արցունքոտ,\nԱյլ նայիր ինձ քո առատ ողորմութեամբ\nԵւ տուր ինձ բժշկութիւն ու խաղաղութիւն։",
+            textRu: "Прими сие молитвенное пение сокрушенного духа\nИ не отвергни слез моих горьких,\nНо призри на меня по великой милости Твоей\nИ даруй мне исцеление и покой души.",
+            textEn: "Accept this prayer of a humble spirit,\nAnd reject not my tearful plea,\nBut look upon me with Your abundant mercy\nAnd grant me healing and divine peace.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Առ քեզ եմ նայում, լոյս ճշմարիտ,\nՈր լուսաւորում ես ամէն մարդու,\nՈր գալիս է այս աշխարհ։",
+            textRu: "К Тебе возвожу взор мой, Свет Истинный,\nПросвещающий всякого человека,\nПриходящего в этот мир.",
+            textEn: "To You I lift up my eyes, O True Light,\nWho enlightens every person\nComing into the world.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Փրկիր ինձ մեղաց ծովից,\nԵւ հաստատիր ոտքերս քո վեմի վրայ։",
+            textRu: "Избави меня от пучины греховной\nИ утверди стопы мои на камне веры Твоей.",
+            textEn: "Save me from the abyss of sin\nAnd establish my feet upon the rock of Your faith.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Արդ, ես՝ աղբս մարդկային, փոշիս հողեղէն,\nԻնչպէ՞ս համարձակուեմ կանգնել քո առաջ,\nՈվ Ամենասուրբ և Անհասանելի Աստուած։",
+            textRu: "И ныне я, прах и пепел земной,\nКак дерзну предстать пред ликом Твоим,\nО Пресвятый и Непостижимый Боже!",
+            textEn: "And now I, dust and ashes of the earth,\nHow shall I dare to stand before Your face,\nO Most Holy and Incomprehensible God!",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Բայց քո քաղցրութիւնն է ինձ ձգում առ քեզ,\nԵւ քո խոստումն է տալիս ինձ յոյս։",
+            textRu: "Но благость Твоя влечет меня к Тебе,\nИ обещание Твое дарует мне непреложную надежду.",
+            textEn: "Yet Your loving-kindness draws me to You,\nAnd Your promise gives me steadfast hope.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Մեղայ քեզ, Տէր, մեղայ,\nԵւ զանօրէնութիւնս իմ ես ինձէն գիտեմ։\nԱյլ աղաչեմ և խնդրեմ ի քէն,\nԹող ինձ, Տէր, և ներեա։",
+            textRu: "Согрешил я перед Тобой, Господи, согрешил,\nИ беззакония мои знаю я сам.\nНо молю и прошу Тебя:\nПрости мне, Господи, и помилуй.",
+            textEn: "I have sinned against You, O Lord, I have sinned,\nAnd my transgressions I know full well.\nYet I pray and beseech You:\nForgive me, O Lord, and have mercy.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        ),
+        BibleVerse(
+            textHy: "Դու ես կեանքը իմ, ով Քրիստոս,\nԴու ես յարութիւնն և լոյսը հոգւոյս։\nՔեզ եմ հաւատում և քեզ երկրպագում,\nՕրհնեալ յաւիտեանս։",
+            textRu: "Ты — жизнь моя, о Христе,\nТы — воскресение и свет души моей.\nВ Тебя верую и Тебе поклоняюсь,\nБлагословенный во веки веков.",
+            textEn: "You are my life, O Christ,\nYou are the resurrection and light of my soul.\nIn You I believe and You I worship,\nBlessed forever and ever.",
+            refHy: "Նարեկացու ոգով",
+            refRu: "В духе Нарекаци",
+            refEn: "In the spirit of Narekatsi"
+        )
+    ]
+
 
     // MARK: - 3. ✝️ Короткие Псалмы Давида (PRO) — до 50 символов
     static let shortPsalms: [BibleVerse] = [
@@ -342,15 +437,15 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Տիրոջո՛վ ուրախացիր, և Նա կտա քո խնդրանքը։",
-            textRu: "Утешайся Господом, и Он исполнит желания.",
-            textEn: "Delight in the Lord, and He shall give.",
+            textRu: "Утешайся Господом, и Он исполнит желания твои.",
+            textEn: "Delight in the Lord; He grants thy desires.",
             refHy: "Սաղմոսներ 37:4",
             refRu: "Псалом 36:4",
             refEn: "Psalm 37:4"
         ),
         BibleVerse(
             textHy: "Իմ օգնությունը Տիրոջից է։",
-            textRu: "Помощь моя — от Господа Всевышнего.",
+            textRu: "Помощь моя — от Господа.",
             textEn: "My help cometh from the Lord.",
             refHy: "Սաղմոսներ 121:2",
             refRu: "Псалом 120:2",
@@ -435,7 +530,7 @@ extension BibleVerse {
         BibleVerse(
             textHy: "Իմաստության սկիզբը Տիրոջ երկյուղն է։",
             textRu: "Начало мудрости — страх Господень.",
-            textEn: "The fear of the Lord is wisdom.",
+            textEn: "Fear of the Lord is the beginning of wisdom.",
             refHy: "Առակաց 9:10",
             refRu: "Притчи 9:10",
             refEn: "Proverbs 9:10"
@@ -449,12 +544,12 @@ extension BibleVerse {
             refEn: "Proverbs 16:9"
         ),
         BibleVerse(
-            textHy: "Ինչպես ջուրը՝ այնպես սիրտը մարդու։",
-            textRu: "Как в воде лицо, так сердце — к человеку.",
-            textEn: "As in water face, so is heart to man.",
-            refHy: "Առակաց 27:19",
-            refRu: "Притчи 27:19",
-            refEn: "Proverbs 27:19"
+            textHy: "Աստծու ամեն մի խոսքը փորձված է։",
+            textRu: "Всякое слово Бога чисто.",
+            textEn: "Every word of God is pure.",
+            refHy: "Առակաց 30:5",
+            refRu: "Притчи 30:5",
+            refEn: "Proverbs 30:5"
         ),
         BibleVerse(
             textHy: "Ամեն ինչ իր ժամանակն ունի։",
@@ -509,9 +604,9 @@ extension BibleVerse {
             refEn: "1 Corinthians 13:8"
         ),
         BibleVerse(
-            textHy: "Սրանցից մեծագույնը սերն է։",
+            textHy: "Հավատ, հույս, սեր. սրանցից մեծագույնը սերն է։",
             textRu: "Вера, надежда, любовь; но больше — любовь.",
-            textEn: "Faith, hope, love; greatest of these is love.",
+            textEn: "Faith, hope, love; the greatest is love.",
             refHy: "Ա Կորնթացիս 13:13",
             refRu: "1 Коринфянам 13:13",
             refEn: "1 Corinthians 13:13"
@@ -542,8 +637,8 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Մնացե՛ք իմ սիրո մեջ։",
-            textRu: "Пребудьте в любви Моей, говорит Господь.",
-            textEn: "Continue ye in my love, saith the Lord.",
+            textRu: "Пребудьте в любви Моей.",
+            textEn: "Continue ye in my love.",
             refHy: "Հովհաննես 15:9",
             refRu: "Иоанна 15:9",
             refEn: "John 15:9"

@@ -88,6 +88,38 @@ enum AppGroupConstants {
         UserDefaults.standard.synchronize()
     }
     
+    // MARK: Файлы в общем контейнере (картинки листов молитв для виджета)
+    /// Записывает файл во все доступные общие контейнеры
+    static func syncFileToAll(_ data: Data, named name: String) {
+        for suite in allSuites {
+            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: suite) {
+                try? data.write(to: container.appendingPathComponent(name), options: .atomic)
+            }
+        }
+    }
+
+    /// Читает файл из первого общего контейнера, где он есть
+    static func sharedFile(named name: String) -> Data? {
+        for suite in allSuites {
+            if let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: suite),
+               let data = try? Data(contentsOf: container.appendingPathComponent(name)), !data.isEmpty {
+                return data
+            }
+        }
+        return nil
+    }
+
+    /// Удаляет файлы с префиксом, которых нет в списке нужных (листы сгоревших свечей)
+    static func removeSharedFiles(withPrefix prefix: String, keeping kept: Set<String>) {
+        for suite in allSuites {
+            guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: suite),
+                  let names = try? FileManager.default.contentsOfDirectory(atPath: container.path) else { continue }
+            for name in names where name.hasPrefix(prefix) && !kept.contains(name) {
+                try? FileManager.default.removeItem(at: container.appendingPathComponent(name))
+            }
+        }
+    }
+
     /// Отказоустойчивое чтение выбранного стиля виджета
     static func sharedVisualStyle() -> WidgetVisualStyle {
         let keys = ["widget_visual_style", "widgetVisualStyle"]

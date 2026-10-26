@@ -2,7 +2,8 @@ import Foundation
 import SwiftUI
 
 extension BibleVerse {
-    static let database: [BibleVerse] = [
+    /// Основные стихи; к ним добавляются ещё не повторяющиеся стихи из подборки «Вера и Мужество» (см. database в +Filter)
+    static let baseDatabase: [BibleVerse] = [
         BibleVerse(
             textHy: "Որովհետև Աստված այնքան սիրեց աշխարհը, որ իր միածին Որդուն տվեց, որպեսզի ամեն նրան հավատացողը չկորչի, այլ հավիտենական կյանք ունենա։",
             textRu: "Ибо так возлюбил Бог мир, что отдал Сына Своего Единородного, дабы всякий верующий в Него не погиб, но имел жизнь вечную.",
@@ -12,7 +13,7 @@ extension BibleVerse {
             refEn: "John 3:16"
         ),
         BibleVerse(
-            textHy: "Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ Կանաչ մարգագետիններում նա ինձ պառկեցնում է և հանդարտ ջрերի մոտ է տանում ինձ։",
+            textHy: "Տերը իմ հովիվն է, և ես կարիք չեմ ունենա։ Կանաչ մարգագետիններում նա ինձ պառկեցնում է և հանդարտ ջրերի մոտ է տանում ինձ։",
             textRu: "Господь — Пастырь мой; я ни в чем не буду нуждаться. Он покоит меня на злачных пажитях и водит меня к водам тихим.",
             textEn: "The Lord is my shepherd; I shall not want. He maketh me to lie down in green pastures: he leadeth me beside the still waters.",
             refHy: "Սաղմոսներ 23:1-2",
@@ -28,7 +29,7 @@ extension BibleVerse {
             refEn: "Joshua 1:9"
         ),
         BibleVerse(
-            textHy: "Ամբողջ սրտովդ Տիրոջն ապավինիր և քո սեփական հասկացողությանը մի՛ վստահիր: Քո բոլոր ճանապարհներին ճանաչի՛ր նրան, և նա կուղղի քո շավիղները:",
+            textHy: "Ամբողջ սրտովդ Տիրոջն ապավինիր և քո սեփական հասկացողությանը մի՛ վստահիր։ Քո բոլոր ճանապարհներին ճանաչի՛ր նրան, և նա կուղղի քո շավիղները։",
             textRu: "Надейся на Господа всем сердцем твоим, и не полагайся на разум твой. Во всех путях твоих познавай Его, и Он направит стези твои.",
             textEn: "Trust in the Lord with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.",
             refHy: "Առակաց 3:5-6",
@@ -76,7 +77,7 @@ extension BibleVerse {
             refEn: "Galatians 5:22-23"
         ),
         BibleVerse(
-            textHy: "Քո խոսքը ճրագ է իմ ոտքերի համար և լույս՝ իմ ճանապարհին:",
+            textHy: "Քո խոսքը ճրագ է իմ ոտքերի համար և լույս՝ իմ ճանապարհին։",
             textRu: "Слово Твое — светильник ноге моей и свет стезе моей.",
             textEn: "Thy word is a lamp unto my feet, and a light unto my path.",
             refHy: "Սաղմոսներ 119:105",
@@ -84,7 +85,7 @@ extension BibleVerse {
             refEn: "Psalm 119:105"
         ),
         BibleVerse(
-            textHy: "Եկե՛ք ինձ մոտ, բոլոր հոգնածնե՛րդ և բեռնավորվածնե՛րդ, և ես ձեզ հանգիստ կտամ:",
+            textHy: "Եկե՛ք ինձ մոտ, բոլոր հոգնածնե՛րդ և բեռնավորվածնե՛րդ, և ես ձեզ հանգիստ կտամ։",
             textRu: "Придите ко Мне все труждающиеся и обремененные, и Я успокою вас.",
             textEn: "Come unto me, all ye that labour and are heavy laden, and I will give you rest.",
             refHy: "Մատթեոս 11:28",
@@ -108,7 +109,7 @@ extension BibleVerse {
             refEn: "1 Cor 13:4-5"
         ),
         BibleVerse(
-            textHy: "Որովհետև Աստված մեզ երկչոտության հոգի չտվեց, այլ՝ զորության, սիրո և ողջախոհության:",
+            textHy: "Որովհետև Աստված մեզ երկչոտության հոգի չտվեց, այլ՝ զորության, սիրո և ողջախոհության։",
             textRu: "Ибо дал нам Бог духа не боязни, но силы и любви и целомудрия.",
             textEn: "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.",
             refHy: "Բ Տիմոթեոս 1:7",
@@ -132,7 +133,7 @@ extension BibleVerse {
             refEn: "Hebrews 11:1"
         ),
         BibleVerse(
-            textHy: "Աստված մեր ապավենն է և զորությունը, մեծ օգնական՝ նեղությունների մեջ:",
+            textHy: "Աստված մեր ապավենն է և զորությունը, մեծ օգնական՝ նեղությունների մեջ։",
             textRu: "Бог нам прибежище и сила, скорый помощник в бедах.",
             textEn: "God is our refuge and strength, a very present help in trouble.",
             refHy: "Սաղմոսներ 46:1",
@@ -140,7 +141,7 @@ extension BibleVerse {
             refEn: "Psalm 46:1"
         ),
         BibleVerse(
-            textHy: "Սիրո մեջ վախ չկա, այլ կատարյալ սերն արտաքսում է վախը:",
+            textHy: "Սիրո մեջ վախ չկա, այլ կատարյալ սերն արտաքսում է վախը։",
             textRu: "В любви нет страха, но совершенная любовь изгоняет страх.",
             textEn: "There is no fear in love; but perfect love casteth out fear.",
             refHy: "Ա Հովհաննես 4:18",
@@ -148,7 +149,7 @@ extension BibleVerse {
             refEn: "1 John 4:18"
         ),
         BibleVerse(
-            textHy: "Տիրոջո՛վ ուրախացիր, և նա կտա քեզ քո սրտի փափագները:",
+            textHy: "Տիրոջո՛վ ուրախացիր, և նա կտա քեզ քո սրտի փափագները։",
             textRu: "Утешайся Господом, и Он исполнит желания сердца твоего.",
             textEn: "Delight thyself also in the Lord; and he shall give thee the desires of thine heart.",
             refHy: "Սաղմոսներ 37:4",
@@ -156,7 +157,7 @@ extension BibleVerse {
             refEn: "Psalm 37:4"
         ),
         BibleVerse(
-            textHy: "Նախ խնդրեցե՛ք Աստծո արքայությունը և նրա արդարությունը, և այդ ամենը ավելիով կտրվի ձեզ:",
+            textHy: "Նախ խնդրեցե՛ք Աստծո արքայությունը և նրա արդարությունը, և այդ ամենը ավելիով կտրվի ձեզ։",
             textRu: "Ищите же прежде Царства Божия и правды Его, и это все приложится вам.",
             textEn: "But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.",
             refHy: "Մատթեոս 6:33",
@@ -204,7 +205,7 @@ extension BibleVerse {
             refEn: "1 Peter 5:7"
         ),
         BibleVerse(
-            textHy: "Տերն իմ լույսն է և իմ փրկությունը, ումի՞ց վախենամ. Տերն իմ կյանքի ապավենն է:",
+            textHy: "Տերն իմ լույսն է և իմ փրկությունը, ումի՞ց վախենամ. Տերն իմ կյանքի ապավենն է։",
             textRu: "Господь — свет мой и спасение мое: кого мне бояться? Господь крепость жизни моей: кого мне страшиться?",
             textEn: "The Lord is my light and my salvation; whom shall I fear? the Lord is the strength of my life; of whom shall I be afraid?",
             refHy: "Սաղմոսներ 27:1",
@@ -228,7 +229,7 @@ extension BibleVerse {
             refEn: "Matthew 5:9"
         ),
         BibleVerse(
-            textHy: "Այդպես թող փայլի ձեր լույսը մարդկանց առաջ, որպեսզի տեսնեն ձեր բարի գործերը և փառավորեն ձեր Երկնավոր Հորը:",
+            textHy: "Այդպես թող փայլի ձեր լույսը մարդկանց առաջ, որպեսզի տեսնեն ձեր բարի գործերը և փառավորեն ձեր Երկնավոր Հորը։",
             textRu: "Так да светит свет ваш пред людьми, чтобы они видели ваши добрые дела и прославляли Отца вашего Небесного.",
             textEn: "Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven.",
             refHy: "Մատթեոս 5:16",
@@ -252,7 +253,7 @@ extension BibleVerse {
             refEn: "Matthew 19:26"
         ),
         BibleVerse(
-            textHy: "Հիսուսը նրան ասաց. «Սիրի՛ր քо Տեր Աստծուն քո ամբողջ սրտով, քո ամբողջ հոգով և քո ամբողջ մտքով»։",
+            textHy: "Հիսուսը նրան ասաց. «Սիրի՛ր քո Տեր Աստծուն քո ամբողջ սրտով, քո ամբողջ հոգով և քո ամբողջ մտքով»։",
             textRu: "Иисус сказал ему: возлюби Господа Бога твоего всем сердцем твоим и всею душею твоею и всем разумением твоим.",
             textEn: "Jesus said unto him, Thou shalt love the Lord thy God with all thy heart, and with all thy soul, and with all thy mind.",
             refHy: "Մատթեոս 22:37",
@@ -276,7 +277,7 @@ extension BibleVerse {
             refEn: "John 1:1"
         ),
         BibleVerse(
-            textHy: "Ես եմ աշխարհի լույսը. ով իմ հետևից է գալիս, խավարի մեջ չի քայլի, այլ կունենա կյանքի լույսը:",
+            textHy: "Ես եմ աշխարհի լույսը. ով իմ հետևից է գալիս, խավարի մեջ չի քայլի, այլ կունենա կյանքի լույսը։",
             textRu: "Я свет миру; кто последует за Мною, тот не будет ходить во тьме, но будет иметь свет жизни.",
             textEn: "I am the light of the world: he that followeth me shall not walk in darkness, but shall have the light of life.",
             refHy: "Հովհաննես 8:12",
@@ -292,7 +293,7 @@ extension BibleVerse {
             refEn: "John 8:32"
         ),
         BibleVerse(
-            textHy: "Խաղաղություն եմ թողնում ձեզ, իմ խաղաղությունն եմ տալիս ձեզ. ոչ ինչպես աշխարհն է տալիս, ես եմ տալիս ձեզ: Ձեր սիրտը թող չխռովվի և չվախենա:",
+            textHy: "Խաղաղություն եմ թողնում ձեզ, իմ խաղաղությունն եմ տալիս ձեզ. ոչ ինչպես աշխարհն է տալիս, ես եմ տալիս ձեզ։ Ձեր սիրտը թող չխռովվի և չվախենա։",
             textRu: "Мир оставляю вам, мир Мой даю вам; не так, как мир дает, Я даю вам. Да не смущается сердце ваше и да не устрашается.",
             textEn: "Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.",
             refHy: "Հովհաննես 14:27",
@@ -373,7 +374,7 @@ extension BibleVerse {
         ),
         BibleVerse(
             textHy: "Ով չի սիրում, նա չի ճանաչում Աստծուն, որովհետև Աստված սեր է։",
-            textRu: "Кто не любит, тот не познал Boga, потому что Бог есть любовь.",
+            textRu: "Кто не любит, тот не познал Бога, потому что Бог есть любовь.",
             textEn: "He that loveth not knoweth not God; for God is love.",
             refHy: "Ա Հովհաննես 4:8",
             refRu: "1 Иоанна 4:8",
@@ -396,9 +397,9 @@ extension BibleVerse {
             refEn: "Psalm 37:5"
         ),
         BibleVerse(
-            textHy: "Մի՛ վախեցիր, որովհետև ես քեզ հետ եմ. մի՛ զարհուրիր, որովհետև ես քո Աստվածն եմ. ես կզորացնեմ քեզ և կօգնեմ քեզ...",
-            textRu: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой; Я укреплю тебя, и помогу тебе...",
-            textEn: "Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee...",
+            textHy: "Մի՛ վախեցիր, որովհետև ես քեզ հետ եմ. մի՛ զարհուրիր, որովհետև ես քո Աստվածն եմ. ես կզորացնեմ քեզ և կօգնեմ քեզ։",
+            textRu: "Не бойся, ибо Я с тобою; не смущайся, ибо Я Бог твой; Я укреплю тебя, и помогу тебе.",
+            textEn: "Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee.",
             refHy: "Եսայիա 41:10",
             refRu: "Исаия 41:10",
             refEn: "Isaiah 41:10"
@@ -452,7 +453,7 @@ extension BibleVerse {
             refEn: "Psalm 86:15"
         ),
         BibleVerse(
-            textHy: "Բարձրյալի ծածկոցի տակ բնակվողը Ամենակարողի հովանու տակ է հանգստանում: Ես Տիրոջն ասում եմ. «Իմ ապավենն ու իմ ամրոցն ես»:",
+            textHy: "Բարձրյալի ծածկոցի տակ բնակվողը Ամենակարողի հովանու տակ է հանգստանում։ Ես Տիրոջն ասում եմ. «Իմ ապավենն ու իմ ամրոցն ես»։",
             textRu: "Живущий под кровом Всевышнего под сенью Всемогущего покоится, говорит Господу: «прибежище мое и защита моя, Бог мой, на Которого я уповаю!»",
             textEn: "He that dwelleth in the secret place of the most High shall abide under the shadow of the Almighty. I will say of the Lord, He is my refuge and my fortress.",
             refHy: "Սաղմոսներ 91:1-2",
@@ -508,7 +509,7 @@ extension BibleVerse {
             refEn: "Psalm 143:10"
         ),
         BibleVerse(
-            textHy: "Տիրո՛ջը հանձնիր քո գործերը, և քո ծրագրերը կհաստատվեն:",
+            textHy: "Տիրո՛ջը հանձնիր քո գործերը, և քո ծրագրերը կհաստատվեն։",
             textRu: "Предай Господу дела твои, и предприятия твои совершатся.",
             textEn: "Commit thy works unto the Lord, and thy thoughts shall be established.",
             refHy: "Առակաց 16:3",

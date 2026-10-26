@@ -466,7 +466,7 @@ struct BibleQuizView: View {
             BibleAchievementsView()
         }
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView()
+            PaywallView(source: "quiz")
         }
         .alert(item: $activeAlert) { alertType in
             switch alertType {
@@ -609,6 +609,7 @@ struct BibleQuizView: View {
     
     private func startQuiz() {
         triggerHaptic(.soft)
+        Funnel.track("feature_used", ["feature": "quiz"])
         
         if isAIGenerationEnabled {
             guard QuizAIEngine.shared.isAIAvailable else {
@@ -758,8 +759,8 @@ struct BibleQuizView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                 quizFinished = true
             }
-            AdManager.shared.recordActionAndShowInterstitialIfReady()
             ReviewManager.shared.recordPositiveAction()
+            PomegranateTreeManager.shared.record(.quiz)
         }
     }
     

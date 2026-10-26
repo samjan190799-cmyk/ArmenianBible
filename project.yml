@@ -1,14 +1,6 @@
 name: ArmenianBible
 options:
   bundleIdPrefix: com.samvel.armenianbible
-packages:
-  MyTargetSDK:
-    url: https://github.com/myTargetSDK/mytarget-ios-spm
-    from: 5.46.0
-  FBAudienceNetwork:
-    url: https://github.com/facebook/FBAudienceNetwork
-    from: 6.22.0
-
 targets:
   ArmenianBible:
     type: application
@@ -23,32 +15,15 @@ targets:
         CFBundleDisplayName: ArmenianBible
         CFBundleIdentifier: com.samvel.armenianbible
         CFBundleVersion: "${BUILD_NUMBER:1}"
-        CFBundleShortVersionString: "3.7"
+        CFBundleShortVersionString: "4.1"
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
         ITSAppUsesNonExemptEncryption: "NO"
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSFaceIDUsageDescription: "Protect your personal bookmarks, prayer journal, and notes with Face ID."
-        NSUserTrackingUsageDescription: "Идентификатор устройства нужен, чтобы показывать более подходящую рекламу. Вы можете отказаться: реклама останется, но будет менее персонализированной."
-        SKAdNetworkItems:
-          - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
-          - SKAdNetworkIdentifier: 4fzdc2evr5.skadnetwork
-          - SKAdNetworkIdentifier: 2fnua5tdw4.skadnetwork
-          - SKAdNetworkIdentifier: ydx93a7ass.skadnetwork
-          - SKAdNetworkIdentifier: 5a6flpkh64.skadnetwork
-          - SKAdNetworkIdentifier: p78axxw29g.skadnetwork
-          - SKAdNetworkIdentifier: v72qych544.skadnetwork
-          - SKAdNetworkIdentifier: c6kgnbxtmg.skadnetwork
-          - SKAdNetworkIdentifier: zq492l623r.skadnetwork
-          - SKAdNetworkIdentifier: ludvb6z3bs.skadnetwork
-          - SKAdNetworkIdentifier: 2u9pt9hc89.skadnetwork
-          - SKAdNetworkIdentifier: 446h53uz2q.skadnetwork
-          - SKAdNetworkIdentifier: 4pfyvq9l8r.skadnetwork
-          - SKAdNetworkIdentifier: 9t245vhm4fac.skadnetwork
-          - SKAdNetworkIdentifier: tl5878mr92.skadnetwork
-          - SKAdNetworkIdentifier: v9wttpbfk9.skadnetwork
-          - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
+        NSLocationWhenInUseUsageDescription: "Геолокация нужна только чтобы показать расстояние до монастырей и храмов на карте святынь. Она обрабатывается на устройстве и никуда не отправляется."
+        NSSupportsLiveActivities: true
         UIBackgroundModes:
           - audio
         UIAppFonts:
@@ -81,21 +56,12 @@ targets:
         CODE_SIGN_STYLE: "Automatic"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_PRIMARY_APPICON_SET_NAME: AppIcon
-        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-PitchBlack AppIcon-GoldenGlow AppIcon-RoyalIndigo AppIcon-RoyalPomegranate AppIcon-SacredEmerald AppIcon-SnowWhite"
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-PitchBlack AppIcon-GoldenGlow AppIcon-RoyalIndigo AppIcon-RoyalPomegranate AppIcon-SacredEmerald AppIcon-SnowWhite AppIcon-Manuscript AppIcon-Codex AppIcon-Classic"
         ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: "YES"
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/Frameworks"
-        OTHER_LDFLAGS:
-          - "$(inherited)"
-          - "-ObjC"
     dependencies:
-      - package: MyTargetSDK
-        product: MyTargetSDK
-      - package: FBAudienceNetwork
-        product: FBAudienceNetwork
-      - sdk: AppTrackingTransparency.framework
-      - sdk: AdSupport.framework
       - target: BibleWidget
       - sdk: libsqlite3.dylib
       - sdk: libxml2.tbd
@@ -117,10 +83,20 @@ targets:
       - path: Sources/BibleVerseDatabase+Faith.swift
       - path: Sources/BibleVerseDatabase+Faith2.swift
       - path: Sources/BibleVerseDatabase+Filter.swift
+      - path: Sources/BibleVerseDatabase+Prayers.swift
+      - path: Sources/BibleVerseDatabase+Library.swift
+      - path: Sources/BibleVerseDatabase+NarekInspired.swift
+      - path: Sources/WidgetPosterStyle.swift
+      - path: Sources/QuoteTier.swift
+      - path: Sources/LockScreenQuoteViews.swift
       - path: Sources/PrayerCandleModels.swift
+      - path: Sources/CandleRenderer.swift
+      - path: Sources/CandleActivityAttributes.swift
+      - path: Sources/CandleIslandViews.swift
       - path: Sources/en.lproj
       - path: Sources/ru.lproj
       - path: Sources/hy.lproj
+      - path: Sources/Fonts
     info:
       path: Widget/Info.plist
       properties:
@@ -128,9 +104,13 @@ targets:
         CFBundleDisplayName: BibleWidget
         CFBundleIdentifier: com.samvel.armenianbible.BibleWidget
         CFBundleVersion: "${BUILD_NUMBER:1}"
-        CFBundleShortVersionString: "3.7"
+        CFBundleShortVersionString: "4.1"
         CFBundlePackageType: XPC!
         CFBundleExecutable: BibleWidget
+        UIAppFonts:
+          - NotoSerifArmenian-Regular.ttf
+          - NotoSerifArmenian-Medium.ttf
+          - NotoSerifArmenian-SemiBold.ttf
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     entitlements:

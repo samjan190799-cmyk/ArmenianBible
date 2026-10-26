@@ -110,7 +110,7 @@ struct WallpaperAutomationSheetView: View {
                 }
             }
             .sheet(isPresented: $isShowingPaywall) {
-                PaywallView()
+                PaywallView(source: "wallpaper_auto")
             }
         }
     }

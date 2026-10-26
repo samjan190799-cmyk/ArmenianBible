@@ -3,6 +3,9 @@ import UIKit
 
 // MARK: - Варианты иконок приложения
 enum AppIconOption: String, CaseIterable, Identifiable {
+    /// «Свет» — иконка по умолчанию (первичная, `AppIcon.appiconset`)
+    case light = "light"
+    /// Прежняя иконка по умолчанию — каменный хачкар, теперь обычная альтернативная
     case classic = "classic"
     case pitchBlack = "pitchBlack"
     case snowWhite = "snowWhite"
@@ -10,14 +13,18 @@ enum AppIconOption: String, CaseIterable, Identifiable {
     case royalIndigo = "royalIndigo"
     case royalPomegranate = "royalPomegranate"
     case sacredEmerald = "sacredEmerald"
-    
+    case manuscript = "manuscript"
+    case codex = "codex"
+
     var id: String { rawValue }
-    
+
     /// Имя иконки для передачи в UIApplication.shared.setAlternateIconName (nil = первичная)
     var iconName: String? {
         switch self {
-        case .classic:
+        case .light:
             return nil
+        case .classic:
+            return "AppIcon-Classic"
         case .pitchBlack:
             return "AppIcon-PitchBlack"
         case .snowWhite:
@@ -30,9 +37,13 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             return "AppIcon-RoyalPomegranate"
         case .sacredEmerald:
             return "AppIcon-SacredEmerald"
+        case .manuscript:
+            return "AppIcon-Manuscript"
+        case .codex:
+            return "AppIcon-Codex"
         }
     }
-    
+
     /// Имя ассета превью в Assets.xcassets
     var assetPreviewName: String {
         switch self {
@@ -50,15 +61,21 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             return "AppIcon-RoyalPomegranate"
         case .sacredEmerald:
             return "AppIcon-SacredEmerald"
+        case .manuscript:
+            return "AppIcon-Manuscript"
+        case .codex:
+            return "AppIcon-Codex"
+        case .light:
+            return "AppIcon-Light"
         }
     }
-    
+
     /// Является ли эксклюзивной Premium функцией
     var isPremium: Bool {
         switch self {
-        case .classic, .pitchBlack, .snowWhite:
+        case .light, .classic, .pitchBlack, .snowWhite:
             return false
-        case .goldenGlow, .royalIndigo, .royalPomegranate, .sacredEmerald:
+        case .goldenGlow, .royalIndigo, .royalPomegranate, .sacredEmerald, .manuscript, .codex:
             return true
         }
     }
@@ -107,6 +124,24 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .russian: return "Священный Изумруд"
             case .english: return "Sacred Emerald"
             }
+        case .manuscript:
+            switch language {
+            case .armenian: return "Ձեռագիր"
+            case .russian: return "Рукопись"
+            case .english: return "Manuscript"
+            }
+        case .codex:
+            switch language {
+            case .armenian: return "Մատյան"
+            case .russian: return "Кодекс"
+            case .english: return "Codex"
+            }
+        case .light:
+            switch language {
+            case .armenian: return "Լույս"
+            case .russian: return "Свет"
+            case .english: return "Light"
+            }
         }
     }
     
@@ -154,6 +189,24 @@ enum AppIconOption: String, CaseIterable, Identifiable {
             case .russian: return "Глубокий изумрудный цвет и золотой свет"
             case .english: return "Deep mystical emerald & celestial gold"
             }
+        case .manuscript:
+            switch language {
+            case .armenian: return "Ոսկե խաչքար հին մագաղաթի վրա"
+            case .russian: return "Золотой хачкар на старом пергаменте"
+            case .english: return "Gold khachkar on aged parchment"
+            }
+        case .codex:
+            switch language {
+            case .armenian: return "Մագաղաթ «Լույս» անվանումով"
+            case .russian: return "Пергамент с названием «Լույս»"
+            case .english: return "Parchment with the «Լույս» title"
+            }
+        case .light:
+            switch language {
+            case .armenian: return "Բաց գիրք և լույս Արարատի վրա"
+            case .russian: return "Открытая книга и свет над Араратом"
+            case .english: return "Open book and light over Ararat"
+            }
         }
     }
 }
@@ -163,28 +216,21 @@ enum AppIconOption: String, CaseIterable, Identifiable {
 final class AppIconManager: ObservableObject {
     static let shared = AppIconManager()
     
-    private let storageKey = "selected_app_icon_option_v1"
-    
-    @Published private(set) var currentOption: AppIconOption = .classic
+    @Published private(set) var currentOption: AppIconOption = .light
     @Published var errorMessage: String? = nil
-    
+
     private init() {
         syncWithSystem()
     }
-    
-    /// Синхронизация текущей выбранной иконки с системой и UserDefaults
+
+    /// Текущая иконка — та, что показывает система. Сохранённый выбор не читаем: после обновления первичной иконкой
+    /// стал «Свет», а у тех, кто раньше ничего не менял, в UserDefaults лежало бы «classic» (прежний хачкар).
     func syncWithSystem() {
-        if let savedRaw = UserDefaults.standard.string(forKey: storageKey),
-           let savedOption = AppIconOption(rawValue: savedRaw) {
-            self.currentOption = savedOption
+        let systemIconName = UIApplication.shared.alternateIconName
+        if let matched = AppIconOption.allCases.first(where: { $0.iconName == systemIconName }) {
+            self.currentOption = matched
         } else {
-            // Проверяем системную установку
-            let systemIconName = UIApplication.shared.alternateIconName
-            if let matched = AppIconOption.allCases.first(where: { $0.iconName == systemIconName }) {
-                self.currentOption = matched
-            } else {
-                self.currentOption = .classic
-            }
+            self.currentOption = .light
         }
     }
     
@@ -227,7 +273,6 @@ final class AppIconManager: ObservableObject {
                     Haptics.notify(.error)
                 } else {
                     self?.currentOption = option
-                    UserDefaults.standard.set(option.rawValue, forKey: self?.storageKey ?? "selected_app_icon_option_v1")
                     Haptics.notify(.success)
                 }
             }
