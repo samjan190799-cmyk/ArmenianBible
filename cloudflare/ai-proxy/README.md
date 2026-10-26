@@ -43,6 +43,10 @@
 
 Обновить Worker позже: `npx wrangler deploy`. Сменить ключ: `npx wrangler secret put GEMINI_API_KEY`.
 
+В Windows PowerShell команды `npm` и `npx` могут не запускаться (защита выполнения скриптов): пишите `npm.cmd` и `npx.cmd`, а вместо `curl` пишите `curl.exe`. Имя секрета (`GEMINI_API_KEY`) пишется в команде, а сам ключ вводится позже на вопрос `Enter a secret value`; ключ в команде и в чате не показывайте.
+
+Выпущено: `https://luys-ai.samjan190799.workers.dev` (аккаунт Cloudflare на бесплатном тарифе, поддомен `samjan190799.workers.dev`).
+
 ### Автоматический выпуск (по желанию)
 
 Если в секреты репозитория GitHub добавить `CLOUDFLARE_API_TOKEN` (шаблон «Edit Cloudflare Workers») и `CLOUDFLARE_ACCOUNT_ID`, то после слияния в `main` Worker будет выпускаться сам (`.github/workflows/ai-proxy.yml`). Тесты запускаются на каждый пуш в `cloudflare/ai-proxy/`.
