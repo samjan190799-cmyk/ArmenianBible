@@ -104,12 +104,26 @@ async function sameSecret(given, expected) {
   return diff === 0;
 }
 
-async function handleStats(request, env, url) {
+/** null, если токен владельца верный; иначе готовый ответ с отказом */
+async function denyUnlessOwner(request, env) {
   if (!env.STATS || !env.STATS_TOKEN) return json({ error: 'not_configured' }, 503);
   const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!token || !(await sameSecret(token, env.STATS_TOKEN))) return json({ error: 'unauthorized' }, 401);
+  return null;
+}
+
+async function handleStats(request, env, url) {
+  const denied = await denyUnlessOwner(request, env);
+  if (denied) return denied;
   const days = Number(url.searchParams.get('days')) || 14;
   const res = await statsStub(env).fetch(`https://stats/report?days=${days}`);
+  return json(await res.json());
+}
+
+async function handleStatsReset(request, env) {
+  const denied = await denyUnlessOwner(request, env);
+  if (denied) return denied;
+  const res = await statsStub(env).fetch('https://stats/reset', { method: 'POST' });
   return json(await res.json());
 }
 
@@ -127,6 +141,9 @@ export default {
     }
     if (request.method === 'GET' && url.pathname === '/v1/stats') {
       return handleStats(request, env, url);
+    }
+    if (request.method === 'POST' && url.pathname === '/v1/stats/reset') {
+      return handleStatsReset(request, env);
     }
     if (request.method === 'GET' && url.pathname === '/dashboard') {
       return new Response(dashboardHtml(), { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex' } });
