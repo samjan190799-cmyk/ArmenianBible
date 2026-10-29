@@ -37,27 +37,10 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
         }
     }
     
-    func localizedBadge(for language: AppLanguage, product: Product? = nil) -> String? {
-        switch self {
-        case .yearly:
-            let hasTrial: Bool = {
-                if let product = product {
-                    return product.subscription?.introductoryOffer?.paymentMode == .freeTrial
-                }
-                return true
-            }()
-            
-            switch language {
-            case .armenian:
-                return hasTrial ? "Խնայեք 40% • 7 օր անվճար" : "Խնայեք 40%"
-            case .russian:
-                return hasTrial ? "Скидка 40% • 7 дней Trial" : "Скидка 40%"
-            case .english:
-                return hasTrial ? "Save 40% • 7 Days Free" : "Save 40%"
-            }
-        case .monthly:
-            return nil
-        }
+    /// Значок выгоды годового тарифа. Процент считается по ценам из App Store и приходит снаружи, пробный период здесь не обещаем
+    func localizedBadge(for language: AppLanguage, savingsPercent: Int?) -> String? {
+        guard self == .yearly, let percent = savingsPercent else { return nil }
+        return language.pick(hy: "Խնայեք \(percent)%", ru: "Выгода \(percent)%", en: "Save \(percent)%")
     }
 }
 

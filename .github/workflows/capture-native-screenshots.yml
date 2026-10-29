@@ -31,6 +31,7 @@ on:
           - nativityvideo
           - nativityend
           - tree
+          - paywall
           - promo
           - verselink
           - matenadaran
@@ -230,6 +231,25 @@ jobs:
               xcrun simctl shutdown "$UDID" || true
               ls -la "$OUT_DIR"
               echo "✅ Записи для ролика ($STORE_LANG) сделаны"
+              return 0
+            fi
+
+            # 24. Экран подписки: общий заголовок и заголовки под места входа (в симуляторе тарифов App Store нет, цены запасные)
+            if [ "$SCOPE" = "paywall" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@"
+                sleep 8
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              for SRC in home ai candle map manuscript_pen; do
+                shoot "paywall_${SRC}_$STORE_LANG" -openTab paywall -paywall_source "$SRC" -luys_debug_language "$STORE_LANG"
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Экран подписки ($STORE_LANG) снят"
               return 0
             fi
 

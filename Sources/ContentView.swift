@@ -17,6 +17,9 @@ struct ContentView: View {
                 iPadLockScreenShowcaseView()
             } else if UserDefaults.standard.string(forKey: "openTab") == "widgetposters" {
                 WidgetPosterShowcaseView()
+            } else if UserDefaults.standard.string(forKey: "openTab") == "paywall" {
+                // Отладка для съёмки в CI: -openTab paywall -paywall_source ai|candle|map|... открывает экран подписки сразу
+                PaywallView(source: UserDefaults.standard.string(forKey: "paywall_source") ?? "unknown")
             } else if UserDefaults.standard.string(forKey: "openTab") == "nativity" {
                 // Отладка для съёмки в CI: -nativity_scene N -nativity_t СЕКУНДА ставят мультфильм на паузу в этом кадре
                 NativityStoryView(
