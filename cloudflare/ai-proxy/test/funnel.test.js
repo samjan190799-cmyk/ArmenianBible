@@ -164,4 +164,5 @@ test('страница /dashboard отдаётся без секретов, а �
   assert.match(res.headers.get('content-type'), /text\/html/);
   assert.ok(!html.includes('secret-token'));
   assert.doesNotThrow(() => new Function(DASHBOARD_SCRIPT));
+  assert.match(html, /\/v1\/stats\/reset/, 'на странице есть кнопка сброса');
 });

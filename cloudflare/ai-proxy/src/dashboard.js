@@ -117,6 +117,20 @@ function render(data) {
   section('По дням');
   app.appendChild(table(['День', 'Активных', 'Новых', 'Видели подписку', 'Покупок'],
     data.daily.slice().reverse().map((d) => [d.day, d.active, d.newInstalls, d.paywallShown, d.purchases])));
+
+  section('Служебное');
+  const reset = h('button', 'Сбросить все цифры', 'danger');
+  reset.onclick = async () => {
+    if (!confirm('Стереть все накопленные цифры воронки? Это нельзя отменить.')) return;
+    try {
+      const res = await fetch('/v1/stats/reset', { method: 'POST', headers: { authorization: 'Bearer ' + localStorage.getItem('luys_stats_token') } });
+      if (!res.ok) { alert('Не удалось сбросить: ' + res.status); return; }
+      load();
+    } catch (e) {
+      alert('Нет связи с сервером.');
+    }
+  };
+  app.appendChild(reset);
 }
 
 async function load() {
@@ -160,6 +174,7 @@ th { color: var(--muted); font-weight: 600; font-size: 13px; }
 td:not(:first-child), th:not(:first-child) { text-align: right; white-space: nowrap; }
 .picker button { margin-right: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 14px; background: transparent; color: var(--ink); font: inherit; }
 .picker button.on { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+button.danger { margin: 22px 0 8px; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 14px; background: transparent; color: var(--accent); font: inherit; }
 </style>
 </head>
 <body>
