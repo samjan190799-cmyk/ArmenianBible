@@ -18,6 +18,9 @@ class FakeStorage {
   async list({ prefix }) {
     return new Map([...this.map].filter(([key]) => key.startsWith(prefix)));
   }
+  async deleteAll() {
+    this.map.clear();
+  }
 }
 
 function makeEnv(overrides = {}) {
@@ -120,6 +123,32 @@ test('сводка закрыта токеном', async () => {
   assert.equal((await report(makeEnv({ STATS_TOKEN: '' }))).status, 503);
 });
 
+function reset(env, token = 'secret-token', method = 'POST') {
+  return worker.fetch(new Request('https://luys.example/v1/stats/reset', { method, headers: { authorization: `Bearer ${token}` } }), env, {});
+}
+
+test('сброс счётчиков стирает всё, но только по токену владельца и только POST', async () => {
+  const env = makeEnv();
+  await send(env, A, [{ name: 'app_open' }, { name: 'paywall_shown', params: { source: 'ai' } }]);
+  assert.equal((await report(env)).data.daily.at(-1).newInstalls, 1);
+
+  assert.equal((await reset(env, 'wrong')).status, 401);
+  assert.equal((await reset(env, '')).status, 401);
+  assert.equal((await reset(env, 'secret-token', 'GET')).status, 404);
+  assert.equal((await reset(makeEnv({ STATS_TOKEN: '' }))).status, 503);
+  assert.equal((await report(env)).data.daily.at(-1).newInstalls, 1, 'неверный токен ничего не стирает');
+
+  const done = await reset(env);
+  assert.equal(done.status, 200);
+  assert.deepEqual(await done.json(), { ok: true });
+  const { data } = await report(env);
+  assert.deepEqual(data.events, {});
+  assert.equal(data.daily.at(-1).newInstalls, 0);
+
+  await send(env, A, [{ name: 'app_open' }]);
+  assert.equal((await report(env)).data.daily.at(-1).newInstalls, 1, 'после сброса человек снова считается новым');
+});
+
 test('плохие запросы к приёму событий', async () => {
   const env = makeEnv();
   assert.equal((await send(env, 'bad-id', [{ name: 'app_open' }])).status, 400);
@@ -135,4 +164,5 @@ test('страница /dashboard отдаётся без секретов, а �
   assert.match(res.headers.get('content-type'), /text\/html/);
   assert.ok(!html.includes('secret-token'));
   assert.doesNotThrow(() => new Function(DASHBOARD_SCRIPT));
+  assert.match(html, /\/v1\/stats\/reset/, 'на странице есть кнопка сброса');
 });

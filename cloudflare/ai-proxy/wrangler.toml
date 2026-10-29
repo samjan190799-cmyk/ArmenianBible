@@ -9,7 +9,8 @@ PRODUCT_IDS = "com.samvel.armenianbible.subscription.monthly,com.samvel.armenian
 # Сколько запросов к ИИ в сутки (по UTC) у одного подписчика и у всего сервиса вместе (потолок расходов)
 DAILY_LIMIT = "30"
 GLOBAL_DAILY_LIMIT = "3000"
-# Подписки из TestFlight приходят как Sandbox. После выпуска в App Store можно поставить "false"
+# Подписки из TestFlight и проверяющих Apple приходят как Sandbox. Оставляем "true" и после выпуска: песочную подписку подделать нельзя
+# (нужна подпись Apple и аккаунт из вашего App Store Connect), а с "false" ИИ не заработает на проверке следующих версий
 ALLOW_SANDBOX = "true"
 # Модели Gemini по порядку: если первая недоступна, пробуется следующая
 GEMINI_MODELS = "gemini-2.5-flash,gemini-2.0-flash"
