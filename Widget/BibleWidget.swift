@@ -226,28 +226,42 @@ struct NextVerseIntent: AppIntent {
         let lockVerse = (target == "lockScreen" || target == "all") ? pick(.lockScreen) : nil
 
         AppGroupConstants.syncToAll { defs in
+            // `id` стиха живёт до перезапуска процесса, виджет его не узнает. Поэтому для «Следующий» достаточно сбросить
+            // запись о текущей цитате: следующий график сам возьмёт следующую цитату по кругу, без повторов (QuoteRotation)
             if let v = smallVerse {
                 defs.set(v.id.uuidString, forKey: "currentSmallVerseId")
+                defs.removeObject(forKey: Provider.slotKey(for: .small))
             }
             if let v = mediumVerse {
                 defs.set(v.id.uuidString, forKey: "currentMediumVerseId")
+                defs.removeObject(forKey: Provider.slotKey(for: .medium))
             }
             if let v = largeVerse {
                 defs.set(v.id.uuidString, forKey: "currentLargeVerseId")
+                defs.removeObject(forKey: Provider.slotKey(for: .large))
             }
             if let v = lockVerse {
-                defs.set(v.id.uuidString, forKey: "currentLockScreenVerseId")
-                defs.set(v.textHy, forKey: "currentLockScreenTextHy")
-                defs.set(v.textRu, forKey: "currentLockScreenTextRu")
-                defs.set(v.textEn, forKey: "currentLockScreenTextEn")
-                defs.set(v.refHy, forKey: "currentLockScreenRefHy")
-                defs.set(v.refRu, forKey: "currentLockScreenRefRu")
-                defs.set(v.refEn, forKey: "currentLockScreenRefEn")
+                writeCurrentLockScreenVerse(v, to: defs)
             }
         }
-        
+
         return .result()
     }
+}
+
+/// Записывает стих экрана блокировки в ключи, которые читают и приложение, и виджет.
+/// Армянский текст пишется во все три ключа: раньше «Следующий» обновлял только `…TextHy`, а виджет читал `…TextHyEchmiadzin`
+/// от прошлого стиха, и армянский текст не совпадал с подписью.
+func writeCurrentLockScreenVerse(_ v: BibleVerse, to defs: UserDefaults) {
+    defs.set(v.id.uuidString, forKey: "currentLockScreenVerseId")
+    defs.set(v.textHy, forKey: "currentLockScreenTextHy")
+    defs.set(v.textHy, forKey: "currentLockScreenTextHyEchmiadzin")
+    defs.set(v.textHyArarat, forKey: "currentLockScreenTextHyArarat")
+    defs.set(v.textRu, forKey: "currentLockScreenTextRu")
+    defs.set(v.textEn, forKey: "currentLockScreenTextEn")
+    defs.set(v.refHy, forKey: "currentLockScreenRefHy")
+    defs.set(v.refRu, forKey: "currentLockScreenRefRu")
+    defs.set(v.refEn, forKey: "currentLockScreenRefEn")
 }
 
 // MARK: - Интерактивное намерение: Отметить молитву прочитанной / выполненной
@@ -407,7 +421,7 @@ struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
         let style = getSharedVisualStyle()
         let lang = getSharedLanguage()
-        let verse = getSharedVerse(for: ConfigurationAppIntent(), family: context.family)
+        let verse = getSharedVerse(for: ConfigurationAppIntent(), family: context.family, widgetSize: context.displaySize)
         return SimpleEntry(
             date: Date(),
             verse: verse,
@@ -420,7 +434,7 @@ struct Provider: AppIntentTimelineProvider {
     
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
-        let verse = getSharedVerse(for: configuration, family: context.family)
+        let verse = getSharedVerse(for: configuration, family: context.family, widgetSize: context.displaySize)
         let style = resolveVisualStyle(for: configuration)
         return SimpleEntry(
             date: Date(),
@@ -433,57 +447,55 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
-        var entries: [BibleWidgetEntry] = []
-        let currentDate = Date()
+        let now = Date()
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
         let interval = getSharedUpdateInterval()
         let style = resolveVisualStyle(for: configuration)
         let family = context.family
-        
-        let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
-        let fallback = database.isEmpty ? BibleVerse.shortPearls[0] : database[0]
-        
-        let minutesStep = interval.minutes
-        let totalEntries = max(1, min(12, 1440 / max(1, minutesStep)))
-        let tier = QuoteTier(family: family)
+        let widgetSize = context.displaySize
 
-        var currentVerse = getSharedVerse(for: configuration, family: family)
-        
-        for i in 0..<totalEntries {
-            guard let entryDate = Calendar.current.date(byAdding: .minute, value: i * minutesStep, to: currentDate) else { continue }
-            
-            let rawVerse: BibleVerse
-            if i == 0 {
-                rawVerse = currentVerse
-            } else {
-                rawVerse = database.randomElement() ?? fallback
-            }
-            
-            // Страховка: цитата не должна выходить за допустимую длину для этого размера виджета
-            let entryVerse: BibleVerse
-            if let tier, !tier.limit.contains(rawVerse.text(for: lang).count) {
-                entryVerse = database.randomElement() ?? rawVerse
-            } else {
-                entryVerse = rawVerse
-            }
-            
-            let entry = BibleWidgetEntry(
+        let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang, widgetSize: widgetSize)
+        let fallback = database.first ?? BibleVerse.shortPearls[0]
+
+        let minutesStep = max(1, interval.minutes)
+        let stepSeconds = TimeInterval(minutesStep * 60)
+        let totalEntries = max(1, min(12, 1440 / minutesStep))
+
+        // Цитаты по записям графика: по кругу и без повторов (QuoteRotation), первая идёт сейчас
+        let schedule = scheduledQuotes(
+            pool: database,
+            fallback: fallback,
+            family: family,
+            lang: lang,
+            widgetSize: widgetSize,
+            count: totalEntries,
+            stepSeconds: stepSeconds,
+            now: now
+        )
+
+        var entries: [BibleWidgetEntry] = []
+        for (index, verse) in schedule.verses.enumerated() {
+            // Первая запись показывается сразу. Остальные сменяют друг друга каждые `stepSeconds`, считая от конца первой
+            let entryDate = index == 0 ? now : schedule.start.addingTimeInterval(TimeInterval(index) * stepSeconds)
+            entries.append(BibleWidgetEntry(
                 date: entryDate,
-                verse: entryVerse,
+                verse: verse,
                 configuration: configuration,
                 language: lang,
                 visualStyle: style,
                 styleTimestamp: getSharedStyleTimestamp()
-            )
-            entries.append(entry)
+            ))
         }
-        
-        let reloadDate = Calendar.current.date(byAdding: .minute, value: minutesStep, to: currentDate) ?? currentDate.addingTimeInterval(3600)
-        return Timeline(entries: entries, policy: .after(reloadDate))
+
+        // Новый график нужен, когда последняя запись отстоит свой шаг. Раньше он просился ровно на время второй записи и каждый раз
+        // начинал заново с одного и того же сохранённого стиха, поэтому смена цитат почти не доходила до экрана.
+        // `.atEnd` не годится: при редкой смене в графике одна запись, и перезагрузка запросилась бы тут же, в цикле
+        let reloadDate = schedule.start.addingTimeInterval(TimeInterval(schedule.verses.count) * stepSeconds)
+        return Timeline(entries: entries, policy: .after(max(reloadDate, now.addingTimeInterval(60))))
     }
     
     /// Подборка цитат для виджета: категория из настроек виджета, длина — по его размеру (QuoteTier)
-    private func getFilteredDatabase(for category: TextCategory, configuration: ConfigurationAppIntent? = nil, family: WidgetFamily? = nil, lang: AppLanguage) -> [BibleVerse] {
+    private func getFilteredDatabase(for category: TextCategory, configuration: ConfigurationAppIntent? = nil, family: WidgetFamily? = nil, lang: AppLanguage, widgetSize: CGSize? = nil) -> [BibleVerse] {
         guard let family, let tier = QuoteTier(family: family) else {
             return BibleVerse.database
         }
@@ -505,16 +517,41 @@ struct Provider: AppIntentTimelineProvider {
         let unlocked = isPremium || (isHomeTier && (chosen == .prayers || chosen == .favorites))
 
         let pool = BibleVerse.quotes(for: tier, lang: lang, isPremium: unlocked, lockCategory: lockCategory, homeCategory: homeCategory)
+        let selected: [BibleVerse]
         if chosen == .verses {
             let verses = pool.filter { !$0.isPrayer }
-            return verses.isEmpty ? pool : verses
+            selected = verses.isEmpty ? pool : verses
+        } else {
+            selected = pool
         }
-        return pool
+        return onlyFitting(selected, family: family, lang: lang, widgetSize: widgetSize)
     }
 
-    private func getSharedVerse(for configuration: ConfigurationAppIntent, family: WidgetFamily? = nil) -> BibleVerse {
+    // MARK: Помещается ли цитата в прямоугольный виджет экрана блокировки
+
+    /// Сколько цитат должно остаться после отбора по месту, чтобы отбор считался осмысленным
+    private static let minFittingQuotes = 3
+
+    /// На экране блокировки места на две строки, а число знаков не говорит, поместится ли фраза: по-армянски слова длинные
+    /// и широкие, и «Նախ խնդրեցե՛ք Աստծո արքայությունը» в 34 знака обрывалась на полуслове. Для остальных размеров ответ `true`:
+    /// там цитату подбирает вёрстка (FittedQuoteText), а места много.
+    private func fitsWidget(_ verse: BibleVerse, family: WidgetFamily?, lang: AppLanguage, widgetSize: CGSize?) -> Bool {
+        guard family == .accessoryRectangular, let widgetSize, widgetSize.width > 0, widgetSize.height > 0 else { return true }
+        let design = AppGroupConstants.sharedLockScreenFontDesign().fontDesign
+        return LockQuoteCard.fitsAtSmallestSize(verse.text(for: lang), design: design, widget: widgetSize)
+    }
+
+    /// Оставляет в подборке цитаты, которые помещаются в виджет целиком. Если таких меньше трёх (редкая категория или язык),
+    /// подборка остаётся как есть: фраза с обрезанным концом лучше, чем одна и та же цитата подряд.
+    private func onlyFitting(_ pool: [BibleVerse], family: WidgetFamily?, lang: AppLanguage, widgetSize: CGSize?) -> [BibleVerse] {
+        guard family == .accessoryRectangular, widgetSize != nil else { return pool }
+        let fitting = pool.filter { fitsWidget($0, family: family, lang: lang, widgetSize: widgetSize) }
+        return fitting.count >= Self.minFittingQuotes ? fitting : pool
+    }
+
+    private func getSharedVerse(for configuration: ConfigurationAppIntent, family: WidgetFamily? = nil, widgetSize: CGSize? = nil) -> BibleVerse {
         let lang = configuration.language.appLanguage ?? getSharedLanguage()
-        let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang)
+        let database = getFilteredDatabase(for: configuration.category.textCategory, configuration: configuration, family: family, lang: lang, widgetSize: widgetSize)
         let fallback = database.first ?? BibleVerse.shortPearls[0]
         let defaults = AppGroupConstants.sharedDefaults
         let tier = family.flatMap { QuoteTier(family: $0) }
@@ -549,12 +586,118 @@ struct Provider: AppIntentTimelineProvider {
                 refRu: defaults.string(forKey: "\(prefix)RefRu") ?? "",
                 refEn: defaults.string(forKey: "\(prefix)RefEn") ?? ""
             )
-            if tier.limit.contains(custom.text(for: lang).count) {
+            if tier.limit.contains(custom.text(for: lang).count),
+               fitsWidget(custom, family: family, lang: lang, widgetSize: widgetSize) {
                 return custom
             }
         }
 
         return database.randomElement() ?? fallback
+    }
+
+    // MARK: Смена цитат
+
+    /// Цитата, которая сейчас на виджете: с какого момента она идёт и для какой подборки выбрана
+    private struct QuoteSlot: Codable {
+        var verse: BibleVerse
+        var since: Double
+        var signature: String
+    }
+
+    static func slotKey(for tier: QuoteTier) -> String { "quoteSlot_\(tier.storageScope)" }
+    static func historyKey(for tier: QuoteTier) -> String { "quoteHistory_\(tier.storageScope)" }
+
+    private func loadSlot(for tier: QuoteTier, from defaults: UserDefaults) -> QuoteSlot? {
+        guard let data = defaults.data(forKey: Self.slotKey(for: tier)) else { return nil }
+        return try? JSONDecoder().decode(QuoteSlot.self, from: data)
+    }
+
+    /// Стих экрана блокировки, который записало приложение или кнопка «Следующий»: он лежит в общих настройках текстом
+    private func externalLockVerse() -> BibleVerse? {
+        let defaults = AppGroupConstants.sharedDefaults
+        guard let textHy = defaults.string(forKey: "currentLockScreenTextHy"), !textHy.isEmpty else { return nil }
+        return BibleVerse(
+            id: defaults.string(forKey: "currentLockScreenVerseId").flatMap { UUID(uuidString: $0) } ?? UUID(),
+            textHy: defaults.string(forKey: "currentLockScreenTextHyEchmiadzin") ?? textHy,
+            textHyArarat: defaults.string(forKey: "currentLockScreenTextHyArarat") ?? "",
+            textRu: defaults.string(forKey: "currentLockScreenTextRu") ?? "",
+            textEn: defaults.string(forKey: "currentLockScreenTextEn") ?? "",
+            refHy: defaults.string(forKey: "currentLockScreenRefHy") ?? "",
+            refRu: defaults.string(forKey: "currentLockScreenRefRu") ?? "",
+            refEn: defaults.string(forKey: "currentLockScreenRefEn") ?? ""
+        )
+    }
+
+    /// Цитаты для записей графика по порядку смены (`QuoteRotation`) и время, с которого идёт первая из них.
+    ///
+    /// Цитата стоит на виджете один шаг (`stepSeconds`) и меняется на следующую по кругу: пока не показаны все цитаты подборки,
+    /// ни одна не повторяется. Что показано и с какого момента, лежит в общих настройках: виджет запускается заново на каждый
+    /// график, и по `id` стих не узнать (он новый в каждом запуске), поэтому всё держится на `rotationKey`.
+    private func scheduledQuotes(
+        pool: [BibleVerse],
+        fallback: BibleVerse,
+        family: WidgetFamily,
+        lang: AppLanguage,
+        widgetSize: CGSize,
+        count: Int,
+        stepSeconds: TimeInterval,
+        now: Date
+    ) -> (verses: [BibleVerse], start: Date) {
+        guard let tier = QuoteTier(family: family), !pool.isEmpty else {
+            return ((0..<count).map { _ in pool.randomElement() ?? fallback }, now)
+        }
+        let defaults = AppGroupConstants.sharedDefaults
+        // Подпись подборки: сменили категорию, язык или состав (избранное), и сохранённая цитата уже не из неё
+        let signature = QuoteKey.make(tier.storageScope, lang.rawValue, String(pool.count), pool.first?.rotationKey ?? "")
+
+        // 1. Что стоит сейчас
+        var current: BibleVerse?
+        var start = now
+        if let slot = loadSlot(for: tier, from: defaults), slot.signature == signature {
+            current = slot.verse
+            start = min(Date(timeIntervalSince1970: slot.since), now)
+        }
+        // 2. Цитату мог поставить не виджет, а человек кнопкой «Следующий» или приложение: тогда она стоит с этого момента
+        if tier == .lockScreen, let external = externalLockVerse(), external.rotationKey != current?.rotationKey {
+            current = external
+            start = now
+        }
+        // 3. Цитата стоит свой шаг. Просроченную и не подходящую по длине или месту заменяем
+        if let verse = current {
+            let isFresh = now.timeIntervalSince(start) < stepSeconds
+            let isSuitable = tier.limit.contains(verse.text(for: lang).count)
+                && fitsWidget(verse, family: family, lang: lang, widgetSize: widgetSize)
+            if !isFresh || !isSuitable {
+                current = nil
+                start = now
+            }
+        }
+
+        // 4. Порядок показа: по кругу, без повторов
+        let history = defaults.stringArray(forKey: Self.historyKey(for: tier)) ?? []
+        var generator = SystemRandomNumberGenerator()
+        let byKey = Dictionary(pool.map { ($0.rotationKey, $0) }, uniquingKeysWith: { first, _ in first })
+        let plan = QuoteRotation.plan(
+            pool: pool.map { $0.rotationKey },
+            history: history,
+            first: current?.rotationKey,
+            count: count,
+            using: &generator
+        )
+        var verses = plan.order.map { byKey[$0] ?? fallback }
+        // Цитата от приложения может быть не из подборки: на первом месте показываем именно её
+        if let current, !verses.isEmpty { verses[0] = current }
+        guard let shownNow = verses.first else { return ([fallback], now) }
+
+        // 5. Запоминаем, что показано и с какого момента. Для экрана блокировки заодно пишем стих в те ключи, которые читает приложение
+        let slotData = try? JSONEncoder().encode(QuoteSlot(verse: shownNow, since: start.timeIntervalSince1970, signature: signature))
+        let pickedHere = (current == nil)
+        AppGroupConstants.syncToAll { defs in
+            defs.set(plan.history, forKey: Self.historyKey(for: tier))
+            if let slotData { defs.set(slotData, forKey: Self.slotKey(for: tier)) }
+            if pickedHere, tier == .lockScreen { writeCurrentLockScreenVerse(shownNow, to: defs) }
+        }
+        return (verses, start)
     }
 
     private func getSharedUpdateInterval() -> UpdateInterval {

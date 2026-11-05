@@ -486,21 +486,24 @@ class BibleDatabase {
             condition = "1=1"
         }
         
+        // Берём не один стих, а выборку: любой стих Библии годился, и на экране появлялись обрывки вроде «И сказал Господь Моисею, говоря:».
+        // Из выборки остаются стихи с законченной мыслью (VerseQuality), а из них самый насыщенный смыслом. Выбор остаётся случайным:
+        // выборка случайная, а проходит её примерно треть стихов, так что из сорока подходящих находится почти всегда.
+        let sampleSize = 40
         let sql = """
         SELECT v.id, b.name_hy, b.name_ru, b.name_en, v.chapter, v.verse, v.text_hy, v.text_ru, v.text_en, COALESCE(v.text_hy_ararat, '')
         FROM verses v
         JOIN books b ON b.id = v.book_id
         WHERE \(condition) AND LENGTH(v.text_hy) > 15
         ORDER BY RANDOM()
-        LIMIT 1;
+        LIMIT \(sampleSize);
         """
-        
+
         var statement: OpaquePointer?
-        var verse: BibleVerse? = nil
-        
+        var best: (verse: BibleVerse, score: Int)? = nil
+
         if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
-            if sqlite3_step(statement) == SQLITE_ROW {
-                let _ = Int(sqlite3_column_int(statement, 0))
+            while sqlite3_step(statement) == SQLITE_ROW {
                 let bNameHy = columnText(statement, 1)
                 let bNameRu = columnText(statement, 2)
                 let bNameEn = columnText(statement, 3)
@@ -510,28 +513,33 @@ class BibleDatabase {
                 let textRu = columnText(statement, 7)
                 let textEn = columnText(statement, 8)
                 let textHyArarat = columnText(statement, 9)
-                
-                let refHy = "\(bNameHy) \(chapter):\(verseNum)"
-                let refRu = "\(bNameRu) \(chapter):\(verseNum)"
-                let refEn = "\(bNameEn) \(chapter):\(verseNum)"
-                
-                verse = BibleVerse(
+
+                // Обрывок, зачин речи, перечень или пересказ события: пропускаем
+                guard VerseQuality.isMeaningful(textHy: textHy, textRu: textRu, textEn: textEn) else { continue }
+
+                let candidate = BibleVerse(
                     textHy: textHy,
                     textHyArarat: textHyArarat,
                     textRu: textRu,
                     textEn: textEn,
-                    refHy: refHy,
-                    refRu: refRu,
-                    refEn: refEn,
+                    refHy: "\(bNameHy) \(chapter):\(verseNum)",
+                    refRu: "\(bNameRu) \(chapter):\(verseNum)",
+                    refEn: "\(bNameEn) \(chapter):\(verseNum)",
                     isPrayer: false
                 )
+                let score = VerseQuality.richness(textRu: textRu)
+                // При равной насыщенности остаётся первый, а порядок в выборке случайный
+                if best == nil || score > (best?.score ?? 0) {
+                    best = (candidate, score)
+                }
             }
         } else {
             print("Error preparing getRandomVerse query.")
         }
-        
+
         sqlite3_finalize(statement)
-        return verse ?? BibleVerse.database.randomElement()
+        // Если в выборке не нашлось ни одного подходящего стиха (почти невозможно), берём из отобранных вручную
+        return best?.verse ?? BibleVerse.database.randomElement()
     }
     
     // MARK: - Поиск стиха по библейской ссылке (для обогащения переводами)
