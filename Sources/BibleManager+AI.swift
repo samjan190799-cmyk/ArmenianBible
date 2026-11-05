@@ -242,6 +242,31 @@ extension BibleManager {
             }
         }
         
+        // 4. Нет сети или ответ не пришёл вовремя (коды ошибок URLSession отрицательные)
+        let offlineCodes = [NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorTimedOut, NSURLErrorDataNotAllowed, NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost]
+        if offlineCodes.contains(statusCode) {
+            switch appLanguage {
+            case .armenian:
+                return "Կապ չկա կամ ԱԲ-ն ժամանակին չպատասխանեց: Ստուգեք ինտերնետը և կրկին փորձեք:"
+            case .russian:
+                return "Нет связи с интернетом или ИИ не ответил вовремя. Проверьте подключение и повторите попытку."
+            case .english:
+                return "No internet connection, or the AI did not respond in time. Please check your connection and try again."
+            }
+        }
+
+        // 5. Все модели провайдера закрыты или недоступны ключу: помогает кнопка «Обновить модели» в настройках
+        if statusCode == 404 || statusCode == 410 {
+            switch appLanguage {
+            case .armenian:
+                return "\(provider.displayName)-ի մոդելները հասանելի չեն: Բացեք Կարգավորումները և սեղմեք «Թարմացնել մոդելները»:"
+            case .russian:
+                return "Модели \(provider.displayName) сейчас недоступны. Откройте Настройки и нажмите «Обновить модели»."
+            case .english:
+                return "\(provider.displayName) models are unavailable right now. Open Settings and tap “Update models”."
+            }
+        }
+
         // По умолчанию возвращаем исходное сообщение от провайдера
         return "\(provider.displayName) API: \(rawMessage)"
     }
