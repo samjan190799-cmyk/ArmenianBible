@@ -116,12 +116,19 @@
 "widget_style_poster_parchment_desc" = "Ձեռագիր թերթ ոսկե շրջանակով";
 "widget_style_poster_night" = "Պաստառ · Բեթղեհեմ";
 "widget_style_poster_night_desc" = "Գիշերային երկինք աստղով";
-"check_models" = "Ստուգել թարմացումները";
 "checking_models" = "Ստուգում...";
 "auto_upgrade_active" = "Ավտոթարմացումն ակտիվ է";
-"enter_api_key_to_check" = "Նախ մուտքագրեք API բանալին";
-"models_updated_ok" = "Մոդելը թարմացված է";
-"model_fallback_applied" = "Ակտիվ է ստուգված մոդելը";
+"ai_models_update_title" = "ԱԲ մոդելներ";
+"ai_models_update_btn" = "Թարմացնել մոդելները";
+"ai_models_last_updated" = "Թարմացվել է՝ %@";
+"ai_models_never_updated" = "Օգտագործվում է ներկառուցված ցանկը: Սեղմեք «Թարմացնել»՝ նոր մոդելներ ստանալու համար";
+"ai_models_updated" = "Մոդելների ցանկը թարմացվեց: Նոր մոդելներ՝ %d";
+"ai_models_up_to_date" = "Դուք ունեք ամենանոր մոդելները";
+"ai_models_offline" = "Ինտերնետ կապ չկա: Օգտագործվում է պահպանված ցանկը";
+"ai_models_unavailable" = "Սերվերը մոդելների ցանկ չտրամադրեց: Օգտագործվում է պահպանված ցանկը";
+"ai_models_switched" = "%@՝ այժմ օգտագործվում է %@";
+"ai_models_key_rejected" = "%@՝ բանալին չի ընդունվել: Ստուգեք այն վերևում";
+"ai_models_none_worked" = "%@՝ ոչ մի մոդել չի պատասխանում ձեր բանալիով";
 "standby_preview_title" = "Վիջեթների ինտերակտիվ նախադիտում";
 
 /* Tabs */

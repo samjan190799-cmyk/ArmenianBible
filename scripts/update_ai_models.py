@@ -30,29 +30,38 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 REGISTRY_PATH = PROJECT_ROOT / "Sources" / "AIModelRegistry.swift"
 BACKUP_PATH = PROJECT_ROOT / "Sources" / "AIModelRegistry.swift.bak"
 
-# Эталонные иерархии моделей (актуальность: 2026 год)
+# Эталонные иерархии моделей. Сверено с официальной документацией 2026-11-05 (ai.google.dev, developers.openai.com, platform.claude.com).
+# Порядок: от быстрой и недорогой модели (ею отвечают по умолчанию) к более мощным запасным.
+# Закрыты и сюда не входят: gemini-1.5 и 2.0, gpt-3.5-turbo, gpt-4.5-preview, o1 и o3-mini, все claude-3.x.
+# gpt-4o-mini остаётся последним запасным до своего закрытия 14 января 2027, потом его можно убрать.
 LATEST_HIERARCHIES = {
     "gemini": [
         "gemini-3.5-flash-lite",
-        "gemini-3.5-flash",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro"
+        "gemini-3.6-flash",
+        "gemini-3.8-flash",
+        "gemini-2.5-flash-lite"
     ],
     "openai": [
-        "gpt-5-mini",
-        "gpt-4.5-preview",
-        "gpt-4o-mini",
-        "gpt-4o",
-        "gpt-3.5-turbo"
+        "gpt-6-luna",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol",
+        "gpt-4o-mini"
     ],
     "claude": [
-        "claude-3-7-sonnet-latest",
-        "claude-3-5-haiku-latest",
-        "claude-3-5-sonnet-latest",
-        "claude-3-5-haiku-20241022",
-        "claude-3-haiku-20240307"
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5",
+        "claude-sonnet-5",
+        "claude-haiku-4-5"
     ]
 }
+
+
+def is_openai_reasoning(model):
+    """gpt-5 и новее, а также o1/o3/o4: параметр max_tokens у них не принимается, нужен max_completion_tokens"""
+    match = re.match(r"gpt-(\d+)", model)
+    if match:
+        return int(match.group(1)) >= 5
+    return bool(re.match(r"o\d", model))
 
 def create_backup():
     """Создает резервную копию AIModelRegistry.swift"""
@@ -194,24 +203,26 @@ def parse_current_models():
             return items
         return []
 
-    def extract_default(key_name):
-        match = re.search(rf'forKey:\s*"{key_name}"\)\s*\?\?\s*"([^"]+)"', content)
-        if match:
-            return match.group(1)
-        return "Не определена"
+    def first_of(hierarchy):
+        # Активная модель по умолчанию — первая в списке (AIModelRegistry.storedActive)
+        return hierarchy[0] if hierarchy else "Не определена"
+
+    gemini_hierarchy = extract_hierarchy("geminiHierarchy")
+    openai_hierarchy = extract_hierarchy("openAIHierarchy")
+    claude_hierarchy = extract_hierarchy("claudeHierarchy")
 
     return {
         "gemini": {
-            "default": extract_default("active_gemini_model"),
-            "hierarchy": extract_hierarchy("geminiHierarchy")
+            "default": first_of(gemini_hierarchy),
+            "hierarchy": gemini_hierarchy
         },
         "openai": {
-            "default": extract_default("active_openai_model"),
-            "hierarchy": extract_hierarchy("openAIHierarchy")
+            "default": first_of(openai_hierarchy),
+            "hierarchy": openai_hierarchy
         },
         "claude": {
-            "default": extract_default("active_claude_model"),
-            "hierarchy": extract_hierarchy("claudeHierarchy")
+            "default": first_of(claude_hierarchy),
+            "hierarchy": claude_hierarchy
         }
     }
 
@@ -267,30 +278,22 @@ def upgrade_models(gemini_model=None, openai_model=None, claude_model=None):
         replacement = f'static let {var_name}: [String] = [\n        {items_str}\n    ]'
         return re.sub(pattern, replacement, code, flags=re.DOTALL)
 
-    gemini_list = LATEST_HIERARCHIES["gemini"].copy()
-    if gemini_model and gemini_model not in gemini_list:
-        gemini_list.insert(0, gemini_model)
+    # Модель, заданную через --set-*, ставим первой (если она уже есть в списке, переносим на первое место)
+    def with_first(models, chosen):
+        result = [m for m in models if m != chosen] if chosen else list(models)
+        if chosen:
+            result.insert(0, chosen)
+        return result
 
-    openai_list = LATEST_HIERARCHIES["openai"].copy()
-    if openai_model and openai_model not in openai_list:
-        openai_list.insert(0, openai_model)
-
-    claude_list = LATEST_HIERARCHIES["claude"].copy()
-    if claude_model and claude_model not in claude_list:
-        claude_list.insert(0, claude_model)
+    gemini_list = with_first(LATEST_HIERARCHIES["gemini"], gemini_model)
+    openai_list = with_first(LATEST_HIERARCHIES["openai"], openai_model)
+    claude_list = with_first(LATEST_HIERARCHIES["claude"], claude_model)
 
     content = replace_hierarchy(content, "geminiHierarchy", gemini_list)
     content = replace_hierarchy(content, "openAIHierarchy", openai_list)
     content = replace_hierarchy(content, "claudeHierarchy", claude_list)
 
-    # 2. Обновляем дефолтные значения активных моделей
-    target_gemini = gemini_model or gemini_list[0]
-    target_openai = openai_model or openai_list[2] # gpt-4o-mini как ультрастабильный дефолт
-    target_claude = claude_model or "claude-3-5-haiku-20241022"
-
-    content = re.sub(r'(forKey:\s*"active_gemini_model"\)\s*\?\?\s*)"[^"]+"', rf'\1"{target_gemini}"', content)
-    content = re.sub(r'(forKey:\s*"active_openai_model"\)\s*\?\?\s*)"[^"]+"', rf'\1"{target_openai}"', content)
-    content = re.sub(r'(forKey:\s*"active_claude_model"\)\s*\?\?\s*)"[^"]+"', rf'\1"{target_claude}"', content)
+    # 2. Активная модель по умолчанию — первая в списке (--set-* ставит указанную модель первой), отдельных значений в Swift нет
 
     # Записываем изменения
     REGISTRY_PATH.write_text(content, encoding="utf-8")
@@ -317,9 +320,10 @@ def test_api_models(gemini_key=None, openai_key=None, claude_key=None):
     if gemini_key:
         print("\n[Gemini] Тестирование:")
         for model in LATEST_HIERARCHIES["gemini"]:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
-            payload = json.dumps({"contents": [{"parts": [{"text": "ping"}]}]}).encode("utf-8")
-            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            # Ключ идёт заголовком, а не в адресе: адреса попадают в логи
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            payload = json.dumps({"contents": [{"parts": [{"text": "ping"}]}], "generationConfig": {"maxOutputTokens": 16}}).encode("utf-8")
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json", "x-goog-api-key": gemini_key})
             try:
                 with urllib.request.urlopen(req, timeout=8) as res:
                     if res.status == 200:
@@ -336,7 +340,11 @@ def test_api_models(gemini_key=None, openai_key=None, claude_key=None):
         print("\n[OpenAI] Тестирование:")
         for model in LATEST_HIERARCHIES["openai"]:
             url = "https://api.openai.com/v1/chat/completions"
-            payload = json.dumps({"model": model, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 5}).encode("utf-8")
+            # У gpt-5 и новее max_tokens не принимается (400): нужен max_completion_tokens
+            body = {"model": model, "messages": [{"role": "user", "content": "ping"}], "max_completion_tokens": 16}
+            if is_openai_reasoning(model):
+                body["reasoning_effort"] = "low"
+            payload = json.dumps(body).encode("utf-8")
             req = urllib.request.Request(url, data=payload, headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {openai_key}"
@@ -357,7 +365,7 @@ def test_api_models(gemini_key=None, openai_key=None, claude_key=None):
         print("\n[Claude] Тестирование:")
         for model in LATEST_HIERARCHIES["claude"]:
             url = "https://api.anthropic.com/v1/messages"
-            payload = json.dumps({"model": model, "max_tokens": 5, "messages": [{"role": "user", "content": "ping"}]}).encode("utf-8")
+            payload = json.dumps({"model": model, "max_tokens": 16, "messages": [{"role": "user", "content": "ping"}]}).encode("utf-8")
             req = urllib.request.Request(url, data=payload, headers={
                 "Content-Type": "application/json",
                 "x-api-key": claude_key,
@@ -378,9 +386,9 @@ def main():
     parser = argparse.ArgumentParser(description="Безопасное обновление и верификация моделей ИИ для Armenian Bible LockScreen")
     parser.add_argument("--status", "-s", action="store_true", help="Показать статус текущих моделей и резервных цепочек")
     parser.add_argument("--upgrade", "-u", action="store_true", help="Безопасно обновить иерархии до новейших стабильных версий 2026 года")
-    parser.add_argument("--set-gemini", type=str, help="Задать основную модель Gemini (например: gemini-2.5-flash)")
-    parser.add_argument("--set-openai", type=str, help="Задать основную модель OpenAI (например: gpt-4o)")
-    parser.add_argument("--set-claude", type=str, help="Задать основную модель Claude (например: claude-3-7-sonnet-latest)")
+    parser.add_argument("--set-gemini", type=str, help="Задать основную модель Gemini (например: gemini-3.6-flash)")
+    parser.add_argument("--set-openai", type=str, help="Задать основную модель OpenAI (например: gpt-6.1-terra)")
+    parser.add_argument("--set-claude", type=str, help="Задать основную модель Claude (например: claude-sonnet-5-5)")
     parser.add_argument("--test", "-t", action="store_true", help="Проверить доступность моделей прямыми пинг-запросами к API")
     parser.add_argument("--gemini-key", type=str, default=os.getenv("GEMINI_API_KEY"), help="API-ключ Gemini для тестирования")
     parser.add_argument("--openai-key", type=str, default=os.getenv("OPENAI_API_KEY"), help="API-ключ OpenAI для тестирования")

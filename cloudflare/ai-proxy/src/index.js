@@ -8,6 +8,7 @@ import { verifyAppleJws, checkEntitlement, VerifyError } from './apple.js';
 import { generate, GenerateError } from './gemini.js';
 import { parseBatch } from './events.js';
 import { dashboardHtml } from './dashboard.js';
+import { readCatalog } from './models.js';
 
 export { Quota } from './quota.js';
 export { Stats } from './stats.js';
@@ -177,6 +178,10 @@ export default {
     }
     if (request.method === 'POST' && url.pathname === '/v1/generate') {
       return handleGenerate(request, env, deps);
+    }
+    // Актуальные модели для кнопки «Обновить модели» в приложении. Открытый список: ни ключей, ни данных людей в нём нет
+    if (request.method === 'GET' && url.pathname === '/v1/models') {
+      return Response.json(readCatalog(env), { headers: { 'cache-control': 'public, max-age=3600' } });
     }
     if (request.method === 'POST' && url.pathname === '/v1/events') {
       return handleEvents(request, env);

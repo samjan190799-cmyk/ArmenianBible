@@ -12,6 +12,7 @@ extension SettingsView {
             aiProviderPillSelector
             aiCarouselView
             aiPageIndicatorDots
+            aiModelsUpdateSection
             aiTheologicalToneSection
             aiClearChatSection
         }
@@ -123,7 +124,7 @@ extension SettingsView {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: 255)
+        .frame(height: 235)
         .onChange(of: selectedProvider) { newProvider in
             manager.setActiveProvider(newProvider)
             Haptics.selection()
@@ -150,6 +151,155 @@ extension SettingsView {
         .padding(.top, 2)
     }
     
+    // MARK: - Обновление списка моделей
+    /// Кнопка «Обновить модели»: подтягивает с сервера актуальные модели Google, OpenAI и Anthropic (ключ не нужен),
+    /// а у кого есть свой ключ, ещё и проверяет, что выбранная модель с ним отвечает. Без сети ничего не ломается.
+    @ViewBuilder
+    var aiModelsUpdateSection: some View {
+        let tint = providerAccentColor(for: selectedProvider)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ai_models_update_title".localized(for: selectedLanguage))
+                        .font(PaperFont.font(size: 13, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                    Text(modelsLastUpdatedText)
+                        .font(PaperFont.font(size: 11))
+                        .foregroundColor(Paper.inkSecondary)
+                }
+
+                Spacer()
+
+                Button {
+                    startModelsUpdate()
+                } label: {
+                    HStack(spacing: 4) {
+                        if isCheckingModels {
+                            ProgressView()
+                                .scaleEffect(0.65)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        Text(isCheckingModels ? "checking_models".localized(for: selectedLanguage) : "ai_models_update_btn".localized(for: selectedLanguage))
+                            .font(PaperFont.font(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(tint)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(tint.opacity(0.12))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .disabled(isCheckingModels)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Paper.hairline, lineWidth: 1)
+            )
+
+            if let toast = activeKeyCheckToast {
+                HStack(alignment: .top, spacing: 5) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 10))
+                        .padding(.top, 2)
+                    Text(toast)
+                        .font(PaperFont.font(size: 11, weight: .medium))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .foregroundColor(tint)
+                .padding(.horizontal, 4)
+                .transition(.opacity.combined(with: .scale))
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    /// «Обновлено: 5 нояб. 2026 г., 14:30» или «Используется встроенный список», пока с сервера список ещё не получали
+    var modelsLastUpdatedText: String {
+        guard let date = AIModelCatalogStore.lastUpdated else {
+            return "ai_models_never_updated".localized(for: selectedLanguage)
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: selectedLanguage.localeCode)
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return String(format: "ai_models_last_updated".localized(for: selectedLanguage), formatter.string(from: date))
+    }
+
+    func startModelsUpdate() {
+        guard !isCheckingModels else { return }
+        Haptics.impact(.soft)
+        isCheckingModels = true
+        Task {
+            let report = await AIModelRegistry.shared.updateAllModels()
+            await MainActor.run {
+                isCheckingModels = false
+                let result = modelsUpdateMessage(for: report)
+                if result.isGood {
+                    Haptics.notify(.success)
+                } else {
+                    Haptics.notify(.warning)
+                }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    activeKeyCheckToast = result.text
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
+                    withAnimation { activeKeyCheckToast = nil }
+                }
+            }
+        }
+    }
+
+    /// Понятный итог на языке приложения: что с общим списком и что с моделями по ключам человека
+    func modelsUpdateMessage(for report: AIModelsUpdateReport) -> (text: String, isGood: Bool) {
+        let language = selectedLanguage
+        var lines: [String] = []
+        var isGood = true
+
+        switch report.catalog.status {
+        case .updated:
+            lines.append(String(format: "ai_models_updated".localized(for: language), report.catalog.added.count))
+        case .upToDate:
+            lines.append("ai_models_up_to_date".localized(for: language))
+        case .offline:
+            lines.append("ai_models_offline".localized(for: language))
+            isGood = false
+        case .unavailable:
+            lines.append("ai_models_unavailable".localized(for: language))
+            isGood = false
+        }
+
+        for provider in AIProvider.allCases {
+            guard let check = report.providers[provider] else { continue }
+            switch check {
+            case .selected(let model, let changed):
+                if changed {
+                    let name = AIModelRegistry.prettyName(of: model, provider: provider)
+                    lines.append(String(format: "ai_models_switched".localized(for: language), provider.displayName, name))
+                }
+            case .keyRejected:
+                lines.append(String(format: "ai_models_key_rejected".localized(for: language), provider.displayName))
+                isGood = false
+            case .noneWorked:
+                lines.append(String(format: "ai_models_none_worked".localized(for: language), provider.displayName))
+                isGood = false
+            case .offline:
+                // Про отсутствие сети уже сказано выше
+                if report.catalog.status != .offline {
+                    lines.append("ai_models_offline".localized(for: language))
+                    isGood = false
+                }
+            }
+        }
+        return (lines.joined(separator: "\n"), isGood)
+    }
+
     @ViewBuilder
     var aiTheologicalToneSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -373,7 +523,7 @@ extension SettingsView {
                 accentColor: pColor
             )
             
-            // Статус сохранения ключа и кнопка автопроверки моделей
+            // Статус сохранения ключа. Обновление списка моделей — отдельный блок ниже (aiModelsUpdateSection), ключ ему не нужен
             HStack(spacing: 6) {
                 if isKeySaved(for: provider) {
                     Image(systemName: "checkmark.circle.fill")
@@ -390,77 +540,10 @@ extension SettingsView {
                         .font(PaperFont.font(size: 11))
                         .foregroundColor(Paper.inkSecondary.opacity(0.7))
                 }
-                
+
                 Spacer()
-                
-                // Кнопка автообновления моделей (доступна для всех: Gemini, ChatGPT, Claude)
-                Button {
-                    Haptics.impact(.soft)
-                    if !isKeySaved(for: provider) {
-                        Haptics.notify(.warning)
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            activeKeyCheckToast = "enter_api_key_to_check".localized(for: selectedLanguage)
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                            withAnimation { activeKeyCheckToast = nil }
-                        }
-                        return
-                    }
-                    
-                    isCheckingModels = true
-                    Task {
-                        let res = await AIModelRegistry.shared.updateModels(for: provider)
-                        await MainActor.run {
-                            isCheckingModels = false
-                            if res.success {
-                                Haptics.notify(.success)
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    activeKeyCheckToast = res.message.localized(for: selectedLanguage)
-                                }
-                            } else {
-                                Haptics.notify(.warning)
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    activeKeyCheckToast = res.message.localized(for: selectedLanguage)
-                                }
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                                withAnimation { activeKeyCheckToast = nil }
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        if isCheckingModels {
-                            ProgressView()
-                                .scaleEffect(0.65)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 10, weight: .semibold))
-                        }
-                        Text(isCheckingModels ? "checking_models".localized(for: selectedLanguage) : "check_models".localized(for: selectedLanguage))
-                            .font(PaperFont.font(size: 11, weight: .semibold))
-                    }
-                    .foregroundColor(pColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(pColor.opacity(0.12))
-                    .cornerRadius(8)
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .disabled(isCheckingModels)
             }
             .padding(.top, 2)
-            
-            if let toast = activeKeyCheckToast {
-                HStack(spacing: 5) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 10))
-                    Text(toast)
-                        .font(PaperFont.font(size: 11, weight: .medium))
-                }
-                .foregroundColor(pColor)
-                .transition(.opacity.combined(with: .scale))
-            }
         }
         .padding(16)
         .background(

@@ -22,6 +22,7 @@ import re
 import json
 import shutil
 import argparse
+import datetime
 import subprocess
 import urllib.request
 import urllib.error
@@ -41,34 +42,59 @@ REGISTRY_PATH = PROJECT_ROOT / "Sources" / "AIModelRegistry.swift"
 BACKUP_PATH = PROJECT_ROOT / "Sources" / "AIModelRegistry.swift.bak"
 SCRIPTS_UPDATE_PATH = PROJECT_ROOT / "scripts" / "update_ai_models.py"
 ROOT_UPDATE_PATH = PROJECT_ROOT / "update_ai_models.py"
+# Серверный каталог моделей: его отдаёт Worker по GET /v1/models, а приложение берёт кнопкой «Обновить модели»
+CATALOG_PATH = PROJECT_ROOT / "cloudflare" / "ai-proxy" / "src" / "models.js"
 
-# Базовые кандидаты для проверки при недоступности ListModels
+# Базовые кандидаты для проверки при недоступности ListModels.
+# Сверено с официальной документацией 2026-11-05 (ai.google.dev, developers.openai.com, platform.claude.com).
+# Закрыты и сюда не входят: gemini-1.5 и 2.0, gpt-3.5-turbo, gpt-4.5-preview, o1 и o3-mini, все claude-3.x
 KNOWN_CANDIDATES = {
     "gemini": [
         "gemini-3.5-flash-lite",
-        "gemini-3.5-flash",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro"
+        "gemini-3.6-flash",
+        "gemini-3.8-flash",
+        "gemini-2.5-flash-lite"
     ],
     "openai": [
-        "gpt-5",
-        "gpt-5-mini",
-        "gpt-4.5-preview",
-        "gpt-4o",
-        "gpt-4o-mini",
-        "o3-mini",
-        "o1-mini",
-        "o1",
-        "gpt-3.5-turbo"
+        "gpt-6-luna",
+        "gpt-6.1-terra",
+        "gpt-6.1-sol"
     ],
     "claude": [
-        "claude-3-7-sonnet-latest",
-        "claude-3-5-sonnet-latest",
-        "claude-3-5-haiku-latest",
-        "claude-3-5-haiku-20241022",
-        "claude-3-haiku-20240307"
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5",
+        "claude-sonnet-5",
+        "claude-haiku-4-5"
     ]
 }
+
+# Слова в идентификаторах, по которым модель не подходит для ответов в чате: озвучка, картинки, Live,
+# предварительные версии, специальные и дорогие семейства, закрытые claude-3.x
+EXCLUDED = {
+    "gemini": ["embedding", "aqa", "imagen", "bison", "gecko", "image", "tts", "live", "audio", "transcribe",
+               "robotics", "computer-use", "veo", "native", "preview", "exp", "thinking", "learnlm"],
+    "openai": ["audio", "realtime", "transcribe", "tts", "search", "image", "vision", "codex", "instruct", "pro",
+               "deep-research", "moderation", "embedding", "cyber", "preview", "chat-latest", "computer-use"],
+    "claude": ["claude-3", "claude-2", "instant"],
+}
+
+# Сколько моделей каждого уровня (0 недорогие, 1 средние, 2 остальные) попадает в список провайдера
+TIER_LIMITS = {0: 2, 1: 2, 2: 1}
+
+# Если проверку прошло меньше моделей, список провайдера не меняем: ключ мог просто не иметь доступа
+MIN_VERIFIED = 2
+
+
+def is_excluded(model: str, provider: str) -> bool:
+    return any(word in model for word in EXCLUDED.get(provider, []))
+
+
+def is_openai_reasoning(model: str) -> bool:
+    """gpt-5 и новее, а также o1/o3/o4: у них нет произвольной температуры, лимит задаётся max_completion_tokens"""
+    match = re.match(r"gpt-(\d+)", model)
+    if match:
+        return int(match.group(1)) >= 5
+    return bool(re.match(r"o\d", model))
 
 def log(msg: str):
     print(msg, flush=True)
@@ -82,12 +108,13 @@ def discover_gemini_models(api_key: str) -> list[str]:
     if not api_key:
         return []
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    # pageSize: по умолчанию Google отдаёт только первые 50 моделей, и новые можно не увидеть. Ключ идёт заголовком, не в адресе
+    url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200"
     req = urllib.request.Request(url, headers={
         "Content-Type": "application/json",
         "x-goog-api-key": api_key
     })
-    
+
     found = []
     try:
         with urllib.request.urlopen(req, timeout=12) as res:
@@ -96,12 +123,9 @@ def discover_gemini_models(api_key: str) -> list[str]:
                 for m in data.get("models", []):
                     name = m.get("name", "").replace("models/", "")
                     methods = m.get("supportedGenerationMethods", [])
-                    # Нам нужны только модели, поддерживающие generateContent
-                    if "generateContent" in methods:
-                        # Исключаем embedding, aqa, imagen, text-bison
-                        if any(x in name for x in ["embedding", "aqa", "imagen", "bison", "gecko"]):
-                            continue
-                        if "gemini" in name:
+                    # Нам нужны только чат-модели, поддерживающие generateContent
+                    if "generateContent" in methods and name.startswith("gemini-"):
+                        if not is_excluded(name, "gemini"):
                             found.append(name)
     except Exception as e:
         log(f"  ⚠️ Запрос ListModels Gemini не удался: {e}. Используем расширенный список кандидатов.")
@@ -132,9 +156,9 @@ def discover_openai_models(api_key: str) -> list[str]:
                 data = json.loads(res.read().decode("utf-8"))
                 for m in data.get("data", []):
                     mid = m.get("id", "")
-                    if mid.startswith("gpt-") or mid.startswith("o1") or mid.startswith("o3") or mid.startswith("o4"):
-                        # Исключаем audio, realtime, vision-preview и т.д.
-                        if any(x in mid for x in ["audio", "realtime", "transcribe", "tts", "search"]):
+                    if mid.startswith("gpt-") or mid.startswith("o3") or mid.startswith("o4"):
+                        # Исключаем audio, realtime, codex, pro и т.д., а также датированные снимки (gpt-4o-2024-08-06)
+                        if is_excluded(mid, "openai") or re.search(r"-\d{4}-\d{2}-\d{2}$", mid):
                             continue
                         found.append(mid)
     except Exception as e:
@@ -153,12 +177,12 @@ def discover_claude_models(api_key: str) -> list[str]:
     if not api_key:
         return []
     
-    url = "https://api.anthropic.com/v1/models"
+    url = "https://api.anthropic.com/v1/models?limit=100"
     req = urllib.request.Request(url, headers={
         "x-api-key": api_key,
         "anthropic-version": "2023-06-01"
     })
-    
+
     found = []
     try:
         with urllib.request.urlopen(req, timeout=12) as res:
@@ -166,7 +190,7 @@ def discover_claude_models(api_key: str) -> list[str]:
                 data = json.loads(res.read().decode("utf-8"))
                 for m in data.get("data", []):
                     mid = m.get("id", "")
-                    if "claude" in mid:
+                    if mid.startswith("claude-") and not is_excluded(mid, "claude"):
                         found.append(mid)
     except Exception as e:
         log(f"  ⚠️ Запрос ListModels Claude не удался: {e}. Используем список кандидатов.")
@@ -183,61 +207,66 @@ def discover_claude_models(api_key: str) -> list[str]:
 # 2. Пинг-тесты (валидация реальной работоспособности модели)
 # -----------------------------------------------------------------------------
 
+def request_ok(req: urllib.request.Request) -> bool:
+    """200 — модель отвечает. 429 — модель есть, но упёрлись в лимит ключа: для каталога это не повод её вычёркивать"""
+    try:
+        with urllib.request.urlopen(req, timeout=12) as res:
+            return res.status == 200
+    except urllib.error.HTTPError as e:
+        return e.code == 429
+    except Exception:
+        return False
+
+
 def ping_gemini_model(model: str, api_key: str) -> bool:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    # Ключ идёт заголовком, а не в адресе: адреса попадают в логи
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = json.dumps({
         "contents": [{"parts": [{"text": "ping"}]}],
-        "generationConfig": {"maxOutputTokens": 5}
+        "generationConfig": {"maxOutputTokens": 16}
     }).encode("utf-8")
-    
+
     req = urllib.request.Request(url, data=payload, headers={
         "Content-Type": "application/json",
         "x-goog-api-key": api_key
     })
-    try:
-        with urllib.request.urlopen(req, timeout=8) as res:
-            return res.status == 200
-    except Exception:
-        return False
+    return request_ok(req)
 
 
 def ping_openai_model(model: str, api_key: str) -> bool:
     url = "https://api.openai.com/v1/chat/completions"
-    payload = json.dumps({
+    # У gpt-5 и новее параметр max_tokens не принимается (400), нужен max_completion_tokens; размышление держим коротким
+    body = {
         "model": model,
         "messages": [{"role": "user", "content": "ping"}],
-        "max_tokens": 5
-    }).encode("utf-8")
-    
+        "max_completion_tokens": 16
+    }
+    if is_openai_reasoning(model):
+        body["reasoning_effort"] = "low"
+    payload = json.dumps(body).encode("utf-8")
+
     req = urllib.request.Request(url, data=payload, headers={
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     })
-    try:
-        with urllib.request.urlopen(req, timeout=8) as res:
-            return res.status == 200
-    except Exception:
-        return False
+    return request_ok(req)
 
 
 def ping_claude_model(model: str, api_key: str) -> bool:
     url = "https://api.anthropic.com/v1/messages"
+    # temperature не передаём: Claude 5 его не принимает
     payload = json.dumps({
         "model": model,
-        "max_tokens": 5,
+        "max_tokens": 16,
         "messages": [{"role": "user", "content": "ping"}]
     }).encode("utf-8")
-    
+
     req = urllib.request.Request(url, data=payload, headers={
         "Content-Type": "application/json",
         "x-api-key": api_key,
         "anthropic-version": "2023-06-01"
     })
-    try:
-        with urllib.request.urlopen(req, timeout=8) as res:
-            return res.status == 200
-    except Exception:
-        return False
+    return request_ok(req)
 
 
 # -----------------------------------------------------------------------------
@@ -254,52 +283,42 @@ def parse_model_version(name: str) -> tuple:
     return (0, 0)
 
 
-def rank_models(models: list[str], provider: str) -> list[str]:
-    """Сортирует список проверенных моделей по убыванию новизны и производительности"""
+def model_tier(model: str, provider: str) -> int:
+    """0 — быстрые и недорогие (идут первыми: ими отвечают по умолчанию), 1 — средние, 2 — остальные"""
+    m = model.lower()
     if provider == "gemini":
-        # Приоритет: старшая версия -> flash -> pro -> lite
-        def gemini_score(m: str):
-            ver = parse_model_version(m)
-            sub_score = 0
-            if "flash" in m and "lite" not in m:
-                sub_score = 3
-            elif "pro" in m:
-                sub_score = 2
-            elif "lite" in m or "8b" in m:
-                sub_score = 1
-            return (ver[0], ver[1], sub_score)
-        
-        return sorted(list(dict.fromkeys(models)), key=gemini_score, reverse=True)
+        if "lite" in m:
+            return 0
+        return 1 if "flash" in m else 2
+    if provider == "openai":
+        if any(word in m for word in ("luna", "mini", "nano")):
+            return 0
+        return 1 if "terra" in m else 2
+    if provider == "claude":
+        if "haiku" in m:
+            return 0
+        return 1 if "sonnet" in m else 2
+    return 2
 
-    elif provider == "openai":
-        def openai_score(m: str):
-            ver = parse_model_version(m)
-            sub_score = 0
-            if "mini" in m:
-                sub_score = 1
-            elif "4o" in m:
-                sub_score = 2
-            elif "o3" in m or "o1" in m:
-                sub_score = 3
-            return (ver[0], ver[1], sub_score)
-        
-        return sorted(list(dict.fromkeys(models)), key=openai_score, reverse=True)
 
-    elif provider == "claude":
-        def claude_score(m: str):
-            ver = parse_model_version(m)
-            sub_score = 0
-            if "sonnet" in m:
-                sub_score = 3
-            elif "haiku" in m:
-                sub_score = 2
-            elif "opus" in m:
-                sub_score = 1
-            return (ver[0], ver[1], sub_score)
-        
-        return sorted(list(dict.fromkeys(models)), key=claude_score, reverse=True)
+def rank_models(models: list[str], provider: str) -> list[str]:
+    """Сортирует проверенные модели: сначала недорогие, внутри уровня более новые.
+    Из каждого уровня берём не больше TIER_LIMITS, чтобы в приложение не уходил длинный хвост устаревших версий."""
+    unique = [m for m in dict.fromkeys(models) if not is_excluded(m, provider)]
 
-    return models
+    def sort_key(m: str):
+        ver = parse_model_version(m)
+        return (model_tier(m, provider), -ver[0], -ver[1], m)
+
+    result = []
+    taken_per_tier = {}
+    for m in sorted(unique, key=sort_key):
+        tier = model_tier(m, provider)
+        if taken_per_tier.get(tier, 0) >= TIER_LIMITS.get(tier, 1):
+            continue
+        taken_per_tier[tier] = taken_per_tier.get(tier, 0) + 1
+        result.append(m)
+    return result
 
 
 # -----------------------------------------------------------------------------
@@ -369,10 +388,56 @@ def validate_swift_syntax(file_path: Path) -> bool:
     return len(stack) == 0
 
 
+def update_catalog_file(gemini_list: list[str], openai_list: list[str], claude_list: list[str]) -> bool:
+    """Обновляет списки в cloudflare/ai-proxy/src/models.js (его отдаёт Worker по GET /v1/models)"""
+    if not CATALOG_PATH.exists():
+        log(f"ℹ️ Каталог {CATALOG_PATH} не найден, серверный список не обновлён.")
+        return False
+
+    text = CATALOG_PATH.read_text(encoding="utf-8")
+    original = text
+
+    def replace_list(code: str, key: str, models: list[str]) -> str:
+        items = ", ".join(f"'{m}'" for m in models)
+        # Берём первое вхождение «key: [ ... ]» — это поле MODEL_CATALOG
+        return re.sub(rf"(\b{key}:\s*)\[[^\]]*\]", lambda m: f"{m.group(1)}[{items}]", code, count=1)
+
+    if gemini_list:
+        text = replace_list(text, "gemini", gemini_list)
+    if openai_list:
+        text = replace_list(text, "openai", openai_list)
+    if claude_list:
+        text = replace_list(text, "claude", claude_list)
+
+    if text == original:
+        log("ℹ️ Серверный каталог моделей уже актуален.")
+        return False
+
+    today = datetime.date.today().isoformat()
+    text = re.sub(r"(updated:\s*)'[^']*'", lambda m: f"{m.group(1)}'{today}'", text, count=1)
+    CATALOG_PATH.write_text(text, encoding="utf-8")
+    log("✅ Серверный каталог моделей обновлён (cloudflare/ai-proxy/src/models.js). Чтобы он дошёл до приложений, выпустите Worker: npx wrangler deploy")
+    return True
+
+
 def update_registry_file(gemini_list: list[str], openai_list: list[str], claude_list: list[str]) -> bool:
     """Обновляет иерархии в AIModelRegistry.swift с валидацией синтаксиса"""
     if not REGISTRY_PATH.exists():
         log(f"❌ Файл {REGISTRY_PATH} не найден.")
+        return False
+
+    # Список провайдера меняем, только если проверку прошло достаточно моделей: ключ мог просто не иметь доступа
+    def usable(models: list[str], title: str) -> list[str]:
+        if models and len(models) < MIN_VERIFIED:
+            log(f"  ⚠️ {title}: проверку прошло меньше {MIN_VERIFIED} моделей ({len(models)}), список не меняем.")
+            return []
+        return models
+
+    gemini_list = usable(gemini_list, "Gemini")
+    openai_list = usable(openai_list, "OpenAI")
+    claude_list = usable(claude_list, "Claude")
+    if not (gemini_list or openai_list or claude_list):
+        log("ℹ️ Нечего обновлять: ни у одного провайдера нет достаточного числа проверенных моделей.")
         return False
 
     shutil.copyfile(REGISTRY_PATH, BACKUP_PATH)
@@ -384,16 +449,12 @@ def update_registry_file(gemini_list: list[str], openai_list: list[str], claude_
         replacement = rf'\g<1>\n{formatted}\n    \g<2>'
         return re.sub(pattern, replacement, code, flags=re.DOTALL)
 
+    # Активная модель в Swift не хранится литералом: это первая модель списка (AIModelRegistry.storedActive), поэтому правим только массивы
     if gemini_list:
         content = replace_hierarchy(content, "geminiHierarchy", gemini_list)
-        target_gemini = gemini_list[0]
-        content = re.sub(r'(forKey:\s*"active_gemini_model"\)\s*\?\?\s*)"[^"]+"', rf'\1"{target_gemini}"', content)
-        content = re.sub(r'(return\s*)"gemini-[^"]+"', rf'\1"{target_gemini}"', content)
 
     if openai_list:
         content = replace_hierarchy(content, "openAIHierarchy", openai_list)
-        target_openai = openai_list[0] if "mini" in openai_list[0] else (openai_list[1] if len(openai_list) > 1 else openai_list[0])
-        content = re.sub(r'(forKey:\s*"active_openai_model"\)\s*\?\?\s*)"[^"]+"', rf'\1"{target_openai}"', content)
 
     if claude_list:
         content = replace_hierarchy(content, "claudeHierarchy", claude_list)
@@ -407,6 +468,9 @@ def update_registry_file(gemini_list: list[str], openai_list: list[str], claude_
 
     if BACKUP_PATH.exists():
         BACKUP_PATH.unlink()
+
+    # Серверный каталог для кнопки «Обновить модели»: после выпуска Worker (npx wrangler deploy) приложения получат список без релиза
+    update_catalog_file(gemini_list, openai_list, claude_list)
 
     # Синхронизируем также update_ai_models.py
     for up_path in [ROOT_UPDATE_PATH, SCRIPTS_UPDATE_PATH]:
