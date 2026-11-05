@@ -753,6 +753,16 @@ struct HomeView: View {
                             animateVerse = true
                         }
                     }
+                } else if url.host == "ref" {
+                    // Нажатие на виджет экрана блокировки: armenianbible://ref?en=John%2014:27&ru=…&hy=…
+                    // Место находим по подписи цитаты, как при нажатии на подпись в приложении. Нет места в Библии: просто главный экран
+                    let items = URLComponents(url: url, resolvingAgainstBaseURL: true)?.queryItems ?? []
+                    func value(_ name: String) -> String { items.first(where: { $0.name == name })?.value ?? "" }
+                    let verse = BibleVerse(textHy: "", textRu: "", textEn: "", refHy: value("hy"), refRu: value("ru"), refEn: value("en"))
+                    triggerHaptic(.soft)
+                    if !ScriptureLocator.open(verse) {
+                        manager.activeTabSelection = 0
+                    }
                 } else if url.host == "read" {
                     // Парсим параметры: armenianbible://read?bookId=43&chapter=3&verse=16
                     guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
