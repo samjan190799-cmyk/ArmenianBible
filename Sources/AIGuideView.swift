@@ -494,13 +494,9 @@ extension AIGuideView {
         let key = manager.effectiveAPIKey(for: manager.activeProvider)
 
         if key.isEmpty {
+            // Ключ пуст только пока не задан адрес сервера ИИ: тогда остаётся ввести свой ключ
             triggerHaptic(.medium)
-            // Без своего ключа ИИ даёт подписка (сервер): не подписчику предлагаем её, а не ввод ключа
-            if subscriptionManager.isPremium || !AIProxy.isConfigured {
-                showingNoKeyAlert = true
-            } else {
-                isShowingPaywall = true
-            }
+            showingNoKeyAlert = true
             return
         }
         

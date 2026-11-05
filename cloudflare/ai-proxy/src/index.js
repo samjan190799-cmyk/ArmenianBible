@@ -1,5 +1,7 @@
-// Посредник Luys → ИИ. Приложение присылает вопрос и подписанное Apple подтверждение подписки;
+// Посредник Luys → ИИ. Подписчик присылает вопрос и подписанное Apple подтверждение подписки;
 // сервер проверяет подпись и срок, считает дневной лимит и только потом идёт к ИИ со своим ключом.
+// Бесплатный пользователь присылает вопрос и случайный номер установки: у него малый суточный лимит
+// на установку и на сеть, а у всех бесплатных вместе свой потолок расходов.
 // Ключ ИИ хранится только как секрет Worker (GEMINI_API_KEY) и в приложение не попадает.
 
 import { verifyAppleJws, checkEntitlement, VerifyError } from './apple.js';
@@ -25,6 +27,33 @@ async function counter(env, name, limit, action = '/take') {
   return { ok: res.ok, ...(await res.json()) };
 }
 
+/** Берёт по одному вопросу из каждого счётчика по порядку; если какой-то отказал, взятые возвращает */
+async function takeAll(env, list) {
+  const taken = [];
+  for (const item of list) {
+    const result = await counter(env, item.name, item.limit);
+    if (!result.ok) {
+      await giveBack(env, taken);
+      return { ok: false, failed: item, result };
+    }
+    taken.push({ ...item, result });
+  }
+  return { ok: true, taken };
+}
+
+async function giveBack(env, taken) {
+  for (const item of taken) await counter(env, item.name, item.limit, '/refund');
+}
+
+/** Сеть человека в счётчике хранится только как хэш с солью дня и секретом сервера: адрес по нему не подобрать перебором */
+async function hashed(env, value) {
+  const bytes = new TextEncoder().encode(`${new Date().toISOString().slice(0, 10)}|${env.GEMINI_API_KEY}|${value}`);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return Array.from(digest.slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+const INSTALL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function handleGenerate(request, env, deps) {
   if (!env.GEMINI_API_KEY) return json({ error: 'not_configured' }, 503);
   if (Number(request.headers.get('content-length') || 0) > MAX_BODY_BYTES) return json({ error: 'too_large' }, 413);
@@ -40,34 +69,61 @@ async function handleGenerate(request, env, deps) {
   if (!prompt.trim() || prompt.length > MAX_PROMPT_CHARS || system.length > MAX_SYSTEM_CHARS) return json({ error: 'bad_request' }, 400);
   const maxTokens = Math.min(Math.max(Number(body.maxTokens) || 1024, 64), 4096);
 
-  let payload;
-  try {
-    payload = await verifyAppleJws(body.transaction, { rootSha256: env.APPLE_ROOT_SHA256 || undefined });
-  } catch (error) {
-    return json({ error: 'unauthorized', reason: error instanceof VerifyError ? error.code : 'bad_format' }, 401);
-  }
-  const reason = checkEntitlement(payload, env, deps.now ? deps.now() : Date.now());
-  if (reason) return json({ error: 'no_subscription', reason }, 403);
+  const global = { name: 'global', limit: Number(env.GLOBAL_DAILY_LIMIT) || 3000, failure: 'busy' };
+  let tier;
+  let counters;
+  let userLimit;
+  let userName;
 
-  const userName = `user:${payload.originalTransactionId}`;
-  const userLimit = Number(env.DAILY_LIMIT) || 30;
-  const globalLimit = Number(env.GLOBAL_DAILY_LIMIT) || 3000;
+  if (typeof body.transaction === 'string' && body.transaction) {
+    let payload;
+    try {
+      payload = await verifyAppleJws(body.transaction, { rootSha256: env.APPLE_ROOT_SHA256 || undefined });
+    } catch (error) {
+      return json({ error: 'unauthorized', reason: error instanceof VerifyError ? error.code : 'bad_format' }, 401);
+    }
+    const reason = checkEntitlement(payload, env, deps.now ? deps.now() : Date.now());
+    if (reason) return json({ error: 'no_subscription', reason }, 403);
 
-  const user = await counter(env, userName, userLimit);
-  if (!user.ok) return json({ error: 'quota', used: user.used, limit: user.limit }, 429);
-  const all = await counter(env, 'global', globalLimit);
-  if (!all.ok) {
-    await counter(env, userName, userLimit, '/refund');
-    return json({ error: 'busy' }, 503);
+    tier = 'premium';
+    userName = `user:${payload.originalTransactionId}`;
+    userLimit = Number(env.DAILY_LIMIT) || 30;
+    counters = [{ name: userName, limit: userLimit, failure: 'quota' }, global];
+  } else if (typeof body.installId === 'string' && INSTALL_ID.test(body.installId)) {
+    // Бесплатные вопросы: без подписки, поэтому лимит строже и есть отдельный потолок для всех бесплатных
+    if (env.ALLOW_FREE === 'false') return json({ error: 'no_subscription', reason: 'free_disabled' }, 403);
+    tier = 'free';
+    userName = `free:${body.installId.toLowerCase()}`;
+    userLimit = Number(env.FREE_DAILY_LIMIT) || 5;
+    counters = [];
+    const network = request.headers.get('cf-connecting-ip');
+    if (network) {
+      counters.push({ name: `net:${await hashed(env, network)}`, limit: Number(env.FREE_NET_DAILY_LIMIT) || 15, failure: 'quota' });
+    }
+    counters.push(
+      { name: userName, limit: userLimit, failure: 'quota' },
+      { name: 'free-global', limit: Number(env.FREE_GLOBAL_DAILY_LIMIT) || 300, failure: 'busy' },
+      global
+    );
+  } else {
+    return json({ error: 'unauthorized', reason: 'bad_format' }, 401);
   }
+
+  const taken = await takeAll(env, counters);
+  if (!taken.ok) {
+    if (taken.failed.failure === 'quota') {
+      return json({ error: 'quota', tier, used: taken.result.used, limit: taken.result.limit }, 429);
+    }
+    return json({ error: 'busy', tier }, 503);
+  }
+  const mine = taken.taken.find((item) => item.name === userName);
 
   try {
     const { text, model } = await generate(env, { prompt, system, json: body.json === true, maxTokens }, deps.fetch);
-    return json({ text, model, remaining: Math.max(0, user.limit - user.used) });
+    return json({ text, model, tier, remaining: Math.max(0, mine.result.limit - mine.result.used) });
   } catch (error) {
     // ИИ не ответил: вопрос человеку не засчитываем
-    await counter(env, userName, userLimit, '/refund');
-    await counter(env, 'global', globalLimit, '/refund');
+    await giveBack(env, taken.taken);
     return json({ error: 'ai_failed', status: error instanceof GenerateError ? error.status : 502 }, 502);
   }
 }
