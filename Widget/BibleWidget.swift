@@ -966,7 +966,7 @@ struct BibleWidgetEntryView: View {
             } else {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: вертикальная черта и подпись с линейкой (LockScreenQuoteViews.swift);
+                // Прямоугольный виджет на экране блокировки: вертикальная черта и цитата без подписи (LockScreenQuoteViews.swift);
                 // цитата — самая крупная, при которой помещается
                 LockQuoteCard(
                     text: entry.verse.text(for: getLanguage()),
