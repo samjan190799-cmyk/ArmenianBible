@@ -224,9 +224,9 @@ struct PrayerManuscriptWriterView: View {
             let minTop: CGFloat = 56
             let followTarget = max(minTop, min(layout.bottomY - visibleHeight + 40, ManuscriptGeometry.size.height - visibleHeight))
             let hasText = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            // Живая рука медленнее анимации готового листа: на знак уходит в 1,6 раза больше времени, чем задано в настройках
+            // Живая рука медленнее анимации готового листа: во сколько раз, задано в `ManuscriptWritingSpeed.liveHandFactor`
             let state = clock.advance(now: timeline.date, target: layout.length, hasText: hasText, scrollTarget: followTarget,
-                                      secondsPerCharacter: ManuscriptWritingSpeed.current.secondsPerCharacter * 1.6,
+                                      secondsPerCharacter: ManuscriptWritingSpeed.current.secondsPerCharacter * ManuscriptWritingSpeed.liveHandFactor,
                                       weightAt: { layout.weight(atChar: $0) })
             // Часы считают знаки, а рисунок — долю времени письма: у сложных букв доля течёт медленнее
             let progress = layout.progress(forWritten: CGFloat(state.written))
