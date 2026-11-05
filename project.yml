@@ -35,8 +35,12 @@ targets:
           UIColorName: LaunchBackground
           UIImageName: LaunchImage
           UIImageRespectsSafetyMargins: true
+        # Альбомные ориентации объявлены ради iPhone Duo (в развёрнутом виде он шире, чем выше).
+        # Обычные iPhone остаются вертикальными: поворот ограничивает AppDelegate по размеру экрана.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown

@@ -15,10 +15,15 @@ enum CandleIslandFlight {
             .first { $0.activationState == .foregroundActive }
     }
 
-    /// Остров есть у моделей, у которых верхний отступ безопасной зоны не меньше 51 pt
+    /// Остров есть у моделей, у которых верхний отступ безопасной зоны не меньше 51 pt.
+    /// Летит свеча только в вертикальное окно на весь экран: на iPhone Duo (развёрнутом, в альбомной
+    /// ориентации или в половине экрана) остров и строка состояния уходят к краю, и цели вверху по центру нет.
     static var hasIsland: Bool {
-        guard let window = activeScene?.windows.first else { return false }
-        return window.safeAreaInsets.top >= 51
+        guard let scene = activeScene, let window = scene.windows.first else { return false }
+        let size = window.bounds.size
+        let isUpright = size.height > size.width
+        let fillsScreen = size == scene.screen.bounds.size
+        return window.safeAreaInsets.top >= 51 && isUpright && fillsScreen
     }
 
     /// Можно ли лететь: остров есть, Live Activity разрешены, анимации не отключены
@@ -39,7 +44,7 @@ enum CandleIslandFlight {
         let host = UIHostingController(rootView: FlightView(
             tier: tier,
             start: start,
-            screen: scene.screen.bounds.size,
+            screen: scene.coordinateSpace.bounds.size,
             onLanded: {
                 window.isHidden = true
                 overlayWindow = nil
