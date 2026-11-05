@@ -4,6 +4,8 @@ import LocalAuthentication
 
 struct ExplanationView: View {
     @ObservedObject var manager = BibleManager.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    @State private var isShowingPaywall = false
     @State private var explanationText = ""
     @State private var selectedDepth = 0 // 0 = суть, 1 = контекст, 2 = жизнь
     
@@ -176,9 +178,19 @@ struct ExplanationView: View {
         } message: {
             Text(errorMessage)
         }
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView(source: "ai_explanation")
+        }
     }
     
     private func runTheologicalExplanation() {
+        // Толкование тратит тот же суточный лимит ИИ-вопросов, что и чат: без подписки он ограничен
+        if !subscriptionManager.canAskAI() {
+            triggerHaptic(.medium)
+            isShowingPaywall = true
+            return
+        }
+
         let key = manager.effectiveAPIKey(for: manager.activeProvider)
         
         if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -211,6 +223,7 @@ struct ExplanationView: View {
             switch result {
             case .success(let text):
                 DispatchQueue.main.async {
+                    self.subscriptionManager.recordAiQuestionUsed()
                     withAnimation(.easeInOut(duration: 0.3)) {
                         self.explanationText = text
                     }

@@ -46,8 +46,10 @@ enum AIServerConsent {
     }
 }
 
-// MARK: - Серверный ИИ для подписчиков
-/// Вопрос уходит на Worker Cloudflare (папка cloudflare/ai-proxy), ключ ИИ хранится только там. Подписчику не нужен свой ключ.
+// MARK: - Серверный ИИ: для подписчиков и для бесплатных вопросов
+/// Вопрос уходит на Worker Cloudflare (папка cloudflare/ai-proxy), ключ ИИ хранится только там. Свой ключ человеку не нужен.
+/// Подписчик подтверждается подписанной Apple покупкой, бесплатный вопрос идёт под случайным номером установки
+/// и с малым суточным лимитом (сколько вопросов осталось, решает `SubscriptionManager.canAskAI`).
 /// Пока `baseURL` пуст, приложение работает как раньше: только со своим ключом человека.
 enum AIProxy {
     /// Адрес развёрнутого Worker (см. cloudflare/ai-proxy/README.md)
@@ -61,9 +63,21 @@ enum AIProxy {
 
     static var isConfigured: Bool { !baseURL.isEmpty }
 
-    /// Серверный ИИ работает для подписчика, когда адрес сервера задан
+    /// Серверный ИИ доступен всем, когда адрес сервера задан: подписчику по подписке, остальным в пределах бесплатных вопросов
     static var isAvailableForCurrentUser: Bool {
-        isConfigured && SubscriptionManager.premiumSnapshot
+        isConfigured
+    }
+
+    /// Случайный номер этой установки для бесплатных вопросов: по нему сервер считает суточный лимит.
+    /// Ни с именем, ни с Apple ID, ни с рекламным идентификатором он не связан и стирается вместе с приложением.
+    private static var installId: String {
+        let key = "ai_install_id_v1"
+        if let saved = UserDefaults.standard.string(forKey: key), UUID(uuidString: saved) != nil {
+            return saved.lowercased()
+        }
+        let created = UUID().uuidString.lowercased()
+        UserDefaults.standard.set(created, forKey: key)
+        return created
     }
 
     private static func failure(_ code: Int, _ text: String) -> NSError {
@@ -82,23 +96,27 @@ enum AIProxy {
                 en: "The question cannot be sent to the server without your consent"
             ))
         }
-        guard let transaction = await SubscriptionManager.shared.currentEntitlementJWS() else {
-            throw failure(401, language.pick(
-                hy: "Չհաջողվեց հաստատել բաժանորդագրությունը: Բացեք բաժանորդագրության էկրանը և սեղմեք «Վերականգնել գնումները»",
-                ru: "Не удалось подтвердить подписку. Откройте экран подписки и нажмите «Восстановить покупки»",
-                en: "Could not confirm your subscription. Open the subscription screen and tap “Restore Purchases”"
-            ))
+        // Подписчик идёт по подписанной Apple покупке. Без подписки (и у тех, чью покупку StoreKit не показывает,
+        // например ранних покупателей) вопрос идёт как бесплатный, под номером установки
+        var transaction: String?
+        if SubscriptionManager.premiumSnapshot {
+            transaction = await SubscriptionManager.shared.currentEntitlementJWS()
         }
+        let isFree = transaction == nil
 
         var request = URLRequest(url: url, timeoutInterval: 60)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         var body: [String: Any] = [
             "prompt": prompt,
-            "transaction": transaction,
             "json": jsonMode,
             "maxTokens": maxTokens
         ]
+        if let transaction {
+            body["transaction"] = transaction
+        } else {
+            body["installId"] = installId
+        }
         if let systemPrompt, !systemPrompt.isEmpty {
             body["system"] = systemPrompt
         }
@@ -115,12 +133,26 @@ enum AIProxy {
         let reason = (json?["reason"] as? String) ?? (json?["error"] as? String) ?? "\(status)"
         switch status {
         case 401, 403:
+            if isFree {
+                throw failure(status, language.pick(
+                    hy: "Անվճար հարցերն այժմ հասանելի չեն: Փորձեք ավելի ուշ կամ ձեռք բերեք բաժանորդագրություն",
+                    ru: "Бесплатные вопросы сейчас недоступны. Попробуйте позже или оформите подписку",
+                    en: "Free questions are unavailable right now. Try again later or subscribe"
+                ))
+            }
             throw failure(status, language.pick(
                 hy: "Բաժանորդագրությունը հաստատված չէ (\(reason)): Բացեք բաժանորդագրության էկրանը և սեղմեք «Վերականգնել գնումները»",
                 ru: "Подписка не подтверждена (\(reason)). Откройте экран подписки и нажмите «Восстановить покупки»",
                 en: "Your subscription could not be confirmed (\(reason)). Open the subscription screen and tap “Restore Purchases”"
             ))
         case 429:
+            if isFree {
+                throw failure(status, language.pick(
+                    hy: "Այսօրվա անվճար հարցերը սպառվել են: Վաղը կթարմացվեն, իսկ բաժանորդագրությամբ հարցերը շատ ավելի շատ են",
+                    ru: "Бесплатные вопросы на сегодня закончились. Они обновятся завтра, а с подпиской их гораздо больше",
+                    en: "Today's free questions are used up. They reset tomorrow, and a subscription gives many more"
+                ))
+            }
             throw failure(status, language.pick(
                 hy: "Այսօրվա հարցերի սահմանաչափը սպառվել է: Այն կթարմացվի վաղը",
                 ru: "Лимит вопросов на сегодня исчерпан. Он обновится завтра",

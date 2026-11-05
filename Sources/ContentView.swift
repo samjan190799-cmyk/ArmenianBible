@@ -800,6 +800,12 @@ struct HomeView: View {
     
     // MARK: - Логика отправки запроса к ИИ
     private func runAIGeneration() {
+        // Цитата от ИИ тратит тот же суточный лимит ИИ-вопросов, что и чат: без подписки он ограничен
+        guard subscriptionManager.canAskAI() else {
+            isShowingPaywall = true
+            return
+        }
+
         withAnimation(.easeOut(duration: 0.18)) {
             animateVerse = false
         }
@@ -808,6 +814,7 @@ struct HomeView: View {
             DispatchQueue.main.async {
                 switch result {
                 case .success(_):
+                    subscriptionManager.recordAiQuestionUsed()
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         animateVerse = true
                     }

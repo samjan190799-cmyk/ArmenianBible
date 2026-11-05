@@ -9,6 +9,13 @@ PRODUCT_IDS = "com.samvel.armenianbible.subscription.monthly,com.samvel.armenian
 # Сколько запросов к ИИ в сутки (по UTC) у одного подписчика и у всего сервиса вместе (потолок расходов)
 DAILY_LIMIT = "30"
 GLOBAL_DAILY_LIMIT = "3000"
+# Бесплатные вопросы (без подписки). Приложение разрешает 3 в сутки по местному времени, здесь запас на границу суток по UTC.
+# FREE_DAILY_LIMIT: на одну установку; FREE_NET_DAILY_LIMIT: на одну сеть (против переустановок);
+# FREE_GLOBAL_DAILY_LIMIT: на всех бесплатных вместе (потолок расходов). ALLOW_FREE = "false" выключает бесплатный путь
+ALLOW_FREE = "true"
+FREE_DAILY_LIMIT = "5"
+FREE_NET_DAILY_LIMIT = "15"
+FREE_GLOBAL_DAILY_LIMIT = "300"
 # Подписки из TestFlight приходят как Sandbox. После выпуска в App Store можно поставить "false"
 ALLOW_SANDBOX = "true"
 # Модели Gemini по порядку: если первая недоступна, пробуется следующая
