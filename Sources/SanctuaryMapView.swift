@@ -92,19 +92,22 @@ struct SanctuaryMapView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
-                PaperBackground()
-                VStack(spacing: 0) {
-                    controls
-                    if mode == .map {
-                        mapLayer
-                    } else {
-                        listLayer
+            GeometryReader { geo in
+                ZStack(alignment: .bottom) {
+                    PaperBackground()
+                    VStack(spacing: 0) {
+                        controls
+                        if mode == .map {
+                            mapLayer
+                        } else {
+                            listLayer
+                        }
                     }
-                }
-                if let site = selected {
-                    detailCard(site)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    if let site = selected {
+                        // Высота карточки считается от высоты самого окна, а не экрана
+                        detailCard(site, maxContentHeight: geo.size.height * 0.36)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -268,7 +271,7 @@ struct SanctuaryMapView: View {
     }
 
     // MARK: Карточка святыни
-    private func detailCard(_ site: Sanctuary) -> some View {
+    private func detailCard(_ site: Sanctuary, maxContentHeight: CGFloat) -> some View {
         let locked = isLocked(site)
         let verse = locked ? nil : SanctuaryCatalog.verse(for: site, language: language)
         let feast = locked ? nil : SanctuaryCatalog.nextFeast(for: site)
@@ -345,7 +348,7 @@ struct SanctuaryMapView: View {
                     content
                     ScrollView { content }
                 }
-                .frame(maxHeight: UIScreen.main.bounds.height * 0.36)
+                .frame(maxHeight: maxContentHeight)
 
                 HStack(spacing: 10) {
                     cardButton(icon: "map", title: language.pick(hy: "Երթուղի", ru: "Маршрут", en: "Directions")) {

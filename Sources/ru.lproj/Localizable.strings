@@ -116,12 +116,19 @@
 "widget_style_poster_parchment_desc" = "Рукописный лист с золотой рамкой";
 "widget_style_poster_night" = "Постер · Вифлеем";
 "widget_style_poster_night_desc" = "Ночное небо со звездой";
-"check_models" = "Проверить обновления";
 "checking_models" = "Проверка...";
 "auto_upgrade_active" = "Автообновление активно";
-"enter_api_key_to_check" = "Сначала введите API-ключ";
-"models_updated_ok" = "Модель обновлена";
-"model_fallback_applied" = "Используется проверенная модель";
+"ai_models_update_title" = "Модели ИИ";
+"ai_models_update_btn" = "Обновить модели";
+"ai_models_last_updated" = "Обновлено: %@";
+"ai_models_never_updated" = "Используется встроенный список. Нажмите «Обновить», чтобы получить свежие модели";
+"ai_models_updated" = "Список моделей обновлён. Новых моделей: %d";
+"ai_models_up_to_date" = "У вас самые свежие модели";
+"ai_models_offline" = "Нет подключения к интернету. Работаем с сохранённым списком моделей";
+"ai_models_unavailable" = "Сервер не отдал список моделей. Работаем с сохранённым списком";
+"ai_models_switched" = "%@: теперь используется %@";
+"ai_models_key_rejected" = "%@: ключ не принят. Проверьте его выше";
+"ai_models_none_worked" = "%@: ни одна модель не отвечает с вашим ключом";
 "standby_preview_title" = "Интерактивный предпросмотр виджетов";
 
 /* Tabs */

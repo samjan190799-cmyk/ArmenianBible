@@ -40,7 +40,10 @@ struct SelectableBibleTextView: UIViewRepresentable {
     }
     
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
-        let width = proposal.width ?? UIScreen.main.bounds.width
+        // Ширину берём у самого окна, а не у экрана: на iPhone Duo окно бывает уже экрана (две колонки, отступ у строки состояния)
+        let candidates: [CGFloat?] = [proposal.width, uiView.superview?.bounds.width, uiView.window?.bounds.width]
+        // Без внятной ширины раскладку не навязываем: на нулевой ширине высота текста получилась бы огромной
+        guard let width = candidates.compactMap({ $0 }).first(where: { $0 > 0 && $0.isFinite }) else { return nil }
         let size = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
         reportVerseOffset(width: width, coordinator: context.coordinator)
         return CGSize(width: width, height: size.height)

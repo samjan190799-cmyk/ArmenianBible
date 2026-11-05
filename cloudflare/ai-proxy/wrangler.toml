@@ -18,8 +18,12 @@ FREE_NET_DAILY_LIMIT = "15"
 FREE_GLOBAL_DAILY_LIMIT = "300"
 # Подписки из TestFlight приходят как Sandbox. После выпуска в App Store можно поставить "false"
 ALLOW_SANDBOX = "true"
-# Модели Gemini по порядку: если первая недоступна, пробуется следующая
-GEMINI_MODELS = "gemini-2.5-flash,gemini-2.0-flash"
+# Модели Gemini для вопросов через сервер, по порядку: если первая недоступна, пробуется следующая.
+# Сверено с документацией Google 2026-11-05: gemini-2.0-flash закрыта, gemini-2.5-flash с 1 декабря 2026 уходит на gemini-3.5-flash-lite.
+# Хотите качество выше, а расход больше: поставьте gemini-3.6-flash первой
+GEMINI_MODELS = "gemini-3.5-flash-lite,gemini-3.6-flash,gemini-2.5-flash-lite"
+# Список моделей для кнопки «Обновить модели» в приложении (GET /v1/models) лежит в src/models.js.
+# Заменить его без правки кода можно переменной AI_MODEL_CATALOG (JSON вида {"gemini":[...],"openai":[...],"claude":[...]})
 
 # Счётчики вопросов: по одному объекту на подписчика и один общий
 [[durable_objects.bindings]]

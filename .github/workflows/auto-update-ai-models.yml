@@ -59,7 +59,7 @@ jobs:
             echo "🚀 Обнаружены новые модели или изменения в конфигурации!"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add Sources/AIModelRegistry.swift update_ai_models.py scripts/update_ai_models.py
+            git add Sources/AIModelRegistry.swift update_ai_models.py scripts/update_ai_models.py cloudflare/ai-proxy/src/models.js
             git commit -m "🤖 [Auto-AI] Обновление моделей ИИ до актуальных версий (2026)"
             git push origin main
           else

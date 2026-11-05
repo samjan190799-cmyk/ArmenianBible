@@ -116,12 +116,19 @@
 "widget_style_poster_parchment_desc" = "A manuscript page with a gold frame";
 "widget_style_poster_night" = "Poster · Bethlehem";
 "widget_style_poster_night_desc" = "Night sky with a star";
-"check_models" = "Check Updates";
 "checking_models" = "Checking...";
 "auto_upgrade_active" = "Auto-Upgrade Active";
-"enter_api_key_to_check" = "Enter API key first";
-"models_updated_ok" = "Model updated";
-"model_fallback_applied" = "Fallback model active";
+"ai_models_update_title" = "AI models";
+"ai_models_update_btn" = "Update models";
+"ai_models_last_updated" = "Updated: %@";
+"ai_models_never_updated" = "Built-in list in use. Tap Update to get the latest models";
+"ai_models_updated" = "Model list updated. New models: %d";
+"ai_models_up_to_date" = "You already have the latest models";
+"ai_models_offline" = "No internet connection. The saved model list stays in use";
+"ai_models_unavailable" = "The server did not return the model list. The saved list stays in use";
+"ai_models_switched" = "%@: now using %@";
+"ai_models_key_rejected" = "%@: the API key was not accepted. Please check it above";
+"ai_models_none_worked" = "%@: none of the models respond with your key";
 "standby_preview_title" = "Interactive Widget Preview";
 
 /* Tabs */
