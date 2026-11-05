@@ -45,9 +45,9 @@ async function giveBack(env, taken) {
   for (const item of taken) await counter(env, item.name, item.limit, '/refund');
 }
 
-/** Сеть человека в счётчике хранится только как необратимый хэш с солью дня */
-async function hashed(value) {
-  const bytes = new TextEncoder().encode(`${new Date().toISOString().slice(0, 10)}|${value}`);
+/** Сеть человека в счётчике хранится только как хэш с солью дня и секретом сервера: адрес по нему не подобрать перебором */
+async function hashed(env, value) {
+  const bytes = new TextEncoder().encode(`${new Date().toISOString().slice(0, 10)}|${env.GEMINI_API_KEY}|${value}`);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   return Array.from(digest.slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('');
 }
@@ -98,7 +98,7 @@ async function handleGenerate(request, env, deps) {
     counters = [];
     const network = request.headers.get('cf-connecting-ip');
     if (network) {
-      counters.push({ name: `net:${await hashed(network)}`, limit: Number(env.FREE_NET_DAILY_LIMIT) || 15, failure: 'quota' });
+      counters.push({ name: `net:${await hashed(env, network)}`, limit: Number(env.FREE_NET_DAILY_LIMIT) || 15, failure: 'quota' });
     }
     counters.push(
       { name: userName, limit: userLimit, failure: 'quota' },
