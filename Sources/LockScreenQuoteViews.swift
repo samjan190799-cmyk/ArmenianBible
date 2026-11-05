@@ -25,6 +25,17 @@ struct LockQuoteCard: View {
     /// Макет внутри приложения: рисуем так, как увидит экран блокировки (белым), хотя среда цветная
     var forceMono: Bool = false
 
+    // Размеры карточки. Их же использует подбор цитат в виджете (`quoteArea`, `fitsAtSmallestSize`),
+    // поэтому менять их надо здесь, а не в разметке ниже: иначе подбор будет считать место по-старому.
+    static let barWidth: CGFloat = 2.5
+    static let columnSpacing: CGFloat = 7
+    static let verticalPadding: CGFloat = 2
+    static let captionGap: CGFloat = 2
+    static let captionSize: CGFloat = 10
+    static let maxFontSize: CGFloat = 24
+    static let minScale: CGFloat = 0.6
+    static let lineSpacing: CGFloat = -0.5
+
     @Environment(\.widgetRenderingMode) private var renderingMode
 
     private var palette: LockPalette {
@@ -33,26 +44,26 @@ struct LockQuoteCard: View {
 
     private var captionFont: Font {
         design == .serif
-            ? QuoteFont.serif(size: 10, weight: .semibold)
-            : .system(size: 10, weight: .semibold, design: design)
+            ? QuoteFont.serif(size: Self.captionSize, weight: .semibold)
+            : .system(size: Self.captionSize, weight: .semibold, design: design)
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 7) {
+        HStack(alignment: .top, spacing: Self.columnSpacing) {
             Capsule()
                 .fill(palette.rule.opacity(palette.mono ? 0.65 : 0.95))
-                .frame(width: 2.5)
+                .frame(width: Self.barWidth)
                 .padding(.vertical, 1)
                 .widgetAccentable()
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Self.captionGap) {
                 FittedQuoteText(
                     text: text,
-                    maxSize: 24,
-                    minScale: 0.6,
+                    maxSize: Self.maxFontSize,
+                    minScale: Self.minScale,
                     weight: .semibold,
                     design: design,
-                    lineSpacing: -0.5
+                    lineSpacing: Self.lineSpacing
                 )
                 .foregroundColor(palette.ink)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -73,8 +84,31 @@ struct LockQuoteCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, Self.verticalPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Сколько места у цитаты в прямоугольном виджете
+extension LockQuoteCard {
+    /// Область под цитату внутри виджета заданного размера: без вертикальной черты, отступов и строки с подписью
+    static func quoteArea(in widget: CGSize, design: Font.Design) -> CGSize {
+        // Подпись армянскими буквами выше латинской (у Noto Serif Armenian интервал около 1,36 размера), а у основного шрифта
+        // межстрочное расстояние армянской гарнитуры не видно: берём с запасом, лишнее место цитате не нужно
+        let caption = QuoteFont.uiFont(size: captionSize, weight: .semibold, design: design)
+        let captionHeight = max(ceil(caption.lineHeight), ceil(captionSize * 1.4))
+        return CGSize(
+            width: widget.width - barWidth - columnSpacing,
+            height: widget.height - verticalPadding * 2 - captionGap - captionHeight
+        )
+    }
+
+    /// Помещается ли цитата в виджет самым мелким из допустимых размеров, то есть целиком при любом выборе шрифта.
+    /// По числу знаков этого не понять: армянские слова длинные и широкие, а места по высоте на две строки.
+    static func fitsAtSmallestSize(_ text: String, design: Font.Design, widget: CGSize) -> Bool {
+        let size = (maxFontSize * minScale).rounded()
+        let font = QuoteFont.uiFont(size: size, weight: .semibold, design: design)
+        return QuoteFit.fits(text, font: font, lineSpacing: lineSpacing * minScale, in: quoteArea(in: widget, design: design))
     }
 }
 

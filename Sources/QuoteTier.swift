@@ -41,6 +41,16 @@ enum QuoteTier {
         }
     }
 
+    /// Имя места показа в общих настройках: от него зависят ключи памяти о показанных цитатах (`QuoteRotation`)
+    var storageScope: String {
+        switch self {
+        case .lockScreen: return "lockScreen"
+        case .small: return "small"
+        case .medium: return "medium"
+        case .large: return "large"
+        }
+    }
+
     /// Сколько цитат нужно иметь «в самый раз», чтобы не расширять подборку
     private static let enoughQuotes = 6
 
@@ -87,6 +97,12 @@ enum QuoteLength {
 }
 
 extension BibleVerse {
+    /// Постоянный ключ стиха для памяти о показанном. `id` для этого не годится: он новый в каждом запуске процесса,
+    /// а виджет запускается заново на каждый график, поэтому по `id` один и тот же стих не узнать.
+    var rotationKey: String {
+        QuoteKey.make(refEn, textHy, textRu, textEn)
+    }
+
     /// Подборка цитат для места показа. Экран блокировки и малый виджет берут короткие подборки (lockCategory),
     /// средний и большой — подборки домашних виджетов (homeCategory).
     static func quotes(
@@ -144,12 +160,27 @@ func sharedWidgetLanguage() -> AppLanguage {
 /// Если шрифта нет в пакете, остаётся системная подмена.
 enum QuoteFont {
     static func serif(size: CGFloat, weight: Font.Weight) -> Font {
+        Font(uiFont(size: size, weight: weight, design: .serif) as CTFont)
+    }
+
+    /// Тот же шрифт как `UIFont`: по нему считаем, помещается ли цитата (см. `QuoteFit`), чтобы замер и рисунок не расходились
+    static func uiFont(size: CGFloat, weight: Font.Weight, design: Font.Design) -> UIFont {
         let ui = uiWeight(weight)
         let system = UIFont.systemFont(ofSize: size, weight: ui)
-        let serif = system.fontDescriptor.withDesign(.serif) ?? system.fontDescriptor
-        let armenian = UIFontDescriptor(name: armenianName(for: ui), size: size)
-        let descriptor = serif.addingAttributes([.cascadeList: [armenian]])
-        return Font(UIFont(descriptor: descriptor, size: size) as CTFont)
+        if design == .serif {
+            let serif = system.fontDescriptor.withDesign(.serif) ?? system.fontDescriptor
+            let armenian = UIFontDescriptor(name: armenianName(for: ui), size: size)
+            let descriptor = serif.addingAttributes([.cascadeList: [armenian]])
+            return UIFont(descriptor: descriptor, size: size)
+        }
+        let systemDesign: UIFontDescriptor.SystemDesign
+        switch design {
+        case .rounded: systemDesign = .rounded
+        case .monospaced: systemDesign = .monospaced
+        default: systemDesign = .default
+        }
+        guard let descriptor = system.fontDescriptor.withDesign(systemDesign) else { return system }
+        return UIFont(descriptor: descriptor, size: size)
     }
 
     private static func uiWeight(_ weight: Font.Weight) -> UIFont.Weight {
@@ -173,9 +204,46 @@ enum QuoteFont {
     }
 }
 
+// MARK: - Помещается ли цитата в отведённое место
+/// Замер текста тем же шрифтом, каким он рисуется.
+/// Раньше размер подбирал `ViewThatFits(in: .vertical)`: он смотрит только на высоту. Длинное слово, которое не влезает
+/// в строку (по-армянски «արքայությունը» — 13 букв), SwiftUI не переносит, а обрезает многоточием, и высота от этого
+/// не растёт. Выходило, что размер «подходил», а фраза обрывалась на полуслове.
+enum QuoteFit {
+    /// Запас в пунктах: замер (UIKit) и рисунок (SwiftUI) расходятся на доли пункта, а обрезанная фраза хуже лишнего запаса
+    private static let slack: CGFloat = 1
+
+    /// `true`, если текст целиком помещается в `area` этим шрифтом: каждое слово по ширине и все строки по высоте.
+    /// Когда места нет совсем (размер ещё неизвестен), отвечает `true`: прятать цитату из-за неизвестного размера нельзя.
+    static func fits(_ text: String, font: UIFont, lineSpacing: CGFloat, in area: CGSize) -> Bool {
+        guard !text.isEmpty, area.width > slack * 2, area.height > slack * 2 else { return true }
+        let width = area.width - slack
+
+        // 1. Ни одно слово не шире строки
+        for word in text.split(whereSeparator: { $0.isWhitespace }) {
+            let wordWidth = (String(word) as NSString).size(withAttributes: [.font: font]).width
+            if wordWidth > width { return false }
+        }
+
+        // 2. Все строки по высоте при этой ширине
+        let style = NSMutableParagraphStyle()
+        style.lineSpacing = max(0, lineSpacing)  // UIKit отрицательный межстрочный интервал не принимает: замер чуть строже рисунка
+        style.lineBreakMode = .byWordWrapping
+        let box = (text as NSString).boundingRect(
+            with: CGSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font, .paragraphStyle: style],
+            context: nil
+        )
+        return ceil(box.height) + slack <= area.height
+    }
+}
+
 // MARK: - Текст, который занимает всё отведённое место
 /// Берёт самый крупный размер, при котором цитата помещается целиком: короткая фраза выходит огромной, длинная — помельче.
 /// Место задаёт вызывающий (frame с maxHeight: .infinity), поэтому на любом телефоне буквы максимально крупные.
+/// Помещается ли цитата, решает замер (`QuoteFit`) по ширине слов и высоте строк. Если не помещается и самым мелким
+/// размером, рисуется он, и текст обрезается: сюда цитаты, которые не помещаются, подборка виджета не пропускает.
 struct FittedQuoteText: View {
     let text: String
     /// Размер для самой короткой фразы
@@ -187,32 +255,48 @@ struct FittedQuoteText: View {
     var lineSpacing: CGFloat = 2
 
     /// Девять равных ступеней от крупного к мелкому
+    private static let lastStep = 8
+
     private func scale(_ step: Int) -> CGFloat {
-        1 - (1 - minScale) * CGFloat(step) / 8
+        1 - (1 - minScale) * CGFloat(step) / CGFloat(Self.lastStep)
+    }
+
+    private func pointSize(_ step: Int) -> CGFloat {
+        (maxSize * scale(step)).rounded()
     }
 
     private func label(_ step: Int) -> some View {
-        let k = scale(step)
-        let size = (maxSize * k).rounded()
+        let size = pointSize(step)
         let font: Font = design == .serif ? QuoteFont.serif(size: size, weight: weight) : .system(size: size, weight: weight, design: design)
         return Text(text)
             .font(font)
-            .lineSpacing(lineSpacing * k)
+            .lineSpacing(lineSpacing * scale(step))
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// Самая крупная ступень, на которой цитата помещается целиком; если таких нет, самая мелкая
+    private func bestStep(in area: CGSize) -> Int {
+        for step in 0..<Self.lastStep {
+            let font = QuoteFont.uiFont(size: pointSize(step), weight: weight, design: design)
+            if QuoteFit.fits(text, font: font, lineSpacing: lineSpacing * scale(step), in: area) {
+                return step
+            }
+        }
+        return Self.lastStep
+    }
+
     var body: some View {
-        ViewThatFits(in: .vertical) {
-            label(0)
-            label(1)
-            label(2)
-            label(3)
-            label(4)
-            label(5)
-            label(6)
-            label(7)
-            label(8).minimumScaleFactor(0.85)
+        GeometryReader { geo in
+            let step = bestStep(in: geo.size)
+            Group {
+                if step == Self.lastStep {
+                    label(step).minimumScaleFactor(0.85)
+                } else {
+                    label(step)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
         }
     }
 }

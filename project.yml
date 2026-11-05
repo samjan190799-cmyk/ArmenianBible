@@ -92,6 +92,7 @@ targets:
       - path: Sources/BibleVerseDatabase+NarekInspired.swift
       - path: Sources/WidgetPosterStyle.swift
       - path: Sources/QuoteTier.swift
+      - path: Sources/QuoteRotation.swift
       - path: Sources/LockScreenQuoteViews.swift
       - path: Sources/PrayerCandleModels.swift
       - path: Sources/CandleRenderer.swift
