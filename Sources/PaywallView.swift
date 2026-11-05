@@ -354,7 +354,11 @@ struct PaywallView: View {
                 showSuccessAlert = true
             } else {
                 triggerHaptic(.warning)
-                errorMessage = (language == .armenian) ? "Գնումներ չեն գտնվել" : "Покупки не найдены"
+                errorMessage = subscriptionManager.purchaseErrorMessage ?? language.pick(
+                    hy: "Գնումներ չեն գտնվել",
+                    ru: "Покупки не найдены",
+                    en: "No purchases found"
+                )
                 showErrorAlert = true
             }
         }

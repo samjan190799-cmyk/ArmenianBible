@@ -92,6 +92,7 @@ struct ContentView: View {
             if newPhase == .background {
                 manager.lockApp()
             } else if newPhase == .active {
+                SubscriptionManager.shared.refreshEntitlements()
                 if manager.isBiometricLockEnabled && !manager.isAppUnlocked {
                     manager.authenticateWithBiometrics()
                 }

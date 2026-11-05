@@ -247,6 +247,13 @@ final class SubscriptionManager: ObservableObject {
                 return false
                 
             case .pending:
+                // Покупка ждёт одобрения (например, «Попросить купить» в семье): подписка откроется сама через Transaction.updates.
+                // Без этого сообщения экран покупки показывал «не удалось связаться с App Store»
+                purchaseErrorMessage = BibleManager.shared.appLanguage.pick(
+                    hy: "Գնումը սպասում է հաստատման։ Հաստատվելուն պես Premium-ը կբացվի ինքնաբերաբար։",
+                    ru: "Покупка ожидает одобрения. Как только её подтвердят, Premium откроется сам.",
+                    en: "Your purchase is waiting for approval. Premium will unlock automatically once it is approved."
+                )
                 isPurchasing = false
                 return false
                 
@@ -350,13 +357,26 @@ final class SubscriptionManager: ObservableObject {
             hasActivePremium = true
         }
         
+        let changed = (self.isPremium != hasActivePremium)
         self.isPremium = hasActivePremium
         UserDefaults.standard.set(hasActivePremium, forKey: kPremiumOverrideKey)
         AppGroupConstants.syncToAll { defs in
             defs.set(hasActivePremium, forKey: "is_premium_active")
         }
-        WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
-        WidgetCenter.shared.reloadAllTimelines()
+        // Виджеты перезагружаем только когда право изменилось: проверка идёт при каждом выходе на передний план,
+        // и без этого условия тратился бы суточный запас обновлений виджетов
+        if changed {
+            WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+
+    /// Перепроверка прав при выходе приложения на передний план: подписка могла истечь, пока приложение жило в фоне,
+    /// или быть куплена и отменена на другом устройстве. Раньше проверка шла только при запуске, покупке и восстановлении.
+    func refreshEntitlements() {
+        #if !targetEnvironment(simulator)
+        Task { await updatePurchasedStatus() }
+        #endif
     }
     
     /// Определение ранних покупателей, купивших платное приложение до перехода на подписки (< 2.0)
