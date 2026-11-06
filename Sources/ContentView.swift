@@ -51,6 +51,13 @@ struct ContentView: View {
                 }
                 .tint(accentColor)
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
+                // Статистика: какие вкладки открывают (Funnel, анонимно)
+                .onChange(of: manager.activeTabSelection) { tab in
+                    let names = [0: "tab_home", 1: "tab_favorites", 2: "tab_ai", 3: "tab_bible"]
+                    if let name = names[tab] {
+                        Funnel.track("feature_used", ["feature": name])
+                    }
+                }
                 .onAppear {
                     if let tabArg = UserDefaults.standard.string(forKey: "openTab") {
                         if tabArg == "favorites" { manager.activeTabSelection = 1 }
@@ -274,6 +281,7 @@ struct HomeView: View {
 
                         Button {
                             triggerHaptic(.light)
+                            Funnel.track("feature_used", ["feature": "settings_open"])
                             isShowingSettings.toggle()
                         } label: {
                             Image(systemName: "gearshape")
@@ -353,8 +361,10 @@ struct HomeView: View {
                                 withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) {
                                     if manager.isFavorite(manager.currentVerse) {
                                         manager.removeFromFavorites(manager.currentVerse)
+                                        Funnel.track("feature_used", ["feature": "verse_unfavorite"])
                                     } else {
                                         manager.addToFavorites(manager.currentVerse)
+                                        Funnel.track("feature_used", ["feature": "verse_favorite"])
                                         isHeartBouncing = true
                                         isSparkBurstActive = true
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
@@ -387,6 +397,7 @@ struct HomeView: View {
                             // 2. Кнопка «На пергаменте»: этот же стих на странице армянского манускрипта
                             Button {
                                 triggerHaptic(.soft)
+                                Funnel.track("feature_used", ["feature": "verse_vellum"])
                                 manuscriptLaunch = ManuscriptLaunch(source: .curated(first: ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)))
                             } label: {
                                 Image(systemName: "scroll")
@@ -401,6 +412,7 @@ struct HomeView: View {
                             // 3. Кнопка Генератора Обоев для LockScreen
                             Button {
                                 triggerHaptic(.soft)
+                                Funnel.track("feature_used", ["feature": "wallpaper_open"])
                                 isShowingWallpaperMaker = true
                             } label: {
                                 Image(systemName: "photo.artframe")
@@ -414,6 +426,7 @@ struct HomeView: View {
                             // 4. Кнопка Поделиться открыткой
                             Button {
                                 triggerHaptic(.soft)
+                                Funnel.track("feature_used", ["feature": "verse_share"])
                                 shareVerseAsImage()
                             } label: {
                                 Image(systemName: "square.and.arrow.up")
@@ -457,6 +470,7 @@ struct HomeView: View {
                     }
                     .onTapGesture {
                         triggerHaptic(.light)
+                        Funnel.track("feature_used", ["feature": "verse_next"])
 
                         // Стих растворяется и проступает новым, как чернила на странице
                         if PaperMotion.reduceMotion {
