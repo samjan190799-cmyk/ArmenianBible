@@ -255,7 +255,29 @@ final class AIModelRegistry: @unchecked Sendable {
 
     /// Запрос к ИИ. Подписчик без своего ключа идёт через сервер. Если свой ключ человека не принят (устарел, отозван)
     /// или закрыты все модели, запрос повторяется через сервер. Итог каждого запроса идёт в воронку.
+    /// В обычном (не JSON) ответе армянские знаки над буквами («ո՞ր», «Սէ՛րգիոս») заменяются обычной пунктуацией
+    /// (ArmenianText.swift). JSON-ответ не трогаем здесь: его поля чистит тот, кто их разбирает (например, QuizAIEngine).
     func executeRequest(
+        provider: AIProvider,
+        apiKey: String,
+        prompt: String,
+        systemPrompt: String? = nil,
+        jsonMode: Bool = false,
+        maxTokens: Int = 1024
+    ) async throws -> (text: String, usedModel: String) {
+        let result = try await executeRequestUnfiltered(
+            provider: provider,
+            apiKey: apiKey,
+            prompt: prompt,
+            systemPrompt: systemPrompt,
+            jsonMode: jsonMode,
+            maxTokens: maxTokens
+        )
+        if jsonMode { return result }
+        return (text: ArmenianText.clean(result.text), usedModel: result.usedModel)
+    }
+
+    private func executeRequestUnfiltered(
         provider: AIProvider,
         apiKey: String,
         prompt: String,
