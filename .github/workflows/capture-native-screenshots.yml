@@ -296,18 +296,18 @@ jobs:
               return 0
             fi
 
-            # 17. Виджеты-постеры: малый, средний и большой размер на одном экране, по одному кадру на фон
+            # 17. Виды виджетов («Кадр» и «Святилище»): малый, средний и большой размер на одном экране
             if [ "$SCOPE" = "posters" ]; then
-              for ART in ararat khachkar parchment night; do
-                echo "📸 Постер $ART ($STORE_LANG)..."
+              for ART in frame sanctuary; do
+                echo "📸 Вид $ART ($STORE_LANG)..."
                 xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$ART" -luys_debug_language "$STORE_LANG"
                 sleep 7
                 xcrun simctl io "$UDID" screenshot "$OUT_DIR/poster_${ART}.png"
                 xcrun simctl terminate "$UDID" com.samvel.armenianbible
                 sleep 2
               done
-              # Худшие случаи: самая длинная цитата на «Пергаменте» и «Хачкаре» (у них меньше места) и самая короткая на «Арарате»
-              for COMBO in "parchment long" "khachkar long" "ararat long" "ararat short"; do
+              # Худшие случаи: самая длинная и самая короткая цитата на «Кадре», самая длинная на «Святилище»
+              for COMBO in "frame long" "frame short" "sanctuary long"; do
                 set -- $COMBO
                 echo "📸 Постер $1, цитата: $2 ($STORE_LANG)..."
                 xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$1" -poster_extreme "$2" -luys_debug_language "$STORE_LANG"
@@ -316,8 +316,8 @@ jobs:
                 xcrun simctl terminate "$UDID" com.samvel.armenianbible
                 sleep 2
               done
-              # Самая длинная подпись стиха под тремя постерами: видно, что она не обрезается многоточием
-              for ART in khachkar night parchment; do
+              # Самая длинная подпись стиха под тремя размерами: видно, что она не обрезается многоточием
+              for ART in frame sanctuary; do
                 echo "📸 Постер $ART, самая длинная подпись ($STORE_LANG)..."
                 xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab widgetposters -poster_art "$ART" -poster_ref long -luys_debug_language "$STORE_LANG"
                 sleep 7

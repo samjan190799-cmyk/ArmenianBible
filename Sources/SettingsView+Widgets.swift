@@ -93,7 +93,8 @@ extension SettingsView {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(WidgetVisualStyle.allCases) { style in
-                            let isStyleLocked = style.isPremiumRequired && !subscriptionManager.isPremium
+                            // Оба вида бесплатные
+                            let isStyleLocked = false
                             WidgetStyleCardButton(
                                 style: style,
                                 isSelected: selectedWidgetStyle == style,
@@ -229,7 +230,7 @@ extension SettingsView {
                             language: selectedWidgetLanguage.appLanguage ?? selectedLanguage,
                             style: selectedWidgetStyle,
                             colorScheme: colorScheme,
-                            accentHex: selectedWidgetStyle == .oledStandby ? "F59E0B" : selectedTheme.colorHex
+                            accentHex: selectedTheme.colorHex
                         )
                         
                     case .small:

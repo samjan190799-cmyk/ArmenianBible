@@ -350,12 +350,8 @@ struct WidgetStyleCardButton: View {
     
     private var accentColor: Color {
         switch style {
-        case .oledStandby: return Paper.gold
-        case .celestialEmerald: return Paper.moss
-        case .crimsonGospel: return Color(hex: "F472B6")
-        case .auroraSunset: return Paper.gold
-        case .monasticStone: return Paper.gold
-        default: return Color(hex: themeColorHex)
+        case .sanctuary: return Paper.gold
+        case .posterFrame: return Color(hex: themeColorHex)
         }
     }
     

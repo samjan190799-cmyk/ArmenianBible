@@ -106,65 +106,31 @@ extension TextCategoryAppEnum {
 }
 
 // MARK: - Перечисление стиля оформления виджета и StandBy
+// Два вида: «Кадр» и «Святилище». Прежние стили убраны: виджет, у которого был выбран один из них,
+// система сбрасывает на «Как в приложении», а приложение показывает «Кадр» (WidgetVisualStyle.migrated).
 @available(iOS 17.0, *)
 enum WidgetStyleAppEnum: String, AppEnum {
     case followApp = "followApp"
     case posterFrame = "posterFrame"
-    case oledStandby = "oledStandby"
-    case modernMinimal = "modernMinimal"
-    case sacredParchment = "sacredParchment"
-    case royalMonastery = "royalMonastery"
-    case monochrome = "monochrome"
-    case celestialEmerald = "celestialEmerald"
-    case crimsonGospel = "crimsonGospel"
-    case auroraSunset = "auroraSunset"
-    case monasticStone = "monasticStone"
-    case posterArarat = "posterArarat"
-    case posterKhachkar = "posterKhachkar"
-    case posterParchment = "posterParchment"
-    case posterNight = "posterNight"
-    
+    case sanctuary = "sanctuary"
+
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         "Widget & StandBy Style"
     }
-    
+
     static var caseDisplayRepresentations: [WidgetStyleAppEnum: DisplayRepresentation] {
         [
             .followApp: DisplayRepresentation(title: "Same as App", subtitle: "Uses visual style chosen in Settings"),
             .posterFrame: DisplayRepresentation(title: "🎞️ Frame", subtitle: "A photo that matches the verse, like the verse of the day card"),
-            .oledStandby: DisplayRepresentation(title: "🌟 Gold OLED (StandBy)", subtitle: "Pure pitch black and sacred gold, ideal for StandBy"),
-            .modernMinimal: DisplayRepresentation(title: "💎 Glass Modern", subtitle: "Frosted glass and contemporary rounded typography"),
-            .sacredParchment: DisplayRepresentation(title: "📜 Sacred Parchment", subtitle: "Ancient manuscript sepia and illuminated bronze"),
-            .royalMonastery: DisplayRepresentation(title: "🌌 Royal Midnight", subtitle: "Monastic midnight sapphire and starlight azure"),
-            .monochrome: DisplayRepresentation(title: "⚪ Studio Monochrome", subtitle: "High-contrast black and white minimalism"),
-            .celestialEmerald: DisplayRepresentation(title: "🌿 Celestial Emerald", subtitle: "Liturgical malachite and glowing mint gold"),
-            .crimsonGospel: DisplayRepresentation(title: "🍷 Sacred Pomegranate", subtitle: "Cilician royal crimson ruby and champagne gold"),
-            .auroraSunset: DisplayRepresentation(title: "🌅 Ararat Sunset", subtitle: "Warm apricot amber, rose and mountain twilight"),
-            .monasticStone: DisplayRepresentation(title: "⛰️ Monastic Stone", subtitle: "Khachkar volcanic basalt and chiseled silver"),
-            .posterArarat: DisplayRepresentation(title: "🏔️ Poster · Ararat", subtitle: "Dawn over Ararat with a big phrase"),
-            .posterKhachkar: DisplayRepresentation(title: "✝️ Poster · Khachkar (PRO)", subtitle: "A golden khachkar on dark stone"),
-            .posterParchment: DisplayRepresentation(title: "📜 Poster · Parchment", subtitle: "A manuscript page with a gold frame"),
-            .posterNight: DisplayRepresentation(title: "⭐ Poster · Bethlehem (PRO)", subtitle: "Night sky with a star")
+            .sanctuary: DisplayRepresentation(title: "🌙 Sanctuary", subtitle: "Warm darkness and gold, ideal for StandBy")
         ]
     }
-    
+
     var widgetStyle: WidgetVisualStyle? {
         switch self {
         case .followApp: return nil
         case .posterFrame: return .posterFrame
-        case .oledStandby: return .oledStandby
-        case .modernMinimal: return .modernMinimal
-        case .sacredParchment: return .sacredParchment
-        case .royalMonastery: return .royalMonastery
-        case .monochrome: return .monochrome
-        case .celestialEmerald: return .celestialEmerald
-        case .crimsonGospel: return .crimsonGospel
-        case .auroraSunset: return .auroraSunset
-        case .monasticStone: return .monasticStone
-        case .posterArarat: return .posterArarat
-        case .posterKhachkar: return .posterKhachkar
-        case .posterParchment: return .posterParchment
-        case .posterNight: return .posterNight
+        case .sanctuary: return .sanctuary
         }
     }
 }
@@ -389,12 +355,8 @@ struct Provider: AppIntentTimelineProvider {
     private let textCategoryKey = "selected_category"
     private let updateIntervalKey = "widgetUpdateInterval"
     
-    private var isPremium: Bool {
-        AppGroupConstants.sharedBool(forKey: "is_premium_active")
-    }
-
     private func getSharedVisualStyle() -> WidgetVisualStyle {
-        AppGroupConstants.sharedVisualStyle().allowed(isPremium: isPremium)
+        AppGroupConstants.sharedVisualStyle()
     }
     
     private func getSharedStyleTimestamp() -> Double {
@@ -408,17 +370,8 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     private func resolveVisualStyle(for configuration: ConfigurationAppIntent) -> WidgetVisualStyle {
-        let appStyle = getSharedVisualStyle()
-        let chosen: WidgetVisualStyle
-        if configuration.visualStyle == .followApp {
-            chosen = appStyle
-        } else if let custom = configuration.visualStyle.widgetStyle {
-            chosen = custom
-        } else {
-            chosen = appStyle
-        }
-        // Короны и PRO на виджете нет: постер «Хачкар»/«Вифлеем» без Premium заменяется бесплатным «Араратом»
-        return chosen.allowed(isPremium: isPremium)
+        // Свой вид, выбранный в настройках виджета, или тот, что выбран в приложении
+        configuration.visualStyle.widgetStyle ?? getSharedVisualStyle()
     }
     
     func placeholder(in context: Context) -> SimpleEntry {
@@ -859,50 +812,22 @@ extension String {
 struct BibleWidgetEntryView: View {
     var entry: Provider.Entry
     @Environment(\.widgetFamily) var family
-    @Environment(\.colorScheme) var colorScheme
 
-    // Выбранный визуальный стиль виджета и режима StandBy
+    // Выбранный вид виджета и режима StandBy: «Кадр» или «Святилище»
     private var activeStyle: WidgetVisualStyle {
         entry.visualStyle
     }
 
     private var widgetBackgroundGradient: LinearGradient {
-        activeStyle.backgroundGradient(for: colorScheme)
+        // Запасной фон контейнера; сам вид рисует PosterWidgetLayout поверх него
+        activeStyle.backgroundGradient(for: .dark)
     }
-    
-    private var primaryTextColor: Color {
-        activeStyle.primaryTextColor(for: colorScheme)
-    }
-    
-    private var accentColor: Color {
-        Color(hex: getSharedTheme().colorHex)
-    }
-    
-    private var secondaryTextColor: Color {
-        activeStyle.secondaryTextColor(for: colorScheme, accentHex: getSharedTheme().colorHex)
-    }
-    
-    private var quoteIconColor: Color {
-        activeStyle.quoteIconColor(for: colorScheme, accentHex: getSharedTheme().colorHex)
-    }
-    
-    private var buttonBackgroundColor: Color {
-        activeStyle.buttonBackground(for: colorScheme)
-    }
-    
-    private var borderStrokeGradient: LinearGradient {
-        activeStyle.borderStroke(for: colorScheme)
-    }
-    
-    private var fontDesign: Font.Design {
-        activeStyle.fontDesign
-    }
-    
+
     /// Шрифт специально для виджета Lock Screen — настраивается пользователем отдельно
     private var lockScreenFontDesign: Font.Design {
         AppGroupConstants.sharedLockScreenFontDesign().fontDesign
     }
-    
+
     /// Куда ведёт нажатие на виджет. На экране блокировки номера цитаты нет, поэтому нажатие открывает эту главу Библии
     /// на нужном стихе (приложение находит место по подписи, см. ScriptureLocator). На остальных виджетах, как раньше, листает стих.
     private var tapURL: URL? {
@@ -933,7 +858,7 @@ struct BibleWidgetEntryView: View {
         }
         return Calendar.current.isDateInToday(lastDate)
     }
-    
+
     private var isFavorite: Bool {
         guard let data = AppGroupConstants.sharedDefaults.data(forKey: "favorite_verses"),
               let list = try? JSONDecoder().decode([FavoriteItem].self, from: data) else {
@@ -942,13 +867,7 @@ struct BibleWidgetEntryView: View {
         return list.contains { $0.refHy == entry.verse.refHy || $0.textHy == entry.verse.textHy }
     }
 
-
-    /// Постер рисуется только в системных размерах; экран блокировки остаётся как был
-    private var posterArt: PosterArt? {
-        guard family == .systemSmall || family == .systemMedium || family == .systemLarge else { return nil }
-        return activeStyle.posterArt
-    }
-
+    /// Домашние размеры: крупная фраза на фоне вида («Кадр» или «Святилище»), кнопки в углу
     @ViewBuilder
     private func posterContent(_ art: PosterArt) -> some View {
         let size: PosterSize = family == .systemSmall ? .small : (family == .systemMedium ? .medium : .large)
@@ -983,9 +902,6 @@ struct BibleWidgetEntryView: View {
 
     var body: some View {
         Group {
-            if let art = posterArt {
-                posterContent(art)
-            } else {
             switch family {
             case .accessoryRectangular:
                 // Прямоугольный виджет на экране блокировки: вертикальная черта и цитата без подписи (LockScreenQuoteViews.swift);
@@ -1004,241 +920,11 @@ struct BibleWidgetEntryView: View {
                 // Круглый виджет на экране блокировки: хачкар в кольце, при прочитанной молитве — галочка
                 LockQuoteCircle(prayerDone: isPrayerDone)
 
-            case .systemSmall:
-                // Маленький виджет на домашнем экране (System Small 2x2) / Режим StandBy
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: "quote.opening")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(quoteIconColor)
-                        Spacer()
-                        
-                        // Интерактивная кнопка следующего стиха
-                        Button(intent: NextVerseIntent(targetSize: "small")) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 11.5, weight: .bold))
-                                .foregroundColor(secondaryTextColor)
-                                .padding(5)
-                                .background(buttonBackgroundColor)
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    
-                    FittedQuoteText(
-                        text: entry.verse.text(for: getLanguage()),
-                        maxSize: 30,
-                        minScale: 0.55,
-                        weight: .bold,
-                        design: fontDesign,
-                        lineSpacing: 2.0
-                    )
-                    .foregroundColor(primaryTextColor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    
-                    HStack {
-                        Button(intent: TogglePrayerCompletedWidgetIntent()) {
-                            Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(isPrayerDone ? .green : secondaryTextColor.opacity(0.85))
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Spacer()
-                        
-                        Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 11.0, weight: .bold, design: fontDesign))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.80)
-                            .foregroundColor(secondaryTextColor)
-                    }
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(widgetBackgroundGradient)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(borderStrokeGradient, lineWidth: 1.2)
-                )
-                
-            case .systemMedium:
-                // Средний виджет на домашнем экране (System Medium 4x2) / Режим StandBy
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Image(systemName: "quote.opening")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(quoteIconColor)
-                        
-                        Spacer()
-                        
-                        Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 13.0, weight: .bold, design: fontDesign))
-                            .foregroundColor(secondaryTextColor)
-                    }
-                    
-                    FittedQuoteText(
-                        text: entry.verse.text(for: getLanguage()),
-                        maxSize: 28,
-                        minScale: 0.55,
-                        weight: .bold,
-                        design: fontDesign,
-                        lineSpacing: 3.5
-                    )
-                    .foregroundColor(primaryTextColor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    
-                    // Интерактивная панель действий с 3 крупными кнопками
-                    HStack(spacing: 6) {
-                        Button(intent: NextVerseIntent(targetSize: "medium")) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(secondaryTextColor)
-                                Text("widget_next_verse_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold, design: fontDesign))
-                                    .foregroundColor(secondaryTextColor)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(buttonBackgroundColor)
-                            .cornerRadius(9)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button(intent: ToggleFavoriteWidgetIntent()) {
-                            HStack(spacing: 4) {
-                                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(isFavorite ? .red : primaryTextColor)
-                                Text("widget_fav_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold, design: fontDesign))
-                                    .foregroundColor(isFavorite ? .red : primaryTextColor)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(isFavorite ? Color.red.opacity(0.12) : buttonBackgroundColor)
-                            .cornerRadius(9)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button(intent: TogglePrayerCompletedWidgetIntent()) {
-                            HStack(spacing: 4) {
-                                Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "hands.sparkles.fill")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(isPrayerDone ? .green : accentColor)
-                                Text(isPrayerDone ? "widget_pray_done_btn".localized(for: getLanguage()) : "widget_pray_todo_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 11, weight: .bold, design: fontDesign))
-                                    .foregroundColor(isPrayerDone ? .green : accentColor)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(isPrayerDone ? Color.green.opacity(0.16) : buttonBackgroundColor)
-                            .cornerRadius(9)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(13)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(widgetBackgroundGradient)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(borderStrokeGradient, lineWidth: 1.2)
-                )
-                
-            case .systemLarge:
-                // Большой виджет на домашнем экране (System Large 4x4)
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "quote.opening")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(quoteIconColor)
-                        Spacer()
-                        
-                        Text(entry.verse.reference(for: getLanguage()))
-                            .font(.system(size: 15.5, weight: .bold, design: fontDesign))
-                            .foregroundColor(secondaryTextColor)
-                    }
-                    
-                    FittedQuoteText(
-                        text: entry.verse.text(for: getLanguage()),
-                        maxSize: 34,
-                        minScale: 0.42,
-                        weight: .bold,
-                        design: fontDesign,
-                        lineSpacing: 5.5
-                    )
-                    .foregroundColor(primaryTextColor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    
-                    // Интерактивная панель действий с 3 крупными кнопками
-                    HStack(spacing: 8) {
-                        Button(intent: NextVerseIntent(targetSize: "large")) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(secondaryTextColor)
-                                Text("widget_next_verse_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 13, weight: .bold, design: fontDesign))
-                                    .foregroundColor(secondaryTextColor)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 9)
-                            .background(buttonBackgroundColor)
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button(intent: ToggleFavoriteWidgetIntent()) {
-                            HStack(spacing: 6) {
-                                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(isFavorite ? .red : primaryTextColor)
-                                Text("widget_fav_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 13, weight: .bold, design: fontDesign))
-                                    .foregroundColor(isFavorite ? .red : primaryTextColor)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 9)
-                            .background(isFavorite ? Color.red.opacity(0.12) : buttonBackgroundColor)
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button(intent: TogglePrayerCompletedWidgetIntent()) {
-                            HStack(spacing: 6) {
-                                Image(systemName: isPrayerDone ? "checkmark.circle.fill" : "hands.sparkles.fill")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(isPrayerDone ? .green : accentColor)
-                                Text(isPrayerDone ? "widget_pray_done_btn".localized(for: getLanguage()) : "widget_pray_todo_btn".localized(for: getLanguage()))
-                                    .font(.system(size: 13, weight: .bold, design: fontDesign))
-                                    .foregroundColor(isPrayerDone ? .green : accentColor)
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 9)
-                            .background(isPrayerDone ? Color.green.opacity(0.16) : buttonBackgroundColor)
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(widgetBackgroundGradient)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22)
-                        .stroke(borderStrokeGradient, lineWidth: 1.2)
-                )
-                
+            case .systemSmall, .systemMedium, .systemLarge:
+                posterContent(activeStyle.posterArt)
+
             default:
                 EmptyView()
-            }
             }
         }
         .widgetURL(tapURL)
@@ -1280,10 +966,6 @@ struct BibleWidget: Widget {
 struct ArmenianBibleWidgetBundle: WidgetBundle {
     var body: some Widget {
         BibleWidget()
-        PosterAraratWidget()
-        PosterKhachkarWidget()
-        PosterParchmentWidget()
-        PosterNightWidget()
         PrayerCandleWidget()
         CandleLiveActivity()
     }
