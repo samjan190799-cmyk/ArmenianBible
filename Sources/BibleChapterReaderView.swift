@@ -31,7 +31,14 @@ struct BibleChapterReaderView: View {
             ) { book, chapter, targetV in
                 BibleSingleChapterView(book: book, chapter: chapter, targetVerse: targetV)
             }
-            
+            // Статистика: сколько открывают главы и листают дальше (Funnel, анонимно; без названий книг)
+            .onAppear {
+                Funnel.track("feature_used", ["feature": "bible_open"])
+            }
+            .onChange(of: currentChapterIndex) { _ in
+                Funnel.track("feature_used", ["feature": "bible_page_turn"])
+            }
+
             // Анимированные стрелки-подсказки перелистывания
             if showNavigationHints {
                 HStack {

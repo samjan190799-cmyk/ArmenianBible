@@ -614,6 +614,8 @@ struct BibleWallpaperMakerView: View {
                     }
                     
                     Funnel.track("feature_used", ["feature": "wallpaper"])
+                    // Какую тему выбирают для обоев: wp_ararat, wp_tatev и т. д.
+                    Funnel.track("feature_used", ["feature": "wp_" + self.selectedTheme.rawValue])
                     
                     // Фиксация полезного действия для оценки приложения
                     ReviewManager.shared.recordPositiveAction()

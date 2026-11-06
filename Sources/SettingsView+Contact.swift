@@ -92,6 +92,7 @@ extension SettingsView {
     private func contactRow(_ contact: AuthorContact) -> some View {
         Button {
             Haptics.impact(.light)
+            Funnel.track("feature_used", ["feature": "contact_" + contact.rawValue])
             if let url = contact.url {
                 UIApplication.shared.open(url)
             }
