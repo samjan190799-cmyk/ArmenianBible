@@ -116,6 +116,8 @@
 "widget_style_poster_parchment_desc" = "Ձեռագիր թերթ ոսկե շրջանակով";
 "widget_style_poster_night" = "Պաստառ · Բեթղեհեմ";
 "widget_style_poster_night_desc" = "Գիշերային երկինք աստղով";
+"widget_style_poster_frame" = "Կադր";
+"widget_style_poster_frame_desc" = "Լուսանկար՝ ըստ տողի իմաստի, ինչպես օրվա տողի քարտում";
 "checking_models" = "Ստուգում...";
 "auto_upgrade_active" = "Ավտոթարմացումն ակտիվ է";
 "ai_models_update_title" = "ԱԲ մոդելներ";

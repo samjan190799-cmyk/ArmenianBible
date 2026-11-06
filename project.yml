@@ -93,6 +93,7 @@ targets:
       - path: Sources/WidgetPosterStyle.swift
       - path: Sources/QuoteTier.swift
       - path: Sources/QuoteRotation.swift
+      - path: Sources/QuoteMood.swift
       - path: Sources/LockScreenQuoteViews.swift
       - path: Sources/PrayerCandleModels.swift
       - path: Sources/CandleRenderer.swift

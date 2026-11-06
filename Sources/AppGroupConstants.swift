@@ -128,7 +128,8 @@ enum AppGroupConstants {
                 return style
             }
         }
-        return .oledStandby
+        // Пока человек ничего не выбирал: «Кадр», фотография по смыслу стиха
+        return .posterFrame
     }
     
     static func syncToAll(_ update: (UserDefaults) -> Void) {

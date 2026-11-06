@@ -116,6 +116,8 @@
 "widget_style_poster_parchment_desc" = "A manuscript page with a gold frame";
 "widget_style_poster_night" = "Poster · Bethlehem";
 "widget_style_poster_night_desc" = "Night sky with a star";
+"widget_style_poster_frame" = "Frame";
+"widget_style_poster_frame_desc" = "A photo that matches the verse, like the verse of the day card";
 "checking_models" = "Checking...";
 "auto_upgrade_active" = "Auto-Upgrade Active";
 "ai_models_update_title" = "AI models";

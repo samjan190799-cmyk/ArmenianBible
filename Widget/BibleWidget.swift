@@ -109,6 +109,7 @@ extension TextCategoryAppEnum {
 @available(iOS 17.0, *)
 enum WidgetStyleAppEnum: String, AppEnum {
     case followApp = "followApp"
+    case posterFrame = "posterFrame"
     case oledStandby = "oledStandby"
     case modernMinimal = "modernMinimal"
     case sacredParchment = "sacredParchment"
@@ -130,6 +131,7 @@ enum WidgetStyleAppEnum: String, AppEnum {
     static var caseDisplayRepresentations: [WidgetStyleAppEnum: DisplayRepresentation] {
         [
             .followApp: DisplayRepresentation(title: "Same as App", subtitle: "Uses visual style chosen in Settings"),
+            .posterFrame: DisplayRepresentation(title: "🎞️ Frame", subtitle: "A photo that matches the verse, like the verse of the day card"),
             .oledStandby: DisplayRepresentation(title: "🌟 Gold OLED (StandBy)", subtitle: "Pure pitch black and sacred gold, ideal for StandBy"),
             .modernMinimal: DisplayRepresentation(title: "💎 Glass Modern", subtitle: "Frosted glass and contemporary rounded typography"),
             .sacredParchment: DisplayRepresentation(title: "📜 Sacred Parchment", subtitle: "Ancient manuscript sepia and illuminated bronze"),
@@ -149,6 +151,7 @@ enum WidgetStyleAppEnum: String, AppEnum {
     var widgetStyle: WidgetVisualStyle? {
         switch self {
         case .followApp: return nil
+        case .posterFrame: return .posterFrame
         case .oledStandby: return .oledStandby
         case .modernMinimal: return .modernMinimal
         case .sacredParchment: return .sacredParchment
@@ -955,7 +958,9 @@ struct BibleWidgetEntryView: View {
             art: art,
             size: size,
             text: entry.verse.text(for: getLanguage()),
-            reference: entry.verse.reference(for: getLanguage())
+            reference: entry.verse.reference(for: getLanguage()),
+            // «Кадр»: фотография по смыслу стиха, тот же подбор, что в карточке стиха дня в приложении
+            photo: art == .frame ? QuoteBackdrop.choice(for: entry.verse).imageName : nil
         ) {
             HStack(spacing: 8) {
                 if size == .large {

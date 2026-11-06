@@ -7,13 +7,15 @@ import SwiftUI
 
 enum PosterArt: String, CaseIterable, Identifiable {
     case ararat, khachkar, parchment, night
+    /// «Кадр»: настоящая фотография, подобранная по смыслу фразы (QuoteMood.swift), как в карточке стиха дня в приложении
+    case frame
 
     var id: String { rawValue }
 
     /// Цвет основного текста, ссылки и значков на этом фоне
     var mainColor: Color {
         switch self {
-        case .ararat, .night: return .white
+        case .ararat, .night, .frame: return .white
         case .khachkar: return PosterPalette.rgb(246, 234, 208)
         case .parchment: return PosterPalette.rgb(92, 24, 38)
         }
@@ -25,6 +27,7 @@ enum PosterArt: String, CaseIterable, Identifiable {
         case .khachkar: return PosterPalette.rgb(226, 176, 74)
         case .parchment: return PosterPalette.rgb(150, 106, 40)
         case .night: return PosterPalette.rgb(255, 214, 150)
+        case .frame: return PosterPalette.rgb(244, 212, 142)
         }
     }
 
@@ -46,6 +49,7 @@ enum PosterPalette {
 extension WidgetVisualStyle {
     var posterArt: PosterArt? {
         switch self {
+        case .posterFrame: return .frame
         case .posterArarat: return .ararat
         case .posterKhachkar: return .khachkar
         case .posterParchment: return .parchment
@@ -75,7 +79,8 @@ struct WidgetStyleBackground: View {
 
     var body: some View {
         if let art = style.posterArt {
-            PosterBackground(art: art)
+            // У «Кадра» в предпросмотре — один из кадров из каталога приложения
+            PosterBackground(art: art, photo: art == .frame ? "QuoteLight3" : nil)
         } else {
             Rectangle().fill(style.backgroundGradient(for: colorScheme))
         }
@@ -85,11 +90,14 @@ struct WidgetStyleBackground: View {
 // MARK: - Фоны
 struct PosterBackground: View {
     let art: PosterArt
+    /// Имя фотографии в каталоге (только для «Кадра»)
+    var photo: String? = nil
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 switch art {
+                case .frame: PosterFrameArt(photo: photo, width: geo.size.width, height: geo.size.height)
                 case .ararat: PosterAraratArt(width: geo.size.width, height: geo.size.height)
                 case .khachkar: PosterKhachkarArt(width: geo.size.width, height: geo.size.height)
                 case .parchment: PosterParchmentArt(width: geo.size.width, height: geo.size.height)
@@ -106,6 +114,50 @@ struct PosterBackground: View {
 private func posterHash(_ i: Int, _ salt: Int) -> CGFloat {
     let v = sin(Double(i) * 12.9898 + Double(salt) * 78.233) * 43758.5453
     return CGFloat(v - floor(v))
+}
+
+// MARK: Кадр: фотография по смыслу фразы
+private struct PosterFrameArt: View {
+    let photo: String?
+    let width: CGFloat
+    let height: CGFloat
+
+    var body: some View {
+        // Чем светлее кадр, тем плотнее затемнение: белый текст читается и на небе, и на свечах
+        let boost = max(0, min(1, QuoteBackdrop.luminance(of: photo)) - 0.30) * 0.55
+        ZStack {
+            // Запасной фон, если кадра нет в каталоге
+            LinearGradient(
+                colors: [PosterPalette.rgb(28, 22, 16), PosterPalette.rgb(66, 46, 28)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            if let photo {
+                Image(photo)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: width, height: height)
+                    .clipped()
+            }
+            LinearGradient(
+                stops: [
+                    .init(color: Color.black.opacity(0.30 + boost * 0.6), location: 0),
+                    .init(color: Color.black.opacity(0.42 + boost), location: 0.45),
+                    .init(color: Color.black.opacity(0.62 + boost * 0.6), location: 0.80),
+                    .init(color: Color.black.opacity(0.78 + boost * 0.4), location: 1)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            // Виньетка: края темнее, взгляд остаётся на тексте
+            RadialGradient(
+                colors: [.clear, Color.black.opacity(0.30)],
+                center: .center,
+                startRadius: min(width, height) * 0.30,
+                endRadius: max(width, height) * 0.85
+            )
+        }
+    }
 }
 
 // MARK: Арарат на рассвете
@@ -366,13 +418,15 @@ struct PosterWidgetLayout<Controls: View>: View {
     let size: PosterSize
     let text: String
     let reference: String
+    let photo: String?
     let controls: Controls
 
-    init(art: PosterArt, size: PosterSize, text: String, reference: String, @ViewBuilder controls: () -> Controls) {
+    init(art: PosterArt, size: PosterSize, text: String, reference: String, photo: String? = nil, @ViewBuilder controls: () -> Controls) {
         self.art = art
         self.size = size
         self.text = text
         self.reference = reference
+        self.photo = photo
         self.controls = controls()
     }
 
@@ -406,7 +460,7 @@ struct PosterWidgetLayout<Controls: View>: View {
 
     var body: some View {
         ZStack {
-            PosterBackground(art: art)
+            PosterBackground(art: art, photo: photo)
             VStack(alignment: .leading, spacing: 0) {
                 FittedQuoteText(text: text, maxSize: maxFontSize, minScale: size == .large ? 0.42 : 0.55, weight: .bold, design: .serif, lineSpacing: 2)
                     .foregroundColor(art.mainColor)

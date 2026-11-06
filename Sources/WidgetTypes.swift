@@ -3,6 +3,8 @@ import SwiftUI
 
 // MARK: - Визуальные стили виджетов и режима StandBy
 enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
+    // «Кадр»: настоящая фотография по смыслу стиха, как в карточке стиха дня; стоит первым, чтобы быть первым в выборе
+    case posterFrame = "posterFrame"
     case oledStandby = "oledStandby"
     case modernMinimal = "modernMinimal"
     case sacredParchment = "sacredParchment"
@@ -22,6 +24,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
     
     func localizedName(for language: AppLanguage) -> String {
         switch self {
+        case .posterFrame: return "widget_style_poster_frame".localized(for: language)
         case .oledStandby: return "widget_style_oled".localized(for: language)
         case .modernMinimal: return "widget_style_glass".localized(for: language)
         case .sacredParchment: return "widget_style_parchment".localized(for: language)
@@ -40,6 +43,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
     
     func localizedSubtitle(for language: AppLanguage) -> String {
         switch self {
+        case .posterFrame: return "widget_style_poster_frame_desc".localized(for: language)
         case .oledStandby: return "widget_style_oled_desc".localized(for: language)
         case .modernMinimal: return "widget_style_glass_desc".localized(for: language)
         case .sacredParchment: return "widget_style_parchment_desc".localized(for: language)
@@ -58,6 +62,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
     
     var iconName: String {
         switch self {
+        case .posterFrame: return "photo.fill"
         case .oledStandby: return "moon.stars.fill"
         case .modernMinimal: return "sparkles"
         case .sacredParchment: return "scroll.fill"
@@ -85,7 +90,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
         case .crimsonGospel: return .serif
         case .auroraSunset: return .rounded
         case .monasticStone: return .serif
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight: return .serif
+        case .posterFrame, .posterArarat, .posterKhachkar, .posterParchment, .posterNight: return .serif
         }
     }
     
@@ -223,6 +228,13 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
                     endPoint: .bottomTrailing
                 )
             }
+        case .posterFrame:
+            // Запасной тёмно-тёплый фон, пока фото не нарисовано; поверх всегда ложится сама фотография
+            return LinearGradient(
+                colors: [Color(red: 0.11, green: 0.09, blue: 0.06), Color(red: 0.26, green: 0.18, blue: 0.11)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         case .posterArarat:
             return LinearGradient(
                 colors: [Color(red: 0.20, green: 0.16, blue: 0.44), Color(red: 0.93, green: 0.44, blue: 0.37), Color(red: 1.0, green: 0.84, blue: 0.53)],
@@ -271,7 +283,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return colorScheme == .dark ? Color(red: 1.0, green: 0.97, blue: 0.94) : Color(red: 0.22, green: 0.08, blue: 0.20)
         case .monasticStone:
             return colorScheme == .dark ? Color(red: 0.95, green: 0.96, blue: 0.98) : Color(red: 0.12, green: 0.13, blue: 0.15)
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
+        case .posterFrame, .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
             return posterArt?.mainColor ?? .white
         }
     }
@@ -329,7 +341,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return colorScheme == .dark ? Color(red: 1.0, green: 0.70, blue: 0.40) : Color(red: 0.78, green: 0.28, blue: 0.22)
         case .monasticStone:
             return colorScheme == .dark ? Color(red: 0.85, green: 0.70, blue: 0.45) : Color(red: 0.45, green: 0.35, blue: 0.20)
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
+        case .posterFrame, .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
             return posterArt?.accentColor ?? .white
         }
     }
@@ -361,7 +373,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return colorScheme == .dark ? Color(red: 1.0, green: 0.55, blue: 0.45).opacity(0.85) : Color(red: 0.82, green: 0.30, blue: 0.25).opacity(0.70)
         case .monasticStone:
             return colorScheme == .dark ? Color(red: 0.80, green: 0.65, blue: 0.40).opacity(0.85) : Color(red: 0.48, green: 0.38, blue: 0.22).opacity(0.70)
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
+        case .posterFrame, .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
             return (posterArt?.accentColor ?? .white).opacity(0.85)
         }
     }
@@ -446,7 +458,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
+        case .posterFrame, .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
             let tint = posterArt?.accentColor ?? .white
             return LinearGradient(
                 colors: [tint.opacity(0.55), tint.opacity(0.15)],
@@ -476,7 +488,7 @@ enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
             return Color(red: 1.0, green: 0.60, blue: 0.40).opacity(colorScheme == .dark ? 0.22 : 0.12)
         case .monasticStone:
             return Color(red: 0.80, green: 0.65, blue: 0.40).opacity(colorScheme == .dark ? 0.18 : 0.10)
-        case .posterArarat, .posterKhachkar, .posterNight:
+        case .posterFrame, .posterArarat, .posterKhachkar, .posterNight:
             return Color.white.opacity(0.18)
         case .posterParchment:
             return Color(red: 0.36, green: 0.09, blue: 0.15).opacity(0.10)

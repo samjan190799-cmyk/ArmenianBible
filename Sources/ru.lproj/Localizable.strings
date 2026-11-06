@@ -116,6 +116,8 @@
 "widget_style_poster_parchment_desc" = "Рукописный лист с золотой рамкой";
 "widget_style_poster_night" = "Постер · Вифлеем";
 "widget_style_poster_night_desc" = "Ночное небо со звездой";
+"widget_style_poster_frame" = "Кадр";
+"widget_style_poster_frame_desc" = "Фотография по смыслу стиха, как в карточке стиха дня";
 "checking_models" = "Проверка...";
 "auto_upgrade_active" = "Автообновление активно";
 "ai_models_update_title" = "Модели ИИ";

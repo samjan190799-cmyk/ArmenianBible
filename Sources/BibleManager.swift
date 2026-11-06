@@ -30,7 +30,7 @@ class BibleManager: ObservableObject {
     @Published var readingPlanNotificationsEnabled: Bool = false
     @Published var readingPlanNotificationTime: Date = Date()
     @Published var widgetLanguage: WidgetLanguage = .followApp
-    @Published var widgetVisualStyle: WidgetVisualStyle = .oledStandby
+    @Published var widgetVisualStyle: WidgetVisualStyle = .posterFrame
     @Published var verseSourceScope: VerseSourceScope = .allBible
     
     // Системные настройки и безопасность (Пункт 6)
