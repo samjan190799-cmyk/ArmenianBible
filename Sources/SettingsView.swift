@@ -161,6 +161,10 @@ struct SettingsView: View {
             SettingsGroup(id: "premium", title: nil, icon: "", items: [
                 SettingsSectionItem(id: "premium", view: AnyView(premiumMembershipSection))
             ]),
+            // Связь с автором — на виду, сразу под подпиской: сюда пишут предложения и замечания
+            SettingsGroup(id: "contact", title: nil, icon: "", items: [
+                SettingsSectionItem(id: "contact", view: AnyView(contactAuthorSection))
+            ]),
             SettingsGroup(
                 id: "look",
                 title: language.pick(hy: "Արտաքին տեսք և լեզու", ru: "Внешний вид и язык", en: "Appearance & Language"),
@@ -209,7 +213,6 @@ struct SettingsView: View {
                 icon: "gearshape",
                 items: [
                     SettingsSectionItem(id: "system", view: AnyView(systemAndDataSection)),
-                    SettingsSectionItem(id: "contact", view: AnyView(contactAuthorSection)),
                     SettingsSectionItem(id: "about", view: AnyView(aboutSection))
                 ]
             )
