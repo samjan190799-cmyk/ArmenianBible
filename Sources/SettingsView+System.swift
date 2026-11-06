@@ -513,7 +513,7 @@ extension SettingsView {
         HStack {
             Text("about_app_version".localized(for: selectedLanguage))
             Spacer()
-            Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "4.1.1")
+            Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "4.2.0")
                 .foregroundColor(Paper.inkSecondary)
             
             Button {

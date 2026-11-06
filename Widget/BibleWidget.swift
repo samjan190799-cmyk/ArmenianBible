@@ -494,7 +494,7 @@ struct Provider: AppIntentTimelineProvider {
     private func fitsWidget(_ verse: BibleVerse, family: WidgetFamily?, lang: AppLanguage, widgetSize: CGSize?) -> Bool {
         guard family == .accessoryRectangular, let widgetSize, widgetSize.width > 0, widgetSize.height > 0 else { return true }
         let design = AppGroupConstants.sharedLockScreenFontDesign().fontDesign
-        return LockQuoteCard.fitsAtSmallestSize(verse.text(for: lang), design: design, widget: widgetSize)
+        return LockQuoteCard.fitsAtSmallestSize(verse.widgetText(for: lang), design: design, widget: widgetSize)
     }
 
     /// Оставляет в подборке цитаты, которые помещаются в виджет целиком. Если таких меньше трёх (редкая категория или язык),
@@ -876,7 +876,7 @@ struct BibleWidgetEntryView: View {
         PosterWidgetLayout(
             art: art,
             size: size,
-            text: entry.verse.text(for: getLanguage()),
+            text: entry.verse.widgetText(for: getLanguage()),
             reference: entry.verse.reference(for: getLanguage()),
             // «Кадр»: фотография по смыслу стиха, тот же подбор, что в карточке стиха дня в приложении
             photo: art == .frame ? QuoteBackdrop.choice(for: entry.verse).imageName : nil
@@ -907,7 +907,7 @@ struct BibleWidgetEntryView: View {
                 // Прямоугольный виджет на экране блокировки: вертикальная черта и цитата без подписи (LockScreenQuoteViews.swift);
                 // цитата — самая крупная, при которой помещается
                 LockQuoteCard(
-                    text: entry.verse.text(for: getLanguage()),
+                    text: entry.verse.widgetText(for: getLanguage()),
                     reference: entry.verse.reference(for: getLanguage()),
                     design: lockScreenFontDesign
                 )

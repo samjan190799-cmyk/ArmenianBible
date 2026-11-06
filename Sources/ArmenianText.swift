@@ -7,6 +7,22 @@ import Foundation
 // поэтому в ответах ИИ их заменяем обычной пунктуацией: «?», «!» и «,».
 
 enum ArmenianText {
+    /// Текст цитаты для виджета. К очистке знаков над буквами (`clean`) добавляется обычная пунктуация:
+    /// армянская точка «։» и двоеточие на конце (в базе Арарата так записана точка) шрифт рисует как «:», и цитата выглядит
+    /// оборванной, а «`» (так в базе записана армянская запятая) похожа на случайный значок. Для виджетов это заменяется на «.» и «,».
+    /// Текст без армянских букв не меняется. Сама Библия в читалке остаётся как есть.
+    static func forWidget(_ text: String) -> String {
+        guard text.unicodeScalars.contains(where: { (0x0531...0x058F).contains($0.value) }) else { return text }
+        var result = clean(text)
+            .replacingOccurrences(of: "\u{0589}", with: ".")
+            .replacingOccurrences(of: "`", with: ",")
+        let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasSuffix(":") {
+            result = String(trimmed.dropLast()) + "."
+        }
+        return result
+    }
+
     /// Армянские знаки пунктуации, которые стоят над буквами: ՛ ՜ ՝ ՞ ՟
     private static func isLetterMark(_ scalar: Unicode.Scalar) -> Bool {
         (0x055B...0x055F).contains(scalar.value)
@@ -64,5 +80,12 @@ enum ArmenianText {
             output.append(mark)
         }
         return String(output)
+    }
+}
+
+extension BibleVerse {
+    /// Текст цитаты на языке показа для виджетов: армянский очищен от знаков над буквами и от «։», похожей на двоеточие
+    func widgetText(for language: AppLanguage) -> String {
+        ArmenianText.forWidget(text(for: language))
     }
 }

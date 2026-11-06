@@ -1,5 +1,8 @@
-A new look and calmer reading
-• New "Paper & Ink" design: warm paper, a classic book typeface for Scripture and one consistent style on every screen.
-• Narek audio remembers where you stopped and continues from the exact second.
-• Gentler animations and haptics. The app respects the "Reduce Motion" and vibration settings.
-• Fixes and stability improvements.
+What's new in 4.2
+• The verse of the day now sits on real photographs, chosen to match the meaning of the verse.
+• Lock Screen wallpapers on photos: Mount Ararat, Armenian monasteries, khachkars, manuscripts, starry skies.
+• Widgets in one style: "Frame" (a photo that matches the verse) and "Sanctuary" (dark, made for StandBy). The older styles are replaced.
+• Lock Screen: hundreds of complete verses, no repeats for weeks, cleaner and easier-to-read text. Tap a quote to open that verse in the Bible.
+• Quiz: fixed stray marks above Armenian letters.
+• Settings: WhatsApp, Telegram and Instagram buttons to write to the author with ideas or complaints.
+• Stability improvements.
