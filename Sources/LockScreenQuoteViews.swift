@@ -42,24 +42,26 @@ struct LockQuoteCard: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: Self.columnSpacing) {
+        HStack(alignment: .center, spacing: Self.columnSpacing) {
             Capsule()
                 .fill(palette.rule.opacity(palette.mono ? 0.65 : 0.95))
                 .frame(width: Self.barWidth)
                 .padding(.vertical, 1)
                 .widgetAccentable()
 
-            // Номер цитаты с экрана убран: место отдано третьей строке. Ссылка остаётся в описании для VoiceOver
+            // Номер цитаты с экрана убран: место отдано третьей строке. Ссылка остаётся в описании для VoiceOver.
+            // Текст стоит по центру высоты рядом с чертой: у короткой фразы внизу не остаётся пустого места
             FittedQuoteText(
                 text: text,
                 maxSize: Self.maxFontSize,
                 minScale: Self.minScale,
                 weight: .semibold,
                 design: design,
-                lineSpacing: Self.lineSpacing
+                lineSpacing: Self.lineSpacing,
+                alignment: .leading
             )
             .foregroundColor(palette.ink)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
         .padding(.vertical, Self.verticalPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

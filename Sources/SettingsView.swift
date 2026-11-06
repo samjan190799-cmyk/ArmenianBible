@@ -28,7 +28,7 @@ struct SettingsView: View {
     @State var selectedTheme: AccentColorTheme = .cinnabar
     @State var selectedAppearanceMode: AppAppearanceMode = .light
     @State var selectedWidgetLanguage: WidgetLanguage = .followApp
-    @State var selectedWidgetStyle: WidgetVisualStyle = .oledStandby
+    @State var selectedWidgetStyle: WidgetVisualStyle = .posterFrame
     @State var selectedLockCategory: LockScreenCategory = .pearls
     @State var selectedLockFontDesign: LockScreenFontDesign = .serif
     @State var selectedMediumCategory: HomeWidgetCategory = .all

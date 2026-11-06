@@ -111,7 +111,9 @@ extension BibleVerse {
     static func lockScreenVerses(for category: LockScreenCategory) -> [BibleVerse] {
         switch category {
         case .pearls:
-            return shortPearls
+            // Двадцать коротких изречений и сотни законченных стихов из Библии (LockPearls: Tools/QuoteLibrary/build_lock_pearls.mjs),
+            // чтобы на экране блокировки цитаты не повторялись неделями
+            return shortPearls + lockPearls
         case .narekatsi:
             return shortNarekatsi
         case .psalms:

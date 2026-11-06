@@ -124,11 +124,13 @@ enum AppGroupConstants {
     static func sharedVisualStyle() -> WidgetVisualStyle {
         let keys = ["widget_visual_style", "widgetVisualStyle"]
         for key in keys {
-            if let raw = sharedString(forKey: key), let style = WidgetVisualStyle(rawValue: raw) {
-                return style
+            if let raw = sharedString(forKey: key) {
+                // Прежних 13 стилей уже нет: любой из них становится «Кадром» (WidgetVisualStyle.migrated)
+                return WidgetVisualStyle.migrated(from: raw)
             }
         }
-        return .oledStandby
+        // Пока человек ничего не выбирал: «Кадр», фотография по смыслу стиха
+        return .posterFrame
     }
     
     static func syncToAll(_ update: (UserDefaults) -> Void) {

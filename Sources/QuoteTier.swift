@@ -24,7 +24,9 @@ enum QuoteTier {
     /// Желаемая длина цитаты
     var range: ClosedRange<Int> {
         switch self {
-        case .lockScreen: return 10...40
+        // Экран блокировки вмещает три строки мелким шрифтом (по-армянски около 70 знаков), а что реально поместится, решает замер в виджете
+        // (`fitsWidget`): так в подборку попадают и законченные стихи подлиннее, а не только обрывки до 40 знаков
+        case .lockScreen: return 10...72
         case .small: return 14...40
         case .medium: return 56...90
         case .large: return 101...340
@@ -34,7 +36,7 @@ enum QuoteTier {
     /// Допустимая длина, если в подборке мало цитат нужной длины: крупнее буквы уже не получить, но и не помещаться она не будет
     var limit: ClosedRange<Int> {
         switch self {
-        case .lockScreen: return 10...46
+        case .lockScreen: return 10...80
         case .small: return 12...55
         case .medium: return 45...110
         case .large: return 80...430
@@ -253,6 +255,8 @@ struct FittedQuoteText: View {
     var weight: Font.Weight = .bold
     var design: Font.Design = .default
     var lineSpacing: CGFloat = 2
+    /// Где в отведённом месте стоит текст: сверху слева (по умолчанию) или по центру высоты
+    var alignment: Alignment = .topLeading
 
     /// Девять равных ступеней от крупного к мелкому
     private static let lastStep = 8
@@ -296,7 +300,7 @@ struct FittedQuoteText: View {
                     label(step)
                 }
             }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: alignment)
         }
     }
 }

@@ -2,484 +2,87 @@ import Foundation
 import SwiftUI
 
 // MARK: - Визуальные стили виджетов и режима StandBy
+/// Два вида: «Кадр» (фотография по смыслу стиха, как в карточке стиха дня) и «Святилище» (тёмный тёплый фон без фото,
+/// для StandBy и OLED). Раньше стилей было 13 (градиенты и нарисованные «постеры»): они ушли, чтобы виджеты выглядели
+/// так же, как всё приложение.
 enum WidgetVisualStyle: String, CaseIterable, Identifiable, Codable {
-    case oledStandby = "oledStandby"
-    case modernMinimal = "modernMinimal"
-    case sacredParchment = "sacredParchment"
-    case royalMonastery = "royalMonastery"
-    case monochrome = "monochrome"
-    case celestialEmerald = "celestialEmerald"
-    case crimsonGospel = "crimsonGospel"
-    case auroraSunset = "auroraSunset"
-    case monasticStone = "monasticStone"
-    // Постеры: крупная фраза на нарисованном фоне (см. WidgetPosterStyle.swift)
-    case posterArarat = "posterArarat"
-    case posterKhachkar = "posterKhachkar"
-    case posterParchment = "posterParchment"
-    case posterNight = "posterNight"
-    
+    case posterFrame = "posterFrame"
+    case sanctuary = "sanctuary"
+
     var id: String { self.rawValue }
-    
+
+    /// Стиль из сохранённого значения. Любой из прежних стилей (их уже нет) становится «Кадром»
+    static func migrated(from raw: String?) -> WidgetVisualStyle {
+        guard let raw else { return .posterFrame }
+        return WidgetVisualStyle(rawValue: raw) ?? .posterFrame
+    }
+
     func localizedName(for language: AppLanguage) -> String {
         switch self {
-        case .oledStandby: return "widget_style_oled".localized(for: language)
-        case .modernMinimal: return "widget_style_glass".localized(for: language)
-        case .sacredParchment: return "widget_style_parchment".localized(for: language)
-        case .royalMonastery: return "widget_style_royal".localized(for: language)
-        case .monochrome: return "widget_style_monochrome".localized(for: language)
-        case .celestialEmerald: return "widget_style_emerald".localized(for: language)
-        case .crimsonGospel: return "widget_style_crimson".localized(for: language)
-        case .auroraSunset: return "widget_style_sunset".localized(for: language)
-        case .monasticStone: return "widget_style_stone".localized(for: language)
-        case .posterArarat: return "widget_style_poster_ararat".localized(for: language)
-        case .posterKhachkar: return "widget_style_poster_khachkar".localized(for: language)
-        case .posterParchment: return "widget_style_poster_parchment".localized(for: language)
-        case .posterNight: return "widget_style_poster_night".localized(for: language)
+        case .posterFrame: return "widget_style_poster_frame".localized(for: language)
+        case .sanctuary: return "widget_style_sanctuary".localized(for: language)
         }
     }
-    
+
     func localizedSubtitle(for language: AppLanguage) -> String {
         switch self {
-        case .oledStandby: return "widget_style_oled_desc".localized(for: language)
-        case .modernMinimal: return "widget_style_glass_desc".localized(for: language)
-        case .sacredParchment: return "widget_style_parchment_desc".localized(for: language)
-        case .royalMonastery: return "widget_style_royal_desc".localized(for: language)
-        case .monochrome: return "widget_style_monochrome_desc".localized(for: language)
-        case .celestialEmerald: return "widget_style_emerald_desc".localized(for: language)
-        case .crimsonGospel: return "widget_style_crimson_desc".localized(for: language)
-        case .auroraSunset: return "widget_style_sunset_desc".localized(for: language)
-        case .monasticStone: return "widget_style_stone_desc".localized(for: language)
-        case .posterArarat: return "widget_style_poster_ararat_desc".localized(for: language)
-        case .posterKhachkar: return "widget_style_poster_khachkar_desc".localized(for: language)
-        case .posterParchment: return "widget_style_poster_parchment_desc".localized(for: language)
-        case .posterNight: return "widget_style_poster_night_desc".localized(for: language)
+        case .posterFrame: return "widget_style_poster_frame_desc".localized(for: language)
+        case .sanctuary: return "widget_style_sanctuary_desc".localized(for: language)
         }
     }
-    
+
     var iconName: String {
         switch self {
-        case .oledStandby: return "moon.stars.fill"
-        case .modernMinimal: return "sparkles"
-        case .sacredParchment: return "scroll.fill"
-        case .royalMonastery: return "crown.fill"
-        case .monochrome: return "circle.lefthalf.filled"
-        case .celestialEmerald: return "leaf.fill"
-        case .crimsonGospel: return "drop.fill"
-        case .auroraSunset: return "sun.horizon.fill"
-        case .monasticStone: return "mountain.2.fill"
-        case .posterArarat: return "sunrise.fill"
-        case .posterKhachkar: return "cross.fill"
-        case .posterParchment: return "scroll.fill"
-        case .posterNight: return "star.fill"
+        case .posterFrame: return "photo.fill"
+        case .sanctuary: return "moon.stars.fill"
         }
     }
-    
-    var fontDesign: Font.Design {
-        switch self {
-        case .oledStandby: return .serif
-        case .modernMinimal: return .rounded
-        case .sacredParchment: return .serif
-        case .royalMonastery: return .serif
-        case .monochrome: return .default
-        case .celestialEmerald: return .serif
-        case .crimsonGospel: return .serif
-        case .auroraSunset: return .rounded
-        case .monasticStone: return .serif
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight: return .serif
-        }
-    }
-    
-    var isOled: Bool {
-        self == .oledStandby
-    }
-    
+
+    var fontDesign: Font.Design { .serif }
+
+    /// Запасной фон контейнера виджета: под фотографией «Кадра» и под рисунком «Святилища»
     func backgroundGradient(for colorScheme: ColorScheme) -> LinearGradient {
         switch self {
-        case .oledStandby:
-            // Чистейший OLED черный в обоих режимах для энергосбережения и StandBy
+        case .posterFrame:
             return LinearGradient(
-                colors: [Color.black, Color(red: 0.04, green: 0.04, blue: 0.06)],
+                colors: [Color(red: 0.11, green: 0.09, blue: 0.06), Color(red: 0.26, green: 0.18, blue: 0.11)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        case .modernMinimal:
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [Color(red: 0.08, green: 0.11, blue: 0.19), Color(red: 0.13, green: 0.17, blue: 0.28)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [Color(red: 0.94, green: 0.96, blue: 1.0), Color(red: 0.86, green: 0.90, blue: 0.98)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        case .sacredParchment:
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [Color(red: 0.16, green: 0.11, blue: 0.08), Color(red: 0.24, green: 0.17, blue: 0.12)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [Color(red: 0.98, green: 0.94, blue: 0.86), Color(red: 0.91, green: 0.85, blue: 0.73)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        case .royalMonastery:
-            // Настоящий величественный королевский сапфирово-синий (Royal Blue) в обоих режимах!
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [Color(red: 0.06, green: 0.12, blue: 0.32), Color(red: 0.10, green: 0.20, blue: 0.50)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [Color(red: 0.10, green: 0.22, blue: 0.58), Color(red: 0.16, green: 0.34, blue: 0.78)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        case .monochrome:
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [Color(red: 0.08, green: 0.08, blue: 0.09), Color(red: 0.14, green: 0.14, blue: 0.15)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [Color.white, Color(red: 0.93, green: 0.93, blue: 0.95)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        case .celestialEmerald:
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [Color(red: 0.04, green: 0.16, blue: 0.11), Color(red: 0.07, green: 0.25, blue: 0.18)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [Color(red: 0.92, green: 0.97, blue: 0.93), Color(red: 0.81, green: 0.92, blue: 0.84)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        case .crimsonGospel:
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [Color(red: 0.18, green: 0.05, blue: 0.09), Color(red: 0.28, green: 0.08, blue: 0.14)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [Color(red: 0.99, green: 0.92, blue: 0.94), Color(red: 0.96, green: 0.82, blue: 0.86)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        case .auroraSunset:
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [
-                        Color(red: 0.14, green: 0.08, blue: 0.22),
-                        Color(red: 0.26, green: 0.12, blue: 0.22),
-                        Color(red: 0.38, green: 0.15, blue: 0.20)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [
-                        Color(red: 1.0, green: 0.93, blue: 0.88),
-                        Color(red: 1.0, green: 0.84, blue: 0.82),
-                        Color(red: 0.95, green: 0.76, blue: 0.82)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        case .monasticStone:
-            if colorScheme == .dark {
-                return LinearGradient(
-                    colors: [Color(red: 0.09, green: 0.10, blue: 0.12), Color(red: 0.14, green: 0.15, blue: 0.18)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                return LinearGradient(
-                    colors: [Color(red: 0.93, green: 0.94, blue: 0.95), Color(red: 0.85, green: 0.86, blue: 0.88)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-        case .posterArarat:
+        case .sanctuary:
             return LinearGradient(
-                colors: [Color(red: 0.20, green: 0.16, blue: 0.44), Color(red: 0.93, green: 0.44, blue: 0.37), Color(red: 1.0, green: 0.84, blue: 0.53)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        case .posterKhachkar:
-            return LinearGradient(
-                colors: [Color(red: 0.09, green: 0.08, blue: 0.09), Color(red: 0.23, green: 0.17, blue: 0.12)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .posterParchment:
-            return LinearGradient(
-                colors: [Color(red: 0.94, green: 0.87, blue: 0.70), Color(red: 0.84, green: 0.73, blue: 0.52)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        case .posterNight:
-            return LinearGradient(
-                colors: [Color(red: 0.02, green: 0.04, blue: 0.15), Color(red: 0.26, green: 0.20, blue: 0.45), Color(red: 0.82, green: 0.49, blue: 0.29)],
+                colors: [Color(red: 0.07, green: 0.06, blue: 0.05), Color(red: 0.13, green: 0.11, blue: 0.09)],
                 startPoint: .top,
                 endPoint: .bottom
             )
         }
     }
-    
+
     func primaryTextColor(for colorScheme: ColorScheme) -> Color {
-        switch self {
-        case .oledStandby:
-            return Color(red: 1.0, green: 0.98, blue: 0.92)
-        case .modernMinimal:
-            return colorScheme == .dark ? Color.white : Color(red: 0.08, green: 0.11, blue: 0.18)
-        case .sacredParchment:
-            return colorScheme == .dark ? Color(red: 0.99, green: 0.95, blue: 0.85) : Color(red: 0.20, green: 0.12, blue: 0.06)
-        case .royalMonastery:
-            // Белый текст на насыщенном королевском синем фоне
-            return Color(red: 0.98, green: 0.99, blue: 1.0)
-        case .monochrome:
-            return colorScheme == .dark ? Color.white : Color.black
-        case .celestialEmerald:
-            return colorScheme == .dark ? Color(red: 0.96, green: 0.99, blue: 0.97) : Color(red: 0.06, green: 0.22, blue: 0.15)
-        case .crimsonGospel:
-            return colorScheme == .dark ? Color(red: 0.99, green: 0.95, blue: 0.96) : Color(red: 0.30, green: 0.06, blue: 0.12)
-        case .auroraSunset:
-            return colorScheme == .dark ? Color(red: 1.0, green: 0.97, blue: 0.94) : Color(red: 0.22, green: 0.08, blue: 0.20)
-        case .monasticStone:
-            return colorScheme == .dark ? Color(red: 0.95, green: 0.96, blue: 0.98) : Color(red: 0.12, green: 0.13, blue: 0.15)
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
-            return posterArt?.mainColor ?? .white
-        }
+        posterArt.mainColor
     }
-    
-    private func parseAccentColor(_ hex: String) -> Color? {
-        let clean = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        guard clean.count == 6 || clean.count == 8 || clean.count == 3 else { return nil }
-        var int: UInt64 = 0
-        guard Scanner(string: clean).scanHexInt64(&int) else { return nil }
-        let a, r, g, b: UInt64
-        switch clean.count {
-        case 3:
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6:
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8:
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            return nil
-        }
-        return Color(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue: Double(b) / 255,
-            opacity: Double(a) / 255
+
+    func secondaryTextColor(for colorScheme: ColorScheme, accentHex: String = "6366F1") -> Color {
+        posterArt.accentColor
+    }
+
+    func quoteIconColor(for colorScheme: ColorScheme, accentHex: String = "6366F1") -> Color {
+        posterArt.accentColor.opacity(0.85)
+    }
+
+    func borderStroke(for colorScheme: ColorScheme) -> LinearGradient {
+        let tint = posterArt.accentColor
+        return LinearGradient(
+            colors: [tint.opacity(0.55), tint.opacity(0.15)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
         )
     }
-    
-    func secondaryTextColor(for colorScheme: ColorScheme, accentHex: String = "6366F1") -> Color {
-        let dynamicAccent = parseAccentColor(accentHex)
-        switch self {
-        case .oledStandby:
-            if accentHex.uppercased() != "6366F1", let customAccent = dynamicAccent {
-                return customAccent
-            }
-            return Color(red: 0.98, green: 0.75, blue: 0.14)
-        case .modernMinimal:
-            if let customAccent = dynamicAccent {
-                return customAccent
-            }
-            return colorScheme == .dark ? Color(red: 0.60, green: 0.68, blue: 0.98) : Color(red: 0.28, green: 0.35, blue: 0.85)
-        case .sacredParchment:
-            return colorScheme == .dark ? Color(red: 0.96, green: 0.72, blue: 0.25) : Color(red: 0.58, green: 0.32, blue: 0.08)
-        case .royalMonastery:
-            // Светло-небесный / золотистый для ссылок на королевском синем
-            return Color(red: 0.72, green: 0.86, blue: 1.0)
-        case .monochrome:
-            return colorScheme == .dark ? Color(red: 0.75, green: 0.75, blue: 0.78) : Color(red: 0.35, green: 0.35, blue: 0.38)
-        case .celestialEmerald:
-            return colorScheme == .dark ? Color(red: 0.40, green: 0.88, blue: 0.65) : Color(red: 0.10, green: 0.45, blue: 0.30)
-        case .crimsonGospel:
-            return colorScheme == .dark ? Color(red: 0.98, green: 0.75, blue: 0.55) : Color(red: 0.65, green: 0.15, blue: 0.25)
-        case .auroraSunset:
-            return colorScheme == .dark ? Color(red: 1.0, green: 0.70, blue: 0.40) : Color(red: 0.78, green: 0.28, blue: 0.22)
-        case .monasticStone:
-            return colorScheme == .dark ? Color(red: 0.85, green: 0.70, blue: 0.45) : Color(red: 0.45, green: 0.35, blue: 0.20)
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
-            return posterArt?.accentColor ?? .white
-        }
-    }
-    
-    func quoteIconColor(for colorScheme: ColorScheme, accentHex: String = "6366F1") -> Color {
-        let dynamicAccent = parseAccentColor(accentHex)
-        switch self {
-        case .oledStandby:
-            if accentHex.uppercased() != "6366F1", let customAccent = dynamicAccent {
-                return customAccent.opacity(0.90)
-            }
-            return Color(red: 0.96, green: 0.68, blue: 0.12).opacity(0.90)
-        case .modernMinimal:
-            if let customAccent = dynamicAccent {
-                return customAccent.opacity(colorScheme == .dark ? 0.75 : 0.60)
-            }
-            return colorScheme == .dark ? Color(red: 0.50, green: 0.58, blue: 0.98).opacity(0.70) : Color(red: 0.31, green: 0.38, blue: 0.90).opacity(0.50)
-        case .sacredParchment:
-            return colorScheme == .dark ? Color(red: 0.96, green: 0.68, blue: 0.18).opacity(0.85) : Color(red: 0.68, green: 0.35, blue: 0.08).opacity(0.65)
-        case .royalMonastery:
-            return Color(red: 0.60, green: 0.84, blue: 1.0).opacity(0.85)
-        case .monochrome:
-            return colorScheme == .dark ? Color.white.opacity(0.40) : Color.black.opacity(0.35)
-        case .celestialEmerald:
-            return colorScheme == .dark ? Color(red: 0.45, green: 0.90, blue: 0.70).opacity(0.85) : Color(red: 0.12, green: 0.50, blue: 0.35).opacity(0.70)
-        case .crimsonGospel:
-            return colorScheme == .dark ? Color(red: 0.98, green: 0.70, blue: 0.50).opacity(0.85) : Color(red: 0.70, green: 0.18, blue: 0.28).opacity(0.70)
-        case .auroraSunset:
-            return colorScheme == .dark ? Color(red: 1.0, green: 0.55, blue: 0.45).opacity(0.85) : Color(red: 0.82, green: 0.30, blue: 0.25).opacity(0.70)
-        case .monasticStone:
-            return colorScheme == .dark ? Color(red: 0.80, green: 0.65, blue: 0.40).opacity(0.85) : Color(red: 0.48, green: 0.38, blue: 0.22).opacity(0.70)
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
-            return (posterArt?.accentColor ?? .white).opacity(0.85)
-        }
-    }
-    
-    func borderStroke(for colorScheme: ColorScheme) -> LinearGradient {
-        switch self {
-        case .oledStandby:
-            return LinearGradient(
-                colors: [
-                    Color(red: 0.96, green: 0.68, blue: 0.12).opacity(0.55),
-                    Color(red: 0.85, green: 0.47, blue: 0.04).opacity(0.20)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .modernMinimal:
-            let topAlpha: Double = colorScheme == .dark ? 0.35 : 0.25
-            let btmAlpha: Double = colorScheme == .dark ? 0.10 : 0.08
-            return LinearGradient(
-                colors: [Color.white.opacity(topAlpha), Color.white.opacity(btmAlpha)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .sacredParchment:
-            return LinearGradient(
-                colors: [
-                    Color(red: 0.78, green: 0.50, blue: 0.15).opacity(0.55),
-                    Color(red: 0.45, green: 0.25, blue: 0.05).opacity(0.25)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .royalMonastery:
-            return LinearGradient(
-                colors: [
-                    Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55),
-                    Color(red: 0.15, green: 0.30, blue: 0.75).opacity(0.20)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .monochrome:
-            let alpha: Double = colorScheme == .dark ? 0.30 : 0.20
-            return LinearGradient(
-                colors: [Color.primary.opacity(alpha), Color.primary.opacity(alpha * 0.4)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .celestialEmerald:
-            return LinearGradient(
-                colors: [
-                    Color(red: 0.30, green: 0.85, blue: 0.55).opacity(0.45),
-                    Color(red: 0.10, green: 0.40, blue: 0.25).opacity(0.15)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .crimsonGospel:
-            return LinearGradient(
-                colors: [
-                    Color(red: 0.90, green: 0.40, blue: 0.50).opacity(0.45),
-                    Color(red: 0.45, green: 0.10, blue: 0.20).opacity(0.15)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .auroraSunset:
-            return LinearGradient(
-                colors: [
-                    Color(red: 1.0, green: 0.60, blue: 0.40).opacity(0.50),
-                    Color(red: 0.80, green: 0.25, blue: 0.45).opacity(0.20)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .monasticStone:
-            return LinearGradient(
-                colors: [
-                    Color(red: 0.70, green: 0.72, blue: 0.78).opacity(0.40),
-                    Color(red: 0.40, green: 0.42, blue: 0.48).opacity(0.15)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .posterArarat, .posterKhachkar, .posterParchment, .posterNight:
-            let tint = posterArt?.accentColor ?? .white
-            return LinearGradient(
-                colors: [tint.opacity(0.55), tint.opacity(0.15)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-    }
-    
+
     func buttonBackground(for colorScheme: ColorScheme) -> Color {
         switch self {
-        case .oledStandby:
-            return Color(red: 0.96, green: 0.68, blue: 0.12).opacity(0.20)
-        case .modernMinimal:
-            return colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06)
-        case .sacredParchment:
-            return colorScheme == .dark ? Color(red: 0.96, green: 0.72, blue: 0.25).opacity(0.18) : Color(red: 0.58, green: 0.32, blue: 0.08).opacity(0.10)
-        case .royalMonastery:
-            return Color.white.opacity(0.18)
-        case .monochrome:
-            return colorScheme == .dark ? Color.white.opacity(0.15) : Color.black.opacity(0.08)
-        case .celestialEmerald:
-            return Color(red: 0.30, green: 0.85, blue: 0.55).opacity(colorScheme == .dark ? 0.20 : 0.12)
-        case .crimsonGospel:
-            return Color(red: 0.90, green: 0.40, blue: 0.50).opacity(colorScheme == .dark ? 0.20 : 0.12)
-        case .auroraSunset:
-            return Color(red: 1.0, green: 0.60, blue: 0.40).opacity(colorScheme == .dark ? 0.22 : 0.12)
-        case .monasticStone:
-            return Color(red: 0.80, green: 0.65, blue: 0.40).opacity(colorScheme == .dark ? 0.18 : 0.10)
-        case .posterArarat, .posterKhachkar, .posterNight:
-            return Color.white.opacity(0.18)
-        case .posterParchment:
-            return Color(red: 0.36, green: 0.09, blue: 0.15).opacity(0.10)
+        case .posterFrame: return Color.white.opacity(0.18)
+        case .sanctuary: return Color(red: 0.78, green: 0.65, blue: 0.42).opacity(0.18)
         }
     }
 }
