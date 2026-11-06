@@ -17,7 +17,7 @@ private struct LockPalette {
 }
 
 /// Прямоугольный виджет (около 160×72 pt): слева тонкая вертикальная черта, как у цитаты в заметках,
-/// цитата максимально крупно, снизу подпись и тонкая линия
+/// цитата максимально крупно на всю высоту, до трёх строк (подписи с номером нет: она отнимала место у третьей строки)
 struct LockQuoteCard: View {
     let text: String
     let reference: String
@@ -30,22 +30,15 @@ struct LockQuoteCard: View {
     static let barWidth: CGFloat = 2.5
     static let columnSpacing: CGFloat = 7
     static let verticalPadding: CGFloat = 2
-    static let captionGap: CGFloat = 2
-    static let captionSize: CGFloat = 10
     static let maxFontSize: CGFloat = 24
-    static let minScale: CGFloat = 0.6
+    /// 0,5 даёт 12 pt: при таком размере в виджет высотой около 55 pt помещаются три строки (при 14 pt только две)
+    static let minScale: CGFloat = 0.5
     static let lineSpacing: CGFloat = -0.5
 
     @Environment(\.widgetRenderingMode) private var renderingMode
 
     private var palette: LockPalette {
         LockPalette(mono: forceMono || renderingMode != .fullColor)
-    }
-
-    private var captionFont: Font {
-        design == .serif
-            ? QuoteFont.serif(size: Self.captionSize, weight: .semibold)
-            : .system(size: Self.captionSize, weight: .semibold, design: design)
     }
 
     var body: some View {
@@ -56,59 +49,41 @@ struct LockQuoteCard: View {
                 .padding(.vertical, 1)
                 .widgetAccentable()
 
-            VStack(alignment: .leading, spacing: Self.captionGap) {
-                FittedQuoteText(
-                    text: text,
-                    maxSize: Self.maxFontSize,
-                    minScale: Self.minScale,
-                    weight: .semibold,
-                    design: design,
-                    lineSpacing: Self.lineSpacing
-                )
-                .foregroundColor(palette.ink)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-
-                HStack(spacing: 6) {
-                    Text(reference)
-                        .font(captionFont)
-                        .italic()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                        .foregroundColor(palette.caption)
-                        .layoutPriority(1)
-                    Rectangle()
-                        .fill(palette.rule.opacity(palette.mono ? 0.45 : 0.7))
-                        .frame(height: 0.6)
-                        .widgetAccentable()
-                }
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            // Номер цитаты с экрана убран: место отдано третьей строке. Ссылка остаётся в описании для VoiceOver
+            FittedQuoteText(
+                text: text,
+                maxSize: Self.maxFontSize,
+                minScale: Self.minScale,
+                weight: .semibold,
+                design: design,
+                lineSpacing: Self.lineSpacing
+            )
+            .foregroundColor(palette.ink)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.vertical, Self.verticalPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("(text) (reference)"))
     }
 }
 
 // MARK: - Сколько места у цитаты в прямоугольном виджете
 extension LockQuoteCard {
-    /// Область под цитату внутри виджета заданного размера: без вертикальной черты, отступов и строки с подписью
-    static func quoteArea(in widget: CGSize, design: Font.Design) -> CGSize {
-        // Подпись армянскими буквами выше латинской (у Noto Serif Armenian интервал около 1,36 размера), а у основного шрифта
-        // межстрочное расстояние армянской гарнитуры не видно: берём с запасом, лишнее место цитате не нужно
-        let caption = QuoteFont.uiFont(size: captionSize, weight: .semibold, design: design)
-        let captionHeight = max(ceil(caption.lineHeight), ceil(captionSize * 1.4))
-        return CGSize(
+    /// Область под цитату внутри виджета заданного размера: без вертикальной черты и отступов
+    static func quoteArea(in widget: CGSize) -> CGSize {
+        CGSize(
             width: widget.width - barWidth - columnSpacing,
-            height: widget.height - verticalPadding * 2 - captionGap - captionHeight
+            height: widget.height - verticalPadding * 2
         )
     }
 
     /// Помещается ли цитата в виджет самым мелким из допустимых размеров, то есть целиком при любом выборе шрифта.
-    /// По числу знаков этого не понять: армянские слова длинные и широкие, а места по высоте на две строки.
+    /// По числу знаков этого не понять: армянские слова длинные и широкие, а места по высоте на две-три строки.
     static func fitsAtSmallestSize(_ text: String, design: Font.Design, widget: CGSize) -> Bool {
         let size = (maxFontSize * minScale).rounded()
         let font = QuoteFont.uiFont(size: size, weight: .semibold, design: design)
-        return QuoteFit.fits(text, font: font, lineSpacing: lineSpacing * minScale, in: quoteArea(in: widget, design: design))
+        return QuoteFit.fits(text, font: font, lineSpacing: lineSpacing * minScale, in: quoteArea(in: widget))
     }
 }
 

@@ -900,6 +900,23 @@ struct BibleWidgetEntryView: View {
         AppGroupConstants.sharedLockScreenFontDesign().fontDesign
     }
     
+    /// Куда ведёт нажатие на виджет. На экране блокировки номера цитаты нет, поэтому нажатие открывает эту главу Библии
+    /// на нужном стихе (приложение находит место по подписи, см. ScriptureLocator). На остальных виджетах, как раньше, листает стих.
+    private var tapURL: URL? {
+        guard family == .accessoryRectangular || family == .accessoryInline else {
+            return URL(string: "armenianbible://next-verse")
+        }
+        var components = URLComponents()
+        components.scheme = "armenianbible"
+        components.host = "ref"
+        components.queryItems = [
+            URLQueryItem(name: "en", value: entry.verse.refEn),
+            URLQueryItem(name: "ru", value: entry.verse.refRu),
+            URLQueryItem(name: "hy", value: entry.verse.refHy)
+        ]
+        return components.url
+    }
+
     private func getLanguage() -> AppLanguage {
         if let forced = entry.configuration.language.appLanguage {
             return forced
@@ -966,7 +983,7 @@ struct BibleWidgetEntryView: View {
             } else {
             switch family {
             case .accessoryRectangular:
-                // Прямоугольный виджет на экране блокировки: вертикальная черта и подпись с линейкой (LockScreenQuoteViews.swift);
+                // Прямоугольный виджет на экране блокировки: вертикальная черта и цитата без подписи (LockScreenQuoteViews.swift);
                 // цитата — самая крупная, при которой помещается
                 LockQuoteCard(
                     text: entry.verse.text(for: getLanguage()),
@@ -1219,7 +1236,7 @@ struct BibleWidgetEntryView: View {
             }
             }
         }
-        .widgetURL(URL(string: "armenianbible://next-verse"))
+        .widgetURL(tapURL)
         .widgetBackground(
             (family == .accessoryRectangular || family == .accessoryInline || family == .accessoryCircular)
                 ? AnyShapeStyle(Color.clear)
