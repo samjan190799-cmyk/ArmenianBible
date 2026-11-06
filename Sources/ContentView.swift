@@ -194,6 +194,9 @@ struct HomeView: View {
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @ObservedObject private var reviewManager = ReviewManager.shared
     @State private var animateVerse = false
+    /// Фотография за стихом дня (CinematicQuoteBackdrop.swift): подбирается по смыслу стиха
+    @State private var verseBackdrop: QuoteBackdropChoice? = nil
+    @State private var verseBackdropKey: String? = nil
     @State private var isHeartBouncing = false
     @State private var isSparkBurstActive = false
     @State private var cardFlipAngle: Double = 0.0
@@ -286,17 +289,18 @@ struct HomeView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 10)
 
-                    // MARK: - Контейнер со стихом
+                    // MARK: - Контейнер со стихом: кадр-фотография по смыслу стиха, поверх него текст
                     VStack(spacing: 18) {
                         PaperOrnament()
 
                         Text(manager.currentVerse.text)
                             .font(PaperFont.font(size: 23))
-                            .foregroundColor(primaryTextColor)
+                            .foregroundColor(CinematicPalette.text)
                             .multilineTextAlignment(.center)
                             .lineSpacing(7)
                             .padding(.horizontal, 4)
                             .fixedSize(horizontal: false, vertical: true)
+                            .shadow(color: CinematicPalette.textShadow, radius: 10, x: 0, y: 2)
                             .opacity(animateVerse ? 1 : 0)
                             .offset(y: animateVerse ? 0 : 15)
 
@@ -309,29 +313,35 @@ struct HomeView: View {
                                 } label: {
                                     HStack(spacing: 5) {
                                         Text(manager.currentVerse.reference.uppercased())
-                                            .font(PaperFont.font(size: 13, weight: .medium))
+                                            .font(PaperFont.font(size: 13, weight: .semibold))
                                             .tracking(1.6)
                                         Image(systemName: "chevron.right")
                                             .font(.system(size: 10, weight: .semibold))
                                     }
-                                    .foregroundColor(accentColor)
-                                    .padding(.horizontal, 12)
+                                    .foregroundColor(CinematicPalette.gold)
+                                    .padding(.horizontal, 14)
                                     .padding(.vertical, 8)
+                                    .background(Capsule().fill(Color.black.opacity(0.28)))
+                                    .overlay(Capsule().strokeBorder(CinematicPalette.gold.opacity(0.35), lineWidth: 0.8))
                                     .contentShape(Rectangle())
                                 }
                                 .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
                             } else {
                                 Text(manager.currentVerse.reference.uppercased())
-                                    .font(PaperFont.font(size: 13, weight: .medium))
+                                    .font(PaperFont.font(size: 13, weight: .semibold))
                                     .tracking(1.6)
-                                    .foregroundColor(accentColor)
+                                    .foregroundColor(CinematicPalette.gold)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(Capsule().fill(Color.black.opacity(0.28)))
                             }
                         }
+                        .shadow(color: CinematicPalette.textShadow, radius: 6, x: 0, y: 1)
                         .opacity(animateVerse ? 1 : 0)
                         .offset(y: animateVerse ? 0 : 10)
 
                         Rectangle()
-                            .fill(Paper.hairline)
+                            .fill(CinematicPalette.hairline)
                             .frame(height: 1)
                             .padding(.top, 4)
 
@@ -364,7 +374,7 @@ struct HomeView: View {
                                     Image(systemName: manager.isFavorite(manager.currentVerse) ? "heart.fill" : "heart")
                                         .symbolReplace()
                                         .font(.system(size: 18, weight: .regular))
-                                        .foregroundColor(manager.isFavorite(manager.currentVerse) ? accentColor : Paper.inkSecondary)
+                                        .foregroundColor(manager.isFavorite(manager.currentVerse) ? CinematicPalette.gold : CinematicPalette.secondary)
                                         .scaleEffect(isHeartBouncing ? 1.35 : 1.0)
 
                                     GoldenSparkBurstView(isTriggered: isSparkBurstActive)
@@ -381,7 +391,7 @@ struct HomeView: View {
                             } label: {
                                 Image(systemName: "scroll")
                                     .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(Paper.inkSecondary)
+                                    .foregroundColor(CinematicPalette.secondary)
                                     .frame(maxWidth: .infinity, minHeight: 44)
                                     .contentShape(Rectangle())
                             }
@@ -395,7 +405,7 @@ struct HomeView: View {
                             } label: {
                                 Image(systemName: "photo.artframe")
                                     .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(Paper.inkSecondary)
+                                    .foregroundColor(CinematicPalette.secondary)
                                     .frame(maxWidth: .infinity, minHeight: 44)
                                     .contentShape(Rectangle())
                             }
@@ -408,7 +418,7 @@ struct HomeView: View {
                             } label: {
                                 Image(systemName: "square.and.arrow.up")
                                     .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(Paper.inkSecondary)
+                                    .foregroundColor(CinematicPalette.secondary)
                                     .frame(maxWidth: .infinity, minHeight: 44)
                                     .contentShape(Rectangle())
                             }
@@ -419,8 +429,32 @@ struct HomeView: View {
                     .padding(.horizontal, 26)
                     .padding(.top, 30)
                     .padding(.bottom, 14)
-                    .paperSheet(cornerRadius: 22)
+                    // Карточка не ниже 420 pt: фото должно читаться как кадр, а не как полоска за текстом.
+                    // Длинный стих растягивает её дальше, содержимое остаётся по центру кадра.
+                    .frame(maxWidth: .infinity, minHeight: 420)
+                    .background(CinematicQuoteBackground(choice: verseBackdrop))
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.20), radius: 18, x: 0, y: 10)
+                    .environment(\.colorScheme, .dark)
                     .padding(.horizontal, 20)
+                    .onAppear {
+                        if verseBackdrop == nil {
+                            verseBackdrop = QuoteBackdrop.choice(for: manager.currentVerse)
+                            verseBackdropKey = manager.currentVerse.rotationKey
+                        }
+                    }
+                    .onChange(of: manager.currentVerse) { verse in
+                        // Тот же стих (например, пересобранный с новым id) оставляет свой кадр;
+                        // новый стих не получает кадр предыдущего, чтобы смена была видна
+                        let key = verse.rotationKey
+                        guard key != verseBackdropKey else { return }
+                        verseBackdrop = QuoteBackdrop.choice(for: verse, avoiding: verseBackdrop?.imageName)
+                        verseBackdropKey = key
+                    }
                     .onTapGesture {
                         triggerHaptic(.light)
 
@@ -843,10 +877,12 @@ struct HomeView: View {
     
     @MainActor
     private func shareVerseAsImage() {
+        // Открытка с тем же кадром, что за стихом на экране
         let exportView = VerseCardExportView(
             verse: manager.currentVerse,
             theme: manager.accentTheme,
-            colorScheme: colorScheme
+            colorScheme: colorScheme,
+            backdrop: verseBackdrop ?? QuoteBackdrop.choice(for: manager.currentVerse)
         )
         
         // Используем UIHostingController для стабильного рендеринга на всех iOS 16+
@@ -1185,7 +1221,66 @@ struct VerseCardExportView: View {
     let verse: BibleVerse
     let theme: AccentColorTheme
     let colorScheme: ColorScheme
-    
+    /// Кадр-фотография за стихом. Без него рисуется прежняя бумажная открытка
+    var backdrop: QuoteBackdropChoice? = nil
+
+    var body: some View {
+        if let backdrop {
+            cinematicCard(backdrop)
+        } else {
+            paperCard
+        }
+    }
+
+    // MARK: Открытка-кадр: фото на всю площадь, затемнение, текст и ссылка
+    private func cinematicCard(_ backdrop: QuoteBackdropChoice) -> some View {
+        let entry = backdrop.imageName.flatMap { QuoteBackdropCache.shared.loadNow($0) }
+        return ZStack {
+            LinearGradient(colors: backdrop.mood.fallbackColors, startPoint: .topLeading, endPoint: .bottomTrailing)
+
+            if let entry {
+                Image(uiImage: entry.image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 1080, height: 1080)
+                    .clipped()
+            }
+
+            CinematicScrim(luminance: entry?.luminance ?? 0)
+
+            VStack(spacing: 40) {
+                PaperOrnament(width: 70)
+                    .scaleEffect(2)
+                    .padding(.bottom, 6)
+
+                Text(verse.text)
+                    .font(PaperFont.font(size: 46, weight: .medium))
+                    .foregroundColor(CinematicPalette.text)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(14)
+                    .minimumScaleFactor(0.45)
+                    .shadow(color: CinematicPalette.textShadow, radius: 16, x: 0, y: 3)
+                    .frame(maxHeight: 640)
+
+                Text(verse.reference.uppercased())
+                    .font(PaperFont.font(size: 26, weight: .semibold))
+                    .tracking(3)
+                    .foregroundColor(CinematicPalette.gold)
+                    .shadow(color: CinematicPalette.textShadow, radius: 8, x: 0, y: 2)
+
+                Text("widget_title".localized(for: BibleManager.shared.appLanguage))
+                    .font(PaperFont.font(size: 18, weight: .semibold))
+                    .foregroundColor(CinematicPalette.secondary)
+                    .padding(.top, 24)
+            }
+            .padding(.horizontal, 110)
+            .padding(.vertical, 90)
+        }
+        .frame(width: 1080, height: 1080)
+        .environment(\.colorScheme, .dark)
+    }
+
+    // MARK: Прежняя бумажная открытка (запасной вид)
     private var backgroundColor: Color {
         Paper.page
     }
@@ -1201,8 +1296,8 @@ struct VerseCardExportView: View {
     private var secondaryTextColor: Color {
         colorScheme == .dark ? Color(hex: theme.secondaryColorHex) : accentColor
     }
-    
-    var body: some View {
+
+    private var paperCard: some View {
         ZStack {
             backgroundColor
             
