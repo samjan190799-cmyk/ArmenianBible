@@ -209,6 +209,7 @@ struct SettingsView: View {
                 icon: "gearshape",
                 items: [
                     SettingsSectionItem(id: "system", view: AnyView(systemAndDataSection)),
+                    SettingsSectionItem(id: "contact", view: AnyView(contactAuthorSection)),
                     SettingsSectionItem(id: "about", view: AnyView(aboutSection))
                 ]
             )
