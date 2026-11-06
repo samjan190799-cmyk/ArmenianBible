@@ -184,6 +184,8 @@ final class QuizAIEngine {
             ԱԴԱՊՏԻՎ ՀՐԱՀԱՆԳ (անհատականություն օգտատիրոջ համար)՝
             \(adaptiveDirective)
             
+            ԿԱՐԵՎՈՐ ԳՐԱՌՈՒՄ. Մի օգտագործիր տառերի վրա դրվող նշանները։ Հարցը վերջացրու սովորական «?» նշանով, ստորակետը՝ «,»։
+
             Յուրաքանչյուր հարց պետք է ունենա՝
             - question: հարցի հստակ և գրագետ տեքստը
             - options: ճիշտ 4 տարբերակ (զանգված), որոնցից միայն մեկն է ճիշտ
@@ -354,15 +356,17 @@ final class QuizAIEngine {
     private func decodeQuestionsFromDictionaries(_ dicts: [[String: Any]], category: QuizCategory, language: AppLanguage, providerName: String) -> [QuizQuestion] {
         var result: [QuizQuestion] = []
         for dict in dicts {
-            guard let qText = (dict["question"] as? String ??
+            guard let rawQuestion = (dict["question"] as? String ??
                                dict["q"] as? String ??
                                dict["text"] as? String ??
                                dict["title"] as? String ??
                                dict["prompt"] as? String ??
                                dict["հարց"] as? String),
-                  !qText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                  !rawQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 continue
             }
+            // Знаки над буквами («ո՞ր», «Սէ՛րգիոս») шрифт рисует завитушками: заменяем обычной пунктуацией
+            let qText = ArmenianText.clean(rawQuestion)
             
             var rawOptions: [String] = []
             if let opts = dict["options"] as? [String] {
@@ -380,7 +384,7 @@ final class QuizAIEngine {
                 rawOptions = sortedKeys.compactMap { optsDict[$0] }
             }
             
-            var finalOptions = rawOptions.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            var finalOptions = rawOptions.map { ArmenianText.clean($0).trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
             if finalOptions.count < 4 {
                 let defaults = ["Այո", "Ոչ", "Հայտնի չէ", "Բոլորը"]
                 for d in defaults where !finalOptions.contains(d) && finalOptions.count < 4 {
@@ -413,7 +417,7 @@ final class QuizAIEngine {
             }
             if correctIdx < 0 || correctIdx >= 4 { correctIdx = 0 }
             
-            let explanation = (dict["explanation"] as? String ?? dict["exp"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let explanation = ArmenianText.clean(dict["explanation"] as? String ?? dict["exp"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let verseRef = (dict["verseRef"] as? String ?? dict["ref"] as? String ?? dict["verse_ref"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             
             result.append(QuizQuestion(
