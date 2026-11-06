@@ -13,7 +13,10 @@ struct SelectableBibleTextView: UIViewRepresentable {
     var onVerseOffset: ((CGFloat) -> Void)? = nil
 
     func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView()
+        let textView = VerseTextView()
+        textView.onLayout = { [weak coordinator = context.coordinator] view in
+            coordinator?.reportVerseOffsetIfNeeded(in: view)
+        }
         textView.isEditable = false
         textView.isSelectable = true
         textView.isScrollEnabled = false
@@ -37,6 +40,10 @@ struct SelectableBibleTextView: UIViewRepresentable {
         context.coordinator.onVerseTapped = onVerseTapped
         context.coordinator.onRemoveHighlight = onRemoveHighlight
         context.coordinator.language = language
+        context.coordinator.scrollToVerse = scrollToVerse
+        context.coordinator.onVerseOffset = onVerseOffset
+        // Текст мог смениться (другая глава, размер шрифта): положение стиха пересчитается при следующей раскладке
+        uiView.setNeedsLayout()
     }
     
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
@@ -45,23 +52,11 @@ struct SelectableBibleTextView: UIViewRepresentable {
         // Без внятной ширины раскладку не навязываем: на нулевой ширине высота текста получилась бы огромной
         guard let width = candidates.compactMap({ $0 }).first(where: { $0 > 0 && $0.isFinite }) else { return nil }
         let size = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
-        reportVerseOffset(width: width, coordinator: context.coordinator)
         return CGSize(width: width, height: size.height)
     }
 
-    /// Положение стиха считаем отдельной раскладкой текста той же ширины, а сообщаем о нём уже после текущего прохода вёрстки:
-    /// менять состояние SwiftUI прямо во время вёрстки нельзя
-    private func reportVerseOffset(width: CGFloat, coordinator: Coordinator) {
-        guard let verse = scrollToVerse, let report = onVerseOffset else { return }
-        let key = "\(verse)@\(Int(width))"
-        guard coordinator.reportedOffsetKey != key else { return }
-        coordinator.reportedOffsetKey = key
-        guard let offset = Self.verseOffset(in: attributedText, verse: verse, width: width) else { return }
-        DispatchQueue.main.async { report(offset) }
-    }
-
-    /// Расстояние от верха текста до строки, с которой начинается стих (по номеру стиха в атрибутах строки)
-    static func verseOffset(in text: NSAttributedString, verse: Int, width: CGFloat) -> CGFloat? {
+    /// Где в тексте начинается стих (по номеру стиха в атрибутах строки)
+    static func verseLocation(in text: NSAttributedString, verse: Int) -> Int? {
         let verseKey = NSAttributedString.Key("verseNumber")
         var location: Int? = nil
         text.enumerateAttribute(verseKey, in: NSRange(location: 0, length: text.length)) { value, range, stop in
@@ -70,17 +65,7 @@ struct SelectableBibleTextView: UIViewRepresentable {
                 stop.pointee = true
             }
         }
-        guard let start = location else { return nil }
-
-        let storage = NSTextStorage(attributedString: text)
-        let layoutManager = NSLayoutManager()
-        let container = NSTextContainer(size: CGSize(width: width, height: .greatestFiniteMagnitude))
-        container.lineFragmentPadding = 0
-        layoutManager.addTextContainer(container)
-        storage.addLayoutManager(layoutManager)
-        layoutManager.ensureLayout(for: container)
-        let glyph = layoutManager.glyphIndexForCharacter(at: start)
-        return layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil).minY
+        return location
     }
     
     func makeCoordinator() -> Coordinator {
@@ -91,8 +76,32 @@ struct SelectableBibleTextView: UIViewRepresentable {
         var language: AppLanguage
         var onVerseTapped: (Int) -> Void
         var onRemoveHighlight: (Int) -> Void
-        /// Для какого стиха и ширины смещение уже сообщено
+        /// Для какого стиха, ширины и текста смещение уже сообщено
         var reportedOffsetKey: String? = nil
+        var scrollToVerse: Int? = nil
+        var onVerseOffset: ((CGFloat) -> Void)? = nil
+
+        /// Положение стиха берётся у самого поля после его раскладки (firstRect работает и в TextKit 2):
+        /// раньше его считала отдельная раскладка TextKit 1, а у неё строки чуть другой высоты,
+        /// и к середине главы ошибка вырастала до десятков пунктов — стих уезжал под шапку.
+        /// Сообщаем после текущего прохода вёрстки: менять состояние SwiftUI во время вёрстки нельзя.
+        func reportVerseOffsetIfNeeded(in textView: UITextView) {
+            guard let verse = scrollToVerse, let report = onVerseOffset else { return }
+            let width = textView.bounds.width
+            guard width > 0, textView.bounds.height > 0 else { return }
+            let text = textView.attributedText ?? NSAttributedString()
+            let key = "\(verse)@\(Int(width))#\(text.length)"
+            guard reportedOffsetKey != key else { return }
+            guard let start = SelectableBibleTextView.verseLocation(in: text, verse: verse),
+                  let startPosition = textView.position(from: textView.beginningOfDocument, offset: start),
+                  let endPosition = textView.position(from: startPosition, offset: 1),
+                  let range = textView.textRange(from: startPosition, to: endPosition) else { return }
+            let rect = textView.firstRect(for: range)
+            guard !rect.isNull, !rect.isInfinite, rect.minY.isFinite else { return }
+            reportedOffsetKey = key
+            let offset = max(0, rect.minY)
+            DispatchQueue.main.async { report(offset) }
+        }
 
         init(language: AppLanguage, onVerseTapped: @escaping (Int) -> Void, onRemoveHighlight: @escaping (Int) -> Void) {
             self.language = language
@@ -181,3 +190,15 @@ struct SelectableBibleTextView: UIViewRepresentable {
     }
 }
 
+
+// MARK: - Поле текста главы, которое сообщает о своей раскладке
+/// После каждой раскладки (готова ширина, текст разложен) просит координатора проверить,
+/// где лежит целевой стих. Повторно ничего не считается: координатор помнит, что уже сообщил.
+final class VerseTextView: UITextView {
+    var onLayout: ((UITextView) -> Void)?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?(self)
+    }
+}
