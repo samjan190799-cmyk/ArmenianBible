@@ -130,18 +130,28 @@ enum PaperFont {
 // MARK: - Лист бумаги (фон карточки)
 struct PaperSheetModifier: ViewModifier {
     var cornerRadius: CGFloat
+    /// На главном экране карточки — тёплая поверхность «святилища» (SanctuaryAtmosphere.swift)
+    @Environment(\.paperSurface) private var surface
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Paper.sheet)
-                    .shadow(color: Paper.shadow, radius: 14, x: 0, y: 6)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Paper.hairline, lineWidth: 1)
-            )
+        switch surface {
+        case .paper:
+            content
+                .background(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(Paper.sheet)
+                        .shadow(color: Paper.shadow, radius: 14, x: 0, y: 6)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(Paper.hairline, lineWidth: 1)
+                )
+        case .sanctuary:
+            content
+                .background(SanctuarySurface(cornerRadius: cornerRadius))
+                .overlay(SanctuarySurfaceBorder(cornerRadius: cornerRadius))
+        }
     }
 }
 
@@ -260,18 +270,34 @@ enum PaperAppearance {
         UINavigationBar.appearance().compactAppearance = nav
         UINavigationBar.appearance().scrollEdgeAppearance = navScrollEdge
         
-        // Панель вкладок: подписи книжным шрифтом, спокойный цвет неактивных вкладок
+        // Панель вкладок: подписи книжным шрифтом, спокойный цвет неактивных вкладок,
+        // у выбранной вкладки подпись плотнее (цвет даёт акцент темы через .tint)
         let tabTitleNormal: [NSAttributedString.Key: Any] = [
             .font: PaperFont.uiFont(size: 10, weight: .medium)
         ]
+        let tabTitleSelected: [NSAttributedString.Key: Any] = [
+            .font: PaperFont.uiFont(size: 10, weight: .semibold)
+        ]
         UITabBarItem.appearance().setTitleTextAttributes(tabTitleNormal, for: .normal)
-        UITabBarItem.appearance().setTitleTextAttributes(tabTitleNormal, for: .selected)
+        UITabBarItem.appearance().setTitleTextAttributes(tabTitleSelected, for: .selected)
         UITabBar.appearance().unselectedItemTintColor = Paper.uiInkTertiary
         if #unavailable(iOS 26.0) {
+            // Тёмное полупрозрачное стекло в тон фону «святилища» и тонкая тёплая линия сверху.
+            // Размытие только в полосе панели, на весь экран его нет. На iOS 26 панель — системное
+            // «жидкое стекло», его фон не трогаем, чтобы не сломать.
             let tab = UITabBarAppearance()
             tab.configureWithDefaultBackground()
-            tab.backgroundColor = Paper.uiPage.withAlphaComponent(0.94)
-            tab.shadowColor = Paper.uiHairline
+            tab.backgroundEffect = UIBlurEffect(style: .systemThinMaterial)
+            tab.backgroundColor = UIColor { traits in
+                traits.userInterfaceStyle == .dark
+                    ? SanctuaryPalette.uiBase.resolvedColor(with: traits).withAlphaComponent(0.72)
+                    : Paper.uiPage.resolvedColor(with: traits).withAlphaComponent(0.86)
+            }
+            tab.shadowColor = SanctuaryPalette.uiBorder
+            for layout in [tab.stackedLayoutAppearance, tab.inlineLayoutAppearance, tab.compactInlineLayoutAppearance] {
+                layout.normal.titleTextAttributes = tabTitleNormal
+                layout.selected.titleTextAttributes = tabTitleSelected
+            }
             UITabBar.appearance().standardAppearance = tab
             UITabBar.appearance().scrollEdgeAppearance = tab
         }

@@ -256,8 +256,8 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
-            // MARK: - Фон: тёплая бумага
-            PaperBackground()
+            // MARK: - Фон: тёплая темнота с янтарным светом сверху (SanctuaryAtmosphere.swift)
+            SanctuaryBackground()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
@@ -280,8 +280,8 @@ struct HomeView: View {
                                 .font(.system(size: 18, weight: .regular))
                                 .foregroundColor(Paper.inkSecondary)
                                 .frame(width: 40, height: 40)
-                                .background(Circle().fill(Paper.sheet))
-                                .overlay(Circle().strokeBorder(Paper.hairline, lineWidth: 1))
+                                .background(Circle().fill(SanctuaryPalette.surface))
+                                .overlay(Circle().strokeBorder(SanctuaryPalette.border, lineWidth: 1))
                         }
                         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.90))
                         .accessibilityLabel(Text("settings_title".localized(for: manager.appLanguage)))
@@ -643,6 +643,9 @@ struct HomeView: View {
                 .padding(.bottom, 30)
                 .frame(maxWidth: 680)
                 .frame(maxWidth: .infinity)
+                // Карточки главного экрана (.paperSheet) — тёплые поверхности в тон фону.
+                // Окружение задано внутри прокрутки, поэтому листы и окна, открытые отсюда, его не наследуют.
+                .environment(\.paperSurface, .sanctuary)
             }
         }
         .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
