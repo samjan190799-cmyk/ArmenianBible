@@ -205,6 +205,8 @@ struct BibleWallpaperMakerView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     @State private var selectedTheme: WallpaperTheme = .ararat
+    /// Кадр выбранной темы (у каждой темы три фотографии)
+    @State private var selectedPhoto: Int = 0
     @State private var selectedFont: WallpaperFont = .serif
     @State private var selectedDecor: WallpaperDecor = .cross
     @State private var selectedLanguage: AppLanguage = .armenian
@@ -229,10 +231,33 @@ struct BibleWallpaperMakerView: View {
                             fontDesign: selectedFont,
                             decor: selectedDecor,
                             language: selectedLanguage,
-                            showOverlay: showLockScreenOverlay
+                            showOverlay: showLockScreenOverlay,
+                            photoIndex: selectedPhoto
                         )
                         .frame(width: 220, height: 440)
                         .clipShape(RoundedRectangle(cornerRadius: 38, style: .continuous))
+                        // Смена кадра растворением, а не скачком
+                        .id("\(selectedTheme.rawValue)-\(selectedPhoto)")
+                        .transition(.opacity)
+                        .overlay(alignment: .bottomTrailing) {
+                            // Другой кадр этой же темы
+                            Button {
+                                triggerHaptic(.light)
+                                withAnimation(.easeInOut(duration: 0.45)) {
+                                    selectedPhoto = (selectedPhoto + 1) % WallpaperTheme.photoCount
+                                }
+                            } label: {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 36, height: 36)
+                                    .background(Circle().fill(Color.black.opacity(0.45)))
+                                    .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                            .offset(x: 14, y: -54)
+                            .accessibilityLabel(Text(ManuscriptText.pick(manager.appLanguage, hy: "Այլ լուսանկար", ru: "Другой кадр", en: "Another photo")))
+                        }
                         .overlay(
                             RoundedRectangle(cornerRadius: 38, style: .continuous)
                                 .stroke(
@@ -319,15 +344,24 @@ struct BibleWallpaperMakerView: View {
                                         } label: {
                                             VStack(spacing: 6) {
                                                 ZStack {
-                                                    Circle()
-                                                        .fill(
-                                                            LinearGradient(
-                                                                colors: theme.colors,
-                                                                startPoint: .topLeading,
-                                                                endPoint: .bottomTrailing
+                                                    // Кружок темы: её первая фотография (или прежний градиент, если кадра нет)
+                                                    if let chip = WallpaperPhotoStore.image(theme.photoName(at: 0), size: .chip) {
+                                                        Image(uiImage: chip)
+                                                            .resizable()
+                                                            .scaledToFill()
+                                                            .frame(width: 44, height: 44)
+                                                            .clipShape(Circle())
+                                                    } else {
+                                                        Circle()
+                                                            .fill(
+                                                                LinearGradient(
+                                                                    colors: theme.colors,
+                                                                    startPoint: .topLeading,
+                                                                    endPoint: .bottomTrailing
+                                                                )
                                                             )
-                                                        )
-                                                        .frame(width: 44, height: 44)
+                                                            .frame(width: 44, height: 44)
+                                                    }
                                                     
                                                     if selectedTheme == theme {
                                                         Circle()
@@ -551,7 +585,8 @@ struct BibleWallpaperMakerView: View {
             theme: selectedTheme,
             fontDesign: selectedFont,
             decor: selectedDecor,
-            language: selectedLanguage
+            language: selectedLanguage,
+            photoIndex: selectedPhoto
         )
         .frame(width: 1170, height: 2532)
         
@@ -601,8 +636,27 @@ struct BibleWallpaperMakerView: View {
 // MARK: - Художественный фон обоев (Арарат, Татев, Хачкар, Манускрипт и т.д.)
 struct WallpaperArtBackground: View {
     let theme: WallpaperTheme
-    
+    /// Какой из кадров темы показать (WallpaperPhotos.swift)
+    var photoIndex: Int = 0
+    /// Размер кадра: уменьшенный для превью, полный для сохранения обоев
+    var photoSize: WallpaperPhotoStore.Size = .preview
+
     var body: some View {
+        if let photo = WallpaperPhotoStore.image(theme.photoName(at: photoIndex), size: photoSize) {
+            // Настоящая фотография места, затемнённая под часы и стих
+            ZStack {
+                Color.black
+                WallpaperPhotoLayer(image: photo)
+                WallpaperPhotoScrim()
+            }
+            .ignoresSafeArea()
+        } else {
+            drawnBackground
+        }
+    }
+
+    /// Прежний нарисованный фон темы: запасной вариант, если кадра нет
+    private var drawnBackground: some View {
         ZStack {
             // Базовый градиент
             LinearGradient(
@@ -815,6 +869,15 @@ struct WallpaperCanvasView: View {
     let decor: WallpaperDecor
     let language: AppLanguage
     let showOverlay: Bool
+    /// Кадр темы; nil — выбирается по стиху (так обои из Команд каждый день разные)
+    var photoIndex: Int? = nil
+
+    private var resolvedPhotoIndex: Int { photoIndex ?? theme.photoIndex(for: verse) }
+
+    /// Акцент поверх фотографии светлее: прежние цвета тем рассчитаны на тёмный градиент
+    private var accent: Color {
+        WallpaperPhotoStore.image(theme.photoName(at: resolvedPhotoIndex), size: .preview) == nil ? theme.accentColor : theme.photoAccentColor
+    }
     
     var body: some View {
         let verseText = verse.text(for: language)
@@ -822,7 +885,7 @@ struct WallpaperCanvasView: View {
         
         ZStack {
             // 1. Художественный фон
-            WallpaperArtBackground(theme: theme)
+            WallpaperArtBackground(theme: theme, photoIndex: resolvedPhotoIndex, photoSize: .preview)
             
             // 2. Мягкая контрастная подложка для слабовидящих
             RadialGradient(
@@ -857,7 +920,7 @@ struct WallpaperCanvasView: View {
                     if decor != .minimal {
                         Image(systemName: decor.icon)
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(theme.accentColor)
+                            .foregroundColor(accent)
                             .shadow(color: .black.opacity(0.9), radius: 4, x: 0, y: 2)
                     }
                     
@@ -874,7 +937,7 @@ struct WallpaperCanvasView: View {
                     HStack(spacing: 4) {
                         Text(verse.reference(for: language))
                             .font(PaperFont.font(size: 9.5, weight: .semibold))
-                            .foregroundColor(theme.accentColor)
+                            .foregroundColor(accent)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 3)
@@ -882,7 +945,7 @@ struct WallpaperCanvasView: View {
                     .clipShape(Capsule())
                     .overlay(
                         Capsule()
-                            .stroke(theme.accentColor.opacity(0.6), lineWidth: 1)
+                            .stroke(accent.opacity(0.6), lineWidth: 1)
                     )
                     .shadow(color: .black.opacity(0.9), radius: 4, x: 0, y: 1)
                     .padding(.top, 2)
@@ -929,6 +992,15 @@ struct FullResolutionWallpaperView: View {
     let fontDesign: WallpaperFont
     let decor: WallpaperDecor
     let language: AppLanguage
+    /// Кадр темы; nil — выбирается по стиху (так обои из Команд каждый день разные)
+    var photoIndex: Int? = nil
+
+    private var resolvedPhotoIndex: Int { photoIndex ?? theme.photoIndex(for: verse) }
+
+    /// Акцент поверх фотографии светлее: прежние цвета тем рассчитаны на тёмный градиент
+    private var accent: Color {
+        WallpaperPhotoStore.image(theme.photoName(at: resolvedPhotoIndex), size: .full) == nil ? theme.accentColor : theme.photoAccentColor
+    }
     
     var body: some View {
         let verseText = verse.text(for: language)
@@ -936,7 +1008,7 @@ struct FullResolutionWallpaperView: View {
         
         ZStack {
             // 1. Художественный фон высокого разрешения
-            WallpaperArtBackground(theme: theme)
+            WallpaperArtBackground(theme: theme, photoIndex: resolvedPhotoIndex, photoSize: .full)
             
             // 2. Мягкая контрастная подложка для слабовидящих (Accessibility Contrast Scrim)
             RadialGradient(
@@ -958,7 +1030,7 @@ struct FullResolutionWallpaperView: View {
                     if decor != .minimal {
                         Image(systemName: decor.icon)
                             .font(.system(size: 64, weight: .semibold))
-                            .foregroundColor(theme.accentColor)
+                            .foregroundColor(accent)
                             .shadow(color: .black.opacity(0.95), radius: 14, x: 0, y: 6)
                     }
                     
@@ -976,7 +1048,7 @@ struct FullResolutionWallpaperView: View {
                     HStack(spacing: 8) {
                         Text(verse.reference(for: language))
                             .font(PaperFont.font(size: 38, weight: .semibold))
-                            .foregroundColor(theme.accentColor)
+                            .foregroundColor(accent)
                     }
                     .padding(.horizontal, 28)
                     .padding(.vertical, 12)
@@ -984,7 +1056,7 @@ struct FullResolutionWallpaperView: View {
                     .clipShape(Capsule())
                     .overlay(
                         Capsule()
-                            .stroke(theme.accentColor.opacity(0.6), lineWidth: 2)
+                            .stroke(accent.opacity(0.6), lineWidth: 2)
                     )
                     .shadow(color: .black.opacity(0.9), radius: 12, x: 0, y: 4)
                     .padding(.top, 8)
