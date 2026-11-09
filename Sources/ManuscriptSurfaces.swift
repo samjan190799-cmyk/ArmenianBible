@@ -124,10 +124,11 @@ extension ManuscriptPen {
         case .khachkar:
             switch self {
             case .goose: return look.palette.ink
-            case .reed: return 0x39291C
-            case .peacock: return 0x162B4E
-            case .gilded: return 0x3A290A
-            case .cinnabar: return 0x521812
+            // Краска борозд: заметно разные цвета, но достаточно тёмные для чтения на светлом туфе
+            case .reed: return 0x5A3A22
+            case .peacock: return 0x1D4584
+            case .gilded: return 0x80570F
+            case .cinnabar: return 0x8E1F18
             }
         }
     }
@@ -315,8 +316,34 @@ enum ManuscriptChiselArt {
         ManuscriptPalette.color(hex, alpha)
     }
 
+    /// Резец и молоток по выбранному перу: на камне вместо пера в руке инструмент, но выбор пера виден
+    private struct Kit {
+        let steel: UInt32
+        let bevel: UInt32
+        let head: UInt32
+        let mallet: UInt32
+        let malletHandle: UInt32
+        let band: UInt32?
+    }
+
+    private static func toolKit(for pen: ManuscriptPen) -> Kit {
+        switch pen {
+        case .goose:
+            return Kit(steel: 0xA7ACB3, bevel: 0x5B6066, head: 0x6F747B, mallet: 0xA06B36, malletHandle: 0x8A5B2C, band: nil)
+        case .reed:
+            return Kit(steel: 0xB28C5A, bevel: 0x6E5230, head: 0x8C6C40, mallet: 0x6B4A26, malletHandle: 0x4F351B, band: nil)
+        case .peacock:
+            return Kit(steel: 0x9FB4C0, bevel: 0x4E6572, head: 0x2F6F7E, mallet: 0x2F7C8C, malletHandle: 0x1F4A55, band: 0x2D7FA8)
+        case .gilded:
+            return Kit(steel: 0xDCBE6E, bevel: 0x8A6A22, head: 0xC1902F, mallet: 0xC9A04A, malletHandle: 0x7A5616, band: 0xFFE9A0)
+        case .cinnabar:
+            return Kit(steel: 0xA7ACB3, bevel: 0x5B6066, head: 0xA02A24, mallet: 0xB5382C, malletHandle: 0x6E1A16, band: 0xB5382C)
+        }
+    }
+
     /// `time` оживляет молоток и каменную пыль; `lift` — отрыв инструмента от камня в конце письма (0…1)
-    static func draw(tip: CGPoint, sway: Double, lift: CGFloat, time: Double, in ctx: GraphicsContext) {
+    static func draw(pen: ManuscriptPen = .defaultValue, tip: CGPoint, sway: Double, lift: CGFloat, time: Double, in ctx: GraphicsContext) {
+        let kit = toolKit(for: pen)
         var tool = ctx
         tool.opacity = Double(1 - lift)
         tool.translateBy(x: tip.x + 14 * lift, y: tip.y - 34 * lift)
@@ -346,11 +373,18 @@ enum ManuscriptChiselArt {
         shadow.translateBy(x: 2.5, y: 3.5)
         shadow.fill(body, with: .color(Color.black.opacity(0.16)))
 
-        tool.fill(body, with: .color(c(0xA7ACB3)))
-        tool.fill(bevel, with: .color(c(0x5B6066)))
+        tool.fill(body, with: .color(c(kit.steel)))
+        tool.fill(bevel, with: .color(c(kit.bevel)))
         tool.stroke(body, with: .color(c(0x4A4F55, 0.8)), lineWidth: 0.6)
+        if let band = kit.band {
+            // Цветное кольцо на стержне резца: по нему видно выбранное перо
+            var ring = Path()
+            ring.move(to: CGPoint(x: -3.1, y: -34))
+            ring.addLine(to: CGPoint(x: 3.1, y: -34))
+            tool.stroke(ring, with: .color(c(band)), style: StrokeStyle(lineWidth: 5, lineCap: .butt))
+        }
         tool.stroke(shine, with: .color(Color.white.opacity(0.55)), style: StrokeStyle(lineWidth: 0.9, lineCap: .round))
-        tool.fill(head, with: .color(c(0x6F747B)))
+        tool.fill(head, with: .color(c(kit.head)))
         tool.stroke(head, with: .color(c(0x3F4348, 0.8)), lineWidth: 0.5)
 
         // Деревянный молоток покачивается над шляпкой резца
@@ -361,8 +395,8 @@ enum ManuscriptChiselArt {
         handle.move(to: CGPoint(x: 0, y: -10))
         handle.addLine(to: CGPoint(x: 1, y: -40))
         let mallHead = Path(roundedRect: CGRect(x: -9, y: -11, width: 18, height: 11), cornerRadius: 2.4)
-        mallet.stroke(handle, with: .color(c(0x8A5B2C)), style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
-        mallet.fill(mallHead, with: .color(c(0xA06B36)))
+        mallet.stroke(handle, with: .color(c(kit.malletHandle)), style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
+        mallet.fill(mallHead, with: .color(c(kit.mallet)))
         mallet.stroke(mallHead, with: .color(c(0x5B3A1B, 0.8)), lineWidth: 0.7)
 
         // Каменная пыль разлетается из-под кончика
@@ -375,6 +409,12 @@ enum ManuscriptChiselArt {
             guard radius > 0.1 else { continue }
             let rect = CGRect(x: spot.x - radius, y: spot.y - radius, width: radius * 2, height: radius * 2)
             ctx.fill(Path(ellipseIn: rect), with: .color(c(0xE9E0CC, 0.7 * (1 - phase) * Double(1 - lift))))
+        }
+
+        // Золотой резец, как золотое перо, оставляет искры
+        if pen == .gilded {
+            ManuscriptQuillArt.drawSparkles(around: CGPoint(x: tip.x + 14 * lift, y: tip.y - 34 * lift),
+                                            time: time, opacity: Double(1 - lift), in: ctx)
         }
     }
 }
