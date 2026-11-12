@@ -99,6 +99,24 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $isShowingOnboarding) {
             OnboardingView()
         }
+        .alert(
+            manager.appLanguage.pick(hy: "Նոր տարբերակ", ru: "Вышла новая версия", en: "A new version is available"),
+            isPresented: $updateManager.isSoftUpdateSuggested
+        ) {
+            Button(manager.appLanguage.pick(hy: "Թարմացնել", ru: "Обновить", en: "Update")) {
+                updateManager.dismissSoftUpdate()
+                updateManager.openAppStore()
+            }
+            Button(manager.appLanguage.pick(hy: "Հետո", ru: "Позже", en: "Later"), role: .cancel) {
+                updateManager.dismissSoftUpdate()
+            }
+        } message: {
+            Text(manager.appLanguage.pick(
+                hy: "Luys-ի \(updateManager.availableVersion) տարբերակը հասանելի է App Store-ում:",
+                ru: "Версия \(updateManager.availableVersion) уже в App Store.",
+                en: "Version \(updateManager.availableVersion) is available on the App Store."
+            ))
+        }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .background {
                 manager.lockApp()
