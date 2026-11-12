@@ -84,6 +84,36 @@ extension BibleManager {
         }
     }
     
+    // MARK: - Предложение утреннего стиха
+    /// Включает утренний стих на 8:00 (разрешение на уведомления спрашивается здесь же)
+    func enableMorningVerseAtEight() {
+        var parts = DateComponents()
+        parts.hour = 8
+        parts.minute = 0
+        if let eight = Calendar.current.date(from: parts) {
+            setMorningNotificationTime(eight)
+        }
+        setMorningNotificationsEnabled(true)
+    }
+
+    /// После первого осмысленного действия (добавил стих в избранное, прочитал главу) один раз предлагает утренний стих.
+    /// Не предлагается, если уведомления уже включены, человек их запретил в системе или знакомство ещё не закончено
+    func offerMorningVerseIfNeeded(after trigger: String) {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: "morning_offer_shown_v1"),
+              !defaults.bool(forKey: OnboardingState.pendingKey),
+              !morningNotificationsEnabled else { return }
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            DispatchQueue.main.async {
+                guard let self, settings.authorizationStatus != .denied,
+                      !defaults.bool(forKey: "morning_offer_shown_v1") else { return }
+                defaults.set(true, forKey: "morning_offer_shown_v1")
+                Funnel.track("feature_used", ["feature": "notify_offer_" + trigger])
+                self.isShowingMorningVerseOffer = true
+            }
+        }
+    }
+
     func setDailyNotificationsEnabled(_ enabled: Bool) {
         setMorningNotificationsEnabled(enabled)
     }

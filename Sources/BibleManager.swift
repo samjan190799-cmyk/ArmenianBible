@@ -23,6 +23,8 @@ class BibleManager: ObservableObject {
     
     // Духовные уведомления нового поколения
     @Published var morningNotificationsEnabled: Bool = false
+    /// Предложение утреннего стиха после первого осмысленного действия (избранное, прочитанная глава); окно в ContentView
+    @Published var isShowingMorningVerseOffer: Bool = false
     @Published var morningNotificationTime: Date = Date()
     @Published var eveningNotificationsEnabled: Bool = false
     @Published var eveningNotificationTime: Date = Date()
@@ -537,6 +539,7 @@ class BibleManager: ObservableObject {
             try? await Task.sleep(nanoseconds: 20_000_000_000)
             guard !Task.isCancelled else { return }
             PomegranateTreeManager.shared.record(.chapter(book: bookId, chapter: chapter))
+            self.offerMorningVerseIfNeeded(after: "chapter")
         }
     }
     
@@ -813,6 +816,7 @@ class BibleManager: ObservableObject {
             )
             favoriteVerses.append(favorite)
             saveFavorites()
+            offerMorningVerseIfNeeded(after: "favorite")
         }
     }
     
@@ -838,6 +842,7 @@ class BibleManager: ObservableObject {
             )
             favoriteVerses.append(favorite)
             saveFavorites()
+            offerMorningVerseIfNeeded(after: "favorite")
         }
     }
     

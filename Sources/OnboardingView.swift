@@ -278,13 +278,7 @@ struct OnboardingView: View {
 
     private func enableMorningVerse() {
         Haptics.impact(.light)
-        var parts = DateComponents()
-        parts.hour = 8
-        parts.minute = 0
-        if let eight = Calendar.current.date(from: parts) {
-            manager.setMorningNotificationTime(eight)
-        }
-        manager.setMorningNotificationsEnabled(true)
+        manager.enableMorningVerseAtEight()
         notificationsRequested = true
         Funnel.track("feature_used", ["feature": "onboarding_notify"])
     }

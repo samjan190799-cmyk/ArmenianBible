@@ -100,6 +100,24 @@ struct ContentView: View {
             OnboardingView()
         }
         .alert(
+            manager.appLanguage.pick(hy: "Առավոտյան համար", ru: "Утренний стих", en: "A morning verse"),
+            isPresented: $manager.isShowingMorningVerseOffer
+        ) {
+            Button(manager.appLanguage.pick(hy: "Միացնել", ru: "Включить", en: "Turn on")) {
+                manager.enableMorningVerseAtEight()
+                Funnel.track("feature_used", ["feature": "notify_offer_accepted"])
+            }
+            Button(manager.appLanguage.pick(hy: "Ոչ հիմա", ru: "Не сейчас", en: "Not now"), role: .cancel) {}
+        } message: {
+            Text(manager.appLanguage.pick(
+                hy: "Ամեն առավոտ ժամը 8:00-ին մեկ համար՝ օրը սկսելու համար: Ժամը կարելի է փոխել Կարգավորումներում:",
+                ru: "Один стих каждое утро в 8:00, чтобы начать день. Время можно поменять в «Настройках».",
+                en: "One verse every morning at 8:00 to start the day. You can change the time in Settings."
+            ))
+        }
+        // Два окна на одном элементе не уживаются (SwiftUI показывает только последнее), поэтому окно обновления висит на своём фоне
+        .background(
+            Color.clear.alert(
             manager.appLanguage.pick(hy: "Նոր տարբերակ", ru: "Вышла новая версия", en: "A new version is available"),
             isPresented: $updateManager.isSoftUpdateSuggested
         ) {
@@ -117,6 +135,7 @@ struct ContentView: View {
                 en: "Version \(updateManager.availableVersion) is available on the App Store."
             ))
         }
+        )
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .background {
                 manager.lockApp()
