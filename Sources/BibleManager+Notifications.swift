@@ -113,12 +113,13 @@ extension BibleManager {
         let calendar = Calendar.current
         let now = Date()
         
-        // 1. Утренний стих дня (7 дней вперед)
+        // 1. Утренний стих дня (на три недели вперёд: iOS хранит до 64 запланированных уведомлений,
+        //    всего здесь выходит не больше 61 — утро 21, вечер 14, праздники 12, посты 7, план чтения 7)
         if morningNotificationsEnabled {
             let database = getFilteredDatabase(for: selectedCategory)
             if !database.isEmpty {
                 let timeComponents = calendar.dateComponents([.hour, .minute], from: morningNotificationTime)
-                for dayOffset in 0..<7 {
+                for dayOffset in 0..<21 {
                     let verse = database.randomElement() ?? database[0]
                     let content = UNMutableNotificationContent()
                     content.title = appLanguage == .armenian ? "Առավոտյան օրվա համար" : (appLanguage == .russian ? "Утренний стих дня" : "Morning Verse of the Day")
@@ -145,12 +146,12 @@ extension BibleManager {
             }
         }
         
-        // 2. Вечерняя молитва и покой (7 дней вперед)
+        // 2. Вечерняя молитва и покой (на две недели вперёд)
         if eveningNotificationsEnabled {
             let eveningPool: [BibleVerse] = !BibleVerse.shortPsalms.isEmpty ? BibleVerse.shortPsalms : (!BibleVerse.shortPearls.isEmpty ? BibleVerse.shortPearls : BibleVerse.database)
             if !eveningPool.isEmpty {
                 let timeComponents = calendar.dateComponents([.hour, .minute], from: eveningNotificationTime)
-                for dayOffset in 0..<7 {
+                for dayOffset in 0..<14 {
                     let verse = eveningPool.randomElement() ?? eveningPool[0]
                     let content = UNMutableNotificationContent()
                     content.title = appLanguage == .armenian ? "Երեկոյան աղոթք և խաղաղություն" : (appLanguage == .russian ? "Вечерняя молитва и покой" : "Evening Peace & Prayer")
@@ -179,9 +180,11 @@ extension BibleManager {
         
         // 3. Праздники и посты Церкви (ААЦ) на 14 дней вперед (накануне в 19:30)
         if churchFeastsNotificationsEnabled {
-            let currentYear = calendar.component(.year, from: now)
+            // Год и месяц праздников — по григорианскому календарю, каким бы ни был календарь устройства
+            let feastCalendar = ChurchCalendarService.gregorian
+            let currentYear = feastCalendar.component(.year, from: now)
             var upcomingFeasts = ChurchCalendarService.shared.feasts(for: currentYear)
-            if calendar.component(.month, from: now) == 12 {
+            if feastCalendar.component(.month, from: now) == 12 {
                 upcomingFeasts.append(contentsOf: ChurchCalendarService.shared.feasts(for: currentYear + 1))
             }
             
@@ -231,7 +234,7 @@ extension BibleManager {
                 if item.fast.kind == .greatLent { continue }
                 
                 // Праздник-пост (Передовой пост и т. п.) уже получил своё напоминание в блоке праздников
-                let itemYear = calendar.component(.year, from: item.date)
+                let itemYear = ChurchCalendarService.gregorian.component(.year, from: item.date)
                 let hasFastingFeastReminder = ChurchCalendarService.shared.feasts(for: itemYear).contains {
                     $0.isFasting && calendar.isDate($0.date, inSameDayAs: item.date)
                 }

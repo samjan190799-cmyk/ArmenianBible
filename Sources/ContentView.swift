@@ -105,6 +105,9 @@ struct ContentView: View {
                 }
                 updateManager.checkForUpdates(language: manager.appLanguage)
                 CandleIslandManager.shared.sync(with: CandleManager.shared.activeCandles, language: manager.appLanguage)
+                // Уведомления ставятся на несколько недель вперёд и раньше обновлялись только при холодном запуске:
+                // если приложение неделями жило в памяти, напоминания заканчивались, хотя человек открывал его каждый день
+                manager.scheduleDailyNotifications()
             }
         }
         .onAppear {
