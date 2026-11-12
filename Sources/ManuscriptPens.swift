@@ -105,7 +105,7 @@ enum ManuscriptQuillArt {
                      palette P: ManuscriptPalette, surface: ManuscriptSurface = .parchment, in ctx: GraphicsContext) {
         // На камне в руке резец, а не перо
         if surface.isCarved {
-            ManuscriptChiselArt.draw(tip: tip, sway: sway, lift: lift, time: time, in: ctx)
+            ManuscriptChiselArt.draw(pen: pen, tip: tip, sway: sway, lift: lift, time: time, in: ctx)
             return
         }
         var quill = ctx
@@ -245,7 +245,7 @@ enum ManuscriptQuillArt {
     }
 
     /// Золотое перо оставляет в воздухе искры
-    private static func drawSparkles(around center: CGPoint, time: Double, opacity: Double, in ctx: GraphicsContext) {
+    static func drawSparkles(around center: CGPoint, time: Double, opacity: Double, in ctx: GraphicsContext) {
         for k in 0 ..< 3 {
             let phase = (time * 1.6 + Double(k) * 0.37).truncatingRemainder(dividingBy: 1)
             let angle = Double(k) * 2.1 + time * 0.7
