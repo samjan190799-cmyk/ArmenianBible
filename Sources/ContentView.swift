@@ -1204,12 +1204,14 @@ struct PremiumPromoBannerCardView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(isPremium ? "Premium ակտիվ է" : "Armenian Bible Premium")
+                    Text(isPremium ? language.pick(hy: "Premium ակտիվ է", ru: "Premium активен", en: "Premium is active") : "Armenian Bible Premium")
                         .font(PaperFont.font(size: 17, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                         .lineLimit(1)
 
-                    Text(isPremium ? (language == .armenian ? "Բոլոր 95 աուդիո գլուխները և AI-ն ապաբլոկավորված են" : "Все 95 аудио глав и ИИ разблокированы") : (language == .armenian ? "Բացեք Նարեկացու 95 աուդիո գլուխները և AI-ն" : "95 аудио глав Нарекаци и безлимитный ИИ"))
+                    Text(isPremium
+                         ? language.pick(hy: "Բոլոր 95 աուդիո գլուխները և AI-ն ապաբլոկավորված են", ru: "Все 95 аудио глав и ИИ разблокированы", en: "All 95 audio chapters and AI are unlocked")
+                         : language.pick(hy: "Բացեք Նարեկացու 95 աուդիո գլուխները և AI-ն", ru: "95 аудио глав Нарекаци и безлимитный ИИ", en: "95 Narekatsi audio chapters and unlimited AI"))
                         .font(PaperFont.font(size: 13))
                         .foregroundColor(Paper.inkSecondary)
                         .lineLimit(1)

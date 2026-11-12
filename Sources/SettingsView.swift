@@ -78,6 +78,8 @@ struct SettingsView: View {
     @State var secretTapCount = 0
     /// Анонимная статистика (воронка): человек может выключить
     @State var isFunnelEnabled = Funnel.isEnabled
+    /// Ответ на кнопку «Восстановить» в карточке подписки (раньше нажатие ничего не показывало)
+    @State var restoreResultMessage: String? = nil
     @State var secretLastTap = Date.distantPast
     @State var isShowingDevPasscodeAlert = false
     @State var devPasscodeInput = ""
@@ -462,8 +464,8 @@ struct SettingsView: View {
                     }
                     
                     Text(subscriptionManager.isPremium ?
-                         (selectedLanguage == .armenian ? "Կարգավիճակ՝ Ակտիվ (Բոլոր ֆունկցիաները բացված են)" : "Статус: Активен (Все функции открыты)") :
-                         (selectedLanguage == .armenian ? "Բացեք Նարեկացու 95 աուդիոները, անսահմանափակ AI-ն և PRO պաստառները" : "95 аудио Нарекаци, безлимитный ИИ и PRO обои"))
+                         selectedLanguage.pick(hy: "Կարգավիճակ՝ Ակտիվ (Բոլոր ֆունկցիաները բացված են)", ru: "Статус: Активен (Все функции открыты)", en: "Status: Active (all features unlocked)") :
+                         selectedLanguage.pick(hy: "Բացեք Նարեկացու 95 աուդիոները, անսահմանափակ AI-ն և PRO պաստառները", ru: "95 аудио Нарекаци, безлимитный ИИ и PRO обои", en: "95 Narekatsi audio chapters, unlimited AI and PRO wallpapers"))
                         .font(PaperFont.font(size: 12))
                         .foregroundColor(Paper.inkSecondary)
                         .lineLimit(2)
@@ -479,8 +481,8 @@ struct SettingsView: View {
                         Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "sparkles")
                             .font(.system(size: 13, weight: .semibold))
                         Text(subscriptionManager.isPremium ?
-                             (selectedLanguage == .armenian ? "Կառավարել" : "Управление") :
-                             (selectedLanguage == .armenian ? "Ստանալ Premium" : "Оформить Premium"))
+                             selectedLanguage.pick(hy: "Կառավարել", ru: "Управление", en: "Manage") :
+                             selectedLanguage.pick(hy: "Ստանալ Premium", ru: "Оформить Premium", en: "Get Premium"))
                             .font(PaperFont.font(size: 13, weight: .semibold))
                     }
                     .foregroundColor(Paper.onAccent)
@@ -494,10 +496,14 @@ struct SettingsView: View {
                 Button {
                     Haptics.impact(.light)
                     Task {
-                        _ = await subscriptionManager.restorePurchases()
+                        let restored = await subscriptionManager.restorePurchases()
+                        Funnel.track("restore_result", ["result": restored ? "success" : "none"])
+                        restoreResultMessage = restored
+                            ? selectedLanguage.pick(hy: "Premium-ը վերականգնված է", ru: "Premium восстановлен", en: "Premium has been restored")
+                            : (subscriptionManager.purchaseErrorMessage ?? selectedLanguage.pick(hy: "Գնումներ չեն գտնվել", ru: "Покупки не найдены", en: "No purchases found"))
                     }
                 } label: {
-                    Text(selectedLanguage == .armenian ? "Վերականգնել" : "Восстановить")
+                    Text(selectedLanguage.pick(hy: "Վերականգնել", ru: "Восстановить", en: "Restore"))
                         .font(PaperFont.font(size: 13, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                         .padding(.horizontal, 14)
@@ -509,6 +515,15 @@ struct SettingsView: View {
         }
         .padding(16)
         .paperSheet(cornerRadius: 18)
+        .alert(
+            restoreResultMessage ?? "",
+            isPresented: Binding(
+                get: { restoreResultMessage != nil },
+                set: { if !$0 { restoreResultMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        }
     }
     
     // MARK: - Секция Храмовых Молитвенных Свечей
