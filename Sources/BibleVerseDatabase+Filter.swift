@@ -23,11 +23,11 @@ extension BibleVerse {
             return BibleVerse.database
             
         case .gospels:
+            // Только четыре Евангелия: по началу английской подписи. Прежняя проверка «содержит john / иоанн / հովհաննես»
+            // относила к Евангелию и Первое послание Иоанна («1 John 4:8»): 20 цитат из общей базы
+            let gospelBooks = ["Matthew ", "Mark ", "Luke ", "John "]
             let gospels = BibleVerse.database.filter { v in
-                let r = (v.refHy + " " + v.refRu + " " + v.refEn).lowercased()
-                return r.contains("մատթեոս") || r.contains("մարկոս") || r.contains("ղուկաս") || r.contains("հովհաննես") ||
-                       r.contains("матфе") || r.contains("марк") || r.contains("луки") || r.contains("иоанн") ||
-                       r.contains("matthew") || r.contains("mark") || r.contains("luke") || r.contains("john")
+                !v.isPrayer && gospelBooks.contains { v.refEn.hasPrefix($0) }
             }
             return !gospels.isEmpty ? gospels : BibleVerse.database
             
