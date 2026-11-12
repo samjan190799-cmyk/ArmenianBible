@@ -292,7 +292,7 @@ extension BibleVerse {
             textHy: "Ամեն ինչ կարող եմ ինձ զորացնող Քրիստոսով։",
             textRu: "Все могу в укрепляющем меня Иисусе Христе.",
             textEn: "I can do all things through Christ which strengtheneth me.",
-            refHy: "Փիլիպեցիս 4:13",
+            refHy: "Փիլիպպեցիս 4:13",
             refRu: "Филиппийцам 4:13",
             refEn: "Philippians 4:13"
         ),

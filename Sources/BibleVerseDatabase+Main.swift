@@ -176,7 +176,7 @@ extension BibleVerse {
             textHy: "Այսուհետև զորացե՛ք Տիրոջով և նրա ուժի կարողությամբ։",
             textRu: "Наконец, братия мои, укрепляйтесь Господом и могуществом силы Его.",
             textEn: "Finally, my brethren, be strong in the Lord, and in the power of his might.",
-            refHy: "Եֆեսացիներին 6:10",
+            refHy: "Եփեսացիներին 6:10",
             refRu: "Ефесянам 6:10",
             refEn: "Ephesians 6:10"
         ),
@@ -200,7 +200,7 @@ extension BibleVerse {
             textHy: "Ձեր ամբողջ հոգսը նրա վրա՛ գցեք, որովհետև նա հոգ է տանում ձեր մասին։",
             textRu: "Все заботы ваши возложите на Него, ибо Он печется о вас.",
             textEn: "Casting all your care upon him; for he careth for you.",
-            refHy: "Ա Պետրоս 5:7",
+            refHy: "Ա Պետրոս 5:7",
             refRu: "1 Петра 5:7",
             refEn: "1 Peter 5:7"
         ),
