@@ -165,6 +165,15 @@ struct PaywallView: View {
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
             }
+            // Окно ошибки висит на прокрутке, а окно успеха — на всём экране. Два старых .alert(isPresented:) на одном
+            // элементе не уживаются: показывается только последний, и сообщение об ошибке покупки могло не появиться
+            .alert(isPresented: $showErrorAlert) {
+                Alert(
+                    title: Text("alert_error_title".localized(for: language)),
+                    message: Text(errorMessage),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
             
             // MARK: - Всегда фиксированная кнопка закрытия (Apple HIG / 2.1.0 App Completeness)
             Button {
@@ -197,13 +206,6 @@ struct PaywallView: View {
         }
         .onDisappear {
             Funnel.track("paywall_closed", ["source": source, "secs": Funnel.secondsBucket(Date().timeIntervalSince(appearedAt))])
-        }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("alert_error_title".localized(for: language)),
-                message: Text(errorMessage),
-                dismissButton: .default(Text("OK"))
-            )
         }
         .alert(isPresented: $showSuccessAlert) {
             Alert(
@@ -473,11 +475,13 @@ struct PaywallView: View {
                 id: "widgets",
                 icon: "paintpalette.fill",
                 color: Paper.gold,
-                title: language.pick(hy: "Վիջեթներ և պաստառներ PRO", ru: "Виджеты, постеры и обои PRO", en: "Widgets, posters & wallpapers PRO"),
+                // С версии 4.2 постеров виджетов нет (остались виды «Кадр» и «Святилище»), а обои стали фотографиями:
+                // подпиской закрыты темы стихов для виджетов и экрана блокировки и три темы фото-обоев
+                title: language.pick(hy: "Վիջեթներ և պաստառներ PRO", ru: "Виджеты и обои PRO", en: "Widgets & wallpapers PRO"),
                 subtitle: language.pick(
-                    hy: "«Խաչքար» և «Բեթղեհեմ» պաստառներ, համարներ կողպէկրանին, 4K պաստառներ ոսկե հարդարանքով",
-                    ru: "Постеры «Хачкар» и «Вифлеем», стихи на экране блокировки, 4K-обои с золотым тиснением",
-                    en: "“Khachkar” and “Bethlehem” posters, Lock Screen verses, 4K wallpapers with gold foil"
+                    hy: "Համարների թեմաներ վիջեթների և կողպէկրանի համար՝ Սաղմոսներ, Իմաստություն, Նարեկացի, «Սեր և Խաղաղություն», «Հավատք և Քաջություն»: «Խաչքար», «Բեթղեհեմ» և «Ծիրանի» լուսանկարներով պաստառներ",
+                    ru: "Темы стихов для виджетов и экрана блокировки: Псалмы, Притчи, Нарекаци, «Любовь и Мир», «Вера и Мужество». Фото-обои «Хачкар», «Вифлеем» и «Пурпур»",
+                    en: "Verse themes for widgets and the Lock Screen: Psalms, Proverbs, Narekatsi, Love & Peace, Faith & Courage. “Khachkar”, “Bethlehem” and “Royal” photo wallpapers"
                 )
             ),
             Feature(
