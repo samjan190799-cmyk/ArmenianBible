@@ -396,11 +396,23 @@ class BibleDatabase {
         var statement: OpaquePointer?
         
         if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
-            let escapedQuery = cleanQuery
-                .replacingOccurrences(of: "\"", with: "")
-                .replacingOccurrences(of: "'", with: "")
-            let ftsQuery = "\"\(escapedQuery)\" OR \(escapedQuery)*"
-            
+            // В запрос идут только слова (буквы и цифры), каждое в кавычках. Раньше знаки препинания попадали в запрос
+            // как есть: запятая, точка, «?», «:» или дефис — это синтаксис FTS5, запрос падал с ошибкой, и поиск
+            // молча ничего не находил («Господи, помилуй», «Иоанна 3:16», «не убий!»).
+            let words = cleanQuery
+                .split(whereSeparator: { !($0.isLetter || $0.isNumber) })
+                .map(String.init)
+            guard !words.isEmpty else {
+                sqlite3_finalize(statement)
+                return []
+            }
+            let phrase = "\"" + words.joined(separator: " ") + "\""
+            // Все слова должны встретиться в стихе, последнее может быть началом слова
+            let allWords = words.enumerated()
+                .map { index, word in index == words.count - 1 ? "\"\(word)\"*" : "\"\(word)\"" }
+                .joined(separator: " ")
+            let ftsQuery = "\(phrase) OR (\(allWords))"
+
             let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
             sqlite3_bind_text(statement, 1, (ftsQuery as NSString).utf8String, -1, SQLITE_TRANSIENT)
             
