@@ -6,6 +6,7 @@ struct ContentView: View {
     @ObservedObject private var reviewManager = ReviewManager.shared
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @Environment(\.scenePhase) private var scenePhase
+    @State private var isShowingOnboarding = OnboardingState.shouldShow
 
     private var accentColor: Color {
         manager.accentTheme.color
@@ -95,6 +96,9 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: manager.isAppUnlocked)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: updateManager.isForceUpdateRequired)
+        .fullScreenCover(isPresented: $isShowingOnboarding) {
+            OnboardingView()
+        }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .background {
                 manager.lockApp()

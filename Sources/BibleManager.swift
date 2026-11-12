@@ -267,13 +267,17 @@ class BibleManager: ObservableObject {
                let savedLanguage = AppLanguage(rawValue: savedLanguageRaw) {
                 self.appLanguage = savedLanguage
             } else {
-                self.appLanguage = .armenian
+                // Первый запуск: язык берём у телефона и просим показать знакомство (OnboardingView).
+                // Язык записывается сразу, поэтому у уже установленных приложений знакомства не будет
+                let detected = AppLanguage.fromSystemSettings
+                self.appLanguage = detected
                 AppGroupConstants.syncToAll { defs in
-                    defs.set(AppLanguage.armenian.rawValue, forKey: appLanguageKey)
+                    defs.set(detected.rawValue, forKey: appLanguageKey)
                 }
+                UserDefaults.standard.set(true, forKey: OnboardingState.pendingKey)
             }
         } else {
-            self.appLanguage = .armenian
+            self.appLanguage = AppLanguage.fromSystemSettings
         }
         // Язык из аргумента запуска (-luys_debug_language russian): для скриншотов в CI, на устройствах не используется
         if let override = UserDefaults.standard.string(forKey: "luys_debug_language"),
