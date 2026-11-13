@@ -16,7 +16,8 @@ ALLOW_FREE = "true"
 FREE_DAILY_LIMIT = "5"
 FREE_NET_DAILY_LIMIT = "15"
 FREE_GLOBAL_DAILY_LIMIT = "300"
-# Подписки из TestFlight приходят как Sandbox. После выпуска в App Store можно поставить "false"
+# Подписки из TestFlight и проверяющих Apple приходят как Sandbox. Оставляем "true" и после выпуска: песочную подписку подделать нельзя
+# (нужна подпись Apple и аккаунт из вашего App Store Connect), а с "false" ИИ не заработает на проверке следующих версий
 ALLOW_SANDBOX = "true"
 # Модели Gemini для вопросов через сервер, по порядку: если первая недоступна, пробуется следующая.
 # Сверено с документацией Google 2026-11-05: gemini-2.0-flash закрыта, gemini-2.5-flash с 1 декабря 2026 уходит на gemini-3.5-flash-lite.

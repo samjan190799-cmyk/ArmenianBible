@@ -25,9 +25,18 @@ enum Funnel {
         UserDefaults.standard.object(forKey: enabledKey) == nil ? true : UserDefaults.standard.bool(forKey: enabledKey)
     }
 
+    /// Симулятор (съёмка скриншотов и роликов в CI) не человек: каждый его запуск выглядел бы новой установкой и портил цифры
+    private static let isSimulator: Bool = {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }()
+
     /// Событие с параметрами из белого списка. Вызывается откуда угодно: само уходит на свою очередь
     static func track(_ name: String, _ params: [String: String] = [:]) {
-        guard AIProxy.isConfigured, isEnabled else { return }
+        guard AIProxy.isConfigured, isEnabled, !isSimulator else { return }
         let event: [String: Any] = ["name": name, "params": params, "ts": Int(Date().timeIntervalSince1970)]
         queue.async {
             loadIfNeeded()
@@ -120,7 +129,7 @@ enum Funnel {
 
     private static func sendNext() {
         loadIfNeeded()
-        guard !isSending, !pending.isEmpty, AIProxy.isConfigured, isEnabled,
+        guard !isSending, !pending.isEmpty, AIProxy.isConfigured, isEnabled, !isSimulator,
               let url = URL(string: AIProxy.baseURL)?.appendingPathComponent("v1/events") else { return }
 
         let batch = Array(pending.prefix(batchSize))

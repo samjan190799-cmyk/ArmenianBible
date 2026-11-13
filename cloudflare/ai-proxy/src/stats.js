@@ -24,7 +24,14 @@ export class Stats {
     const url = new URL(request.url);
     if (url.pathname === '/ingest') return Response.json(await this.ingest(await request.json()));
     if (url.pathname === '/report') return Response.json(await this.report(Number(url.searchParams.get('days')) || 14));
+    if (url.pathname === '/reset') return Response.json(await this.reset());
     return new Response('not found', { status: 404 });
+  }
+
+  /** Стереть все счётчики: нужно один раз, когда тестовые запуски (симуляторы, TestFlight) перемешались с настоящими людьми */
+  async reset() {
+    await this.storage.deleteAll();
+    return { ok: true };
   }
 
   async bump(key) {
