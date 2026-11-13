@@ -538,12 +538,8 @@ struct NarekConsolationBannerCardView: View {
         Button {
             onOpen()
         } label: {
-            HStack(spacing: 16) {
-                PaperIconBadge(tint: Paper.cinnabar) {
-                    Image(systemName: "leaf")
-                        .font(.system(size: 19, weight: .light))
-                        .foregroundColor(Paper.cinnabar)
-                }
+            HStack(spacing: 14) {
+                HomeArtTile(art: .consolation)
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
@@ -581,7 +577,7 @@ struct NarekConsolationBannerCardView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Paper.inkTertiary)
             }
-            .padding(16)
+            .padding(14)
             .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }

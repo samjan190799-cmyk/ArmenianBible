@@ -952,10 +952,8 @@ struct NarekatsiBannerCardView: View {
         Button {
             onOpenNarek()
         } label: {
-            HStack(spacing: 16) {
-                PaperIconBadge(tint: accentColor) {
-                    FlickeringCandleFlame(baseColor: accentColor, iconSize: 20, showsAura: false)
-                }
+            HStack(spacing: 14) {
+                HomeArtTile(art: .narek)
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
@@ -980,7 +978,7 @@ struct NarekatsiBannerCardView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Paper.inkTertiary)
             }
-            .padding(16)
+            .padding(14)
             .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
@@ -1004,36 +1002,33 @@ struct PrayerSanctuaryBannerCardView: View {
         Button {
             onOpenSanctuary()
         } label: {
-            HStack(spacing: 16) {
-                PaperIconBadge(tint: Paper.gold) {
-                    FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20, showsAura: false)
-                }
+            HStack(spacing: 14) {
+                HomeArtTile(art: .candles)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(language == .armenian ? "Տաճարային մոմավառություն" : (language == .russian ? "Храмовая свеча и молитва" : "Sanctuary prayer candle"))
-                            .font(PaperFont.font(size: 17, weight: .semibold))
-                            .foregroundColor(primaryTextColor)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-
-                        if !candleManager.hasUsedDailyFreeCandle {
-                            Text(language == .armenian ? "ԱՆՎՃԱՐ" : (language == .russian ? "ДАР" : "FREE"))
-                                .font(PaperFont.font(size: 9, weight: .semibold))
-                                .tracking(0.8)
-                                .foregroundColor(Paper.gold)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .overlay(
-                                    Capsule().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 0.8)
-                                )
-                        }
+                    // Плитка заняла место по ширине: отметка о бесплатной свече стоит над названием, а не рядом с ним
+                    if !candleManager.hasUsedDailyFreeCandle {
+                        Text(language == .armenian ? "ԱՆՎՃԱՐ" : (language == .russian ? "ДАР" : "FREE"))
+                            .font(PaperFont.font(size: 9, weight: .semibold))
+                            .tracking(0.8)
+                            .foregroundColor(Paper.gold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .overlay(
+                                Capsule().strokeBorder(Paper.gold.opacity(0.6), lineWidth: 0.8)
+                            )
                     }
+
+                    Text(language == .armenian ? "Տաճարային մոմավառություն" : (language == .russian ? "Храмовая свеча и молитва" : "Sanctuary prayer candle"))
+                        .font(PaperFont.font(size: 17, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
 
                     Text(language == .armenian ? "Վառեք մոմ հարազատների առողջության կամ հոգու համար" : (language == .russian ? "Зажгите свечу о здравии или упокоении близких" : "Light a candle for health, peace, or memory"))
                         .font(PaperFont.font(size: 13))
                         .foregroundColor(Paper.inkSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
 
                 Spacer()
@@ -1042,7 +1037,7 @@ struct PrayerSanctuaryBannerCardView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Paper.inkTertiary)
             }
-            .padding(16)
+            .padding(14)
             .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
@@ -1077,21 +1072,14 @@ struct ChurchFeastsBannerCardView: View {
         Button {
             onOpenCalendar()
         } label: {
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 // Иконка
-                PaperIconBadge(tint: Paper.gold) {
-                    if todayFeast != nil {
-                        FlickeringCandleFlame(baseColor: Paper.gold, iconSize: 20, showsAura: false)
-                    } else {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 19, weight: .regular))
-                            .foregroundColor(Paper.gold)
-                    }
-                }
+                HomeArtTile(art: .calendar)
 
                 VStack(alignment: .leading, spacing: 4) {
                     if let today = todayFeast {
-                        HStack(spacing: 6) {
+                        // Плитка заняла место по ширине: отметка «сегодня» стоит над названием праздника
+                        VStack(alignment: .leading, spacing: 4) {
                             Text("today_badge".localized(for: language))
                                 .font(PaperFont.font(size: 9, weight: .semibold))
                                 .tracking(0.8)
@@ -1172,7 +1160,7 @@ struct ChurchFeastsBannerCardView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Paper.inkTertiary)
             }
-            .padding(16)
+            .padding(14)
             .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
@@ -1195,13 +1183,9 @@ struct PremiumPromoBannerCardView: View {
         Button {
             onOpenPaywall()
         } label: {
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 // Иконка
-                PaperIconBadge(tint: Paper.gold) {
-                    Image(systemName: isPremium ? "crown" : "sparkles")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundColor(Paper.gold)
-                }
+                HomeArtTile(art: .premium)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(isPremium ? "Premium ակտիվ է" : "Armenian Bible Premium")
@@ -1221,7 +1205,7 @@ struct PremiumPromoBannerCardView: View {
                     .font(.system(size: isPremium ? 16 : 13, weight: .semibold))
                     .foregroundColor(isPremium ? Paper.gold : Paper.inkTertiary)
             }
-            .padding(16)
+            .padding(14)
             .paperSheet(cornerRadius: 18)
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)

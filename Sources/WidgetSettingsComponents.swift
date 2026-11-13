@@ -122,12 +122,8 @@ struct BibleQuizCardView: View {
         Button {
             onStartQuiz()
         } label: {
-            HStack(spacing: 16) {
-                PaperIconBadge(tint: accentColor) {
-                    Image(systemName: "trophy")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundColor(accentColor)
-                }
+            HStack(spacing: 14) {
+                HomeArtTile(art: .quiz)
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -165,7 +161,7 @@ struct BibleQuizCardView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Paper.inkTertiary)
             }
-            .padding(16)
+            .padding(14)
             .paperSheet(cornerRadius: 18)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.96))
@@ -472,11 +468,7 @@ struct ReadingPlanBannerCardView: View {
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 14) {
-                    PaperIconBadge(tint: accentColor) {
-                        Image(systemName: planManager.currentStreak > 0 ? "flame" : "book")
-                            .font(.system(size: 19, weight: .regular))
-                            .foregroundColor(accentColor)
-                    }
+                    HomeArtTile(art: .plan)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\(planManager.currentStreak) \("streak_days_suffix".localized(for: language))")
@@ -538,7 +530,7 @@ struct ReadingPlanBannerCardView: View {
                     .padding(.top, 2)
                 }
             }
-            .padding(16)
+            .padding(14)
             .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }

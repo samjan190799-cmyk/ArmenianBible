@@ -470,12 +470,8 @@ struct NativityBannerCardView: View {
         Button {
             onOpen()
         } label: {
-            HStack(spacing: 16) {
-                PaperIconBadge(tint: Paper.gold) {
-                    Image(systemName: "film")
-                        .font(.system(size: 19, weight: .light))
-                        .foregroundColor(Paper.gold)
-                }
+            HStack(spacing: 14) {
+                HomeArtTile(art: .nativity)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(language.pick(hy: "ՄՈՒԼՏՖԻԼՄ", ru: "МУЛЬТФИЛЬМ", en: "ANIMATION"))
@@ -503,7 +499,7 @@ struct NativityBannerCardView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Paper.inkTertiary)
             }
-            .padding(16)
+            .padding(14)
             .paperSheet(cornerRadius: 18)
             .padding(.horizontal, 20)
         }
