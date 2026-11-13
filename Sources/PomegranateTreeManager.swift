@@ -271,6 +271,11 @@ final class PomegranateTreeManager: ObservableObject {
     private let kTasksChaptersKey = "pomegranate_tasks_chapters"
     private let kTasksDoneKey = "pomegranate_tasks_done"
     private let kPerfectDaysKey = "pomegranate_perfect_days"
+    // Каким древо видели в прошлый раз: от этого состояния идёт анимация роста
+    private let kSeenStageKey = "pomegranate_seen_stage"
+    private let kSeenWithinKey = "pomegranate_seen_within"
+    private let kSeenFruitsKey = "pomegranate_seen_fruits"
+    private let kSeenDayKey = "pomegranate_seen_day"
 
     /// Росинки за день, когда выполнены все задания
     static let perfectDayBonus = 3
@@ -464,6 +469,66 @@ final class PomegranateTreeManager: ObservableObject {
         case .fruitfulTree: return 6
         case .treeOfLife: return 9
         }
+    }
+
+    // MARK: - Рост, который видно на древе
+    /// Сколько заданий дня уже выполнено
+    private var completedTodayCount: Int {
+        todayTasks.filter { completedTasks.contains($0) }.count
+    }
+
+    /// Рост внутри ступени, 0...1. Не убывает день за днём: сегодняшний день сначала засчитан частично
+    /// и добирается заданиями, а наутро вчерашний день считается целым.
+    var growthWithinStage: Double {
+        let stage = currentStage
+        let span = max(1, stage.nextStageTargetDays - stage.requiredDays)
+        let inStage = Double(max(0, daysStreak - stage.requiredDays))
+        var days = inStage
+        if isWateredToday {
+            days = inStage + 0.4 + 0.6 * Double(completedTodayCount) / Double(max(1, todayTasks.count))
+        } else if defaults.object(forKey: kLastWateredDateKey) != nil {
+            days = inStage + 1
+        }
+        return min(1, max(0, days / Double(span)))
+    }
+
+    /// Плоды дня на ветках: по одному за каждое выполненное сегодня задание. У зёрнышка и ростка веток ещё нет.
+    var dailyFruitsOnTree: Int {
+        guard currentStage >= .youngTree else { return 0 }
+        return min(PomegranateTreeLayout.dailyCapacity, completedTodayCount)
+    }
+
+    /// Нынешнее состояние древа для сравнения с прошлым визитом
+    var growthSnapshot: PomegranateGrowthSnapshot {
+        PomegranateGrowthSnapshot(
+            stage: currentStage,
+            within: growthWithinStage,
+            fruits: dailyFruitsOnTree,
+            day: defaults.string(forKey: kTasksDayKey) ?? Self.dayString()
+        )
+    }
+
+    /// Состояние, от которого начинается рост: то, что человек видел в прошлый раз.
+    /// При первом открытии после обновления древо уже такое, как сейчас, а плоды дня вырастут на глазах.
+    func growthBaseline(for current: PomegranateGrowthSnapshot) -> PomegranateGrowthSnapshot {
+        guard defaults.object(forKey: kSeenStageKey) != nil,
+              let stage = PomegranateStage(rawValue: defaults.integer(forKey: kSeenStageKey)) else {
+            return PomegranateGrowthSnapshot(stage: current.stage, within: current.within, fruits: 0, day: current.day)
+        }
+        return PomegranateGrowthSnapshot(
+            stage: stage,
+            within: defaults.double(forKey: kSeenWithinKey),
+            fruits: defaults.integer(forKey: kSeenFruitsKey),
+            day: defaults.string(forKey: kSeenDayKey) ?? ""
+        )
+    }
+
+    /// Запоминает, каким древо показано человеку
+    func markGrowthSeen(_ snapshot: PomegranateGrowthSnapshot) {
+        defaults.set(snapshot.stage.rawValue, forKey: kSeenStageKey)
+        defaults.set(snapshot.within, forKey: kSeenWithinKey)
+        defaults.set(snapshot.fruits, forKey: kSeenFruitsKey)
+        defaults.set(snapshot.day, forKey: kSeenDayKey)
     }
 
     // MARK: - Загрузка состояния

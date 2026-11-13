@@ -38,12 +38,18 @@ struct PomegranateSanctuarySheetView: View {
                         
                         // 2. Интерактивное величественное Древо Граната
                         ZStack {
-                            PomegranateTreeView(
-                                stage: treeManager.currentStage,
-                                style: .majestic(height: 290),
-                                isThirsting: treeManager.isThirstingForDew,
+                            // Древо дорастает от того, каким его видели в прошлый раз, до нынешнего
+                            PomegranateGrowingTreeView(
+                                height: 290,
                                 onFruitTapped: { fruitIndex in
                                     handleFruitTap(index: fruitIndex)
+                                },
+                                onDailyFruitTapped: {
+                                    // Плод дня вырос за задание: показываем, какие задания ещё остались
+                                    bibleManager.triggerHapticImpact(.light)
+                                    withAnimation(.easeInOut(duration: 0.45)) {
+                                        proxy.scrollTo("tasks", anchor: .top)
+                                    }
                                 }
                             )
                             
@@ -1009,10 +1015,10 @@ struct PomegranateGrowthGuideSheetView: View {
                             iconColor: Paper.cinnabar,
                             title: language == .armenian ? "2. Օրվա առաջադրանքներ" : (language == .russian ? "2. Задания дня" : "2. Daily tasks"),
                             text: language == .armenian ?
-                            "Ամեն օր չորս առաջադրանք է՝ գլուխ կարդալ, մոմ վառել և ևս երկուսը: Յուրաքանչյուրը ցող է տալիս, իսկ բոլորը միասին՝ բոնուս: Ցողը բարձրացնում է այգու աստիճանը:" :
+                            "Ամեն օր չորս առաջադրանք է՝ գլուխ կարդալ, մոմ վառել և ևս երկուսը: Յուրաքանչյուրը ցող է տալիս, իսկ բոլորը միասին՝ բոնուս: Ցողը բարձրացնում է այգու աստիճանը: 7-րդ օրվանից յուրաքանչյուր կատարված առաջադրանքից հետո ծառի վրա նոր նուռ է աճում:" :
                             (language == .russian ?
-                             "Каждый день четыре задания: прочитать главу, зажечь свечу и ещё два. За каждое древо получает росинки, а за все вместе ещё бонус. Росинки поднимают ступень сада." :
-                             "Every day brings four tasks: read a chapter, light a candle and two more. Each one gives dew, and all together give a bonus. Dew raises the garden level.")
+                             "Каждый день четыре задания: прочитать главу, зажечь свечу и ещё два. За каждое древо получает росинки, а за все вместе ещё бонус. Росинки поднимают ступень сада. С 7-го дня после каждого выполненного задания на древе вырастает новый гранат." :
+                             "Every day brings four tasks: read a chapter, light a candle and two more. Each one gives dew, and all together give a bonus. Dew raises the garden level. From day 7, a new pomegranate grows on the tree after every finished task.")
                         )
                         
                         guideRuleCard(

@@ -177,6 +177,11 @@ struct PomegranatePalette {
         }
         return channel(16) | channel(8) | channel(0)
     }
+
+    /// Переход через середину: a → b → c
+    static func mix3(_ a: UInt32, _ b: UInt32, _ c: UInt32, _ t: Double) -> UInt32 {
+        t < 0.5 ? mix(a, b, t * 2) : mix(b, c, (t - 0.5) * 2)
+    }
 }
 
 // MARK: - Детерминированный генератор случайных чисел (mulberry32)
@@ -225,12 +230,26 @@ struct PomegranateTreeLayout {
     var fruits: [Fruit] = []
     var flowers: [Flower] = []
     var buds: [Flower] = []
+    /// Когда на шкале вырастания 0...1 появляется место крепления листа (индексы как у leaves)
+    var leafBirth: [CGFloat] = []
+    /// Места для плодов дня: свободные концы веток
+    var dailySlots: [Fruit] = []
+    /// Доля шкалы вырастания на один ярус ветвей
+    var growUnit: CGFloat = 1
+    /// Готовые контуры ветвей: считаются один раз вместе с макетом
+    var branchOutlines: [Path] = []
+    var branchHighlights: [Path] = []
     var crownX: CGFloat = 0
     var crownY: CGFloat = 0
     var crownR: CGFloat = 0
     var minX: CGFloat = 0
     var maxX: CGFloat = 0
     var minY: CGFloat = 0
+
+    /// Сколько плодов дня помещается на дереве
+    static let dailyCapacity = 4
+    /// Ветвь растёт дольше, чем длится её ярус: соседние ярусы перекрываются
+    static let growSpan: CGFloat = 1.3
 
     struct Params {
         let stems: Int
@@ -287,6 +306,8 @@ struct PomegranateTreeLayout {
         var rng = PomegranateRandom(seed: 20_260_929)
         var out = PomegranateTreeLayout()
         var tips: [Tip] = []
+        let unit: CGFloat = 1 / (CGFloat(p.depth) + growSpan)
+        out.growUnit = unit
 
         func sign(_ v: CGFloat) -> CGFloat { v > 0 ? 1 : (v < 0 ? -1 : 0) }
         func point(_ t: CGFloat, _ s: Segment) -> CGPoint {
@@ -294,8 +315,9 @@ struct PomegranateTreeLayout {
             return CGPoint(x: u * u * s.x + 2 * u * t * s.mx + t * t * s.ex,
                            y: u * u * s.y + 2 * u * t * s.my + t * t * s.ey)
         }
-        func addLeaf(_ x: CGFloat, _ y: CGFloat, _ angle: CGFloat, _ length: CGFloat, _ tone: Int) {
+        func addLeaf(_ x: CGFloat, _ y: CGFloat, _ angle: CGFloat, _ length: CGFloat, _ tone: Int, _ birth: CGFloat) {
             out.leaves.append(Leaf(x: x, y: y, angle: angle, length: length, tone: tone))
+            out.leafBirth.append(birth)
         }
         func grow(_ x: CGFloat, _ y: CGFloat, _ ang: CGFloat, _ len: CGFloat, _ w: CGFloat, _ depth: Int, _ level: Int) {
             let a = ang
@@ -306,6 +328,7 @@ struct PomegranateTreeLayout {
             let my = (y + ey) / 2 + sin(a) * bend
             let seg = Segment(x: x, y: y, ex: ex, ey: ey, mx: mx, my: my, w0: w, w1: w * 0.66, level: level)
             out.segments.append(seg)
+            let born = CGFloat(level) * unit
 
             if depth == 0 {
                 tips.append(Tip(x: ex, y: ey, angle: a))
@@ -318,11 +341,11 @@ struct PomegranateTreeLayout {
                     let spread = 0.95 + rng.next() * 0.25
                     let young = t > 0.8 && rng.next() < 0.7
                     let l1 = H * p.leaf * k * (0.9 + rng.next() * 0.2)
-                    addLeaf(pt.x, pt.y, a + spread, l1, young ? 3 : (rng.next() < 0.3 ? 0 : 1))
+                    addLeaf(pt.x, pt.y, a + spread, l1, young ? 3 : (rng.next() < 0.3 ? 0 : 1), born + t * growSpan * unit)
                     let l2 = H * p.leaf * k * (0.9 + rng.next() * 0.2)
-                    addLeaf(pt.x, pt.y, a - spread, l2, young ? 3 : (rng.next() < 0.3 ? 0 : 2))
+                    addLeaf(pt.x, pt.y, a - spread, l2, young ? 3 : (rng.next() < 0.3 ? 0 : 2), born + t * growSpan * unit)
                 }
-                addLeaf(ex, ey, a + (rng.next() - 0.5) * 0.25, H * p.leaf * 1.1, rng.next() < 0.55 ? 3 : 2)
+                addLeaf(ex, ey, a + (rng.next() - 0.5) * 0.25, H * p.leaf * 1.1, rng.next() < 0.55 ? 3 : 2, born + growSpan * unit)
                 return
             }
 
@@ -349,7 +372,7 @@ struct PomegranateTreeLayout {
                 let side: CGFloat = rng.next() < 0.5 ? -1 : 1
                 for k in 0..<2 {
                     let angle = a + side * (0.8 + CGFloat(k) * 0.5 + rng.next() * 0.2)
-                    addLeaf(pt.x, pt.y, angle, H * p.leaf * 0.9, rng.next() < 0.4 ? 0 : 1)
+                    addLeaf(pt.x, pt.y, angle, H * p.leaf * 0.9, rng.next() < 0.4 ? 0 : 1, born + t * growSpan * unit)
                 }
             }
         }
@@ -410,6 +433,38 @@ struct PomegranateTreeLayout {
         out.flowers = flowerIdx.map { Flower(x: tips[$0].x, y: tips[$0].y, angle: tips[$0].angle, size: H * 0.036) }
         out.buds = budIdx.map { Flower(x: tips[$0].x, y: tips[$0].y, angle: tips[$0].angle, size: H * 0.028) }
 
+        // Места для плодов дня: свободные концы веток, подальше от плодов и друг от друга
+        // (цветы мешают меньше: они смотрят вверх, а плод висит вниз)
+        var hanging: [CGPoint] = fruitIdx.map { CGPoint(x: tips[$0].x, y: tips[$0].y) }
+        let blooming: [CGPoint] = (flowerIdx + budIdx).map { CGPoint(x: tips[$0].x, y: tips[$0].y) }
+        let freeTips = byBottom.filter { !used.contains($0) }
+        var slotIdx: [Int] = []
+        if !hanging.isEmpty {
+            for _ in 0..<dailyCapacity {
+                var best = -1
+                var bestScore: CGFloat = -1
+                for idx in freeTips where !slotIdx.contains(idx) {
+                    var distance = CGFloat.greatestFiniteMagnitude
+                    for pt in hanging { distance = min(distance, hypot(tips[idx].x - pt.x, tips[idx].y - pt.y)) }
+                    for pt in blooming { distance = min(distance, 2 * hypot(tips[idx].x - pt.x, tips[idx].y - pt.y)) }
+                    if distance > bestScore {
+                        bestScore = distance
+                        best = idx
+                    }
+                }
+                guard best >= 0 else { break }
+                slotIdx.append(best)
+                hanging.append(CGPoint(x: tips[best].x, y: tips[best].y))
+            }
+        }
+        let dailyRadius = fr * 0.9
+        out.dailySlots = slotIdx.map { idx in
+            let tip = tips[idx]
+            return Fruit(x: tip.x, y: tip.y + dailyRadius * 1.18, r: dailyRadius, stemX: tip.x, stemY: tip.y, isOpen: false)
+        }
+        out.branchOutlines = out.segments.map { PomegranateRenderer.branchOutline($0, upTo: 1) }
+        out.branchHighlights = out.segments.map { PomegranateRenderer.branchHighlight($0, upTo: 1) }
+
         // Центр кроны и габариты рисунка
         var lx0: CGFloat = 0, lx1: CGFloat = 0, ly0: CGFloat = 0, ly1: CGFloat = -.greatestFiniteMagnitude
         var bx0: CGFloat = 0, bx1: CGFloat = 0, by0: CGFloat = 0
@@ -456,34 +511,55 @@ struct PomegranateScene {
     let time: Double
     let thirst: Bool
     let compact: Bool
+    /// Кадр анимации роста; nil — дерево стоит в обычном виде своей ступени
+    let frame: PomegranateGrowthFrame?
     let layout: PomegranateTreeLayout
     let fit: CGFloat
     let base: CGPoint
     /// Горизонтальный сдвиг кроны от ветра (чем выше точка, тем больше)
     let shear: CGFloat
 
-    init(stage: PomegranateStage, size: CGSize, time: Double, thirst: Bool, compact: Bool) {
-        self.stage = stage
+    init(stage: PomegranateStage, size: CGSize, time: Double, thirst: Bool, compact: Bool,
+         frame: PomegranateGrowthFrame? = nil) {
+        let shownStage = frame?.stage ?? stage
+        self.stage = shownStage
         self.size = size
         self.time = time
         self.thirst = thirst
         self.compact = compact
+        self.frame = frame
         let H = max(1, size.height)
-        let layout = PomegranateTreeLayout.cached(stage: stage, height: H)
+        let layout = PomegranateTreeLayout.cached(stage: shownStage, height: H)
         self.layout = layout
-        self.fit = stage <= .sprout ? 1 : layout.fitScale(width: max(1, size.width), height: H)
+        let swell: CGFloat = 1 + (frame?.swell ?? 0)
+        let baseFit: CGFloat = shownStage <= .sprout ? 1 : layout.fitScale(width: max(1, size.width), height: H)
+        self.fit = baseFit * swell
         self.base = CGPoint(x: size.width / 2, y: H * 0.90)
         self.shear = CGFloat(sin(time * 0.9) * 0.014)
     }
 
-    /// Области нажатия на плоды в координатах вида.
+    /// Насколько пробился побег у зёрнышка: в обычном виде ступени побега нет
+    var seedGrowth: CGFloat { frame?.within ?? 0 }
+
+    /// Насколько вытянулся росток: в обычном виде ступени он в полный рост
+    var sproutGrowth: CGFloat { frame?.within ?? 1 }
+
+    /// Области нажатия на плоды Духа в координатах вида.
     var fruitHitTargets: [HitTarget] {
-        layout.fruits.map { fruit in
-            HitTarget(
-                center: CGPoint(x: base.x + (fruit.x + shear * fruit.y) * fit, y: base.y + fruit.y * fit),
-                diameter: max(30, fruit.r * fit * 2.6)
-            )
-        }
+        layout.fruits.map { hitTarget(for: $0) }
+    }
+
+    /// Области нажатия на выросшие плоды дня.
+    var dailyHitTargets: [HitTarget] {
+        let count = min(frame?.dailyFruits ?? 0, layout.dailySlots.count)
+        return layout.dailySlots.prefix(count).map { hitTarget(for: $0) }
+    }
+
+    private func hitTarget(for fruit: PomegranateTreeLayout.Fruit) -> HitTarget {
+        HitTarget(
+            center: CGPoint(x: base.x + (fruit.x + shear * fruit.y) * fit, y: base.y + fruit.y * fit),
+            diameter: max(30, fruit.r * fit * 2.6)
+        )
     }
 }
 
@@ -505,74 +581,248 @@ enum PomegranateRenderer {
         let lw = max(0.5, H * 0.0035)
         var ctx = context
         ctx.translateBy(x: scene.base.x, y: scene.base.y)
-        let layout = scene.layout
-        let fit = scene.fit
+        let frame = scene.frame
+
+        // Прежняя ступень: растворяется, пока вырастает новая
+        var ghost: PomegranateScene?
+        if let frame, let ghostStage = frame.ghostStage, frame.ghostOpacity > 0.01 {
+            ghost = PomegranateScene(
+                stage: ghostStage,
+                size: scene.size,
+                time: scene.time,
+                thirst: scene.thirst,
+                compact: scene.compact,
+                frame: PomegranateGrowthFrame(stage: ghostStage, within: frame.ghostWithin, dailyFruits: frame.ghostFruits)
+            )
+        }
+        let ornamentsOnly = frame?.sameSkeleton ?? false
+        let ghostOpacity = Double(frame?.ghostOpacity ?? 0)
 
         // 1. Нимб — в масштабе кроны
-        if scene.stage >= .sprout && !scene.compact {
-            var haloCtx = ctx
-            haloCtx.scaleBy(x: fit, y: fit)
-            if scene.stage == .sprout {
-                drawHalo(cx: 0, cy: -H * 0.22, r: H * 0.24, stage: scene.stage, time: scene.time, palette: P, in: haloCtx)
-            } else {
-                drawHalo(cx: layout.crownX, cy: layout.crownY, r: layout.crownR, stage: scene.stage, time: scene.time, palette: P, in: haloCtx)
+        if let ghost, !ornamentsOnly {
+            var faded = ctx
+            faded.opacity = ghostOpacity
+            drawStageHalo(ghost, height: H, palette: P, in: faded)
+        }
+        var haloAlpha: CGFloat = 1
+        if let frame {
+            if let reveal = frame.reveal, !frame.sameSkeleton {
+                haloAlpha = PomegranateEase.smooth((reveal - 0.45) / 0.45)
             }
+            if let emerge = frame.emerge {
+                haloAlpha = PomegranateEase.smooth(emerge)
+            }
+        }
+        if haloAlpha > 0.01 {
+            var haloCtx = ctx
+            haloCtx.opacity = Double(haloAlpha)
+            drawStageHalo(scene, height: H, palette: P, in: haloCtx)
         }
 
         // 2. Земля — всегда во всю ширину
         drawGround(width: W, height: H, lineWidth: lw, thirst: scene.thirst, compact: scene.compact, palette: P, in: ctx)
 
+        // 3. Прежняя ступень — отдельным слоем, чтобы гасла целиком, а не по одному листу
+        if let ghost {
+            var faded = ctx
+            faded.opacity = ghostOpacity
+            faded.drawLayer { layer in
+                drawBody(ghost, lineWidth: lw, palette: P, ornamentsOnly: ornamentsOnly, in: layer)
+            }
+        }
+
+        // 4. Само растение
+        drawBody(scene, lineWidth: lw, palette: P, ornamentsOnly: false, in: ctx)
+
+        // 5. Росинка, с которой начинается рост
+        if let frame {
+            drawDew(frame, width: W, height: H, lineWidth: lw, compact: scene.compact, palette: P, in: ctx)
+        }
+    }
+
+    private static func drawStageHalo(_ scene: PomegranateScene, height H: CGFloat, palette P: PomegranatePalette,
+                                      in context: GraphicsContext) {
+        guard scene.stage >= .sprout, !scene.compact else { return }
+        var haloCtx = context
+        haloCtx.scaleBy(x: scene.fit, y: scene.fit)
+        if scene.stage == .sprout {
+            drawHalo(cx: 0, cy: -H * 0.22, r: H * 0.24, stage: scene.stage, time: scene.time, palette: P, in: haloCtx)
+        } else {
+            let layout = scene.layout
+            drawHalo(cx: layout.crownX, cy: layout.crownY, r: layout.crownR, stage: scene.stage, time: scene.time, palette: P, in: haloCtx)
+        }
+    }
+
+    // MARK: Растение целиком: зёрнышко, росток или дерево
+    private static func drawBody(_ scene: PomegranateScene, lineWidth lw: CGFloat, palette P: PomegranatePalette,
+                                 ornamentsOnly: Bool, in context: GraphicsContext) {
+        let H = max(1, scene.size.height)
+        let W = max(1, scene.size.width)
+        let frame = scene.frame
+
         if scene.stage == .seed {
-            drawSeed(height: H, width: W, lineWidth: lw, time: scene.time, compact: scene.compact, palette: P, in: ctx)
+            drawSeed(height: H, width: W, lineWidth: lw, time: scene.time, compact: scene.compact,
+                     growth: scene.seedGrowth, palette: P, in: context)
             return
         }
         if scene.stage == .sprout {
-            drawSprout(height: H, lineWidth: lw, time: scene.time, thirst: scene.thirst, palette: P, in: ctx)
+            drawSprout(height: H, lineWidth: lw, time: scene.time, thirst: scene.thirst,
+                       growth: scene.sproutGrowth, emerge: frame?.emerge ?? 1, palette: P, in: context)
             return
         }
 
-        // 3. Дерево: крона слегка «ведётся» ветром
+        // Дерево: крона слегка «ведётся» ветром
+        var ctx = context
+        let layout = scene.layout
+        let fit = scene.fit
         ctx.scaleBy(x: fit, y: fit)
         ctx.concatenate(CGAffineTransform(a: 1, b: 0, c: scene.shear, d: 1, tx: 0, ty: 0))
         let slw = lw / fit
         let detailed = !scene.compact
-        for leaf in layout.leaves where leaf.tone == 0 && detailed {
-            drawLeaf(leaf, lineWidth: slw, thirst: scene.thirst, palette: P, in: ctx)
+
+        // Часы вырастания нового дерева: сначала ветви, за ними листья, потом цветы и плоды
+        let reveal = frame?.reveal
+        let keepsCrown = reveal == nil || (frame?.sameSkeleton ?? false)
+        let q: CGFloat = reveal ?? 1
+        let skeleton: CGFloat = keepsCrown ? 1 : PomegranateEase.smooth(q / 0.50)
+        let foliage: CGFloat = keepsCrown ? 1 : PomegranateEase.smooth((q - 0.10) / 0.60)
+        let bloom: CGFloat = reveal == nil ? 1 : PomegranateEase.clamp((q - 0.62) / 0.22)
+        let fruiting: CGFloat = reveal == nil ? 1 : PomegranateEase.clamp((q - 0.70) / 0.30)
+        // Волна роста идёт от ствола к концам веток
+        var wave: CGFloat?
+        if let front = frame?.wave {
+            wave = front * 1.4 - 0.2
         }
-        for segment in layout.segments {
-            drawBranch(segment, lineWidth: slw, palette: P, in: ctx)
+
+        if !ornamentsOnly {
+            let births = layout.leafBirth
+            let plainLeaves = foliage >= 1 && wave == nil
+            func leafScale(_ index: Int) -> CGFloat {
+                if plainLeaves { return 1 }
+                let birth: CGFloat = index < births.count ? births[index] : 1
+                var scale: CGFloat = 1
+                if foliage < 1 {
+                    scale = PomegranateEase.outBack((foliage * 1.28 - birth) / 0.28)
+                }
+                if let wave {
+                    scale *= 1 + 0.34 * PomegranateEase.smooth(1 - abs(wave - birth) / 0.2)
+                }
+                return scale
+            }
+
+            if detailed {
+                for (index, leaf) in layout.leaves.enumerated() where leaf.tone == 0 {
+                    drawLeaf(leaf, scale: leafScale(index), lineWidth: slw, thirst: scene.thirst, palette: P, in: ctx)
+                }
+            }
+
+            let unit = layout.growUnit
+            let hasCachedPaths = layout.branchOutlines.count == layout.segments.count
+                && layout.branchHighlights.count == layout.segments.count
+            for (index, segment) in layout.segments.enumerated() {
+                var grown: CGFloat = 1
+                if skeleton < 1 {
+                    grown = PomegranateEase.clamp((skeleton - CGFloat(segment.level) * unit) / (PomegranateTreeLayout.growSpan * unit))
+                }
+                if grown <= 0 { continue }
+                if grown >= 1 && hasCachedPaths {
+                    drawBranch(segment, outline: layout.branchOutlines[index], highlight: layout.branchHighlights[index],
+                               lineWidth: slw, palette: P, in: ctx)
+                } else {
+                    drawBranch(segment, outline: branchOutline(segment, upTo: grown), highlight: branchHighlight(segment, upTo: grown),
+                               lineWidth: slw, palette: P, in: ctx)
+                }
+            }
+
+            for (index, leaf) in layout.leaves.enumerated() where leaf.tone != 0 {
+                drawLeaf(leaf, scale: leafScale(index), lineWidth: slw, thirst: scene.thirst, palette: P, in: ctx)
+            }
+
+            // Золотые искры на фронте волны роста
+            if let wave, detailed {
+                for (index, leaf) in layout.leaves.enumerated() where index % 7 == 0 {
+                    let birth: CGFloat = index < births.count ? births[index] : 1
+                    let glow = PomegranateEase.smooth(1 - abs(wave - birth) / 0.16)
+                    if glow <= 0.02 { continue }
+                    let tipX = leaf.x + sin(leaf.angle) * leaf.length
+                    let tipY = leaf.y - cos(leaf.angle) * leaf.length
+                    let radius = H * 0.009 * (0.6 + 0.4 * glow)
+                    ctx.fill(Path(ellipseIn: CGRect(x: tipX - radius, y: tipY - radius, width: radius * 2, height: radius * 2)),
+                             with: .color(c(P.goldLight, 0.9 * Double(glow))))
+                }
+            }
         }
-        for leaf in layout.leaves where leaf.tone != 0 {
-            drawLeaf(leaf, lineWidth: slw, thirst: scene.thirst, palette: P, in: ctx)
+
+        for (index, bud) in layout.buds.enumerated() {
+            let scale: CGFloat = bloom >= 1 ? 1
+                : PomegranateEase.outBack(PomegranateEase.stagger(bloom, index: index, count: layout.buds.count, spread: 0.5))
+            if scale > 0.01 {
+                drawFlower(bud, isBud: true, scale: scale, lineWidth: slw, palette: P, in: ctx)
+            }
         }
-        for bud in layout.buds {
-            drawFlower(bud, isBud: true, lineWidth: slw, palette: P, in: ctx)
+        for (index, flower) in layout.flowers.enumerated() {
+            let scale: CGFloat = bloom >= 1 ? 1
+                : PomegranateEase.outBack(PomegranateEase.stagger(bloom, index: index, count: layout.flowers.count, spread: 0.5))
+            if scale > 0.01 {
+                drawFlower(flower, isBud: false, scale: scale, lineWidth: slw, palette: P, in: ctx)
+            }
         }
-        for flower in layout.flowers {
-            drawFlower(flower, isBud: false, lineWidth: slw, palette: P, in: ctx)
+
+        // Плоды Духа и уже выросшие плоды дня
+        let shownDaily = min(frame?.dailyFruits ?? 0, layout.dailySlots.count)
+        let hangingFruits: [PomegranateTreeLayout.Fruit] = layout.fruits + Array(layout.dailySlots.prefix(shownDaily))
+        for (index, fruit) in hangingFruits.enumerated() {
+            if fruiting >= 1 {
+                drawFruit(fruit, palette: P, lineWidth: slw, withStem: true, in: ctx)
+                continue
+            }
+            let local = PomegranateEase.stagger(fruiting, index: index, count: hangingFruits.count, spread: 0.6)
+            if local > 0 {
+                let pose = PomegranateGrowthFrame.FruitPose(
+                    scale: PomegranateEase.outBack(local),
+                    ripeness: PomegranateEase.smooth((local - 0.2) / 0.7),
+                    swing: 0,
+                    sparkle: 0,
+                    burst: 1
+                )
+                drawGrowingFruit(fruit, pose: pose, lineWidth: slw, palette: P, in: ctx)
+            }
         }
-        for fruit in layout.fruits {
-            drawFruit(fruit, palette: P, lineWidth: slw, withStem: true, in: ctx)
+
+        // Плоды дня, которые растут прямо сейчас
+        if let frame {
+            for item in frame.growing where item.index >= 0 && item.index < layout.dailySlots.count {
+                drawGrowingFruit(layout.dailySlots[item.index], pose: PomegranateGrowthFrame.fruitPose(item.phase),
+                                 lineWidth: slw, palette: P, in: ctx)
+            }
         }
-        if detailed && scene.stage >= .bloomingTree {
-            drawPollen(cx: layout.crownX, cy: layout.crownY, r: layout.crownR, height: H, time: scene.time, palette: P, in: ctx)
+
+        if detailed && scene.stage >= .bloomingTree && !ornamentsOnly {
+            let pollen: CGFloat = reveal == nil ? 1 : PomegranateEase.smooth((q - 0.6) / 0.4)
+            if pollen > 0.01 {
+                drawPollen(cx: layout.crownX, cy: layout.crownY, r: layout.crownR, height: H, time: scene.time,
+                           alpha: Double(pollen), palette: P, in: ctx)
+            }
         }
     }
 
     // MARK: Ветвь (сужающийся ствол по кривой)
-    private static func drawBranch(_ s: PomegranateTreeLayout.Segment, lineWidth lw: CGFloat, palette P: PomegranatePalette, in ctx: GraphicsContext) {
+    /// Контур ветви, выросшей на долю `upTo` своей длины. Для целой ветви считается один раз в макете.
+    static func branchOutline(_ s: PomegranateTreeLayout.Segment, upTo: CGFloat) -> Path {
         let n = 8
         var left: [CGPoint] = []
         var right: [CGPoint] = []
+        // Растущая ветвь тоньше готовой
+        let thin = 0.55 + 0.45 * upTo
         for i in 0...n {
-            let t = CGFloat(i) / CGFloat(n)
+            let t = upTo * CGFloat(i) / CGFloat(n)
             let p = quadPoint(s, t)
             let q = quadPoint(s, min(1, t + 0.01))
             let o = quadPoint(s, max(0, t - 0.01))
             var dx = q.x - o.x, dy = q.y - o.y
             let d = max(0.0001, hypot(dx, dy))
             dx /= d; dy /= d
-            let w = (s.w0 + (s.w1 - s.w0) * t) / 2
+            let w = (s.w0 + (s.w1 - s.w0) * t) / 2 * thin
             left.append(CGPoint(x: p.x - dy * w, y: p.y + dx * w))
             right.append(CGPoint(x: p.x + dy * w, y: p.y - dx * w))
         }
@@ -581,53 +831,74 @@ enum PomegranateRenderer {
         for p in left.dropFirst() { path.addLine(to: p) }
         for p in right.reversed() { path.addLine(to: p) }
         path.closeSubpath()
-        ctx.fill(path, with: .color(c(P.bark)))
-        ctx.stroke(path, with: .color(c(P.barkDark, 0.9)), lineWidth: lw)
+        return path
+    }
 
+    /// Линия блика вдоль ветви.
+    static func branchHighlight(_ s: PomegranateTreeLayout.Segment, upTo: CGFloat) -> Path {
+        let n = 8
+        var highlight = Path()
+        for i in 1..<n {
+            let t = upTo * CGFloat(i) / CGFloat(n)
+            let p = quadPoint(s, t)
+            let q = quadPoint(s, min(1, t + 0.01))
+            let dx = q.x - p.x, dy = q.y - p.y
+            let d = max(0.0001, hypot(dx, dy))
+            let w = (s.w0 + (s.w1 - s.w0) * t) / 2
+            let h = CGPoint(x: p.x - (dy / d) * w * 0.45, y: p.y + (dx / d) * w * 0.45)
+            if i == 1 { highlight.move(to: h) } else { highlight.addLine(to: h) }
+        }
+        return highlight
+    }
+
+    private static func drawBranch(_ s: PomegranateTreeLayout.Segment, outline: Path, highlight: Path, lineWidth lw: CGFloat,
+                                   palette P: PomegranatePalette, in ctx: GraphicsContext) {
+        ctx.fill(outline, with: .color(c(P.bark)))
+        ctx.stroke(outline, with: .color(c(P.barkDark, 0.9)), lineWidth: lw)
         // Блик коры
         if s.w0 > lw * 3 {
-            var highlight = Path()
-            for i in 1..<n {
-                let t = CGFloat(i) / CGFloat(n)
-                let p = quadPoint(s, t)
-                let q = quadPoint(s, min(1, t + 0.01))
-                let dx = q.x - p.x, dy = q.y - p.y
-                let d = max(0.0001, hypot(dx, dy))
-                let w = (s.w0 + (s.w1 - s.w0) * t) / 2
-                let h = CGPoint(x: p.x - (dy / d) * w * 0.45, y: p.y + (dx / d) * w * 0.45)
-                if i == 1 { highlight.move(to: h) } else { highlight.addLine(to: h) }
-            }
             ctx.stroke(highlight, with: .color(c(P.barkLight, 0.8)),
                        style: StrokeStyle(lineWidth: max(lw, s.w0 * 0.12), lineCap: .round))
         }
     }
 
     // MARK: Лист граната (узкий, ланцетовидный)
-    private static func drawLeaf(_ leaf: PomegranateTreeLayout.Leaf, lineWidth lw: CGFloat, thirst: Bool,
+    /// Лист единичной длины: один контур на все листья, размер задаётся масштабом при рисовании
+    private static let leafUnitPath: Path = {
+        var path = Path()
+        path.move(to: .zero)
+        path.addQuadCurve(to: CGPoint(x: 0, y: -1), control: CGPoint(x: -0.21, y: -0.45))
+        path.addQuadCurve(to: .zero, control: CGPoint(x: 0.21, y: -0.45))
+        path.closeSubpath()
+        return path
+    }()
+
+    private static let leafRibUnitPath: Path = {
+        var rib = Path()
+        rib.move(to: CGPoint(x: 0, y: -0.05))
+        rib.addQuadCurve(to: CGPoint(x: 0, y: -0.92), control: CGPoint(x: 0.21 * 0.12, y: -0.5))
+        return rib
+    }()
+
+    private static func drawLeaf(_ leaf: PomegranateTreeLayout.Leaf, scale: CGFloat = 1, lineWidth lw: CGFloat, thirst: Bool,
                                  palette P: PomegranatePalette, in context: GraphicsContext) {
+        let len = leaf.length * scale
+        guard len > 0.05 else { return }
         var ctx = context
         ctx.translateBy(x: leaf.x, y: leaf.y)
         ctx.rotate(by: .radians(Double(leaf.angle)))
-        let len = leaf.length
-        let w = len * 0.21
-        var path = Path()
-        path.move(to: .zero)
-        path.addQuadCurve(to: CGPoint(x: 0, y: -len), control: CGPoint(x: -w, y: -len * 0.45))
-        path.addQuadCurve(to: .zero, control: CGPoint(x: w, y: -len * 0.45))
-        path.closeSubpath()
+        ctx.scaleBy(x: len, y: len)
         let tones = [P.leafDark, P.leaf, P.leafLight, P.leafYoung]
         var tone = tones[max(0, min(3, leaf.tone))]
         if thirst { tone = PomegranatePalette.mix(tone, P.soil, 0.38) }
-        ctx.fill(path, with: .color(c(tone)))
-        ctx.stroke(path, with: .color(c(P.ink, 0.28)), lineWidth: lw * 0.8)
-        var rib = Path()
-        rib.move(to: CGPoint(x: 0, y: -len * 0.05))
-        rib.addQuadCurve(to: CGPoint(x: 0, y: -len * 0.92), control: CGPoint(x: w * 0.12, y: -len * 0.5))
-        ctx.stroke(rib, with: .color(c(P.leafLight, 0.55)), lineWidth: lw * 0.7)
+        // Толщина линий задана в размерах листа, поэтому делится на его длину
+        ctx.fill(leafUnitPath, with: .color(c(tone)))
+        ctx.stroke(leafUnitPath, with: .color(c(P.ink, 0.28)), lineWidth: lw * 0.8 / len)
+        ctx.stroke(leafRibUnitPath, with: .color(c(P.leafLight, 0.55)), lineWidth: lw * 0.7 / len)
     }
 
     // MARK: Корона-чашечка на нижнем конце висящего плода
-    private static func drawCrownSepals(cx: CGFloat, bottomY: CGFloat, r: CGFloat, lineWidth lw: CGFloat,
+    private static func drawCrownSepals(cx: CGFloat, bottomY: CGFloat, r: CGFloat, lineWidth lw: CGFloat, fill: UInt32,
                                         palette P: PomegranatePalette, in ctx: GraphicsContext) {
         let nw = r * 0.34, nh = r * 0.20
         var path = Path()
@@ -644,14 +915,24 @@ enum PomegranateRenderer {
         path.addLine(to: CGPoint(x: cx + nw * 0.52, y: bottomY + nh * 0.2))
         path.addLine(to: CGPoint(x: cx + nw * 0.60, y: bottomY - r * 0.10))
         path.closeSubpath()
-        ctx.fill(path, with: .color(c(P.fruitDark)))
+        ctx.fill(path, with: .color(c(fill)))
         ctx.stroke(path, with: .color(c(P.ink, 0.5)), lineWidth: lw)
     }
 
     // MARK: Плод граната: черенок сверху, корона снизу
+    /// `ripeness`: 0 — зелёная завязь, 0.5 — золотистый, 1 — спелый красный плод.
     static func drawFruit(_ f: PomegranateTreeLayout.Fruit, palette P: PomegranatePalette, lineWidth lw: CGFloat,
-                          withStem: Bool, in ctx: GraphicsContext) {
+                          withStem: Bool, in ctx: GraphicsContext, ripeness: CGFloat = 1) {
         let x = f.x, y = f.y, r = f.r
+        var light = P.fruitLight
+        var middle = P.fruit
+        var dark = P.fruitDark
+        if ripeness < 1 {
+            let t = Double(max(0, ripeness))
+            light = PomegranatePalette.mix3(P.leafLight, PomegranatePalette.mix(P.goldLight, P.pith, 0.45), P.fruitLight, t)
+            middle = PomegranatePalette.mix3(P.leaf, PomegranatePalette.mix(P.goldLight, P.flowerLight, 0.35), P.fruit, t)
+            dark = PomegranatePalette.mix3(P.leafDark, PomegranatePalette.mix(P.gold, P.flower, 0.4), P.fruitDark, t)
+        }
         if withStem {
             var stem = Path()
             stem.move(to: CGPoint(x: f.stemX, y: f.stemY))
@@ -661,7 +942,7 @@ enum PomegranateRenderer {
             )
             ctx.stroke(stem, with: .color(c(P.bark)), style: StrokeStyle(lineWidth: max(lw, r * 0.12), lineCap: .round))
         }
-        drawCrownSepals(cx: x, bottomY: y + r * 0.92, r: r, lineWidth: lw, palette: P, in: ctx)
+        drawCrownSepals(cx: x, bottomY: y + r * 0.92, r: r, lineWidth: lw, fill: dark, palette: P, in: ctx)
 
         // «Плечи» шире, книзу плод слегка сужается
         var body = Path()
@@ -676,9 +957,9 @@ enum PomegranateRenderer {
         body.closeSubpath()
         ctx.fill(body, with: .radialGradient(
             Gradient(stops: [
-                .init(color: c(P.fruitLight), location: 0),
-                .init(color: c(P.fruit), location: 0.45),
-                .init(color: c(P.fruitDark), location: 1)
+                .init(color: c(light), location: 0),
+                .init(color: c(middle), location: 0.45),
+                .init(color: c(dark), location: 1)
             ]),
             center: CGPoint(x: x - r * 0.38, y: y - r * 0.42),
             startRadius: r * 0.08,
@@ -692,7 +973,7 @@ enum PomegranateRenderer {
             var rib = Path()
             rib.move(to: CGPoint(x: x + r * k * 0.3, y: y - r))
             rib.addQuadCurve(to: CGPoint(x: x + r * k * 0.25, y: y + r), control: CGPoint(x: x + r * k * 1.45, y: y))
-            inner.stroke(rib, with: .color(c(P.fruitDark, 0.30)), lineWidth: lw * 0.9)
+            inner.stroke(rib, with: .color(c(dark, 0.30)), lineWidth: lw * 0.9)
         }
         if f.isOpen {
             // Раскрытая долька с рубиновыми зёрнами
@@ -729,13 +1010,72 @@ enum PomegranateRenderer {
         ctx.fill(gloss, with: .color(Color.white.opacity(0.55)))
     }
 
+    // MARK: Плод в росте
+    /// Плод растёт и качается вокруг точки, где черенок держится за ветку: завязь, рост, наливание цветом, искра.
+    private static func drawGrowingFruit(_ f: PomegranateTreeLayout.Fruit, pose: PomegranateGrowthFrame.FruitPose,
+                                         lineWidth lw: CGFloat, palette P: PomegranatePalette, in context: GraphicsContext) {
+        let s = max(0.02, pose.scale)
+        let r = f.r
+        var ctx = context
+        ctx.translateBy(x: f.stemX, y: f.stemY)
+        ctx.rotate(by: .radians(Double(pose.swing)))
+        ctx.scaleBy(x: s, y: s)
+        ctx.translateBy(x: -f.stemX, y: -f.stemY)
+
+        // Сияние за созревшим плодом
+        if pose.sparkle > 0.01 {
+            let glowRadius = r * 2.4
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: f.x - glowRadius, y: f.y - glowRadius, width: glowRadius * 2, height: glowRadius * 2)),
+                with: .radialGradient(
+                    Gradient(colors: [c(P.halo, 0.55 * Double(pose.sparkle)), c(P.halo, 0)]),
+                    center: CGPoint(x: f.x, y: f.y),
+                    startRadius: 0,
+                    endRadius: glowRadius
+                )
+            )
+        }
+
+        drawFruit(f, palette: P, lineWidth: lw / s, withStem: true, in: ctx, ripeness: pose.ripeness)
+
+        // Золотые искры разлетаются в момент, когда плод набрал размер
+        if pose.burst > 0 && pose.burst < 1 {
+            let distance = r * (1.15 + 1.5 * PomegranateEase.outCubic(pose.burst))
+            let dot = r * 0.11 * (1 - pose.burst * 0.6)
+            for i in 0..<8 {
+                let angle = CGFloat(i) / 8 * 2 * .pi + 0.3
+                let px = f.x + cos(angle) * distance
+                let py = f.y + sin(angle) * distance
+                ctx.fill(Path(ellipseIn: CGRect(x: px - dot, y: py - dot, width: dot * 2, height: dot * 2)),
+                         with: .color(c(P.goldLight, 0.95 * Double(1 - pose.burst))))
+            }
+        }
+
+        // Четырёхлучевая искра на блике
+        if pose.sparkle > 0.01 {
+            let cx = f.x - r * 0.42
+            let cy = f.y - r * 0.46
+            let long = r * 0.62 * pose.sparkle
+            let short = long * 0.22
+            var star = Path()
+            for i in 0..<8 {
+                let angle = CGFloat(i) / 8 * 2 * .pi
+                let reach = i % 2 == 0 ? long : short
+                let point = CGPoint(x: cx + cos(angle) * reach, y: cy + sin(angle) * reach)
+                if i == 0 { star.move(to: point) } else { star.addLine(to: point) }
+            }
+            star.closeSubpath()
+            ctx.fill(star, with: .color(Color.white.opacity(0.95 * Double(pose.sparkle))))
+        }
+    }
+
     // MARK: Цветок и бутон граната (воронка с гофрированными лепестками)
-    private static func drawFlower(_ f: PomegranateTreeLayout.Flower, isBud: Bool, lineWidth lw: CGFloat,
+    private static func drawFlower(_ f: PomegranateTreeLayout.Flower, isBud: Bool, scale: CGFloat = 1, lineWidth lw: CGFloat,
                                    palette P: PomegranatePalette, in context: GraphicsContext) {
         var ctx = context
         ctx.translateBy(x: f.x, y: f.y)
         ctx.rotate(by: .radians(Double(f.angle * 0.7)))
-        let s = f.size
+        let s = f.size * scale
         if !isBud {
             for (dx, rot) in [(CGFloat(-0.30), -0.5), (0.30, 0.5), (0, 0)] {
                 var petalCtx = ctx
@@ -774,9 +1114,13 @@ enum PomegranateRenderer {
     }
 
     // MARK: Земля
+    private static func groundHalfWidth(width W: CGFloat, height H: CGFloat, compact: Bool) -> CGFloat {
+        compact ? H * 0.42 : min(W * 0.36, H * 0.62)
+    }
+
     private static func drawGround(width W: CGFloat, height H: CGFloat, lineWidth lw: CGFloat, thirst: Bool, compact: Bool,
                                    palette P: PomegranatePalette, in ctx: GraphicsContext) {
-        let gw = compact ? H * 0.42 : min(W * 0.36, H * 0.62)
+        let gw = groundHalfWidth(width: W, height: H, compact: compact)
         let gh = H * 0.055
         var mound = Path()
         mound.move(to: CGPoint(x: -gw, y: 0))
@@ -822,6 +1166,43 @@ enum PomegranateRenderer {
         }
     }
 
+    // MARK: Росинка
+    /// Росинка падает к корням и расходится кольцом по земле: с неё начинается рост после задания.
+    private static func drawDew(_ frame: PomegranateGrowthFrame, width W: CGFloat, height H: CGFloat, lineWidth lw: CGFloat,
+                                compact: Bool, palette P: PomegranatePalette, in ctx: GraphicsContext) {
+        if let fall = frame.drop {
+            let d = PomegranateEase.clamp(fall)
+            let y = -H * 0.66 + H * 0.64 * d * d
+            let r = H * 0.017
+            let alpha = Double(PomegranateEase.clamp(d / 0.2))
+            var drop = Path()
+            drop.move(to: CGPoint(x: 0, y: y - r * 2.3))
+            drop.addCurve(to: CGPoint(x: r, y: y),
+                          control1: CGPoint(x: r * 0.5, y: y - r * 1.2),
+                          control2: CGPoint(x: r, y: y - r * 0.5))
+            drop.addCurve(to: CGPoint(x: -r, y: y),
+                          control1: CGPoint(x: r, y: y + r * 1.33),
+                          control2: CGPoint(x: -r, y: y + r * 1.33))
+            drop.addCurve(to: CGPoint(x: 0, y: y - r * 2.3),
+                          control1: CGPoint(x: -r, y: y - r * 0.5),
+                          control2: CGPoint(x: -r * 0.5, y: y - r * 1.2))
+            drop.closeSubpath()
+            ctx.fill(drop, with: .color(c(P.dew, 0.95 * alpha)))
+            ctx.stroke(drop, with: .color(c(P.ink, 0.25 * alpha)), lineWidth: lw * 0.8)
+            let shine = r * 0.26
+            ctx.fill(Path(ellipseIn: CGRect(x: -r * 0.35 - shine, y: y - r * 0.2 - shine, width: shine * 2, height: shine * 2)),
+                     with: .color(Color.white.opacity(0.9 * alpha)))
+        }
+        if let spread = frame.ripple {
+            let p = PomegranateEase.clamp(spread)
+            let gw = groundHalfWidth(width: W, height: H, compact: compact)
+            let rx = gw * (0.12 + 0.62 * PomegranateEase.outCubic(p))
+            let ry = rx * 0.16
+            let ring = Path(ellipseIn: CGRect(x: -rx, y: -H * 0.02 - ry, width: rx * 2, height: ry * 2))
+            ctx.stroke(ring, with: .color(c(P.dew, 0.85 * Double(1 - p))), lineWidth: lw * 2.2 * (1 - p * 0.6))
+        }
+    }
+
     // MARK: Нимб
     private static func drawHalo(cx: CGFloat, cy: CGFloat, r: CGFloat, stage: PomegranateStage, time: Double,
                                  palette P: PomegranatePalette, in context: GraphicsContext) {
@@ -857,9 +1238,11 @@ enum PomegranateRenderer {
     }
 
     // MARK: Стадия 1: зёрнышко и обетование будущего Древа
+    /// `growth` 0...1: после заданий корешки удлиняются, из зёрнышка пробивается побег с двумя листками.
     private static func drawSeed(height H: CGFloat, width W: CGFloat, lineWidth lw: CGFloat, time: Double, compact: Bool,
-                                 palette P: PomegranatePalette, in ctx: GraphicsContext) {
+                                 growth: CGFloat, palette P: PomegranatePalette, in ctx: GraphicsContext) {
         let r = compact ? H * 0.11 : H * 0.06
+        let grown = PomegranateEase.clamp(growth)
         if !compact {
             // Нисходящий луч света
             var beam = Path()
@@ -892,12 +1275,41 @@ enum PomegranateRenderer {
             }
 
             // Корешки
+            let reach = 1 + 0.45 * grown
             for dx: CGFloat in [-1, 0, 1] {
                 var root = Path()
                 root.move(to: CGPoint(x: 0, y: -r * 0.2))
-                root.addQuadCurve(to: CGPoint(x: dx * r * 1.6, y: r * 0.7 + (dx == 0 ? r * 0.3 : 0)),
-                                  control: CGPoint(x: dx * r * 0.8, y: r * 0.4))
+                root.addQuadCurve(to: CGPoint(x: dx * r * 1.6 * reach, y: (r * 0.7 + (dx == 0 ? r * 0.3 : 0)) * reach),
+                                  control: CGPoint(x: dx * r * 0.8 * reach, y: r * 0.4 * reach))
                 ctx.stroke(root, with: .color(c(P.gold, 0.7)), lineWidth: lw)
+            }
+        }
+
+        // Побег пробивается из зёрнышка
+        let shoot = PomegranateEase.smooth((grown - 0.12) / 0.88)
+        if shoot > 0.01 {
+            let x0 = -r * 0.31
+            let y0 = -r * 1.90
+            let length = H * 0.12 * shoot
+            let tip = CGPoint(x: x0 + length * 0.22, y: y0 - length)
+            var stalk = Path()
+            stalk.move(to: CGPoint(x: x0, y: y0 + r * 0.5))
+            stalk.addCurve(to: tip,
+                           control1: CGPoint(x: x0 - length * 0.22, y: y0 - length * 0.35),
+                           control2: CGPoint(x: x0 + length * 0.30, y: y0 - length * 0.62))
+            ctx.stroke(stalk, with: .color(c(P.leafLight)), style: StrokeStyle(lineWidth: H * 0.010, lineCap: .round))
+            let unfold = PomegranateEase.smooth((shoot - 0.45) / 0.55)
+            if unfold > 0.02 {
+                for side: CGFloat in [-1, 1] {
+                    let leaf = PomegranateTreeLayout.Leaf(
+                        x: tip.x,
+                        y: tip.y,
+                        angle: side * (0.35 + 0.55 * unfold),
+                        length: H * 0.050 * unfold,
+                        tone: side > 0 ? 2 : 3
+                    )
+                    drawLeaf(leaf, lineWidth: lw, thirst: false, palette: P, in: ctx)
+                }
             }
         }
 
@@ -935,41 +1347,70 @@ enum PomegranateRenderer {
     }
 
     // MARK: Стадия 2: росток (молодые листья — бронзовые)
+    /// `growth` 0...1: рост внутри ступени (1 — росток в полный рост, как в обычном виде).
+    /// `emerge` 0...1: росток поднимается из земли при переходе с зёрнышка.
     private static func drawSprout(height H: CGFloat, lineWidth lw: CGFloat, time: Double, thirst: Bool,
-                                   palette P: PomegranatePalette, in ctx: GraphicsContext) {
-        let h = H * 0.30
-        let sw = CGFloat(sin(time * 0.9)) * H * 0.006
+                                   growth: CGFloat, emerge: CGFloat, palette P: PomegranatePalette, in ctx: GraphicsContext) {
+        let grown = max(0, min(1.1, growth))
+        let rise = PomegranateEase.clamp(emerge)
+        let h = max(H * 0.004, H * (0.20 + 0.10 * grown) * rise)
+        let sw = CGFloat(sin(time * 0.9)) * H * 0.006 * rise
         var stem = Path()
         stem.move(to: .zero)
-        stem.addCurve(to: CGPoint(x: sw, y: -h), control1: CGPoint(x: -H * 0.02, y: -h * 0.35), control2: CGPoint(x: H * 0.02 + sw * 0.5, y: -h * 0.65))
+        stem.addCurve(to: CGPoint(x: sw, y: -h),
+                      control1: CGPoint(x: -H * 0.02 * rise, y: -h * 0.35),
+                      control2: CGPoint(x: (H * 0.02 + sw * 0.5) * rise, y: -h * 0.65))
         ctx.stroke(stem, with: .color(c(P.leaf)), style: StrokeStyle(lineWidth: H * 0.012, lineCap: .round))
 
         let leafLength = H * 0.095
-        let pairs: [(CGFloat, CGFloat, CGFloat)] = [(-h * 0.45, 1.0, 0.8), (-h * 0.78, 0.85, 1.0), (-h, 0.7, 0.75)]
-        for (y, s, k) in pairs {
+        let droop: CGFloat = thirst ? 0.35 : 0
+        // Узлы стоят на своей высоте: пара листьев раскрывается, когда стебель до неё дорос
+        let nodes: [(CGFloat, CGFloat, CGFloat)] = [(H * 0.135, 1.0, 0.8), (H * 0.234, 0.85, 1.0)]
+        var upperOpen: CGFloat = 0
+        for (index, node) in nodes.enumerated() {
+            let (nodeY, s, k) = node
+            let open = PomegranateEase.smooth((h - nodeY) / (H * 0.045))
+            if index == 1 { upperOpen = open }
+            if open <= 0.02 { continue }
             for side: CGFloat in [-1, 1] {
-                let droop: CGFloat = thirst ? 0.35 : 0
                 let leaf = PomegranateTreeLayout.Leaf(
-                    x: sw * (-y / h),
-                    y: y,
+                    x: sw * (nodeY / h),
+                    y: -nodeY,
                     angle: side * (0.95 + droop) + sw * 0.02,
-                    length: leafLength * s * k,
-                    tone: y < -h * 0.7 ? 3 : (side > 0 ? 2 : 1)
+                    length: leafLength * s * k * open,
+                    tone: nodeY > h * 0.7 ? 3 : (side > 0 ? 2 : 1)
                 )
                 drawLeaf(leaf, lineWidth: lw, thirst: thirst, palette: P, in: ctx)
             }
         }
-        // Росинка
-        let dx = sw + leafLength * 0.55, dy = -h * 0.78 - leafLength * 0.35
-        let dr = H * 0.010
-        ctx.fill(Path(ellipseIn: CGRect(x: dx - dr, y: dy - dr, width: dr * 2, height: dr * 2)), with: .color(c(P.dew, 0.95)))
-        let hr = H * 0.003
-        ctx.fill(Path(ellipseIn: CGRect(x: dx - H * 0.003 - hr, y: dy - H * 0.003 - hr, width: hr * 2, height: hr * 2)),
-                 with: .color(Color.white.opacity(0.9)))
+        // Верхушечная пара молодых листьев
+        let tipOpen = PomegranateEase.smooth((rise - 0.25) / 0.5) * (0.72 + 0.28 * min(1, grown))
+        if tipOpen > 0.02 {
+            for side: CGFloat in [-1, 1] {
+                let leaf = PomegranateTreeLayout.Leaf(
+                    x: sw,
+                    y: -h,
+                    angle: side * (0.95 + droop) + sw * 0.02,
+                    length: leafLength * 0.7 * 0.75 * tipOpen,
+                    tone: 3
+                )
+                drawLeaf(leaf, lineWidth: lw, thirst: thirst, palette: P, in: ctx)
+            }
+        }
+        // Росинка на верхнем листе
+        if upperOpen > 0.6 {
+            let alpha = Double((upperOpen - 0.6) / 0.4)
+            let dx = sw + leafLength * 0.55, dy = -H * 0.234 - leafLength * 0.35
+            let dr = H * 0.010
+            ctx.fill(Path(ellipseIn: CGRect(x: dx - dr, y: dy - dr, width: dr * 2, height: dr * 2)), with: .color(c(P.dew, 0.95 * alpha)))
+            let hr = H * 0.003
+            ctx.fill(Path(ellipseIn: CGRect(x: dx - H * 0.003 - hr, y: dy - H * 0.003 - hr, width: hr * 2, height: hr * 2)),
+                     with: .color(Color.white.opacity(0.9 * alpha)))
+        }
     }
 
     // MARK: Золотая пыльца
-    private static func drawPollen(cx: CGFloat, cy: CGFloat, r: CGFloat, height H: CGFloat, time: Double,
+    private static func drawPollen(cx: CGFloat, cy: CGFloat, r: CGFloat, height H: CGFloat, time: Double, alpha: Double = 1,
                                    palette P: PomegranatePalette, in ctx: GraphicsContext) {
         let span = Double(H * 0.75)
         for i in 0..<12 {
@@ -979,7 +1420,7 @@ enum PomegranateRenderer {
             let fade = sin(travel / span * .pi)
             let size: CGFloat = i % 3 == 0 ? 1.8 : 1.1
             ctx.fill(Path(ellipseIn: CGRect(x: x - size, y: y - size, width: size * 2, height: size * 2)),
-                     with: .color(c(P.goldLight, 0.75 * fade)))
+                     with: .color(c(P.goldLight, 0.75 * fade * alpha)))
         }
     }
 }
