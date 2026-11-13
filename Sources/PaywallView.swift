@@ -42,8 +42,17 @@ struct PaywallView: View {
 
     /// Есть ли у годового тарифа бесплатный пробный период в App Store (пока тарифы не загрузились, неизвестно)
     private var trialStatus: String {
-        guard let yearly = subscriptionManager.products.first(where: { $0.id == SubscriptionPlan.yearly.rawValue }) else { return "unknown" }
-        return yearly.subscription?.introductoryOffer?.paymentMode == .freeTrial ? "yes" : "no"
+        guard let yearly = product(for: .yearly) else { return "unknown" }
+        return subscriptionManager.trialDays(for: yearly) != nil ? "yes" : "no"
+    }
+
+    private func product(for plan: SubscriptionPlan) -> Product? {
+        subscriptionManager.products.first(where: { $0.id == plan.rawValue })
+    }
+
+    /// Дни бесплатного пробного периода у выбранного тарифа, если он доступен этому человеку
+    private var selectedTrialDays: Int? {
+        product(for: selectedPlan).flatMap { subscriptionManager.trialDays(for: $0) }
     }
     
     var body: some View {
@@ -165,6 +174,15 @@ struct PaywallView: View {
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
             }
+            // Окно ошибки висит на прокрутке, а окно успеха — на всём экране. Два старых .alert(isPresented:) на одном
+            // элементе не уживаются: показывается только последний, и сообщение об ошибке покупки могло не появиться
+            .alert(isPresented: $showErrorAlert) {
+                Alert(
+                    title: Text("alert_error_title".localized(for: language)),
+                    message: Text(errorMessage),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
             
             // MARK: - Всегда фиксированная кнопка закрытия (Apple HIG / 2.1.0 App Completeness)
             Button {
@@ -197,13 +215,6 @@ struct PaywallView: View {
         }
         .onDisappear {
             Funnel.track("paywall_closed", ["source": source, "secs": Funnel.secondsBucket(Date().timeIntervalSince(appearedAt))])
-        }
-        .alert(isPresented: $showErrorAlert) {
-            Alert(
-                title: Text("alert_error_title".localized(for: language)),
-                message: Text(errorMessage),
-                dismissButton: .default(Text("OK"))
-            )
         }
         .alert(isPresented: $showSuccessAlert) {
             Alert(
@@ -274,8 +285,7 @@ struct PaywallView: View {
                             .font(PaperFont.font(size: 16, weight: .semibold))
                             .foregroundColor(Paper.ink)
                         
-                        let product = subscriptionManager.products.first(where: { $0.id == plan.rawValue })
-                        if let badge = plan.localizedBadge(for: language, product: product) {
+                        if let badge = badgeText(for: plan) {
                             Text(badge)
                                 .font(PaperFont.font(size: 10, weight: .semibold))
                                 .foregroundColor(Paper.gold)
@@ -289,9 +299,16 @@ struct PaywallView: View {
                 
                 Spacer()
                 
-                Text(displayPrice(for: plan))
-                    .font(PaperFont.font(size: 15, weight: .semibold).monospacedDigit())
-                    .foregroundColor(isSelected ? Paper.gold : Paper.ink)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(displayPrice(for: plan))
+                        .font(PaperFont.font(size: 15, weight: .semibold).monospacedDigit())
+                        .foregroundColor(isSelected ? Paper.gold : Paper.ink)
+                    if let perMonth = perMonthText(for: plan) {
+                        Text(perMonth)
+                            .font(PaperFont.font(size: 11).monospacedDigit())
+                            .foregroundColor(Paper.inkTertiary)
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
@@ -308,6 +325,49 @@ struct PaywallView: View {
         .buttonStyle(ScaleButtonStyle())
     }
     
+    /// «Экономия 17% · 7 дней бесплатно»: только то, что подтверждено настоящими ценами и правом на пробный период
+    private func badgeText(for plan: SubscriptionPlan) -> String? {
+        guard plan == .yearly else { return nil }
+        var parts: [String] = []
+        if let percent = subscriptionManager.yearlySavingsPercent {
+            parts.append(language.pick(hy: "Խնայեք \(percent)%", ru: "Скидка \(percent)%", en: "Save \(percent)%"))
+        }
+        if let days = product(for: .yearly).flatMap({ subscriptionManager.trialDays(for: $0) }) {
+            parts.append(language.pick(
+                hy: "\(daysText(days)) անվճար",
+                ru: "\(daysText(days)) бесплатно",
+                en: "\(daysText(days)) free"
+            ))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " • ")
+    }
+
+    /// Цена годовой подписки в пересчёте на месяц: так её легче сравнить с месячной
+    private func perMonthText(for plan: SubscriptionPlan) -> String? {
+        guard plan == .yearly, let yearly = product(for: .yearly) else { return nil }
+        let monthly = (yearly.price / 12).formatted(yearly.priceFormatStyle)
+        return language.pick(hy: "≈ \(monthly) / ամիս", ru: "≈ \(monthly) / мес", en: "≈ \(monthly) / mo")
+    }
+
+    /// «7 дней», «3 дня», «1 день»
+    private func daysText(_ days: Int) -> String {
+        switch language {
+        case .armenian:
+            return "\(days) օր"
+        case .english:
+            return days == 1 ? "1 day" : "\(days) days"
+        case .russian:
+            let lastTwo = days % 100
+            let last = days % 10
+            let word: String
+            if (11...14).contains(lastTwo) { word = "дней" }
+            else if last == 1 { word = "день" }
+            else if (2...4).contains(last) { word = "дня" }
+            else { word = "дней" }
+            return "\(days) \(word)"
+        }
+    }
+
     private func displayPrice(for plan: SubscriptionPlan) -> String {
         if let p = subscriptionManager.products.first(where: { $0.id == plan.rawValue }) {
             return p.displayPrice
@@ -473,11 +533,13 @@ struct PaywallView: View {
                 id: "widgets",
                 icon: "paintpalette.fill",
                 color: Paper.gold,
-                title: language.pick(hy: "Վիջեթներ և պաստառներ PRO", ru: "Виджеты, постеры и обои PRO", en: "Widgets, posters & wallpapers PRO"),
+                // С версии 4.2 постеров виджетов нет (остались виды «Кадр» и «Святилище»), а обои стали фотографиями:
+                // подпиской закрыты темы стихов для виджетов и экрана блокировки и три темы фото-обоев
+                title: language.pick(hy: "Վիջեթներ և պաստառներ PRO", ru: "Виджеты и обои PRO", en: "Widgets & wallpapers PRO"),
                 subtitle: language.pick(
-                    hy: "«Խաչքար» և «Բեթղեհեմ» պաստառներ, համարներ կողպէկրանին, 4K պաստառներ ոսկե հարդարանքով",
-                    ru: "Постеры «Хачкар» и «Вифлеем», стихи на экране блокировки, 4K-обои с золотым тиснением",
-                    en: "“Khachkar” and “Bethlehem” posters, Lock Screen verses, 4K wallpapers with gold foil"
+                    hy: "Համարների թեմաներ վիջեթների և կողպէկրանի համար՝ Սաղմոսներ, Իմաստություն, Նարեկացի, «Սեր և Խաղաղություն», «Հավատք և Քաջություն»: «Խաչքար», «Բեթղեհեմ» և «Ծիրանի» լուսանկարներով պաստառներ",
+                    ru: "Темы стихов для виджетов и экрана блокировки: Псалмы, Притчи, Нарекаци, «Любовь и Мир», «Вера и Мужество». Фото-обои «Хачкар», «Вифлеем» и «Пурпур»",
+                    en: "Verse themes for widgets and the Lock Screen: Psalms, Proverbs, Narekatsi, Love & Peace, Faith & Courage. “Khachkar”, “Bethlehem” and “Royal” photo wallpapers"
                 )
             ),
             Feature(
@@ -506,19 +568,41 @@ struct PaywallView: View {
     }
 
     private var ctaButtonTitle: String {
+        if let days = selectedTrialDays {
+            return language.pick(
+                hy: "Փորձել \(daysText(days)) անվճար",
+                ru: "Попробовать \(daysText(days)) бесплатно",
+                en: "Try \(daysText(days)) free"
+            )
+        }
         switch language {
         case .armenian: return "Շարունակել"
         case .russian: return "Продолжить"
         case .english: return "Continue"
         }
     }
-    
+
+    /// Под кнопкой: сколько и когда будет списано, и что отмена в любой момент возможна
     private var trialDisclaimer: String {
-        switch language {
-        case .armenian: return "Կարող եք չեղարկել ցանկացած պահի App Store-ի կարգավորումներում:"
-        case .russian: return "Отмена в любой момент в настройках учетной записи Apple ID."
-        case .english: return "Cancel anytime in your Apple ID Subscription Settings."
+        let cancel = language.pick(
+            hy: "Կարող եք չեղարկել ցանկացած պահի App Store-ի կարգավորումներում:",
+            ru: "Отмена в любой момент в настройках учётной записи Apple ID.",
+            en: "Cancel anytime in your Apple ID Subscription Settings."
+        )
+        guard let selected = product(for: selectedPlan) else { return cancel }
+        let period = selectedPlan == .yearly
+            ? language.pick(hy: "տարեկան", ru: "в год", en: "per year")
+            : language.pick(hy: "ամսական", ru: "в месяц", en: "per month")
+        let price = "\(selected.displayPrice) \(period)"
+        if let days = selectedTrialDays {
+            let lead = language.pick(
+                hy: "\(daysText(days)) անվճար, ապա \(price):",
+                ru: "\(daysText(days)) бесплатно, затем \(price).",
+                en: "\(daysText(days)) free, then \(price)."
+            )
+            return lead + " " + cancel
         }
+        return price + " · " + cancel
     }
     
     private var restoreTitle: String {

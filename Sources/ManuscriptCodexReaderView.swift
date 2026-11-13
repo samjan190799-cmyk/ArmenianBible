@@ -57,7 +57,7 @@ struct ManuscriptCodexReaderView: View {
                 topBar
                 GeometryReader { geo in
                     let scale = min(geo.size.width / ManuscriptGeometry.size.width, geo.size.height / ManuscriptGeometry.size.height)
-                    ManuscriptCurlPager(ids: pages.map(\.id), currentId: $currentId, refreshToken: "") { id, isCurrent in
+                    ManuscriptCurlPager(ids: pages.map(\.id), currentId: $currentId, refreshToken: "pen\(pen.rawValue)") { id, isCurrent in
                         pageView(id, isCurrent: isCurrent, scale: scale)
                     }
                     .frame(width: ManuscriptGeometry.size.width * scale, height: ManuscriptGeometry.size.height * scale)

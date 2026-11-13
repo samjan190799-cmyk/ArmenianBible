@@ -302,7 +302,8 @@ enum SanctuaryCatalog {
     @MainActor
     static func nextFeast(for site: Sanctuary) -> ArmenianChurchFeast? {
         guard !site.feastIds.isEmpty else { return nil }
-        let calendar = Calendar.current
+        // Григорианский календарь: год праздника не должен зависеть от календаря, выбранного в системе
+        let calendar = ChurchCalendarService.gregorian
         let today = calendar.startOfDay(for: Date())
         let year = calendar.component(.year, from: today)
         var candidates: [ArmenianChurchFeast] = []

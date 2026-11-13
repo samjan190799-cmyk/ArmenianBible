@@ -147,7 +147,8 @@ struct ManuscriptStudioView: View {
                     ManuscriptCurlPager(
                         ids: pages.map(\.id),
                         currentId: $currentId,
-                        refreshToken: "\(look.style.rawValue)|\(look.surface.rawValue)|\(look.name)"
+                        // Перо тоже здесь: иначе соседние листы, которые UIKit держит готовыми, остаются со старым пером и чернилами
+                        refreshToken: "\(look.style.rawValue)|\(look.surface.rawValue)|\(look.name)|pen\(activePen.rawValue)"
                     ) { id, isCurrent in
                         guard let raw = pages.first(where: { $0.id == id }) else { return AnyView(Color.clear) }
                         return AnyView(pageContent(raw, isCurrent: isCurrent, scale: scale, turned: turned, started: started, look: look))

@@ -31,7 +31,7 @@ struct ChurchCalendarView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
-    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var selectedYear: Int = ChurchCalendarService.gregorian.component(.year, from: Date())
     @State private var selectedCategory: FeastType? = nil
     @State private var sortMode: CalendarSortMode = .approaching
     @State private var expandedFeastId: String? = nil

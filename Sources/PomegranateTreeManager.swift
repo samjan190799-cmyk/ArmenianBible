@@ -581,8 +581,11 @@ final class PomegranateTreeManager: ObservableObject {
     // MARK: - Омовение Древа Небесной Росой (Питание веры)
     /// Вызывается при чтении стиха дня, завершении чтения главы, зажжении свечи или по тапу на росу
     func nourishWithDew(amount: Int = 1) {
-        let calendar = Calendar.current
         let today = Date()
+
+        // «Полито сегодня» — запомненное значение. Если приложение пережило полночь в памяти, оно оставалось от вчерашнего
+        // дня, и первое действие нового дня не добавляло день древу. Сверяемся с датой последнего полива перед каждым поливом
+        refreshDewAndStreakStatus()
 
         if !isWateredToday {
             daysStreak += 1

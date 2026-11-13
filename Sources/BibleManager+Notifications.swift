@@ -84,6 +84,36 @@ extension BibleManager {
         }
     }
     
+    // MARK: - Предложение утреннего стиха
+    /// Включает утренний стих на 8:00 (разрешение на уведомления спрашивается здесь же)
+    func enableMorningVerseAtEight() {
+        var parts = DateComponents()
+        parts.hour = 8
+        parts.minute = 0
+        if let eight = Calendar.current.date(from: parts) {
+            setMorningNotificationTime(eight)
+        }
+        setMorningNotificationsEnabled(true)
+    }
+
+    /// После первого осмысленного действия (добавил стих в избранное, прочитал главу) один раз предлагает утренний стих.
+    /// Не предлагается, если уведомления уже включены, человек их запретил в системе или знакомство ещё не закончено
+    func offerMorningVerseIfNeeded(after trigger: String) {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: "morning_offer_shown_v1"),
+              !defaults.bool(forKey: OnboardingState.pendingKey),
+              !morningNotificationsEnabled else { return }
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            DispatchQueue.main.async {
+                guard let self, settings.authorizationStatus != .denied,
+                      !defaults.bool(forKey: "morning_offer_shown_v1") else { return }
+                defaults.set(true, forKey: "morning_offer_shown_v1")
+                Funnel.track("feature_used", ["feature": "notify_offer_" + trigger])
+                self.isShowingMorningVerseOffer = true
+            }
+        }
+    }
+
     func setDailyNotificationsEnabled(_ enabled: Bool) {
         setMorningNotificationsEnabled(enabled)
     }
@@ -113,12 +143,13 @@ extension BibleManager {
         let calendar = Calendar.current
         let now = Date()
         
-        // 1. Утренний стих дня (7 дней вперед)
+        // 1. Утренний стих дня (на три недели вперёд: iOS хранит до 64 запланированных уведомлений,
+        //    всего здесь выходит не больше 61 — утро 21, вечер 14, праздники 12, посты 7, план чтения 7)
         if morningNotificationsEnabled {
             let database = getFilteredDatabase(for: selectedCategory)
             if !database.isEmpty {
                 let timeComponents = calendar.dateComponents([.hour, .minute], from: morningNotificationTime)
-                for dayOffset in 0..<7 {
+                for dayOffset in 0..<21 {
                     let verse = database.randomElement() ?? database[0]
                     let content = UNMutableNotificationContent()
                     content.title = appLanguage == .armenian ? "Առավոտյան օրվա համար" : (appLanguage == .russian ? "Утренний стих дня" : "Morning Verse of the Day")
@@ -145,12 +176,12 @@ extension BibleManager {
             }
         }
         
-        // 2. Вечерняя молитва и покой (7 дней вперед)
+        // 2. Вечерняя молитва и покой (на две недели вперёд)
         if eveningNotificationsEnabled {
             let eveningPool: [BibleVerse] = !BibleVerse.shortPsalms.isEmpty ? BibleVerse.shortPsalms : (!BibleVerse.shortPearls.isEmpty ? BibleVerse.shortPearls : BibleVerse.database)
             if !eveningPool.isEmpty {
                 let timeComponents = calendar.dateComponents([.hour, .minute], from: eveningNotificationTime)
-                for dayOffset in 0..<7 {
+                for dayOffset in 0..<14 {
                     let verse = eveningPool.randomElement() ?? eveningPool[0]
                     let content = UNMutableNotificationContent()
                     content.title = appLanguage == .armenian ? "Երեկոյան աղոթք և խաղաղություն" : (appLanguage == .russian ? "Вечерняя молитва и покой" : "Evening Peace & Prayer")
@@ -179,9 +210,11 @@ extension BibleManager {
         
         // 3. Праздники и посты Церкви (ААЦ) на 14 дней вперед (накануне в 19:30)
         if churchFeastsNotificationsEnabled {
-            let currentYear = calendar.component(.year, from: now)
+            // Год и месяц праздников — по григорианскому календарю, каким бы ни был календарь устройства
+            let feastCalendar = ChurchCalendarService.gregorian
+            let currentYear = feastCalendar.component(.year, from: now)
             var upcomingFeasts = ChurchCalendarService.shared.feasts(for: currentYear)
-            if calendar.component(.month, from: now) == 12 {
+            if feastCalendar.component(.month, from: now) == 12 {
                 upcomingFeasts.append(contentsOf: ChurchCalendarService.shared.feasts(for: currentYear + 1))
             }
             
@@ -231,7 +264,7 @@ extension BibleManager {
                 if item.fast.kind == .greatLent { continue }
                 
                 // Праздник-пост (Передовой пост и т. п.) уже получил своё напоминание в блоке праздников
-                let itemYear = calendar.component(.year, from: item.date)
+                let itemYear = ChurchCalendarService.gregorian.component(.year, from: item.date)
                 let hasFastingFeastReminder = ChurchCalendarService.shared.feasts(for: itemYear).contains {
                     $0.isFasting && calendar.isDate($0.date, inSameDayAs: item.date)
                 }

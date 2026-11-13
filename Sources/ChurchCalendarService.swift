@@ -6,6 +6,15 @@ final class ChurchCalendarService: @unchecked Sendable {
     static let shared = ChurchCalendarService()
     
     private init() {}
+
+    /// Григорианский календарь в часовом поясе устройства. Системный календарь для праздников не годится: если в системе
+    /// выбран персидский, буддийский или японский календарь, «год 2026» означает в нём другой год, и все даты праздников
+    /// съезжают. Посты уже считаются так же (ChurchFastingCalendar.swift).
+    static var gregorian: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
+        return calendar
+    }
     
     // MARK: - Алгоритм вычисления даты Пасхи (Григорианская Пасхалия для ААЦ)
     func calculateEaster(for year: Int) -> Date {
@@ -33,12 +42,12 @@ final class ChurchCalendarService: @unchecked Sendable {
         components.second = 0
         components.timeZone = TimeZone(identifier: "Asia/Yerevan") ?? TimeZone.current
         
-        return Calendar.current.date(from: components) ?? Date()
+        return Self.gregorian.date(from: components) ?? Date()
     }
     
     // Вспомогательная функция сдвига даты на N дней
     func dateByAdding(days: Int, to baseDate: Date) -> Date {
-        Calendar.current.date(byAdding: .day, value: days, to: baseDate) ?? baseDate
+        Self.gregorian.date(byAdding: .day, value: days, to: baseDate) ?? baseDate
     }
     
     // Воскресенье, ближайшее к указанной дате (день и месяц)
@@ -48,7 +57,7 @@ final class ChurchCalendarService: @unchecked Sendable {
         components.month = month
         components.day = day
         components.hour = 12
-        let calendar = Calendar.current
+        let calendar = Self.gregorian
         guard let targetDate = calendar.date(from: components) else { return Date() }
         
         let weekday = calendar.component(.weekday, from: targetDate)
@@ -64,7 +73,7 @@ final class ChurchCalendarService: @unchecked Sendable {
         components.month = month
         components.day = 1
         components.hour = 12
-        let calendar = Calendar.current
+        let calendar = Self.gregorian
         guard let firstDay = calendar.date(from: components) else { return Date() }
         
         let weekday = calendar.component(.weekday, from: firstDay)
@@ -81,7 +90,7 @@ final class ChurchCalendarService: @unchecked Sendable {
         components.day = day
         components.hour = 12
         components.timeZone = TimeZone(identifier: "Asia/Yerevan") ?? TimeZone.current
-        return Calendar.current.date(from: components) ?? Date()
+        return Self.gregorian.date(from: components) ?? Date()
     }
 
     // Фиксированная дата памяти святого, сдвинутая с воскресенья, среды и пятницы: в эти дни память
@@ -109,7 +118,7 @@ final class ChurchCalendarService: @unchecked Sendable {
     // MARK: - Сортировка по дате приближения праздника (Ближайшие предстоящие первыми)
     func feastsSortedByApproaching(for year: Int, from baseDate: Date = Date()) -> [ArmenianChurchFeast] {
         let all = feasts(for: year)
-        let calendar = Calendar.current
+        let calendar = Self.gregorian
         let today = calendar.startOfDay(for: baseDate)
         
         let upcoming = all.filter { calendar.startOfDay(for: $0.date) >= today }
@@ -123,7 +132,7 @@ final class ChurchCalendarService: @unchecked Sendable {
     
     // MARK: - Праздник на сегодня (если есть)
     func todayFeast(from baseDate: Date = Date()) -> ArmenianChurchFeast? {
-        let calendar = Calendar.current
+        let calendar = Self.gregorian
         let year = calendar.component(.year, from: baseDate)
         let allFeasts = feasts(for: year)
         return allFeasts.first { calendar.isDate($0.date, inSameDayAs: baseDate) }
@@ -131,7 +140,7 @@ final class ChurchCalendarService: @unchecked Sendable {
     
     // MARK: - Ближайший Великий праздник (Тагавар)
     func nextDaghavarFeast(from baseDate: Date = Date()) -> (feast: ArmenianChurchFeast, daysLeft: Int)? {
-        let calendar = Calendar.current
+        let calendar = Self.gregorian
         let today = calendar.startOfDay(for: baseDate)
         let year = calendar.component(.year, from: today)
         
@@ -149,7 +158,7 @@ final class ChurchCalendarService: @unchecked Sendable {
     
     // MARK: - Ближайший предстоящий любой праздник
     func nextUpcomingFeast(from baseDate: Date = Date()) -> (feast: ArmenianChurchFeast, daysLeft: Int)? {
-        let calendar = Calendar.current
+        let calendar = Self.gregorian
         let today = calendar.startOfDay(for: baseDate)
         let year = calendar.component(.year, from: today)
         
@@ -190,7 +199,7 @@ final class ChurchCalendarService: @unchecked Sendable {
         
         for feast in allFeasts {
             let dtStart = dateFormatter.string(from: feast.date)
-            let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: feast.date) ?? feast.date
+            let nextDay = Self.gregorian.date(byAdding: .day, value: 1, to: feast.date) ?? feast.date
             let dtEnd = dateFormatter.string(from: nextDay)
             
             let summary = feast.title(for: language)

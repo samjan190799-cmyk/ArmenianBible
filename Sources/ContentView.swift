@@ -7,6 +7,7 @@ struct ContentView: View {
     @ObservedObject private var reviewManager = ReviewManager.shared
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @Environment(\.scenePhase) private var scenePhase
+    @State private var isShowingOnboarding = OnboardingState.shouldShow
 
     private var accentColor: Color {
         manager.accentTheme.color
@@ -96,6 +97,46 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: manager.isAppUnlocked)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: updateManager.isForceUpdateRequired)
+        .fullScreenCover(isPresented: $isShowingOnboarding) {
+            OnboardingView()
+        }
+        .alert(
+            manager.appLanguage.pick(hy: "Առավոտյան համար", ru: "Утренний стих", en: "A morning verse"),
+            isPresented: $manager.isShowingMorningVerseOffer
+        ) {
+            Button(manager.appLanguage.pick(hy: "Միացնել", ru: "Включить", en: "Turn on")) {
+                manager.enableMorningVerseAtEight()
+                Funnel.track("feature_used", ["feature": "notify_offer_accepted"])
+            }
+            Button(manager.appLanguage.pick(hy: "Ոչ հիմա", ru: "Не сейчас", en: "Not now"), role: .cancel) {}
+        } message: {
+            Text(manager.appLanguage.pick(
+                hy: "Ամեն առավոտ ժամը 8:00-ին մեկ համար՝ օրը սկսելու համար: Ժամը կարելի է փոխել Կարգավորումներում:",
+                ru: "Один стих каждое утро в 8:00, чтобы начать день. Время можно поменять в «Настройках».",
+                en: "One verse every morning at 8:00 to start the day. You can change the time in Settings."
+            ))
+        }
+        // Два окна на одном элементе не уживаются (SwiftUI показывает только последнее), поэтому окно обновления висит на своём фоне
+        .background(
+            Color.clear.alert(
+            manager.appLanguage.pick(hy: "Նոր տարբերակ", ru: "Вышла новая версия", en: "A new version is available"),
+            isPresented: $updateManager.isSoftUpdateSuggested
+        ) {
+            Button(manager.appLanguage.pick(hy: "Թարմացնել", ru: "Обновить", en: "Update")) {
+                updateManager.dismissSoftUpdate()
+                updateManager.openAppStore()
+            }
+            Button(manager.appLanguage.pick(hy: "Հետո", ru: "Позже", en: "Later"), role: .cancel) {
+                updateManager.dismissSoftUpdate()
+            }
+        } message: {
+            Text(manager.appLanguage.pick(
+                hy: "Luys-ի \(updateManager.availableVersion) տարբերակը հասանելի է App Store-ում:",
+                ru: "Версия \(updateManager.availableVersion) уже в App Store.",
+                en: "Version \(updateManager.availableVersion) is available on the App Store."
+            ))
+        }
+        )
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .background {
                 manager.lockApp()
@@ -106,6 +147,9 @@ struct ContentView: View {
                 }
                 updateManager.checkForUpdates(language: manager.appLanguage)
                 CandleIslandManager.shared.sync(with: CandleManager.shared.activeCandles, language: manager.appLanguage)
+                // Уведомления ставятся на несколько недель вперёд и раньше обновлялись только при холодном запуске:
+                // если приложение неделями жило в памяти, напоминания заканчивались, хотя человек открывал его каждый день
+                manager.scheduleDailyNotifications()
             }
         }
         .onAppear {
@@ -1287,12 +1331,14 @@ struct PremiumPromoBannerCardView: View {
                 HomeArtTile(art: .premium)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(isPremium ? "Premium ակտիվ է" : "Armenian Bible Premium")
+                    Text(isPremium ? language.pick(hy: "Premium ակտիվ է", ru: "Premium активен", en: "Premium is active") : "Armenian Bible Premium")
                         .font(PaperFont.font(size: 17, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                         .lineLimit(1)
 
-                    Text(isPremium ? (language == .armenian ? "Բոլոր 95 աուդիո գլուխները և AI-ն ապաբլոկավորված են" : "Все 95 аудио глав и ИИ разблокированы") : (language == .armenian ? "Բացեք Նարեկացու 95 աուդիո գլուխները և AI-ն" : "95 аудио глав Нарекаци и безлимитный ИИ"))
+                    Text(isPremium
+                         ? language.pick(hy: "Բոլոր 95 աուդիո գլուխները և AI-ն ապաբլոկավորված են", ru: "Все 95 аудио глав и ИИ разблокированы", en: "All 95 audio chapters and AI are unlocked")
+                         : language.pick(hy: "Բացեք Նարեկացու 95 աուդիո գլուխները և AI-ն", ru: "95 аудио глав Нарекаци и безлимитный ИИ", en: "95 Narekatsi audio chapters and unlimited AI"))
                         .font(PaperFont.font(size: 13))
                         .foregroundColor(Paper.inkSecondary)
                         .lineLimit(1)

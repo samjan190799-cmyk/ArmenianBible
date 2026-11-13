@@ -23,6 +23,8 @@ class BibleManager: ObservableObject {
     
     // Духовные уведомления нового поколения
     @Published var morningNotificationsEnabled: Bool = false
+    /// Предложение утреннего стиха после первого осмысленного действия (избранное, прочитанная глава); окно в ContentView
+    @Published var isShowingMorningVerseOffer: Bool = false
     @Published var morningNotificationTime: Date = Date()
     @Published var eveningNotificationsEnabled: Bool = false
     @Published var eveningNotificationTime: Date = Date()
@@ -267,13 +269,17 @@ class BibleManager: ObservableObject {
                let savedLanguage = AppLanguage(rawValue: savedLanguageRaw) {
                 self.appLanguage = savedLanguage
             } else {
-                self.appLanguage = .armenian
+                // Первый запуск: язык берём у телефона и просим показать знакомство (OnboardingView).
+                // Язык записывается сразу, поэтому у уже установленных приложений знакомства не будет
+                let detected = AppLanguage.fromSystemSettings
+                self.appLanguage = detected
                 AppGroupConstants.syncToAll { defs in
-                    defs.set(AppLanguage.armenian.rawValue, forKey: appLanguageKey)
+                    defs.set(detected.rawValue, forKey: appLanguageKey)
                 }
+                UserDefaults.standard.set(true, forKey: OnboardingState.pendingKey)
             }
         } else {
-            self.appLanguage = .armenian
+            self.appLanguage = AppLanguage.fromSystemSettings
         }
         // Язык из аргумента запуска (-luys_debug_language russian): для скриншотов в CI, на устройствах не используется
         if let override = UserDefaults.standard.string(forKey: "luys_debug_language"),
@@ -533,6 +539,7 @@ class BibleManager: ObservableObject {
             try? await Task.sleep(nanoseconds: 20_000_000_000)
             guard !Task.isCancelled else { return }
             PomegranateTreeManager.shared.record(.chapter(book: bookId, chapter: chapter))
+            self.offerMorningVerseIfNeeded(after: "chapter")
         }
     }
     
@@ -809,6 +816,7 @@ class BibleManager: ObservableObject {
             )
             favoriteVerses.append(favorite)
             saveFavorites()
+            offerMorningVerseIfNeeded(after: "favorite")
         }
     }
     
@@ -834,6 +842,7 @@ class BibleManager: ObservableObject {
             )
             favoriteVerses.append(favorite)
             saveFavorites()
+            offerMorningVerseIfNeeded(after: "favorite")
         }
     }
     

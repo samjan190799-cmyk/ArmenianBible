@@ -154,7 +154,7 @@ struct iPadLockScreenShowcaseView: View {
                         .font(PaperFont.font(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     
-                    Text("Փիլիպեցիս 4:13")
+                    Text("Փիլիպպեցիս 4:13")
                         .font(PaperFont.font(size: 13, weight: .medium))
                         .foregroundColor(Paper.gold)
                 }

@@ -24,6 +24,15 @@ enum AppLanguage: String, CaseIterable, Identifiable, Codable {
         case .english: return "en"
         }
     }
+
+    /// Язык по настройкам телефона: армянский и русский — свои, всё остальное — английский.
+    /// Нужен при первом запуске: раньше приложение всегда открывалось по-армянски.
+    static var fromSystemSettings: AppLanguage {
+        let code = (Locale.preferredLanguages.first ?? "en").lowercased()
+        if code.hasPrefix("hy") { return .armenian }
+        if code.hasPrefix("ru") { return .russian }
+        return .english
+    }
 }
 
 // MARK: - Язык виджета

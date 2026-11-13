@@ -46,6 +46,22 @@ final class AppUpdateManager: ObservableObject {
     
     /// Доступная версия в App Store
     @Published var availableVersion: String = ""
+
+    /// В App Store вышла версия новее, но обновление не обязательно: показывается закрываемое окно с «Позже»
+    @Published var isSoftUpdateSuggested: Bool = false
+
+    /// Окно «вышла новая версия» не чаще раза в три дня на каждую версию
+    private func shouldSuggest(version: String) -> Bool {
+        let key = "soft_update_dismissed_\(version)"
+        guard let last = UserDefaults.standard.object(forKey: key) as? Date else { return true }
+        return Date().timeIntervalSince(last) > 3 * 86_400
+    }
+
+    /// Человек нажал «Позже» или «Обновить»: до следующих трёх дней не напоминаем
+    func dismissSoftUpdate() {
+        UserDefaults.standard.set(Date(), forKey: "soft_update_dismissed_\(availableVersion)")
+        isSoftUpdateSuggested = false
+    }
     
     /// Определяет, запущено ли приложение в среде TestFlight, на симуляторе или в отладочной сборке.
     /// В TestFlight и при разработке принудительное обновление никогда не блокирует пользователя.
@@ -101,14 +117,16 @@ final class AppUpdateManager: ObservableObject {
                 }
             }
             
-            // 2. Фолбек: проверка через официальный iTunes Lookup API
-            if let storeVersion = await self.fetchAppStoreVersion() {
-                if AppUpdateManager.isVersion(self.currentVersion, olderThan: storeVersion) {
-                    self.availableVersion = storeVersion
-                    self.configureDefaultTexts(newVersion: storeVersion, language: language)
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        self.isForceUpdateRequired = true
-                    }
+            // 2. Фолбек: проверка через официальный iTunes Lookup API.
+            // Блокировать приложение, потому что в магазине «просто есть версия новее», нельзя: после каждого выпуска
+            // все остальные оказывались запертыми без кнопки «позже», включая подписчиков, а при повышении минимальной iOS
+            // старые устройства запирались бы навсегда. Блокирует только minVersion или forceUpdate из своего JSON (выше),
+            // здесь — обычное предложение обновиться, которое можно закрыть.
+            if let storeVersion = await self.fetchAppStoreVersion(),
+               AppUpdateManager.isVersion(self.currentVersion, olderThan: storeVersion) {
+                self.availableVersion = storeVersion
+                if self.shouldSuggest(version: storeVersion) {
+                    self.isSoftUpdateSuggested = true
                 }
             }
         }

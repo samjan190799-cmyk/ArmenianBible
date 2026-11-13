@@ -204,7 +204,9 @@ final class CandleManager: ObservableObject {
             let defaultCandle = PrayerCandle(
                 personName: "Վասն խաղաղության աշխարհի",
                 intention: .peace,
-                customPrayer: "О мире и благоденствии во всем мире",
+                // Без своего текста: виджет и остров покажут молитву намерения на языке приложения.
+                // Раньше здесь стояла русская строка, и она показывалась при любом языке
+                customPrayer: nil,
                 tier: .generous,
                 litDate: Date()
             )

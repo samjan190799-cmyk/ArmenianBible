@@ -36,29 +36,6 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
             return "$9.99"
         }
     }
-    
-    func localizedBadge(for language: AppLanguage, product: Product? = nil) -> String? {
-        switch self {
-        case .yearly:
-            let hasTrial: Bool = {
-                if let product = product {
-                    return product.subscription?.introductoryOffer?.paymentMode == .freeTrial
-                }
-                return true
-            }()
-            
-            switch language {
-            case .armenian:
-                return hasTrial ? "Խնայեք 40% • 7 օր անվճար" : "Խնայեք 40%"
-            case .russian:
-                return hasTrial ? "Скидка 40% • 7 дней Trial" : "Скидка 40%"
-            case .english:
-                return hasTrial ? "Save 40% • 7 Days Free" : "Save 40%"
-            }
-        case .monthly:
-            return nil
-        }
-    }
 }
 
 // MARK: - Главный Менеджер Подписок (StoreKit 2 + Offline Fallback)
@@ -69,6 +46,8 @@ final class SubscriptionManager: ObservableObject {
     @Published private(set) var isPremium: Bool = false
     @Published private(set) var products: [Product] = []
     @Published private(set) var isLoadingProducts: Bool = false
+    /// Товары, на которые у этого человека действует бесплатный пробный период (App Store сам знает, пользовался ли он им)
+    @Published private(set) var trialEligibleProductIds: Set<String> = []
     @Published private(set) var isPurchasing: Bool = false
     @Published var purchaseErrorMessage: String? = nil
     
@@ -180,6 +159,48 @@ final class SubscriptionManager: ObservableObject {
         }
         
         isLoadingProducts = false
+        await refreshTrialEligibility()
+    }
+
+    /// Какие товары предлагают пробный период именно этому человеку. Пока не проверено, пробного нет: лучше не пообещать,
+    /// чем пообещать тому, кто им уже пользовался
+    func refreshTrialEligibility() async {
+        var ids = Set<String>()
+        for product in products {
+            guard let info = product.subscription,
+                  let offer = info.introductoryOffer,
+                  offer.paymentMode == .freeTrial else { continue }
+            if await info.isEligibleForIntroOffer { ids.insert(product.id) }
+        }
+        trialEligibleProductIds = ids
+    }
+
+    /// Длина бесплатного пробного периода в днях, если он доступен этому человеку
+    func trialDays(for product: Product) -> Int? {
+        guard trialEligibleProductIds.contains(product.id),
+              let offer = product.subscription?.introductoryOffer,
+              offer.paymentMode == .freeTrial else { return nil }
+        let perUnit: Int
+        switch offer.period.unit {
+        case .day: perUnit = 1
+        case .week: perUnit = 7
+        case .month: perUnit = 30
+        case .year: perUnit = 365
+        @unknown default: perUnit = 1
+        }
+        return max(1, perUnit * offer.period.value * max(1, offer.periodCount))
+    }
+
+    /// Во сколько процентов годовая подписка дешевле двенадцати месяцев по месячной цене; nil, если выгода меньше 5%
+    /// или цены ещё не загрузились. Считается по настоящим ценам из App Store, а не зашитым в код
+    var yearlySavingsPercent: Int? {
+        guard let monthly = products.first(where: { $0.id == SubscriptionPlan.monthly.rawValue }),
+              let yearly = products.first(where: { $0.id == SubscriptionPlan.yearly.rawValue }),
+              monthly.price > 0 else { return nil }
+        let full = NSDecimalNumber(decimal: monthly.price * 12).doubleValue
+        let actual = NSDecimalNumber(decimal: yearly.price).doubleValue
+        let percent = Int(((1 - actual / full) * 100).rounded())
+        return percent >= 5 ? percent : nil
     }
     
     @Published private(set) var wasCancelled: Bool = false
@@ -238,6 +259,7 @@ final class SubscriptionManager: ObservableObject {
                 clearDeveloperFreeMode()
                 await updatePurchasedStatus()
                 await transaction.finish()
+                await refreshTrialEligibility()
                 isPurchasing = false
                 return true
                 
