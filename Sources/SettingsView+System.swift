@@ -63,6 +63,11 @@ extension SettingsView {
                 
                 Divider().opacity(0.3)
 
+                // Порядок разделов на главном экране: вернуть по умолчанию
+                HomeSectionOrderResetRow(language: selectedLanguage, primaryTextColor: primaryTextColor, accent: Paper.gold)
+
+                Divider().opacity(0.3)
+
                 // Анонимная статистика: какие экраны открывают и где останавливаются
                 HStack(spacing: 12) {
                     ZStack {

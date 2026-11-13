@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @ObservedObject var manager = BibleManager.shared
@@ -219,6 +220,11 @@ struct HomeView: View {
     @State private var isShowingConsolation = false
     @State private var isShowingSanctuaryMap = false
     @State private var isShowingNativity = false
+
+    // Порядок разделов на экране (HomeSectionOrder.swift): сохранённые идентификаторы через запятую
+    @AppStorage(HomeSectionOrder.storageKey) private var savedSectionOrderRaw: String = ""
+    @State private var draggedSection: HomeSection? = nil
+    @State private var isDragDimmed = false
 
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
@@ -492,167 +498,9 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 6)
                     
-                    // MARK: - Карточка «Мой Матенадаран»: собранные листы рукописи и новый лист
-                    // Стих дня на пергаменте открывается кнопкой в верхней карточке стиха
-                    ManuscriptBannerCardView(
-                        language: manager.appLanguage,
-                        primaryTextColor: primaryTextColor,
-                        onOpenCodex: {
-                            triggerHaptic(.soft)
-                            isShowingCodex = true
-                        },
-                        onNewLeaf: {
-                            triggerHaptic(.soft)
-                            let fresh = ManuscriptPool.curatedPages(language: manager.appLanguage, excluding: [], count: 1).first
-                                ?? ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)
-                            manuscriptLaunch = ManuscriptLaunch(source: .curated(first: fresh))
-                        }
-                    )
-                    .staggeredEntrance(index: 2)
-
-                    // MARK: - Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
-                    NarekatsiBannerCardView(
-                        language: manager.appLanguage,
-                        accentColor: accentColor,
-                        secondaryAccentColor: secondaryAccentColor,
-                        cardBackgroundColor: cardBackgroundColor,
-                        cardBorderColor: cardBorderColor,
-                        primaryTextColor: primaryTextColor,
-                        onOpenNarek: {
-                            triggerHaptic(.soft)
-                            manager.openNarekatsi()
-                        }
-                    )
-                    .staggeredEntrance(index: 2)
-                    
-                    // MARK: - Карточка «Нарек утешает»: глава «Книги скорбных песнопений» под состояние человека
-                    NarekConsolationBannerCardView(
-                        language: manager.appLanguage,
-                        accentColor: accentColor,
-                        secondaryAccentColor: secondaryAccentColor,
-                        primaryTextColor: primaryTextColor,
-                        onOpen: {
-                            triggerHaptic(.soft)
-                            isShowingConsolation = true
-                        }
-                    )
-                    .staggeredEntrance(index: 3)
-
-                    // MARK: - Карточка мультфильма «Рождество Христово»
-                    NativityBannerCardView(
-                        language: manager.appLanguage,
-                        secondaryAccentColor: secondaryAccentColor,
-                        primaryTextColor: primaryTextColor,
-                        onOpen: {
-                            triggerHaptic(.soft)
-                            isShowingNativity = true
-                        }
-                    )
-                    .staggeredEntrance(index: 3)
-
-                    // MARK: - Карточка Храмовой Молитвы и Свечей (Մոմավառություն)
-                    PrayerSanctuaryBannerCardView(
-                        language: manager.appLanguage,
-                        accentColor: accentColor,
-                        secondaryAccentColor: secondaryAccentColor,
-                        cardBackgroundColor: cardBackgroundColor,
-                        cardBorderColor: cardBorderColor,
-                        primaryTextColor: primaryTextColor,
-                        onOpenSanctuary: {
-                            triggerHaptic(.soft)
-                            isShowingSanctuary = true
-                        }
-                    )
-                    .staggeredEntrance(index: 3)
-                    
-                    // MARK: - Карточка Гранатового Древа Веры (Հոգևոր Աճի Նռնենի)
-                    PomegranateTreeBannerCardView(
-                        language: manager.appLanguage,
-                        accentColor: accentColor,
-                        secondaryAccentColor: secondaryAccentColor,
-                        cardBackgroundColor: cardBackgroundColor,
-                        cardBorderColor: cardBorderColor,
-                        primaryTextColor: primaryTextColor,
-                        onOpenSanctuary: {
-                            triggerHaptic(.soft)
-                            isShowingPomegranateSanctuary = true
-                        }
-                    )
-                    .staggeredEntrance(index: 4)
-                    
-                    // MARK: - Карточка Плана Чтения Библии и Стрика (Reading Plans & Daily Streak)
-                    ReadingPlanBannerCardView(
-                        language: manager.appLanguage,
-                        accentColor: accentColor,
-                        secondaryAccentColor: secondaryAccentColor,
-                        cardBackgroundColor: cardBackgroundColor,
-                        cardBorderColor: cardBorderColor,
-                        primaryTextColor: primaryTextColor,
-                        onOpenPlans: {
-                            triggerHaptic(.soft)
-                            isShowingReadingPlans = true
-                        }
-                    )
-                    .staggeredEntrance(index: 5)
-                    
-                    // MARK: - Карточка Библейской Викторины
-                    BibleQuizCardView(
-                        bestScore: manager.quizBestScore,
-                        language: manager.appLanguage,
-                        accentColor: accentColor,
-                        secondaryAccentColor: secondaryAccentColor,
-                        cardBackgroundColor: cardBackgroundColor,
-                        cardBorderColor: cardBorderColor,
-                        primaryTextColor: primaryTextColor,
-                        onStartQuiz: {
-                            triggerHaptic(.soft)
-                            isShowingQuiz = true
-                        }
-                    )
-                    .staggeredEntrance(index: 6)
-                    
-                    // MARK: - Карточка Церковных праздников и Календаря
-                    ChurchFeastsBannerCardView(
-                        language: manager.appLanguage,
-                        accentColor: accentColor,
-                        secondaryAccentColor: secondaryAccentColor,
-                        cardBackgroundColor: cardBackgroundColor,
-                        cardBorderColor: cardBorderColor,
-                        primaryTextColor: primaryTextColor,
-                        onOpenCalendar: {
-                            triggerHaptic(.soft)
-                            isShowingCalendar = true
-                        }
-                    )
-                    .staggeredEntrance(index: 7)
-                    
-                    // MARK: - Карточка «Карта святынь»
-                    SanctuaryMapBannerCardView(
-                        language: manager.appLanguage,
-                        secondaryAccentColor: secondaryAccentColor,
-                        primaryTextColor: primaryTextColor,
-                        onOpen: {
-                            triggerHaptic(.soft)
-                            isShowingSanctuaryMap = true
-                        }
-                    )
-                    .staggeredEntrance(index: 8)
-                    
-                    // MARK: - Карточка Armenian Bible Premium
-                    PremiumPromoBannerCardView(
-                        language: manager.appLanguage,
-                        accentColor: accentColor,
-                        secondaryAccentColor: secondaryAccentColor,
-                        cardBackgroundColor: cardBackgroundColor,
-                        cardBorderColor: cardBorderColor,
-                        primaryTextColor: primaryTextColor,
-                        isPremium: subscriptionManager.isPremium,
-                        onOpenPaywall: {
-                            triggerHaptic(.soft)
-                            isShowingPaywall = true
-                        }
-                    )
-                    .staggeredEntrance(index: 8)
+                    ForEach(Array(orderedSections.enumerated()), id: \.element) { position, section in
+                        reorderableCard(section, position: position)
+                    }
                 }
                 .padding(.bottom, 30)
                 .frame(maxWidth: 680)
@@ -661,6 +509,11 @@ struct HomeView: View {
                 // Окружение задано внутри прокрутки, поэтому листы и окна, открытые отсюда, его не наследуют.
                 .environment(\.paperSurface, .sanctuary)
             }
+        }
+        // Отпустили карточку мимо других карточек: перетаскивание всё равно завершается чисто
+        .onDrop(of: [UTType.plainText], delegate: HomeSectionEndDropDelegate(dragged: $draggedSection, onFinish: { finishSectionDrag() }))
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { finishSectionDrag() }
         }
         .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
         .modifier(CandleIslandPreviewHook())
@@ -860,6 +713,252 @@ struct HomeView: View {
         }
     }
     
+    // MARK: - Разделы главного экрана (переставляются долгим нажатием)
+
+    /// Разделы в порядке пользователя: сохранённый порядок слит с порядком по умолчанию
+    private var orderedSections: [HomeSection] {
+        HomeSectionOrder.merge(saved: HomeSectionOrder.decode(savedSectionOrderRaw), defaults: HomeSection.defaultOrder)
+            .compactMap { HomeSection(rawValue: $0) }
+    }
+
+    @ViewBuilder
+    private func sectionCard(_ section: HomeSection) -> some View {
+        switch section {
+        case .manuscript:
+            // Карточка «Мой Матенадаран»: собранные листы рукописи и новый лист
+            // Стих дня на пергаменте открывается кнопкой в верхней карточке стиха
+            ManuscriptBannerCardView(
+                language: manager.appLanguage,
+                primaryTextColor: primaryTextColor,
+                onOpenCodex: {
+                    triggerHaptic(.soft)
+                    isShowingCodex = true
+                },
+                onNewLeaf: {
+                    triggerHaptic(.soft)
+                    let fresh = ManuscriptPool.curatedPages(language: manager.appLanguage, excluding: [], count: 1).first
+                        ?? ManuscriptPage.from(verse: manager.currentVerse, language: manager.appLanguage)
+                    manuscriptLaunch = ManuscriptLaunch(source: .curated(first: fresh))
+                }
+            )
+        case .narekatsi:
+            // Карточка Григора Нарекаци (Գրիգոր Նարեկացի)
+            NarekatsiBannerCardView(
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                secondaryAccentColor: secondaryAccentColor,
+                cardBackgroundColor: cardBackgroundColor,
+                cardBorderColor: cardBorderColor,
+                primaryTextColor: primaryTextColor,
+                onOpenNarek: {
+                    triggerHaptic(.soft)
+                    manager.openNarekatsi()
+                }
+            )
+        case .consolation:
+            // Карточка «Нарек утешает»: глава «Книги скорбных песнопений» под состояние человека
+            NarekConsolationBannerCardView(
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                secondaryAccentColor: secondaryAccentColor,
+                primaryTextColor: primaryTextColor,
+                onOpen: {
+                    triggerHaptic(.soft)
+                    isShowingConsolation = true
+                }
+            )
+        case .nativity:
+            // Карточка мультфильма «Рождество Христово»
+            NativityBannerCardView(
+                language: manager.appLanguage,
+                secondaryAccentColor: secondaryAccentColor,
+                primaryTextColor: primaryTextColor,
+                onOpen: {
+                    triggerHaptic(.soft)
+                    isShowingNativity = true
+                }
+            )
+        case .prayer:
+            // Карточка Храмовой Молитвы и Свечей (Մոմավառություն)
+            PrayerSanctuaryBannerCardView(
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                secondaryAccentColor: secondaryAccentColor,
+                cardBackgroundColor: cardBackgroundColor,
+                cardBorderColor: cardBorderColor,
+                primaryTextColor: primaryTextColor,
+                onOpenSanctuary: {
+                    triggerHaptic(.soft)
+                    isShowingSanctuary = true
+                }
+            )
+        case .tree:
+            // Карточка Гранатового Древа Веры (Հոգևոր Աճի Նռնենի)
+            PomegranateTreeBannerCardView(
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                secondaryAccentColor: secondaryAccentColor,
+                cardBackgroundColor: cardBackgroundColor,
+                cardBorderColor: cardBorderColor,
+                primaryTextColor: primaryTextColor,
+                onOpenSanctuary: {
+                    triggerHaptic(.soft)
+                    isShowingPomegranateSanctuary = true
+                }
+            )
+        case .readingPlan:
+            // Карточка Плана Чтения Библии и Стрика (Reading Plans & Daily Streak)
+            ReadingPlanBannerCardView(
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                secondaryAccentColor: secondaryAccentColor,
+                cardBackgroundColor: cardBackgroundColor,
+                cardBorderColor: cardBorderColor,
+                primaryTextColor: primaryTextColor,
+                onOpenPlans: {
+                    triggerHaptic(.soft)
+                    isShowingReadingPlans = true
+                }
+            )
+        case .quiz:
+            // Карточка Библейской Викторины
+            BibleQuizCardView(
+                bestScore: manager.quizBestScore,
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                secondaryAccentColor: secondaryAccentColor,
+                cardBackgroundColor: cardBackgroundColor,
+                cardBorderColor: cardBorderColor,
+                primaryTextColor: primaryTextColor,
+                onStartQuiz: {
+                    triggerHaptic(.soft)
+                    isShowingQuiz = true
+                }
+            )
+        case .feasts:
+            // Карточка Церковных праздников и Календаря
+            ChurchFeastsBannerCardView(
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                secondaryAccentColor: secondaryAccentColor,
+                cardBackgroundColor: cardBackgroundColor,
+                cardBorderColor: cardBorderColor,
+                primaryTextColor: primaryTextColor,
+                onOpenCalendar: {
+                    triggerHaptic(.soft)
+                    isShowingCalendar = true
+                }
+            )
+        case .sanctuaryMap:
+            // Карточка «Карта святынь»
+            SanctuaryMapBannerCardView(
+                language: manager.appLanguage,
+                secondaryAccentColor: secondaryAccentColor,
+                primaryTextColor: primaryTextColor,
+                onOpen: {
+                    triggerHaptic(.soft)
+                    isShowingSanctuaryMap = true
+                }
+            )
+        case .premium:
+            // Карточка Armenian Bible Premium
+            PremiumPromoBannerCardView(
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                secondaryAccentColor: secondaryAccentColor,
+                cardBackgroundColor: cardBackgroundColor,
+                cardBorderColor: cardBorderColor,
+                primaryTextColor: primaryTextColor,
+                isPremium: subscriptionManager.isPremium,
+                onOpenPaywall: {
+                    triggerHaptic(.soft)
+                    isShowingPaywall = true
+                }
+            )
+        }
+    }
+
+    // MARK: - Перестановка разделов: долгое нажатие и перетаскивание
+
+    /// Карточка раздела: каскадный вход, подъём по долгому нажатию (системное перетаскивание), действия для VoiceOver
+    @ViewBuilder
+    private func reorderableCard(_ section: HomeSection, position: Int) -> some View {
+        let total = orderedSections.count
+        sectionCard(section)
+            .staggeredEntrance(index: min(position, 8) + 2)
+            .opacity(isDragDimmed && draggedSection == section ? 0.4 : 1)
+            // Подпись при подъёме повторяет скруглённую карточку, а не прямоугольник
+            .contentShape(.dragPreview, RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .onDrag {
+                // Системное перетаскивание само поднимает карточку над экраном; здесь только отклик и пометка
+                draggedSection = section
+                isDragDimmed = false
+                triggerHaptic(.medium)
+                // Место, откуда взяли карточку, притухает чуть позже: подъём успевает снять кадр с карточки целиком
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    if draggedSection == section {
+                        withAnimation(PaperMotion.animation(PaperMotion.swap)) {
+                            isDragDimmed = true
+                        }
+                    }
+                }
+                return NSItemProvider(object: section.rawValue as NSString)
+            }
+            .onDrop(
+                of: [UTType.plainText],
+                delegate: HomeSectionDropDelegate(
+                    target: section,
+                    dragged: $draggedSection,
+                    onMove: { dragged, target in moveDraggedSection(dragged, onto: target) },
+                    onFinish: { finishSectionDrag() }
+                )
+            )
+            // VoiceOver: перестановка без жестов перетаскивания
+            .accessibilityAction(named: Text(manager.appLanguage.pick(hy: "Տեղափոխել վերև", ru: "Переместить выше", en: "Move up"))) {
+                if position > 0 { moveSection(section, by: -1) }
+            }
+            .accessibilityAction(named: Text(manager.appLanguage.pick(hy: "Տեղափոխել ներքև", ru: "Переместить ниже", en: "Move down"))) {
+                if position < total - 1 { moveSection(section, by: 1) }
+            }
+    }
+
+    /// Раздел, который тащат, встаёт на место раздела под пальцем; порядок сразу сохраняется
+    private func moveDraggedSection(_ dragged: HomeSection, onto target: HomeSection) {
+        let current = orderedSections.map { $0.rawValue }
+        let updated = HomeSectionOrder.move(current, id: dragged.rawValue, onto: target.rawValue)
+        guard updated != current else { return }
+        withAnimation(PaperMotion.animation(.spring(response: 0.38, dampingFraction: 0.82))) {
+            savedSectionOrderRaw = HomeSectionOrder.encode(updated)
+        }
+        triggerHaptic(.soft)
+    }
+
+    /// Сдвиг на одну позицию (для VoiceOver)
+    private func moveSection(_ section: HomeSection, by delta: Int) {
+        let current = orderedSections.map { $0.rawValue }
+        let updated = HomeSectionOrder.shift(current, id: section.rawValue, by: delta)
+        guard updated != current else { return }
+        withAnimation(PaperMotion.animation(.spring(response: 0.38, dampingFraction: 0.82))) {
+            savedSectionOrderRaw = HomeSectionOrder.encode(updated)
+        }
+        triggerHaptic(.light)
+        let newPosition = (updated.firstIndex(of: section.rawValue) ?? 0) + 1
+        let message = manager.appLanguage.pick(
+            hy: "Բաժինը տեղափոխվեց. դիրք \(newPosition)՝ \(updated.count)-ից",
+            ru: "Раздел перемещён: позиция \(newPosition) из \(updated.count)",
+            en: "Section moved: position \(newPosition) of \(updated.count)"
+        )
+        UIAccessibility.post(notification: .announcement, argument: message)
+    }
+
+    /// Перетаскивание закончилось (карточку отпустили или экран ушёл в фон)
+    private func finishSectionDrag() {
+        draggedSection = nil
+        withAnimation(PaperMotion.animation(PaperMotion.swap)) {
+            isDragDimmed = false
+        }
+    }
+
     // MARK: - Логика отправки запроса к ИИ
     private func runAIGeneration() {
         // Цитата от ИИ тратит тот же суточный лимит ИИ-вопросов, что и чат: без подписки он ограничен
