@@ -19,6 +19,7 @@ struct ArmenianBibleApp: App {
                     try? await Task.sleep(nanoseconds: 600_000_000)
                     CloudSyncManager.shared.start()
                     Funnel.start()
+                    PromoFrameExporter.runIfRequested()
                 }
                 .onChange(of: scenePhase) { phase in
                     if phase == .background { Funnel.flushNow() }
