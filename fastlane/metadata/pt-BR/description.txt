@@ -4,7 +4,8 @@
 • Widgets para Tela Bloqueada: Versículos bíblicos com atualização automática de hora em hora e rotação independente.
 • Bíblia Sagrada Completa: Antigo e Novo Testamento em armênio, português, inglês e russo.
 • São Gregório de Narek — «Livro das Lamentações»: Todos os 95 capítulos com áudio de estúdio.
-• Guia Espiritual IA (AI Guide): Respostas espirituais e reflexões bíblicas profundas (Gemini, ChatGPT, Claude).
+• Guia Espiritual IA (AI Guide): Respostas espirituais e reflexões bíblicas; o histórico das conversas fica no seu dispositivo.
+• Manuscrito e duelo: escreva um versículo como página de manuscrito e presenteie por link, ou jogue ao vivo um duelo de quiz bíblico com um amigo.
 • Quiz e Quiz Bíblico: Fortaleça sua fé com testes interativos.
 • Papéis de Parede Espirituais e Khachkars: Crie belos cartões com antigos khachkars armênios.
-• 100% Offline e Privado: Funciona sem internet e sem coleta de dados. Premium — sem anúncios.
+• Leitura da Bíblia sem internet e sem conta. O guia IA, os duelos e os presentes usam a internet. Premium — sem anúncios.

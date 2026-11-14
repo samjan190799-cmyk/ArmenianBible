@@ -1,8 +1,8 @@
-What's new in 4.2
-• The verse of the day now sits on real photographs, chosen to match the meaning of the verse.
-• Lock Screen wallpapers on photos: Mount Ararat, Armenian monasteries, khachkars, manuscripts, starry skies.
-• Widgets in one style: "Frame" (a photo that matches the verse) and "Sanctuary" (dark, made for StandBy). The older styles are replaced.
-• Lock Screen: hundreds of complete verses, no repeats for weeks, cleaner and easier-to-read text. Tap a quote to open that verse in the Bible.
-• Quiz: fixed stray marks above Armenian letters.
-• Settings: WhatsApp, Telegram and Instagram buttons to write to the author with ideas or complaints.
+What's new in 4.3
+• Live quiz duel: create a room, send the code or link to a friend, and answer the same questions at the same time. You can still send a challenge by link and compare scores later.
+• A page as a gift: write a verse in the Manuscript and send it to a loved one by link. They can see it even without the app.
+• Manuscript: a daily writing streak, ready-made occasions, a new Mesropian pen with capital letters in the spirit of erkatagir, and video of the writing in 60 frames per second.
+• AI guide: a side panel with the history of your conversations, with search, rename and pin. No keys or setup needed.
+• More photographs of Ararat, monasteries and skies for cards, wallpapers and widgets.
+• Favorites: saved verses now land in the right category.
 • Stability improvements.

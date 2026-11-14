@@ -1,5 +1,7 @@
-Un nouveau style et une lecture plus paisible
-• Nouveau design « Papier et encre » : papier chaleureux, une typographie de livre classique pour les Écritures et un style cohérent sur tous les écrans.
-• L'audio de Narek se souvient de l'endroit où vous vous êtes arrêté et reprend à la seconde près.
-• Animations et vibrations plus douces. L'app respecte les réglages « Réduire les animations » et vibration.
-• Corrections et améliorations de stabilité.
+Nouveautés de la 4.3
+• Duel de quiz en direct : créez une salle, envoyez le code ou le lien à un ami et répondez en même temps aux mêmes questions.
+• Une page en cadeau : écrivez un verset dans le Manuscrit et envoyez-le par lien à un proche.
+• Manuscrit : série d'écriture quotidienne, occasions prêtes à l'emploi, une nouvelle plume mesropienne et une vidéo de l'écriture à 60 images par seconde.
+• Guide IA : panneau latéral avec l'historique des conversations, recherche, renommage et épinglage. Aucune clé ni configuration.
+• Plus de photographies de l'Ararat, de monastères et de ciels pour les cartes, fonds d'écran et widgets.
+• Améliorations de stabilité.

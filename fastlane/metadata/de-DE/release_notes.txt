@@ -1,5 +1,7 @@
-Ein neues Aussehen und ruhigeres Lesen
-• Neues Design „Papier & Tinte": warmes Papier, eine klassische Buchschrift für die Heilige Schrift und ein einheitlicher Stil auf allen Bildschirmen.
-• Das Narek-Audio merkt sich, wo Sie aufgehört haben, und setzt sekundengenau fort.
-• Sanftere Animationen und Haptik. Die App beachtet die Einstellungen „Bewegung reduzieren" und Vibration.
-• Fehlerbehebungen und mehr Stabilität.
+Neu in 4.3
+• Live-Quizduell: Raum erstellen, Code oder Link an einen Freund schicken und gleichzeitig dieselben Fragen beantworten.
+• Eine Seite als Geschenk: Schreiben Sie einen Vers in der Handschrift und senden Sie ihn per Link an einen lieben Menschen.
+• Handschrift: tägliche Schreibserie, fertige Anlässe, eine neue mesropianische Feder und Video des Schreibens mit 60 Bildern pro Sekunde.
+• KI-Seelsorger: Seitenleiste mit dem Verlauf Ihrer Gespräche, mit Suche, Umbenennen und Anheften. Keine Schlüssel oder Einrichtung nötig.
+• Mehr Fotos vom Ararat, von Klöstern und Himmeln für Karten, Hintergründe und Widgets.
+• Stabilitätsverbesserungen.

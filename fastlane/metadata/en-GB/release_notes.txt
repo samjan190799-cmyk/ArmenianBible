@@ -1,5 +1,8 @@
-A new look and calmer reading
-• New "Paper & Ink" design: warm paper, a classic book typeface for Scripture and one consistent style on every screen.
-• Narek audio remembers where you stopped and continues from the exact second.
-• Gentler animations and haptics. The app respects the "Reduce Motion" and vibration settings.
-• Fixes and stability improvements.
+What's new in 4.3
+• Live quiz duel: create a room, send the code or link to a friend, and answer the same questions at the same time. You can still send a challenge by link and compare scores later.
+• A page as a gift: write a verse in the Manuscript and send it to a loved one by link. They can see it even without the app.
+• Manuscript: a daily writing streak, ready-made occasions, a new Mesropian pen with capital letters in the spirit of erkatagir, and video of the writing in 60 frames per second.
+• AI guide: a side panel with the history of your conversations, with search, rename and pin. No keys or setup needed.
+• More photographs of Ararat, monasteries and skies for cards, wallpapers and widgets.
+• Favorites: saved verses now land in the right category.
+• Stability improvements.
