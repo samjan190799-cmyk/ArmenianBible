@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Настроение цитаты и выбор кадра
 // Файл общий для приложения и виджетов (project.yml: оба таргета): в нём нет ничего, что есть только в одном из них.
-// Фотографии лежат в Assets.xcassets обоих таргетов под одними именами (QuoteLight1…QuotePeace7); у виджета они меньше.
+// Фотографии лежат в Assets.xcassets обоих таргетов под одними именами (QuoteLight1…QuoteWisdom8); у виджета они меньше.
 
 // MARK: - Настроение цитаты
 enum QuoteMood: String, CaseIterable {
@@ -17,13 +17,13 @@ enum QuoteMood: String, CaseIterable {
     /// Сколько фотографий этого настроения лежит в Assets.xcassets
     var photoCount: Int {
         switch self {
-        case .light: return 6
-        case .love: return 5
-        case .wisdom: return 5
-        case .trial: return 5
-        case .prayer: return 6
-        case .strength: return 4
-        case .peace: return 7
+        case .light: return 8
+        case .love: return 8
+        case .wisdom: return 8
+        case .trial: return 8
+        case .prayer: return 8
+        case .strength: return 8
+        case .peace: return 8
         }
     }
 
@@ -213,11 +213,16 @@ extension QuoteBackdrop {
         "QuoteLight4": 0.33,
         "QuoteLight5": 0.56,
         "QuoteLight6": 0.49,
+        "QuoteLight7": 0.62,
+        "QuoteLight8": 0.32,
         "QuoteLove1": 0.71,
         "QuoteLove2": 0.54,
         "QuoteLove3": 0.53,
         "QuoteLove4": 0.66,
         "QuoteLove5": 0.42,
+        "QuoteLove6": 0.57,
+        "QuoteLove7": 0.4,
+        "QuoteLove8": 0.25,
         "QuotePeace1": 0.42,
         "QuotePeace2": 0.61,
         "QuotePeace3": 0.76,
@@ -225,26 +230,39 @@ extension QuoteBackdrop {
         "QuotePeace5": 0.58,
         "QuotePeace6": 0.32,
         "QuotePeace7": 0.48,
+        "QuotePeace8": 0.58,
         "QuotePrayer1": 0.18,
         "QuotePrayer2": 0.19,
         "QuotePrayer3": 0.13,
         "QuotePrayer4": 0.23,
         "QuotePrayer5": 0.37,
         "QuotePrayer6": 0.34,
+        "QuotePrayer7": 0.45,
+        "QuotePrayer8": 0.44,
         "QuoteStrength1": 0.44,
         "QuoteStrength2": 0.63,
         "QuoteStrength3": 0.39,
         "QuoteStrength4": 0.43,
+        "QuoteStrength5": 0.46,
+        "QuoteStrength6": 0.5,
+        "QuoteStrength7": 0.61,
+        "QuoteStrength8": 0.39,
         "QuoteTrial1": 0.42,
         "QuoteTrial2": 0.38,
         "QuoteTrial3": 0.3,
         "QuoteTrial4": 0.35,
         "QuoteTrial5": 0.46,
+        "QuoteTrial6": 0.29,
+        "QuoteTrial7": 0.47,
+        "QuoteTrial8": 0.29,
         "QuoteWisdom1": 0.36,
         "QuoteWisdom2": 0.09,
         "QuoteWisdom3": 0.23,
         "QuoteWisdom4": 0.37,
-        "QuoteWisdom5": 0.17
+        "QuoteWisdom5": 0.17,
+        "QuoteWisdom6": 0.54,
+        "QuoteWisdom7": 0.17,
+        "QuoteWisdom8": 0.31
     ]
 
     static func luminance(of imageName: String?) -> Double {
