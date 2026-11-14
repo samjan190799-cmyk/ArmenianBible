@@ -150,6 +150,8 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
     var surfaceChoice: ManuscriptSurface?
     /// Письмо листа; у листов, сохранённых до появления выбора, поля нет — это обычное письмо
     var scriptChoice: ManuscriptScript?
+    /// Кто подарил лист (лист пришёл по ссылке): его имя стоит в памятной записи вместо имени владельца
+    var giftFrom: String?
     var name: String
     let createdAt: Date
     /// Подпись владельца под листом в «Матенадаране»; на самой странице не рисуется

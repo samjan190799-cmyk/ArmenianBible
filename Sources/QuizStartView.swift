@@ -16,6 +16,8 @@ struct QuizStartView: View {
     let primaryTextColor: Color
     let onOpenAchievements: () -> Void
     let onStart: () -> Void
+    /// Вызвать друга на дуэль; nil — кнопки нет
+    var onChallenge: (() -> Void)? = nil
     
     private let counts = [5, 10, 15, 20]
     
@@ -239,7 +241,30 @@ struct QuizStartView: View {
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
-                .padding(.bottom, 24)
+                .padding(.bottom, onChallenge == nil ? 24 : 8)
+
+                if let onChallenge {
+                    Button {
+                        onChallenge()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "flag.2.crossed.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text(language.pick(hy: "Մենամարտ ընկերոջ հետ", ru: "Дуэль с другом", en: "Duel with a friend"))
+                                .font(PaperFont.font(size: 15, weight: .semibold))
+                        }
+                        .foregroundColor(accentColor)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(accentColor.opacity(0.6), lineWidth: 1.2)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+                }
             }
         }
     }

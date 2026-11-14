@@ -9,6 +9,7 @@ import { generate, GenerateError } from './gemini.js';
 import { normalizeTask, geminiEnvFor, taskDailyLimit } from './tasks.js';
 import { parseBatch } from './events.js';
 import { dashboardHtml } from './dashboard.js';
+import { giftPageHtml, duelPageHtml, PAGE_HEADERS } from './pages.js';
 import { readCatalog } from './models.js';
 
 export { Quota } from './quota.js';
@@ -211,6 +212,13 @@ export default {
     }
     if (request.method === 'POST' && url.pathname === '/v1/stats/reset') {
       return handleStatsReset(request, env);
+    }
+    // Страницы ссылок «для двоих»: лист в подарок и вызов на дуэль. Данные в части после «#», сервер их не видит
+    if (request.method === 'GET' && url.pathname === '/g') {
+      return new Response(giftPageHtml(), { headers: PAGE_HEADERS });
+    }
+    if (request.method === 'GET' && url.pathname === '/d') {
+      return new Response(duelPageHtml(), { headers: PAGE_HEADERS });
     }
     if (request.method === 'GET' && url.pathname === '/dashboard') {
       return new Response(dashboardHtml(), { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex' } });

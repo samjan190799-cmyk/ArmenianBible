@@ -281,6 +281,8 @@ struct HomeView: View {
     @State private var isShowingPomegranateSanctuary = false
     @State private var isShowingPaywall = false
     @State private var manuscriptLaunch: ManuscriptLaunch? = nil
+    /// Вызов на дуэль или итог дуэли, пришедшие по ссылке: открываются в викторине
+    @State private var incomingDuel: QuizDuel? = nil
     @State private var isShowingCodex = false
     @State private var isShowingConsolation = false
     @State private var isShowingSanctuaryMap = false
@@ -639,8 +641,8 @@ struct HomeView: View {
             ReadingPlansCatalogView()
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
         }
-        .sheet(isPresented: $isShowingQuiz) {
-            BibleQuizView()
+        .sheet(isPresented: $isShowingQuiz, onDismiss: { incomingDuel = nil }) {
+            BibleQuizView(incomingDuel: incomingDuel)
         }
         .sheet(isPresented: $isShowingCalendar) {
             ChurchCalendarView()
@@ -755,6 +757,21 @@ struct HomeView: View {
                     }
                 } else if url.host == "calendar" {
                     isShowingCalendar = true
+                } else if url.host == "gift" {
+                    // Лист в подарок: armenianbible://gift?d=… (ссылка с веб-страницы Worker)
+                    if let page = ManuscriptGift.page(from: url) {
+                        triggerHaptic(.soft)
+                        Funnel.track("feature_used", ["feature": "gift_opened"])
+                        manuscriptLaunch = ManuscriptLaunch(source: .curated(first: page))
+                    }
+                } else if url.host == "duel" {
+                    // Вызов на дуэль или итог дуэли: armenianbible://duel?d=…
+                    if let duel = QuizDuelLink.duel(from: url) {
+                        triggerHaptic(.soft)
+                        Funnel.track("feature_used", ["feature": "duel_opened"])
+                        incomingDuel = duel
+                        isShowingQuiz = true
+                    }
                 } else if url.host == "quiz" {
                     isShowingQuiz = true
                 } else if url.host == "settings" {

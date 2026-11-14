@@ -78,6 +78,8 @@ struct ManuscriptStudioView: View {
     @State private var videoProgress: Double? = nil
     @State private var videoTask: Task<Void, Never>? = nil
     @State private var videoFile: CodexFile?
+    /// Подарок листом: сообщение со ссылкой для окна «Поделиться»
+    @State private var pairShare: PairShareItem?
 
     /// Для скриншотов в CI: застывшая секунда анимации (аргумент запуска -manuscript_time 3.5)
     private let frozenTime: Double? = {
@@ -122,7 +124,7 @@ struct ManuscriptStudioView: View {
     private func styled(_ page: ManuscriptPage, look: (style: ManuscriptStyle, name: String, surface: ManuscriptSurface)) -> ManuscriptPage {
         var result = page
         result.style = look.style
-        result.name = look.name
+        result.name = page.giftFrom ?? look.name
         result.surface = look.surface
         result.scriptChoice = script
         return result
@@ -212,6 +214,14 @@ struct ManuscriptStudioView: View {
         .preferredColorScheme(.dark)
         .onAppear {
             Funnel.track("feature_used", ["feature": "manuscript"])
+            // Лист пришёл подарком по ссылке: говорим, от кого (имя стоит и в памятной записи внизу листа)
+            if let sender = pages.first?.giftFrom {
+                showToast(language.pick(
+                    hy: "Էջ Ձեզ համար՝ \(sender)-ից",
+                    ru: "Лист для вас от \(sender)",
+                    en: "A page for you from \(sender)"
+                ))
+            }
             motion.start()
             scheduleHaptics()
             exportForTestsIfNeeded()
@@ -243,6 +253,9 @@ struct ManuscriptStudioView: View {
         .sheet(item: $videoFile) { file in
             ActivityView(activityItems: [file.url])
         }
+        .sheet(item: $pairShare) { item in
+            ActivityView(activityItems: item.items)
+        }
         .sheet(isPresented: $isShowingVideoPaywall) {
             PaywallView(source: "manuscript_video")
         }
@@ -261,6 +274,9 @@ struct ManuscriptStudioView: View {
             }
             Button(language.pick(hy: "Գրելու տեսանյութ", ru: "Видео письма", en: "Writing video")) {
                 startVideo()
+            }
+            Button(language.pick(hy: "Նվիրել էջը (հղում)", ru: "Подарить листом (ссылка)", en: "Gift this page (link)")) {
+                shareGift()
             }
             Button(language.pick(hy: "Չեղարկել", ru: "Отмена", en: "Cancel"), role: .cancel) {}
         }
@@ -745,6 +761,14 @@ struct ManuscriptStudioView: View {
             .shadow(color: Color.black.opacity(0.35), radius: 8, y: 3)
         }
         .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
+    }
+
+    /// Подарок листом: ссылка, по которой лист оживает у получателя в приложении (или текст на странице, если приложения нет)
+    private func shareGift() {
+        let page = currentPage
+        guard let url = ManuscriptGift.link(for: page, senderName: name) else { return }
+        ManuscriptStats.track("ms_gift")
+        pairShare = PairShareItem(items: [ManuscriptGift.message(for: page.language, url: url)])
     }
 
     private func shareImage() {

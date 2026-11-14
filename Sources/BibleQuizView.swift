@@ -7,12 +7,14 @@ private enum QuizAlertType: Identifiable {
     case noKey
     case limitReached
     case aiFailure(String)
+    case duelMismatch
 
     var id: String {
         switch self {
         case .noKey: return "noKey"
         case .limitReached: return "limitReached"
         case .aiFailure(let msg): return "aiFailure_\(msg)"
+        case .duelMismatch: return "duelMismatch"
         }
     }
 }
@@ -43,6 +45,23 @@ struct BibleQuizView: View {
     @State private var categoryBreakdown: [QuizCategory: Int] = [:]
     @State private var isShowingAchievements = false
     @State private var newlyUnlockedBadges: [AchievementBadge] = []
+
+    // Дуэль с другом: вызов из ссылки ждёт ответа, ответная ссылка показывает итог, а своя партия идёт с activeDuel
+    @State private var pendingInvite: QuizDuel?
+    @State private var incomingResult: QuizDuel?
+    @State private var activeDuel: QuizDuel?
+    @State private var isDuelResponder = false
+    @State private var duelShare: PairShareItem?
+
+    init(incomingDuel: QuizDuel? = nil) {
+        if let duel = incomingDuel {
+            if duel.isFinished {
+                _incomingResult = State(initialValue: duel)
+            } else if duel.isChallenge {
+                _pendingInvite = State(initialValue: duel)
+            }
+        }
+    }
     
     // Таймер на ответ
     @State private var timeRemaining: Int = 0
@@ -116,7 +135,30 @@ struct BibleQuizView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 12)
                 
-                if !quizStarted {
+                if !quizStarted, let invite = pendingInvite {
+                    // MARK: - Друг бросил вызов
+                    QuizDuelInviteView(
+                        duel: invite,
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        primaryTextColor: primaryTextColor,
+                        onAccept: { acceptInvite(invite) }
+                    )
+                } else if !quizStarted, let result = incomingResult {
+                    // MARK: - Друг прислал итог дуэли
+                    QuizDuelResultView(
+                        duel: result,
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        primaryTextColor: primaryTextColor,
+                        onRematch: {
+                            selectedCategory = result.category
+                            incomingResult = nil
+                            startChallenge()
+                        },
+                        onClose: { dismiss() }
+                    )
+                } else if !quizStarted {
                     // MARK: - Экран Старта и Выбора Категории
                     QuizStartView(
                         selectedCategory: $selectedCategory,
@@ -135,7 +177,25 @@ struct BibleQuizView: View {
                             triggerHaptic(.light)
                             isShowingAchievements = true
                         },
-                        onStart: startQuiz
+                        onStart: startQuiz,
+                        onChallenge: startChallenge
+                    )
+                } else if quizFinished, let duel = activeDuel {
+                    // MARK: - Итог дуэли
+                    QuizDuelFinishView(
+                        duel: duel,
+                        isResponder: isDuelResponder,
+                        myScore: score,
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        primaryTextColor: primaryTextColor,
+                        onShare: { shareDuel($0) },
+                        onRematch: {
+                            selectedCategory = duel.category
+                            finishDuelSession()
+                            startChallenge()
+                        },
+                        onClose: { finishDuelSession() }
                     )
                 } else if quizFinished {
                     // MARK: - Экран Итоговых Результатов
@@ -468,6 +528,9 @@ struct BibleQuizView: View {
         .sheet(isPresented: $isShowingPaywall) {
             PaywallView(source: "quiz")
         }
+        .sheet(item: $duelShare) { item in
+            ActivityView(activityItems: item.items)
+        }
         .alert(item: $activeAlert) { alertType in
             switch alertType {
             case .limitReached:
@@ -490,6 +553,16 @@ struct BibleQuizView: View {
                         startOfflineQuiz()
                     }),
                     secondaryButton: .cancel()
+                )
+            case .duelMismatch:
+                return Alert(
+                    title: Text(manager.appLanguage.pick(hy: "Այլ հարցաշար", ru: "Другой набор вопросов", en: "A different question set")),
+                    message: Text(manager.appLanguage.pick(
+                        hy: "Ընկերոջ հավելվածում հարցերը այլ են: Թարմացրեք հավելվածը երկուսի մոտ և նորից փորձեք:",
+                        ru: "У друга другая версия вопросов. Обновите приложение у обоих и попробуйте снова.",
+                        en: "Your friend has a different set of questions. Update the app on both phones and try again."
+                    )),
+                    dismissButton: .cancel(Text("close_button".localized(for: manager.appLanguage)))
                 )
             case .aiFailure(let msg):
                 return Alert(
@@ -683,6 +756,65 @@ struct BibleQuizView: View {
         case .russian: return "Оформить Premium"
         case .english: return "Upgrade to Premium"
         }
+    }
+
+    // MARK: - Дуэль с другом
+    /// Принять вызов из ссылки: те же вопросы, что у друга
+    private func acceptInvite(_ invite: QuizDuel) {
+        guard startDuelQuestions(invite) else { return }
+        Funnel.track("feature_used", ["feature": "duel_accept"])
+        pendingInvite = nil
+        isDuelResponder = true
+        activeDuel = invite
+    }
+
+    /// Новый вызов другу: свои вопросы из кураторской базы, счёт уйдёт в ссылке
+    private func startChallenge() {
+        guard let duel = QuizDuelEngine.newDuel(category: selectedCategory, name: ManuscriptPage.rememberedName) else { return }
+        Funnel.track("feature_used", ["feature": "duel_start"])
+        pendingInvite = nil
+        incomingResult = nil
+        isDuelResponder = false
+        activeDuel = duel
+        _ = startDuelQuestions(duel)
+    }
+
+    /// Запускает партию с вопросами дуэли; false, если у игрока другая версия базы вопросов
+    private func startDuelQuestions(_ duel: QuizDuel) -> Bool {
+        guard let questions = QuizDuelEngine.questions(for: duel) else {
+            activeAlert = .duelMismatch
+            return false
+        }
+        triggerHaptic(.soft)
+        activeQuestions = questions
+        currentQuestionIndex = 0
+        score = 0
+        selectedAnswerIndex = nil
+        showAnswerDetails = false
+        quizFinished = false
+        newlyUnlockedBadges = []
+        categoryBreakdown = [:]
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            quizStarted = true
+        }
+        startQuestionTimer()
+        return true
+    }
+
+    /// Отправка вызова или результата: сообщение со ссылкой
+    private func shareDuel(_ duel: QuizDuel) {
+        guard let url = QuizDuelLink.url(for: duel) else { return }
+        Funnel.track("feature_used", ["feature": duel.q == nil ? "duel_challenge_sent" : "duel_reply_sent"])
+        duelShare = PairShareItem(items: [QuizDuelText.shareMessage(for: duel, url: url, manager.appLanguage)])
+    }
+
+    private func finishDuelSession() {
+        activeDuel = nil
+        isDuelResponder = false
+        quizStarted = false
+        quizFinished = false
+        newlyUnlockedBadges = []
+        categoryBreakdown = [:]
     }
 
     private func startOfflineQuiz() {
