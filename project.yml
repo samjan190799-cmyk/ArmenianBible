@@ -19,6 +19,12 @@ targets:
         CFBundlePackageType: APPL
         CFBundleExecutable: ArmenianBible
         ITSAppUsesNonExemptEncryption: "NO"
+        # Схема ссылок приложения: armenianbible://… (подарок листом, дуэль, виджеты). XcodeGen пересоздаёт Info.plist
+        # из этих свойств, поэтому схема обязана стоять здесь, а не только в Sources/Info.plist
+        CFBundleURLTypes:
+          - CFBundleURLName: com.samvel.armenianbible
+            CFBundleURLSchemes:
+              - armenianbible
         NSPhotoLibraryAddUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSPhotoLibraryUsageDescription: "We need permission to save generated Bible verse wallpapers to your Photos library."
         NSFaceIDUsageDescription: "Protect your personal bookmarks, prayer journal, and notes with Face ID."
