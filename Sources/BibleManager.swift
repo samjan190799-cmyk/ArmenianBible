@@ -62,33 +62,12 @@ class BibleManager: ObservableObject {
     /// Ожидание, после которого прочитанная глава питает Гранатовое древо
     private var readingDewTask: Task<Void, Never>?
     
-    // MARK: - История сообщений чата Духовного Помощника
-    @Published var aiChatMessages: [AIChatMessage] = []
-    private let aiChatMessagesKey = "ai_spiritual_chat_messages"
-    
-    func addAIChatMessage(_ message: AIChatMessage) {
-        aiChatMessages.append(message)
-        saveAIChat()
-    }
-    
+    // MARK: - История чатов Духовного Помощника
+    // Беседы хранит AIChatStore (файл на каждую беседу); здесь осталась только кнопка «Очистить всё» из настроек.
     func clearAIChat() {
-        aiChatMessages.removeAll()
-        UserDefaults.standard.removeObject(forKey: aiChatMessagesKey)
+        AIChatStore.shared.deleteAll()
     }
-    
-    private func saveAIChat() {
-        if let data = try? JSONEncoder().encode(aiChatMessages) {
-            UserDefaults.standard.set(data, forKey: aiChatMessagesKey)
-        }
-    }
-    
-    private func loadAIChat() {
-        if let data = UserDefaults.standard.data(forKey: aiChatMessagesKey),
-           let messages = try? JSONDecoder().decode([AIChatMessage].self, from: data) {
-            self.aiChatMessages = messages
-        }
-    }
-    
+
     /// Когда в последний раз просили открыть «Нарека» с другого экрана. Экран Библии при входе на вкладку возвращает
     /// каталог книг и сбрасывал раздел на «Библию», из-за чего баннер на главном и подпись цитаты открывали каталог.
     var narekOpenRequestedAt: Date? = nil
@@ -509,9 +488,6 @@ class BibleManager: ObservableObject {
                 syncLockScreenWidget()
             }
         }
-        
-        // Загрузка сохраненной истории чата духовного помощника
-        loadAIChat()
         
         // Гарантируем, что текущий стих дня полностью обогащен обоими армянскими переводами из базы SQLite
         self.currentVerse = BibleDatabase.shared.enrichVerse(self.currentVerse)

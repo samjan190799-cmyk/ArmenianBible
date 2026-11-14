@@ -394,7 +394,7 @@ extension SettingsView {
                             .font(PaperFont.font(size: 13, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
-                        Text("\(manager.aiChatMessages.count) " + "ai_chat_messages_count".localized(for: selectedLanguage))
+                        Text("\(AIChatStore.shared.totalMessageCount) " + "ai_chat_messages_count".localized(for: selectedLanguage))
                             .font(PaperFont.font(size: 10, weight: .semibold))
                             .foregroundColor(selectedTheme.color)
                             .padding(.horizontal, 6)
@@ -427,8 +427,8 @@ extension SettingsView {
                     .cornerRadius(8)
                 }
                 .buttonStyle(ScaleButtonStyle())
-                .disabled(manager.aiChatMessages.isEmpty)
-                .opacity(manager.aiChatMessages.isEmpty ? 0.5 : 1.0)
+                .disabled(AIChatStore.shared.summaries.isEmpty)
+                .opacity(AIChatStore.shared.summaries.isEmpty ? 0.5 : 1.0)
             }
             .padding(12)
             .background(

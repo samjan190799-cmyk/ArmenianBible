@@ -433,8 +433,8 @@
 "ai_tone_simple" = "Պարզ";
 "ai_tone_simple_desc" = "Մատչելի բացատրություններ սկսնակների համար";
 "ai_clear_chat_title" = "AI-ի զրույցների պատմություն";
-"ai_clear_chat_desc" = "Մաքրում է հարցերի պատմությունը և վերագործարկում համատեքստը";
-"ai_clear_chat_btn" = "Մաքրել չաթը";
+"ai_clear_chat_desc" = "Ջնջում է Հոգևոր Օգնականի հետ բոլոր զրույցները";
+"ai_clear_chat_btn" = "Մաքրել բոլորը";
 "ai_clear_chat_confirm_title" = "Մաքրե՞լ զրույցների պատմությունը";
 "ai_clear_chat_confirm_msg" = "Հոգևոր Օգնականի հետ բոլոր հարցերն ու պատասխանները կջնջվեն:";
 "ai_clear_chat_cleared_toast" = "AI զրույցների պատմությունը մաքրված է";
@@ -492,4 +492,24 @@
 "pomegranate_vine_reference" = "Յովհաննու 15:5";
 "pomegranate_share_garden" = "Կիսվել";
 "pomegranate_accept_blessing" = "Ընդունել օրհնությունը";
+
+/* AI զրույցների պատմություն */
+"ai_history_title" = "Պատմություն";
+"ai_new_chat" = "Նոր զրույց";
+"ai_history_search" = "Որոնել զրույցներում";
+"ai_history_empty" = "Այստեղ կհայտնվեն Ձեր զրույցները Օգնականի հետ";
+"ai_history_no_results" = "Ոչինչ չի գտնվել";
+"ai_history_pinned" = "Ամրացված";
+"ai_history_today" = "Այսօր";
+"ai_history_yesterday" = "Երեկ";
+"ai_history_week" = "Նախորդ 7 օրը";
+"ai_history_older" = "Ավելի վաղ";
+"ai_chat_rename" = "Վերանվանել";
+"ai_chat_rename_title" = "Զրույցի անունը";
+"ai_chat_save" = "Պահպանել";
+"ai_chat_pin" = "Ամրացնել";
+"ai_chat_unpin" = "Ապամրացնել";
+"ai_chat_delete" = "Ջնջել";
+"ai_chat_delete_confirm_title" = "Ջնջե՞լ այս զրույցը";
+"ai_chat_delete_confirm_msg" = "Այս զրույցի հարցերն ու պատասխանները կջնջվեն այս սարքից:";
 

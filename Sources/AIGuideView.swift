@@ -6,16 +6,22 @@ import LocalAuthentication
 struct AIGuideView: View {
     @ObservedObject var manager = BibleManager.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    /// История бесед: каждая беседа хранится отдельно, открытая показывается на экране
+    @ObservedObject private var store = AIChatStore.shared
     @State private var questionText = ""
-    @State private var isAskingAI = false
     @State private var isShowingPaywall = false
-    
+    @State private var isHistoryOpen = false
+
     // Ошибки и подтверждения
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
     @State private var showingNoKeyAlert = false
-    @State private var showingClearChatConfirmation = false
-    
+
+    /// Ждём ответ в открытой беседе (в других беседах ответ может ждать независимо)
+    private var isAskingAI: Bool {
+        store.isPending(store.currentID)
+    }
+
     // Экспорт и Toast
     @State private var shareItem: ShareItem? = nil
     @State private var showCopiedToast = false
@@ -71,10 +77,10 @@ struct AIGuideView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 16) {
-                            if manager.aiChatMessages.isEmpty {
+                            if store.messages.isEmpty {
                                 chatWelcomeView
                             } else {
-                                ForEach(manager.aiChatMessages) { msg in
+                                ForEach(store.messages) { msg in
                                     AIChatBubbleRow(
                                         message: msg,
                                         manager: manager,
@@ -115,8 +121,14 @@ struct AIGuideView: View {
                         .padding(.bottom, 12)
                     }
                     .scrollDismissesKeyboard(.interactively)
-                    .onChange(of: manager.aiChatMessages.count) { _ in
+                    .onChange(of: store.messages.count) { _ in
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                            proxy.scrollTo("bottomChatAnchor", anchor: .bottom)
+                        }
+                    }
+                    .onChange(of: store.currentID) { _ in
+                        // Другая беседа: сразу к последнему сообщению, без анимации
+                        DispatchQueue.main.async {
                             proxy.scrollTo("bottomChatAnchor", anchor: .bottom)
                         }
                     }
@@ -134,7 +146,18 @@ struct AIGuideView: View {
             }
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)
-            
+            // Свайп от левого края открывает историю чатов
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 24)
+                    .onEnded { value in
+                        if value.startLocation.x < 28 && value.translation.width > 70 && abs(value.translation.height) < 60 {
+                            openHistory()
+                        }
+                    }
+            )
+
+            historyDrawer
+
             // Всплывающий Toast о копировании
             if showCopiedToast {
                 VStack {
@@ -173,35 +196,37 @@ struct AIGuideView: View {
         } message: {
             Text(errorMessage)
         }
-        .confirmationDialog(
-            "ai_clear_chat_confirm_title".localized(for: manager.appLanguage),
-            isPresented: $showingClearChatConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(
-                "ai_clear_chat_btn".localized(for: manager.appLanguage),
-                role: .destructive
-            ) {
-                triggerHaptic(.soft)
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    manager.clearAIChat()
-                }
-            }
-            Button("alert_cancel_button".localized(for: manager.appLanguage), role: .cancel) {}
-        }
     }
-    
+
 }
 
 extension AIGuideView {
     // MARK: - Верхняя панель (Header)
     private var chatHeaderView: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: 10) {
+            // История чатов слева
+            Button {
+                triggerHaptic(.light)
+                openHistory()
+            } label: {
+                Image(systemName: "sidebar.left")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Paper.inkSecondary)
+                    .padding(9)
+                    .background(cardBackgroundColor)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Paper.ink.opacity(0.08), lineWidth: 1))
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .accessibilityLabel(Text("ai_history_title".localized(for: manager.appLanguage)))
+
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     Text("ai_guide_title".localized(for: manager.appLanguage))
                         .font(PaperFont.font(size: 20, weight: .semibold))
                         .foregroundColor(primaryTextColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                     
                     // Меню переключения активной модели ИИ
                     Menu {
@@ -268,22 +293,22 @@ extension AIGuideView {
 
             Spacer()
             
-            // Кнопка очистки истории диалога
-            if !manager.aiChatMessages.isEmpty {
-                Button {
-                    triggerHaptic(.light)
-                    showingClearChatConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Paper.inkSecondary)
-                        .padding(9)
-                        .background(cardBackgroundColor)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Paper.ink.opacity(0.08), lineWidth: 1))
-                }
-                .buttonStyle(ScaleButtonStyle())
+            // Новый чат: пустая беседа сохраняется только после первого вопроса
+            Button {
+                triggerHaptic(.light)
+                startNewChat()
+            } label: {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(store.messages.isEmpty ? Paper.inkSecondary.opacity(0.4) : Paper.inkSecondary)
+                    .padding(9)
+                    .background(cardBackgroundColor)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Paper.ink.opacity(0.08), lineWidth: 1))
             }
+            .buttonStyle(ScaleButtonStyle())
+            .disabled(store.messages.isEmpty)
+            .accessibilityLabel(Text("ai_new_chat".localized(for: manager.appLanguage)))
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
@@ -502,16 +527,21 @@ extension AIGuideView {
         
         Funnel.track("feature_used", ["feature": "ai_question"])
         
-        // Добавляем вопрос пользователя в историю чата
+        // Прошлые реплики этой беседы уходят ИИ как контекст, чтобы он понимал уточняющие вопросы
+        let history = store.messages
+
+        // Добавляем вопрос в открытую беседу (новый чат создаётся здесь, с названием по вопросу)
         let userMessage = AIChatMessage(isUser: true, text: trimmed)
+        var chatID = UUID()
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            manager.addAIChatMessage(userMessage)
-            isAskingAI = true
+            chatID = store.addMessage(userMessage)
+            store.setPending(true, for: chatID)
         }
-        
-        manager.askBibleAI(question: trimmed) { result in
+        let targetChatID = chatID
+
+        manager.askBibleAI(question: trimmed, history: history) { result in
             DispatchQueue.main.async {
-                self.isAskingAI = false
+                self.store.setPending(false, for: targetChatID)
                 switch result {
                 case .success(let answer):
                     self.subscriptionManager.recordAiQuestionUsed()
@@ -520,8 +550,9 @@ extension AIGuideView {
                         text: answer.answerText,
                         verse: answer.verse
                     )
+                    // Ответ возвращается в ту беседу, где задан вопрос, даже если человек уже открыл другую
                     withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
-                        self.manager.addAIChatMessage(aiMessage)
+                        _ = self.store.addMessage(aiMessage, to: targetChatID)
                     }
                 case .failure(let error):
                     let prefix = "error_generation_prefix".localized(for: manager.appLanguage)
@@ -532,6 +563,71 @@ extension AIGuideView {
         }
     }
     
+    // MARK: - История чатов (боковая панель)
+    private var historyDrawer: some View {
+        GeometryReader { proxy in
+            let width = min(proxy.size.width * 0.86, 340)
+            ZStack(alignment: .leading) {
+                if isHistoryOpen {
+                    // Затемнение: нажатие или свайп влево закрывают панель
+                    Color.black.opacity(0.35)
+                        .ignoresSafeArea()
+                        .onTapGesture { closeHistory() }
+                        .gesture(
+                            DragGesture(minimumDistance: 24)
+                                .onEnded { value in
+                                    if value.translation.width < -50 && abs(value.translation.height) < 80 {
+                                        closeHistory()
+                                    }
+                                }
+                        )
+                        .transition(.opacity)
+
+                    AIChatHistoryPanel(
+                        store: store,
+                        language: manager.appLanguage,
+                        accentColor: accentColor,
+                        onNewChat: {
+                            startNewChat()
+                            closeHistory()
+                        },
+                        onSelect: { id in
+                            Funnel.track("feature_used", ["feature": "ai_chat_switch"])
+                            store.select(id)
+                            closeHistory()
+                        },
+                        onClose: { closeHistory() }
+                    )
+                    .frame(width: width)
+                    .frame(maxHeight: .infinity)
+                    .shadow(color: Color.black.opacity(0.25), radius: 14, x: 4, y: 0)
+                    .transition(.move(edge: .leading))
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        }
+        .allowsHitTesting(isHistoryOpen)
+        .animation(.spring(response: 0.34, dampingFraction: 0.86), value: isHistoryOpen)
+    }
+
+    private func openHistory() {
+        guard !isHistoryOpen else { return }
+        hideKeyboard()
+        Funnel.track("feature_used", ["feature": "ai_history_open"])
+        isHistoryOpen = true
+    }
+
+    private func closeHistory() {
+        isHistoryOpen = false
+    }
+
+    private func startNewChat() {
+        guard !store.messages.isEmpty else { return }
+        Funnel.track("feature_used", ["feature": "ai_new_chat"])
+        store.startNewChat()
+        questionText = ""
+    }
+
     // Текст статуса вопросов в шапке с учетом накопленной копилки
     private var headerQuestionsStatusText: String {
         if subscriptionManager.isPremium {

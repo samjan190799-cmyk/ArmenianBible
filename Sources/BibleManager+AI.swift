@@ -272,8 +272,10 @@ extension BibleManager {
     }
     
     // MARK: - Духовный ответчик ИИ по Библии
-    func askBibleAI(question: String, completion: @escaping (Result<BibleAnswer, Error>) -> Void) {
+    /// `history` — прошлые реплики этой же беседы (без нового вопроса): ИИ видит их как контекст
+    func askBibleAI(question: String, history: [AIChatMessage] = [], completion: @escaping (Result<BibleAnswer, Error>) -> Void) {
         let toneGuidance = aiTheologicalTone.promptGuidance(for: appLanguage)
+        let contextBlock = BibleManager.conversationContext(from: history, language: appLanguage)
         let prompt: String
         switch appLanguage {
         case .armenian:
@@ -284,7 +286,7 @@ extension BibleManager {
             prompt = "You are a Bible expert and spiritual guide. The user asks: \"\(question)\". \(toneGuidance) Provide a detailed, wise, and comforting answer in English based on the Holy Scriptures. At the very end of your response, include one key Bible verse in the following exact format:\nVERSE_START\n[Verse Text] | [Reference]\nVERSE_END"
         }
         
-        generateTextFromAI(prompt: prompt) { [weak self] result in
+        generateTextFromAI(prompt: contextBlock + prompt) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let fullText):
@@ -323,6 +325,47 @@ extension BibleManager {
         }
     }
     
+    /// Последние реплики беседы одним блоком перед вопросом. Лимиты держат запрос в пределах сервера
+    /// (до 8000 знаков на весь запрос): не больше шести реплик, ответы обрезаются, общий объём до 2400 знаков.
+    static func conversationContext(from history: [AIChatMessage], language: AppLanguage) -> String {
+        let recent = history.suffix(6)
+        guard !recent.isEmpty else { return "" }
+
+        let userLabel: String
+        let guideLabel: String
+        let header: String
+        switch language {
+        case .armenian:
+            userLabel = "Օգտատեր"
+            guideLabel = "Օգնական"
+            header = "Նախորդ զրույցը (միայն համատեքստի համար, պատասխանիր միայն ստորև նոր հարցին):"
+        case .russian:
+            userLabel = "Пользователь"
+            guideLabel = "Наставник"
+            header = "Предыдущая беседа (только для контекста, отвечай только на новый вопрос ниже):"
+        case .english:
+            userLabel = "User"
+            guideLabel = "Guide"
+            header = "Previous conversation (for context only; answer only the new question below):"
+        }
+
+        var lines: [String] = []
+        for message in recent {
+            var text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let limit = message.isUser ? 400 : 500
+            if text.count > limit {
+                text = String(text.prefix(limit)) + "…"
+            }
+            lines.append("\(message.isUser ? userLabel : guideLabel): \(text)")
+        }
+
+        var total = lines.reduce(0) { $0 + $1.count }
+        while total > 2400, lines.count > 1 {
+            total -= lines.removeFirst().count
+        }
+        return header + "\n" + lines.joined(separator: "\n") + "\n\n"
+    }
+
     // MARK: - Управление богословским тоном ИИ
     func setAITheologicalTone(_ tone: AITheologicalTone) {
         self.aiTheologicalTone = tone

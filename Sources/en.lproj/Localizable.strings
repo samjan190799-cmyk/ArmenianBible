@@ -433,8 +433,8 @@
 "ai_tone_simple" = "Simple & Clear";
 "ai_tone_simple_desc" = "Accessible answers for beginners exploring Scripture";
 "ai_clear_chat_title" = "AI Conversation History";
-"ai_clear_chat_desc" = "Clears chat history and resets assistant memory context";
-"ai_clear_chat_btn" = "Clear Chat";
+"ai_clear_chat_desc" = "Deletes all your conversations with the Spiritual Guide";
+"ai_clear_chat_btn" = "Clear All";
 "ai_clear_chat_confirm_title" = "Clear Conversation History?";
 "ai_clear_chat_confirm_msg" = "All saved questions and answers with Spiritual Guide will be removed.";
 "ai_clear_chat_cleared_toast" = "AI conversation history cleared";
@@ -492,4 +492,24 @@
 "pomegranate_vine_reference" = "John 15:5";
 "pomegranate_share_garden" = "Share Garden";
 "pomegranate_accept_blessing" = "Accept Blessing";
+
+/* AI chat history */
+"ai_history_title" = "History";
+"ai_new_chat" = "New chat";
+"ai_history_search" = "Search chats";
+"ai_history_empty" = "Your conversations with the Guide will appear here";
+"ai_history_no_results" = "Nothing found";
+"ai_history_pinned" = "Pinned";
+"ai_history_today" = "Today";
+"ai_history_yesterday" = "Yesterday";
+"ai_history_week" = "Previous 7 days";
+"ai_history_older" = "Earlier";
+"ai_chat_rename" = "Rename";
+"ai_chat_rename_title" = "Chat name";
+"ai_chat_save" = "Save";
+"ai_chat_pin" = "Pin";
+"ai_chat_unpin" = "Unpin";
+"ai_chat_delete" = "Delete";
+"ai_chat_delete_confirm_title" = "Delete this chat?";
+"ai_chat_delete_confirm_msg" = "The questions and answers in this chat will be removed from this device.";
 
