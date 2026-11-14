@@ -302,6 +302,8 @@ struct ManuscriptPenPreview: View {
 struct ManuscriptPenSheet: View {
     let language: AppLanguage
     @Binding var selectedRaw: Int
+    /// Выбор письма (обычное или месроповское): показывается только у армянских листов
+    var scriptBinding: Binding<ManuscriptScript>? = nil
 
     @ObservedObject private var subscription = SubscriptionManager.shared
     @Environment(\.dismiss) private var dismiss
@@ -331,6 +333,7 @@ struct ManuscriptPenSheet: View {
                         ForEach(ManuscriptPen.allCases) { pen in
                             row(pen)
                         }
+                        scriptSection
                     }
                     .padding(.bottom, 8)
                 }
@@ -340,6 +343,57 @@ struct ManuscriptPenSheet: View {
         .sheet(isPresented: $isShowingPaywall) {
             PaywallView(source: "manuscript_pen")
         }
+    }
+
+    // MARK: Письмо
+    @ViewBuilder
+    private var scriptSection: some View {
+        if let binding = scriptBinding {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(language.pick(hy: "Գրչություն", ru: "Письмо", en: "Script"))
+                    .font(PaperFont.font(size: 15, weight: .semibold))
+                    .foregroundColor(Paper.ink)
+                    .padding(.top, 12)
+                ForEach(ManuscriptScript.allCases) { option in
+                    scriptRow(option, binding: binding)
+                }
+            }
+        }
+    }
+
+    private func scriptRow(_ option: ManuscriptScript, binding: Binding<ManuscriptScript>) -> some View {
+        let isSelected = binding.wrappedValue == option
+        return Button {
+            Haptics.selection()
+            binding.wrappedValue = option
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(option.title(for: language))
+                        .font(PaperFont.font(size: 15, weight: .semibold))
+                        .foregroundColor(Paper.ink)
+                    Text(option.summary(for: language))
+                        .font(PaperFont.font(size: 12))
+                        .foregroundColor(Paper.inkSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 4)
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(Paper.gold)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Paper.sheet))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(isSelected ? Paper.gold : Paper.hairline, lineWidth: isSelected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
 
     private func row(_ pen: ManuscriptPen) -> some View {

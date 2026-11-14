@@ -216,7 +216,7 @@ final class ManuscriptTextLayout {
     /// чтобы строки не прыгали от каждой буквы
     static func cached(for page: ManuscriptPage, pen: ManuscriptPen = .defaultValue, prayer: Bool = false) -> ManuscriptTextLayout {
         let ink = pen.ink(on: page.look)
-        let key = "\(page.style.rawValue)|\(page.surface.rawValue)|\(page.language.rawValue)|\(ink)|\(prayer)|\(page.text)"
+        let key = "\(page.style.rawValue)|\(page.surface.rawValue)|\(page.language.rawValue)|\(ink)|\(prayer)|\(page.isMesropian)|\(page.text)"
         cacheLock.lock()
         if let hit = cache[key] {
             cacheLock.unlock()
@@ -237,9 +237,11 @@ final class ManuscriptTextLayout {
         let rect = ManuscriptGeometry.textRect
         let exclusion = ManuscriptGeometry.exclusion
         let isShort = !prayer && (body as NSString).length < 60
+        // Месроповское письмо: заглавные чуть плотнее и с большей посадкой между буквами
+        let spaced = page.isMesropian
 
         func setLines(_ size: CGFloat) -> (lines: [Line], height: CGFloat, breaksWord: Bool) {
-            typeset(body: body, size: size, palette: palette, ink: ink, isShort: isShort, width: rect.width, exclusion: exclusion)
+            typeset(body: body, size: size, palette: palette, ink: ink, isShort: isShort, width: rect.width, exclusion: exclusion, spaced: spaced)
         }
 
         // Длинному стиху разрешаем занять чуть больше места вниз
@@ -292,8 +294,8 @@ final class ManuscriptTextLayout {
     }
 
     private static func typeset(body: String, size: CGFloat, palette: ManuscriptPalette, ink: UInt32, isShort: Bool,
-                                width: CGFloat, exclusion: CGSize) -> (lines: [Line], height: CGFloat, breaksWord: Bool) {
-        let text = attributed(body: body, size: size, palette: palette, ink: ink, isShort: isShort)
+                                width: CGFloat, exclusion: CGSize, spaced: Bool = false) -> (lines: [Line], height: CGFloat, breaksWord: Bool) {
+        let text = attributed(body: body, size: size, palette: palette, ink: ink, isShort: isShort, spaced: spaced)
         let total = text.length
         guard total > 0 else { return ([], 0, false) }
         let typesetter = CTTypesetterCreateWithAttributedString(text as CFAttributedString)
@@ -360,17 +362,18 @@ final class ManuscriptTextLayout {
         return (lines, height, breaksWord)
     }
 
-    private static func attributed(body: String, size: CGFloat, palette: ManuscriptPalette, ink: UInt32, isShort: Bool) -> NSAttributedString {
+    private static func attributed(body: String, size: CGFloat, palette: ManuscriptPalette, ink: UInt32, isShort: Bool, spaced: Bool = false) -> NSAttributedString {
         let colorKey = NSAttributedString.Key(kCTForegroundColorAttributeName as String)
         let result = NSMutableAttributedString(string: body, attributes: [
-            .font: PaperFont.uiFont(size: size, weight: .regular),
+            .font: PaperFont.uiFont(size: size, weight: spaced ? .medium : .regular),
+            .kern: spaced ? size * 0.09 : 0,
             colorKey: ManuscriptPalette.uiColor(ink).cgColor
         ])
         // Слова сразу после буквицы — киноварью, как рубрика в рукописи
         let rubric = rubricLength(in: body, words: isShort ? 1 : 2)
         if rubric > 0 {
             result.addAttributes([
-                .font: PaperFont.uiFont(size: size, weight: .medium),
+                .font: PaperFont.uiFont(size: size, weight: spaced ? .semibold : .medium),
                 colorKey: ManuscriptPalette.uiColor(palette.rubric).cgColor
             ], range: NSRange(location: 0, length: rubric))
         }

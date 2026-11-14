@@ -17,6 +17,49 @@ enum ManuscriptText {
     }
 }
 
+// MARK: - Письмо: обычное или «в духе еркатагира»
+/// Исторический еркатагир (письмо Месропа Маштоца) знал только заглавные буквы. «Месроповское» письмо набирает
+/// армянский текст одними заглавными, с чуть более частой посадкой и плотнее. Это стилизация в духе древнего письма,
+/// а не точная копия начертаний: настоящий цифровой еркатагир делает типограф. Шрифт тот же (Noto Serif Armenian).
+enum ManuscriptScript: String, CaseIterable, Identifiable, Codable {
+    case regular
+    case mesropian
+
+    var id: String { rawValue }
+
+    static let storageKey = "luys_manuscript_script"
+
+    /// Письмо, выбранное в прошлый раз в мастерской. Листы из других мест (молитва в святилище, «Нарек утешает»)
+    /// создаются без выбора и пишутся обычным письмом: там текст сверяется с буквами по номерам.
+    static var preferred: ManuscriptScript {
+        ManuscriptScript(rawValue: UserDefaults.standard.string(forKey: storageKey) ?? "") ?? .regular
+    }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .regular: return language.pick(hy: "Սովորական", ru: "Обычное", en: "Regular")
+        case .mesropian: return language.pick(hy: "Մեսրոպյան (մեծատառ)", ru: "Месроповское (заглавные)", en: "Mesropian (capitals)")
+        }
+    }
+
+    func summary(for language: AppLanguage) -> String {
+        switch self {
+        case .regular:
+            return language.pick(
+                hy: "Մեծատառեր և փոքրատառեր, ինչպես այսօր",
+                ru: "Заглавные и строчные буквы, как пишут сегодня",
+                en: "Capitals and lowercase, as we write today"
+            )
+        case .mesropian:
+            return language.pick(
+                hy: "Միայն մեծատառեր, ինչպես Երկաթագրում: Հին գրչության ոգով, ոչ թե ճշգրիտ պատճեն",
+                ru: "Только заглавные, как в еркатагире. В духе древнего письма, а не точная копия",
+                en: "Capitals only, as in Erkatagir. In the spirit of the ancient script, not an exact copy"
+            )
+        }
+    }
+}
+
 // MARK: - Стиль миниатюры
 enum ManuscriptStyle: String, CaseIterable, Identifiable, Codable {
     /// Ляпис и киноварь, павлины у креста — школа Тороса Рослина (XIII век)
@@ -105,6 +148,8 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
     var style: ManuscriptStyle
     /// Основа листа; у страниц, сохранённых до появления основ, поля нет — это пергамент
     var surfaceChoice: ManuscriptSurface?
+    /// Письмо листа; у листов, сохранённых до появления выбора, поля нет — это обычное письмо
+    var scriptChoice: ManuscriptScript?
     var name: String
     let createdAt: Date
     /// Подпись владельца под листом в «Матенадаране»; на самой странице не рисуется
@@ -119,6 +164,7 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
         language: AppLanguage,
         style: ManuscriptStyle = .roslin,
         surface: ManuscriptSurface = ManuscriptSurface.effective,
+        script: ManuscriptScript? = nil,
         name: String = "",
         createdAt: Date = Date()
     ) {
@@ -128,6 +174,7 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
         self.language = language
         self.style = style
         self.surfaceChoice = surface
+        self.scriptChoice = script
         self.name = name
         self.createdAt = createdAt
     }
@@ -135,6 +182,20 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
     var surface: ManuscriptSurface {
         get { surfaceChoice ?? .parchment }
         set { surfaceChoice = newValue }
+    }
+
+    var script: ManuscriptScript {
+        scriptChoice ?? .regular
+    }
+
+    /// Месроповское письмо действует только на армянский текст: заглавные у русского и английского выглядели бы как крик
+    var isMesropian: Bool {
+        script == .mesropian && language == .armenian
+    }
+
+    /// Текст так, как он ложится на лист: при месроповском письме одни заглавные («և» становится «ԵՒ»)
+    var displayText: String {
+        isMesropian ? text.uppercased() : text
     }
 
     /// Ключ порядка в книге: заданное место или время создания (оба числа в одной шкале)
@@ -181,7 +242,7 @@ struct ManuscriptPage: Identifiable, Codable, Hashable {
 
     /// Буквица и остальной текст. Ведущие кавычки и пробелы отбрасываются.
     var initialAndBody: (initial: String, body: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = displayText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let index = trimmed.firstIndex(where: { $0.isLetter }) else {
             return ("", trimmed)
         }

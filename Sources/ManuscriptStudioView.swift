@@ -46,6 +46,8 @@ struct ManuscriptStudioView: View {
     @State private var currentId: UUID
     @State private var style: ManuscriptStyle
     @State private var surface: ManuscriptSurface
+    /// Письмо листа: обычное или месроповское (заглавные, в духе еркатагира)
+    @State private var script: ManuscriptScript
     private let isEndless: Bool
 
     @Environment(\.dismiss) private var dismiss
@@ -92,12 +94,14 @@ struct ManuscriptStudioView: View {
             _currentId = State(initialValue: first.id)
             _style = State(initialValue: first.style)
             _surface = State(initialValue: first.surface)
+            _script = State(initialValue: first.scriptChoice ?? ManuscriptScript.preferred)
             isEndless = true
         case .chapter(let chapterPages, let startId):
             _pages = State(initialValue: chapterPages)
             _currentId = State(initialValue: startId)
             _style = State(initialValue: chapterPages.first?.style ?? .roslin)
             _surface = State(initialValue: chapterPages.first?.surface ?? .parchment)
+            _script = State(initialValue: chapterPages.first?.scriptChoice ?? ManuscriptScript.preferred)
             isEndless = false
         }
     }
@@ -120,6 +124,7 @@ struct ManuscriptStudioView: View {
         result.style = look.style
         result.name = look.name
         result.surface = look.surface
+        result.scriptChoice = script
         return result
     }
 
@@ -137,6 +142,7 @@ struct ManuscriptStudioView: View {
         let turned = isTurned
         let started = startDate
         let look = (style: style, name: name, surface: activeSurface)
+        let scriptNow = script
         return ZStack {
             Self.backdrop.ignoresSafeArea()
             RadialGradient(
@@ -157,7 +163,7 @@ struct ManuscriptStudioView: View {
                         ids: pages.map(\.id),
                         currentId: $currentId,
                         // Перо тоже здесь: иначе соседние листы, которые UIKit держит готовыми, остаются со старым пером и чернилами
-                        refreshToken: "\(look.style.rawValue)|\(look.surface.rawValue)|\(look.name)|pen\(activePen.rawValue)"
+                        refreshToken: "\(look.style.rawValue)|\(look.surface.rawValue)|\(look.name)|pen\(activePen.rawValue)|script\(scriptNow.rawValue)"
                     ) { id, isCurrent in
                         guard let raw = pages.first(where: { $0.id == id }) else { return AnyView(Color.clear) }
                         return AnyView(pageContent(raw, isCurrent: isCurrent, scale: scale, turned: turned, started: started, look: look))
@@ -264,7 +270,7 @@ struct ManuscriptStudioView: View {
             }
         }
         .sheet(isPresented: $isShowingPens) {
-            ManuscriptPenSheet(language: language, selectedRaw: $penRaw)
+            ManuscriptPenSheet(language: language, selectedRaw: $penRaw, scriptBinding: language == .armenian ? scriptSelection : nil)
         }
         .sheet(isPresented: $isShowingSurfaces) {
             ManuscriptSurfaceSheet(language: language, selection: surfaceSelection)
@@ -548,6 +554,21 @@ struct ManuscriptStudioView: View {
         )
     }
 
+    /// Выбор письма: запоминается и пишет лист заново (как выбор основы)
+    private var scriptSelection: Binding<ManuscriptScript> {
+        Binding(
+            get: { script },
+            set: { chosen in
+                guard chosen != script else { return }
+                script = chosen
+                UserDefaults.standard.set(chosen.rawValue, forKey: ManuscriptScript.storageKey)
+                ManuscriptStats.track(chosen == .mesropian ? "ms_script_mesrop" : "ms_script_regular")
+                if library.contains(currentPage) { library.save(currentPage) }
+                restart()
+            }
+        )
+    }
+
     private var writingSpeed: ManuscriptWritingSpeed {
         ManuscriptWritingSpeed(rawValue: writingSpeedRaw) ?? ManuscriptWritingSpeed.defaultValue
     }
@@ -600,6 +621,7 @@ struct ManuscriptStudioView: View {
         let more = ManuscriptPool.curatedPages(language: opened.language, excluding: [opened.reference], count: 24)
         style = opened.style
         surface = opened.surface
+        script = opened.script
         pages = [opened] + more
         currentId = opened.id
         isTurned = false
@@ -788,7 +810,7 @@ struct ManuscriptStudioView: View {
 
     /// Свой текст (благословение, молитва, пожелание) открывается первым листом, дальше снова стихи
     private func openCustom(text: String, caption: String) {
-        let page = ManuscriptPage(text: text, reference: caption, language: language, style: style, surface: activeSurface, name: name)
+        let page = ManuscriptPage(text: text, reference: caption, language: language, style: style, surface: activeSurface, script: script, name: name)
         open(page)
     }
 
