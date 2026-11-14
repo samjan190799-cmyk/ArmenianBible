@@ -9,6 +9,12 @@ enum ManuscriptExport {
         render(ManuscriptPageView(page: page, reveal: .complete, sheen: CGPoint(x: 0.18, y: -0.12), showsWatermark: true, pen: pen), scale: scale)
     }
 
+    /// Кадр письма для видео: страница на заданной стадии (перо посреди текста, золото в блике) с подписью Luys
+    @MainActor
+    static func frameImage(_ page: ManuscriptPage, reveal: ManuscriptReveal, sheen: CGPoint, pen: ManuscriptPen, scale: CGFloat) -> UIImage? {
+        render(ManuscriptPageView(page: page, reveal: reveal, sheen: sheen, showsWatermark: true, pen: pen), scale: scale)
+    }
+
     @MainActor
     static func render<Content: View>(_ content: Content, scale: CGFloat) -> UIImage? {
         let renderer = ImageRenderer(content: content)

@@ -67,6 +67,15 @@ struct ManuscriptStudioView: View {
     @State private var toast: String?
     @State private var isShowingLibrary = false
     @State private var animationToken = UUID()
+    /// После того как перо дописало лист: «Поделиться» и «Сохранить» под рукой, на самом листе
+    @State private var showShareNudge = false
+    @State private var isShowingCompose = false
+    @State private var isShowingShareOptions = false
+    @State private var isShowingVideoPaywall = false
+    /// Видео письма собирается: доля готовности 0…1, nil — не собирается
+    @State private var videoProgress: Double? = nil
+    @State private var videoTask: Task<Void, Never>? = nil
+    @State private var videoFile: CodexFile?
 
     /// Для скриншотов в CI: застывшая секунда анимации (аргумент запуска -manuscript_time 3.5)
     private let frozenTime: Double? = {
@@ -158,6 +167,7 @@ struct ManuscriptStudioView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .padding(.vertical, 6)
+                .overlay(alignment: .bottom) { shareNudge }
 
                 Text(motionHint)
                     .font(PaperFont.font(size: 12))
@@ -171,6 +181,10 @@ struct ManuscriptStudioView: View {
                 actionRow
                     .padding(.horizontal, 16)
                     .padding(.bottom, 10)
+            }
+
+            if let videoProgress {
+                videoOverlay(progress: videoProgress)
             }
 
             if let toast {
@@ -207,9 +221,11 @@ struct ManuscriptStudioView: View {
         }
         .onDisappear {
             motion.stop()
+            videoTask?.cancel()
         }
         .onChange(of: currentId) { _ in
             // Новый лист: рамка и заставка остаются, текст пишется заново
+            showShareNudge = false
             isTurned = true
             startDate = Date()
             scheduleHaptics()
@@ -217,6 +233,30 @@ struct ManuscriptStudioView: View {
         }
         .sheet(item: $shareItem) { item in
             ActivityView(activityItems: [item.image])
+        }
+        .sheet(item: $videoFile) { file in
+            ActivityView(activityItems: [file.url])
+        }
+        .sheet(isPresented: $isShowingVideoPaywall) {
+            PaywallView(source: "manuscript_video")
+        }
+        .sheet(isPresented: $isShowingCompose) {
+            ManuscriptComposeSheet(language: language) { text, caption in
+                openCustom(text: text, caption: caption)
+            }
+        }
+        .confirmationDialog(
+            language.pick(hy: "Կիսվել էջով", ru: "Поделиться листом", en: "Share this page"),
+            isPresented: $isShowingShareOptions,
+            titleVisibility: .visible
+        ) {
+            Button(language.pick(hy: "Պատկեր 9:16", ru: "Картинка 9:16", en: "Image 9:16")) {
+                shareImage()
+            }
+            Button(language.pick(hy: "Գրելու տեսանյութ", ru: "Видео письма", en: "Writing video")) {
+                startVideo()
+            }
+            Button(language.pick(hy: "Չեղարկել", ru: "Отмена", en: "Cancel"), role: .cancel) {}
         }
         .sheet(isPresented: $isShowingLibrary) {
             ManuscriptLibraryView { opened in
@@ -300,6 +340,7 @@ struct ManuscriptStudioView: View {
             // Основа слева, перо и «Матенадаран» справа: по две кнопки с каждой стороны, заголовок по центру
             Button {
                 Haptics.impact(.soft)
+                ManuscriptStats.track("ms_surface_sheet")
                 isShowingSurfaces = true
             } label: {
                 Image(systemName: "paintpalette")
@@ -326,6 +367,7 @@ struct ManuscriptStudioView: View {
 
             Button {
                 Haptics.impact(.soft)
+                ManuscriptStats.track("ms_pen_sheet")
                 isShowingPens = true
             } label: {
                 Image(systemName: "pencil.and.outline")
@@ -338,6 +380,7 @@ struct ManuscriptStudioView: View {
 
             Button {
                 Haptics.impact(.soft)
+                ManuscriptStats.track("ms_codex_open")
                 isShowingLibrary = true
             } label: {
                 ZStack(alignment: .topTrailing) {
@@ -410,6 +453,7 @@ struct ManuscriptStudioView: View {
                 icon: "signature",
                 title: language.pick(hy: "Անուն", ru: "Имя", en: "Name")
             ) {
+                ManuscriptStats.track("ms_name")
                 nameDraft = name
                 isEditingName = true
             }
@@ -425,16 +469,21 @@ struct ManuscriptStudioView: View {
                 icon: "square.and.arrow.up",
                 title: language.pick(hy: "Կիսվել", ru: "Поделиться", en: "Share")
             ) {
-                if let image = renderImage() {
-                    Haptics.impact(.soft)
-                    shareItem = ShareItem(image: image)
-                }
+                Haptics.impact(.soft)
+                isShowingShareOptions = true
             }
             actionButton(
                 icon: "square.and.arrow.down",
                 title: language.pick(hy: "Լուսանկարներ", ru: "В Фото", en: "Photos")
             ) {
                 saveToPhotos()
+            }
+            actionButton(
+                icon: "text.cursor",
+                title: language.pick(hy: "Իմ տեքստը", ru: "Свой текст", en: "Your text")
+            ) {
+                Haptics.impact(.soft)
+                isShowingCompose = true
             }
         }
     }
@@ -510,6 +559,15 @@ struct ManuscriptStudioView: View {
     }
 
     private func scheduleHaptics() {
+        showShareNudge = false
+        // Без анимации лист «написан» сразу: подсказка и серия дня всё равно засчитываются
+        if reduceMotion, frozenTime == nil {
+            let token = UUID()
+            animationToken = token
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                if animationToken == token { pageWritten() }
+            }
+        }
         guard !reduceMotion, frozenTime == nil else { return }
         let token = UUID()
         animationToken = token
@@ -521,7 +579,10 @@ struct ManuscriptStudioView: View {
             if animationToken == token { Haptics.impact(.soft) }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + finish) {
-            if animationToken == token { Haptics.notify(.success) }
+            if animationToken == token {
+                Haptics.notify(.success)
+                pageWritten()
+            }
         }
     }
 
@@ -558,6 +619,18 @@ struct ManuscriptStudioView: View {
         let wasSaved = library.contains(page)
         library.save(page)
         guard !wasSaved else { return }
+        ManuscriptStats.track("ms_saved")
+        if library.pages.count == 3, !library.isCodexBound {
+            // Третий лист: самое время показать, что листы складываются в книгу
+            ManuscriptStats.track("ms_codex_hint")
+            Haptics.notify(.success)
+            showToast(language.pick(
+                hy: "3 էջ հավաքվեց · նայեք Ձեր Մատենադարանը",
+                ru: "3 листа собрано · загляните в свой Матенадаран",
+                en: "3 pages collected · peek into your Matenadaran"
+            ))
+            return
+        }
         if library.isCodexBound {
             Haptics.notify(.success)
             let volume = ManuscriptText.volume(library.activeVolume, language)
@@ -575,6 +648,7 @@ struct ManuscriptStudioView: View {
 
     private func saveToPhotos() {
         guard let image = renderImage() else { return }
+        ManuscriptStats.track("ms_photos")
         let savedText = language.pick(hy: "Պահվեց Լուսանկարներում", ru: "Сохранено в Фото", en: "Saved to Photos")
         let deniedText = language.pick(
             hy: "Թույլատրեք մուտքը Լուսանկարներ՝ Կարգավորումներում",
@@ -595,6 +669,127 @@ struct ManuscriptStudioView: View {
                 }
             })
         }
+    }
+
+    // MARK: Лист дописан, поделиться, видео, свой текст
+    /// Перо дописало лист: серия дня, задание древа, подсказка «Поделиться»
+    private func pageWritten() {
+        ManuscriptRitual.recordWritten()
+        withAnimation(PaperMotion.appear) { showShareNudge = true }
+        let token = animationToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + 9) {
+            if animationToken == token {
+                withAnimation(PaperMotion.swap) { showShareNudge = false }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var shareNudge: some View {
+        if showShareNudge {
+            HStack(spacing: 8) {
+                nudgeButton(icon: "square.and.arrow.up", title: language.pick(hy: "Կիսվել", ru: "Поделиться", en: "Share")) {
+                    ManuscriptStats.track("ms_nudge_share")
+                    withAnimation(PaperMotion.swap) { showShareNudge = false }
+                    isShowingShareOptions = true
+                }
+                if !library.contains(currentPage) {
+                    nudgeButton(icon: "books.vertical", title: language.pick(hy: "Պահել", ru: "Сохранить", en: "Save")) {
+                        ManuscriptStats.track("ms_nudge_save")
+                        saveToLibrary()
+                    }
+                }
+            }
+            .padding(.bottom, 14)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    private func nudgeButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.impact(.light)
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(title)
+                    .font(PaperFont.font(size: 13, weight: .semibold))
+            }
+            .foregroundColor(Self.backdrop)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(Capsule().fill(Self.parchmentInk))
+            .shadow(color: Color.black.opacity(0.35), radius: 8, y: 3)
+        }
+        .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.94))
+    }
+
+    private func shareImage() {
+        guard let image = renderImage() else { return }
+        ManuscriptStats.track("ms_shared")
+        shareItem = ShareItem(image: image)
+    }
+
+    /// Видео письма: первые несколько бесплатны (с подписью Luys), дальше это Premium
+    private func startVideo() {
+        guard videoProgress == nil else { return }
+        if !subscription.isPremium && !ManuscriptVideoAccess.hasFreeLeft {
+            ManuscriptStats.track("ms_video_paywall")
+            isShowingVideoPaywall = true
+            return
+        }
+        ManuscriptStats.track("ms_video")
+        let page = currentPage
+        let pen = activePen
+        let speed = writingSpeed
+        videoProgress = 0
+        videoTask = Task { @MainActor in
+            do {
+                let url = try await ManuscriptVideoExporter.export(page: page, pen: pen, speed: speed) { value in
+                    videoProgress = value
+                }
+                videoProgress = nil
+                if !subscription.isPremium { ManuscriptVideoAccess.recordMade() }
+                Haptics.notify(.success)
+                videoFile = CodexFile(url: url)
+            } catch is CancellationError {
+                videoProgress = nil
+            } catch {
+                videoProgress = nil
+                showToast(language.pick(hy: "Չհաջողվեց պատրաստել տեսանյութը", ru: "Не удалось сделать видео", en: "Could not make the video"))
+            }
+        }
+    }
+
+    private func videoOverlay(progress: Double) -> some View {
+        ZStack {
+            Color.black.opacity(0.55).ignoresSafeArea()
+            VStack(spacing: 14) {
+                Text(language.pick(hy: "Տեսանյութը պատրաստվում է…", ru: "Готовлю видео…", en: "Preparing the video…"))
+                    .font(PaperFont.font(size: 16, weight: .semibold))
+                    .foregroundColor(Self.parchmentInk)
+                ProgressView(value: progress)
+                    .tint(Paper.gold)
+                    .frame(width: 220)
+                Button {
+                    videoTask?.cancel()
+                } label: {
+                    Text(language.pick(hy: "Չեղարկել", ru: "Отмена", en: "Cancel"))
+                        .font(PaperFont.font(size: 14, weight: .medium))
+                        .foregroundColor(Self.parchmentInk.opacity(0.8))
+                }
+            }
+            .padding(24)
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Self.backdrop.opacity(0.92)))
+        }
+        .transition(.opacity)
+    }
+
+    /// Свой текст (благословение, молитва, пожелание) открывается первым листом, дальше снова стихи
+    private func openCustom(text: String, caption: String) {
+        let page = ManuscriptPage(text: text, reference: caption, language: language, style: style, surface: activeSurface, name: name)
+        open(page)
     }
 
     private func showToast(_ text: String) {
@@ -686,6 +881,7 @@ struct ManuscriptLibraryView: View {
                             .font(PaperFont.font(size: 15))
                             .foregroundColor(Paper.inkSecondary)
                             .padding(.top, 20)
+                            firstLeafButton
                         } else {
                             ForEach(Array(library.volumes.enumerated()), id: \.offset) { index, pages in
                                 volumeSection(number: index + 1, pages: pages)
@@ -774,6 +970,30 @@ struct ManuscriptLibraryView: View {
         }
         .padding(16)
         .paperSheet(cornerRadius: 18)
+    }
+
+    /// Пустой кодекс: сразу к первому листу, а не гадать, с чего начать
+    private var firstLeafButton: some View {
+        Button {
+            ManuscriptStats.track("ms_first_leaf")
+            if let page = ManuscriptPool.curatedPages(language: language, excluding: [], count: 1).first {
+                onOpen(page)
+                dismiss()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "pencil.and.outline")
+                    .font(.system(size: 15, weight: .semibold))
+                Text(ManuscriptText.pick(language, hy: "Գրել առաջին էջը", ru: "Написать первый лист", en: "Write the first page"))
+                    .font(PaperFont.font(size: 16, weight: .semibold))
+            }
+            .foregroundColor(Paper.onAccent)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Paper.accentFill)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
 
     private var headerTitle: String {
@@ -1037,6 +1257,33 @@ struct ManuscriptBannerCardView: View {
 
     @ObservedObject private var library = ManuscriptLibrary.shared
     @State private var samplePage: ManuscriptPage?
+    /// Читаются, чтобы карточка обновлялась, когда в мастерской дописан лист (серия считается в ManuscriptRitual)
+    @AppStorage(ManuscriptRitual.lastDayKey) private var lastWrittenDay = ""
+    @AppStorage(ManuscriptRitual.streakKey) private var storedStreak = 0
+
+    /// Строка ритуала под подписью: серия дней подряд или напоминание не прерывать её
+    private var ritualLine: String? {
+        _ = lastWrittenDay
+        _ = storedStreak
+        let streak = ManuscriptRitual.streak
+        if ManuscriptRitual.wroteToday {
+            return ManuscriptText.pick(
+                language,
+                hy: "✓ Այսօրվա էջը գրված է · \(streak) օր անընդմեջ",
+                ru: "✓ Лист дня написан · \(streak) дн. подряд",
+                en: "✓ Today's page is written · \(streak)-day streak"
+            )
+        }
+        if streak > 0 {
+            return ManuscriptText.pick(
+                language,
+                hy: "Մի՛ ընդհատեք շարքը՝ \(streak) օր անընդմեջ",
+                ru: "Не прерывайте серию: \(streak) дн. подряд",
+                en: "Keep your \(streak)-day streak going"
+            )
+        }
+        return nil
+    }
 
     private var thumbnailPage: ManuscriptPage? { library.pages.first ?? samplePage }
 
@@ -1118,6 +1365,13 @@ struct ManuscriptBannerCardView: View {
                             .font(PaperFont.font(size: 12))
                             .foregroundColor(Paper.inkSecondary)
                             .lineLimit(2)
+                        if let ritual = ritualLine {
+                            Text(ritual)
+                                .font(PaperFont.font(size: 11, weight: .semibold))
+                                .foregroundColor(Paper.gold)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
                     }
 
                     Spacer(minLength: 0)

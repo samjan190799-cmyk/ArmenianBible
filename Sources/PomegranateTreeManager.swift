@@ -184,13 +184,15 @@ enum PomegranateActivity {
     case quiz
     /// Запущена глава Нарекаци
     case narek
+    /// Лист «Рукописи» дописан пером до конца
+    case manuscript
     /// Выполнен шаг плана чтения: задания нет, но древо питается
     case plan
 }
 
 /// Задания дня: чтение главы и свеча каждый день, ещё два из трёх по кругу
 enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
-    case readChapter, readThree, candle, quiz, narek
+    case readChapter, readThree, candle, quiz, narek, manuscript
 
     var id: String { rawValue }
 
@@ -207,6 +209,7 @@ enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
         case .candle: return "flame.fill"
         case .quiz: return "questionmark.bubble.fill"
         case .narek: return "headphones"
+        case .manuscript: return "pencil.and.outline"
         }
     }
 
@@ -220,6 +223,8 @@ enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
             return language.pick(hy: "Վառեք աղոթքի մոմ", ru: "Зажгите молитвенную свечу", en: "Light a prayer candle")
         case .quiz:
             return language.pick(hy: "Անցեք Աստվածաշնչի վիկտորինա", ru: "Пройдите библейскую викторину", en: "Finish a Bible quiz")
+        case .manuscript:
+            return language.pick(hy: "Գրեք էջ Ձեռագրում", ru: "Напишите лист в рукописи", en: "Write a manuscript page")
         case .narek:
             return language.pick(hy: "Լսեք Նարեկացու մի գլուխ", ru: "Послушайте главу Нарекаци", en: "Listen to a chapter of Narekatsi")
         }
@@ -235,6 +240,8 @@ enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
             return language.pick(hy: "Մոմ աղոթքի տաճարում", ru: "Свеча в храме молитвы", en: "A candle in the sanctuary")
         case .quiz:
             return language.pick(hy: "Վիկտորինան ավարտեք մինչև վերջ", ru: "Пройдите викторину до конца", en: "Finish a quiz to the end")
+        case .manuscript:
+            return language.pick(hy: "Սպասեք, մինչև գրիչը ավարտի էջը", ru: "Дождитесь, пока перо допишет страницу", en: "Let the quill finish the page")
         case .narek:
             return language.pick(hy: "Միացրեք ցանկացած գլուխ", ru: "Включите любую главу", en: "Play any chapter")
         }
@@ -635,10 +642,12 @@ final class PomegranateTreeManager: ObservableObject {
 
     /// Задания дня: чтение главы и свеча всегда, а из «три главы», «викторина», «Нарекаци» по кругу пропускается одно
     static func tasks(forDayIndex index: Int) -> [PomegranateTask] {
-        let rotating: [PomegranateTask] = [.readThree, .quiz, .narek]
-        let skipped = index % rotating.count
-        let chosen = rotating.enumerated().filter { $0.offset != skipped }.map { $0.element }
-        return [.readChapter] + chosen + [.candle]
+        // Чтение главы и свеча каждый день, а два из четырёх остальных меняются по кругу (шесть сочетаний):
+        // так «Рукопись» попадает в задания дня примерно через день, а число заданий остаётся прежним
+        let rotating: [PomegranateTask] = [.readThree, .quiz, .narek, .manuscript]
+        let pairs: [(Int, Int)] = [(0, 1), (2, 3), (0, 2), (1, 3), (0, 3), (1, 2)]
+        let pair = pairs[((index % pairs.count) + pairs.count) % pairs.count]
+        return [.readChapter, rotating[pair.0], rotating[pair.1], .candle]
     }
 
     /// Подтягивает состояние заданий на сегодня; новый день начинается с нуля
@@ -695,6 +704,8 @@ final class PomegranateTreeManager: ObservableObject {
             advance(.quiz, to: (taskProgress[.quiz] ?? 0) + 1)
         case .narek:
             advance(.narek, to: (taskProgress[.narek] ?? 0) + 1)
+        case .manuscript:
+            advance(.manuscript, to: (taskProgress[.manuscript] ?? 0) + 1)
         case .plan:
             break
         }
