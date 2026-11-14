@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Настроение цитаты и выбор кадра
 // Файл общий для приложения и виджетов (project.yml: оба таргета): в нём нет ничего, что есть только в одном из них.
-// Фотографии лежат в Assets.xcassets обоих таргетов под одними именами (QuoteLight1…QuoteWisdom8, QuoteStrength11); у виджета они меньше.
+// Фотографии лежат в Assets.xcassets обоих таргетов под одними именами (QuoteLight1…QuoteWisdom8, QuoteStrength12); у виджета они меньше.
 
 // MARK: - Настроение цитаты
 enum QuoteMood: String, CaseIterable {
@@ -17,13 +17,13 @@ enum QuoteMood: String, CaseIterable {
     /// Сколько фотографий этого настроения лежит в Assets.xcassets
     var photoCount: Int {
         switch self {
-        case .light: return 9
-        case .love: return 9
+        case .light: return 11
+        case .love: return 10
         case .wisdom: return 8
-        case .trial: return 8
-        case .prayer: return 8
-        case .strength: return 11
-        case .peace: return 10
+        case .trial: return 11
+        case .prayer: return 9
+        case .strength: return 12
+        case .peace: return 12
         }
     }
 
@@ -216,6 +216,8 @@ extension QuoteBackdrop {
         "QuoteLight7": 0.62,
         "QuoteLight8": 0.32,
         "QuoteLight9": 0.47,
+        "QuoteLight10": 0.45,
+        "QuoteLight11": 0.53,
         "QuoteLove1": 0.71,
         "QuoteLove2": 0.54,
         "QuoteLove3": 0.53,
@@ -225,6 +227,7 @@ extension QuoteBackdrop {
         "QuoteLove7": 0.4,
         "QuoteLove8": 0.25,
         "QuoteLove9": 0.59,
+        "QuoteLove10": 0.46,
         "QuotePeace1": 0.42,
         "QuotePeace2": 0.61,
         "QuotePeace3": 0.76,
@@ -235,6 +238,8 @@ extension QuoteBackdrop {
         "QuotePeace8": 0.58,
         "QuotePeace9": 0.51,
         "QuotePeace10": 0.62,
+        "QuotePeace11": 0.61,
+        "QuotePeace12": 0.52,
         "QuotePrayer1": 0.18,
         "QuotePrayer2": 0.19,
         "QuotePrayer3": 0.13,
@@ -243,6 +248,7 @@ extension QuoteBackdrop {
         "QuotePrayer6": 0.34,
         "QuotePrayer7": 0.45,
         "QuotePrayer8": 0.44,
+        "QuotePrayer9": 0.43,
         "QuoteStrength1": 0.44,
         "QuoteStrength2": 0.63,
         "QuoteStrength3": 0.39,
@@ -254,6 +260,7 @@ extension QuoteBackdrop {
         "QuoteStrength9": 0.52,
         "QuoteStrength10": 0.46,
         "QuoteStrength11": 0.49,
+        "QuoteStrength12": 0.41,
         "QuoteTrial1": 0.42,
         "QuoteTrial2": 0.38,
         "QuoteTrial3": 0.3,
@@ -262,6 +269,9 @@ extension QuoteBackdrop {
         "QuoteTrial6": 0.29,
         "QuoteTrial7": 0.47,
         "QuoteTrial8": 0.29,
+        "QuoteTrial9": 0.62,
+        "QuoteTrial10": 0.63,
+        "QuoteTrial11": 0.44,
         "QuoteWisdom1": 0.36,
         "QuoteWisdom2": 0.09,
         "QuoteWisdom3": 0.23,

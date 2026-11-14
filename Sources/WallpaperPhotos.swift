@@ -2,18 +2,19 @@ import SwiftUI
 import UIKit
 
 // MARK: - Фотографии для обоев экрана блокировки
-// У каждой темы вертикальные кадры 1290×2796 (Assets.xcassets: WallpaperArarat1…WallpaperSunset5),
+// У каждой темы вертикальные кадры 1290×2796 (Assets.xcassets: WallpaperArarat1…WallpaperSunset9),
 // снятых на месте: Арарат, монастыри, хачкары, рукописи, звёздное небо, закаты, горы.
 // Фото лежат в приложении и работают без интернета, поэтому автоматизации Команд не зависят от сети.
 // Авторы перечислены в PHOTO_CREDITS.md.
 
 extension WallpaperTheme {
-    /// Сколько кадров у темы: у большинства четыре, у «Арарата» шесть, у «Заката» пять
-    /// (в них есть собственные снимки автора приложения)
+    /// Сколько кадров у темы: у большинства четыре, у «Арарата» десять, у «Заката» девять,
+    /// у «Татева», «Графита» и «Королевской» по пять (в них есть собственные снимки автора приложения)
     var photoCount: Int {
         switch self {
-        case .ararat: return 6
-        case .sunset: return 5
+        case .ararat: return 10
+        case .sunset: return 9
+        case .tatev, .graphite, .royal: return 5
         default: return 4
         }
     }
