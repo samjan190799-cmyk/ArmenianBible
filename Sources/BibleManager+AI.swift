@@ -6,18 +6,11 @@ import UserNotifications
 extension BibleManager {
 
     // MARK: - Какой ключ использовать для запроса к ИИ
-    /// Свой ключ человека; если его нет, маркер серверного ИИ (запрос уйдёт на Worker: подписчика по подписке, остальных
-    /// как бесплатный вопрос); пустая строка только пока адрес сервера не задан
+    /// Весь ИИ идёт через сервер приложения (cloudflare/ai-proxy): личные ключи и выбор провайдера из настроек убраны,
+    /// поэтому всегда возвращается маркер серверного ИИ; пустая строка только пока адрес сервера не задан.
+    /// Прежние личные ключи, если они сохранены на устройстве, больше не используются.
     func effectiveAPIKey(for provider: AIProvider) -> String {
-        let own: String
-        switch provider {
-        case .gemini: own = geminiApiKey
-        case .chatgpt: own = openaiApiKey
-        case .claude: own = anthropicApiKey
-        }
-        let trimmed = own.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty { return trimmed }
-        return AIProxy.isAvailableForCurrentUser ? AIProxy.sentinelKey : ""
+        AIProxy.isAvailableForCurrentUser ? AIProxy.sentinelKey : ""
     }
 
     // MARK: - Генерация цитаты через Gemini API / ChatGPT / Claude
@@ -50,7 +43,8 @@ extension BibleManager {
                     apiKey: apiKey,
                     prompt: prompt,
                     jsonMode: false,
-                    maxTokens: 1024
+                    maxTokens: 1024,
+                    task: .verse
                 )
                 await MainActor.run {
                     self.isGeneratingAI = false
@@ -89,7 +83,7 @@ extension BibleManager {
     }
     
     // MARK: - Общая генерация текста через ИИ (для толкований и свободных молитв)
-    func generateTextFromAI(prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
+    func generateTextFromAI(prompt: String, task: AITask = .general, completion: @escaping (Result<String, Error>) -> Void) {
         let apiKey = effectiveAPIKey(for: activeProvider)
         
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -111,7 +105,8 @@ extension BibleManager {
                     apiKey: apiKey,
                     prompt: prompt,
                     jsonMode: false,
-                    maxTokens: 2048
+                    maxTokens: 2048,
+                    task: task
                 )
                 await MainActor.run {
                     self.isGeneratingText = false
@@ -160,7 +155,8 @@ extension BibleManager {
                     apiKey: apiKey,
                     prompt: prompt,
                     jsonMode: false,
-                    maxTokens: 1024
+                    maxTokens: 1024,
+                    task: .verse
                 )
                 await MainActor.run {
                     self.isGeneratingAI = false
@@ -286,7 +282,7 @@ extension BibleManager {
             prompt = "You are a Bible expert and spiritual guide. The user asks: \"\(question)\". \(toneGuidance) Provide a detailed, wise, and comforting answer in English based on the Holy Scriptures. At the very end of your response, include one key Bible verse in the following exact format:\nVERSE_START\n[Verse Text] | [Reference]\nVERSE_END"
         }
         
-        generateTextFromAI(prompt: contextBlock + prompt) { [weak self] result in
+        generateTextFromAI(prompt: contextBlock + prompt, task: .chat) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let fullText):

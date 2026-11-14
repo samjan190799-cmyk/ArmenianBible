@@ -46,6 +46,25 @@ enum AIServerConsent {
     }
 }
 
+// MARK: - Задачи ИИ
+/// Для чего запрос. Имена совпадают с белым списком Worker (cloudflare/ai-proxy/src/tasks.js): для каждой задачи
+/// там можно задать отдельный ключ Gemini (`GEMINI_API_KEY_<ЗАДАЧА>`), свой список моделей и суточный потолок.
+/// Если для задачи ничего не задано, она работает на общем ключе, как раньше.
+enum AITask: String {
+    /// Всё, что не относится к задачам ниже
+    case general
+    /// Чат «Духовный Проводник»
+    case chat
+    /// Генерация вопросов викторины
+    case quiz
+    /// «Нарек утешает»: слово утешения
+    case consolation
+    /// Толкование стиха
+    case explain
+    /// Подбор и генерация стиха
+    case verse
+}
+
 // MARK: - Серверный ИИ: для подписчиков и для бесплатных вопросов
 /// Вопрос уходит на Worker Cloudflare (папка cloudflare/ai-proxy), ключ ИИ хранится только там. Свой ключ человеку не нужен.
 /// Подписчик подтверждается подписанной Apple покупкой, бесплатный вопрос идёт под случайным номером установки
@@ -84,7 +103,7 @@ enum AIProxy {
         NSError(domain: "AIProxy", code: code, userInfo: [NSLocalizedDescriptionKey: messagePrefix + text])
     }
 
-    static func generate(prompt: String, systemPrompt: String?, jsonMode: Bool, maxTokens: Int) async throws -> String {
+    static func generate(prompt: String, systemPrompt: String?, jsonMode: Bool, maxTokens: Int, task: AITask = .general) async throws -> String {
         let language = BibleManager.shared.appLanguage
         guard let url = URL(string: baseURL)?.appendingPathComponent("v1/generate") else {
             throw failure(500, language.pick(hy: "Սերվերի հասցեն սխալ է", ru: "Неверный адрес сервера ИИ", en: "Invalid AI server address"))
@@ -110,7 +129,9 @@ enum AIProxy {
         var body: [String: Any] = [
             "prompt": prompt,
             "json": jsonMode,
-            "maxTokens": maxTokens
+            "maxTokens": maxTokens,
+            // Для какой задачи запрос: сервер берёт для неё свой ключ, свои модели и свой суточный потолок
+            "task": task.rawValue
         ]
         if let transaction {
             body["transaction"] = transaction

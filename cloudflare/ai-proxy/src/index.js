@@ -6,6 +6,7 @@
 
 import { verifyAppleJws, checkEntitlement, VerifyError } from './apple.js';
 import { generate, GenerateError } from './gemini.js';
+import { normalizeTask, geminiEnvFor, taskDailyLimit } from './tasks.js';
 import { parseBatch } from './events.js';
 import { dashboardHtml } from './dashboard.js';
 import { readCatalog } from './models.js';
@@ -69,6 +70,8 @@ async function handleGenerate(request, env, deps) {
   const system = typeof body.system === 'string' ? body.system : '';
   if (!prompt.trim() || prompt.length > MAX_PROMPT_CHARS || system.length > MAX_SYSTEM_CHARS) return json({ error: 'bad_request' }, 400);
   const maxTokens = Math.min(Math.max(Number(body.maxTokens) || 1024, 64), 4096);
+  // Для какой задачи запрос: у задачи может быть свой ключ Gemini, свои модели и суточный потолок (см. tasks.js)
+  const task = normalizeTask(body.task);
 
   const global = { name: 'global', limit: Number(env.GLOBAL_DAILY_LIMIT) || 3000, failure: 'busy' };
   let tier;
@@ -110,6 +113,9 @@ async function handleGenerate(request, env, deps) {
     return json({ error: 'unauthorized', reason: 'bad_format' }, 401);
   }
 
+  const perTaskLimit = taskDailyLimit(env, task);
+  if (perTaskLimit > 0) counters.push({ name: `task:${task}`, limit: perTaskLimit, failure: 'busy' });
+
   const taken = await takeAll(env, counters);
   if (!taken.ok) {
     if (taken.failed.failure === 'quota') {
@@ -120,7 +126,7 @@ async function handleGenerate(request, env, deps) {
   const mine = taken.taken.find((item) => item.name === userName);
 
   try {
-    const { text, model } = await generate(env, { prompt, system, json: body.json === true, maxTokens }, deps.fetch);
+    const { text, model } = await generate(geminiEnvFor(env, task), { prompt, system, json: body.json === true, maxTokens }, deps.fetch);
     return json({ text, model, tier, remaining: Math.max(0, mine.result.limit - mine.result.used) });
   } catch (error) {
     // ИИ не ответил: вопрос человеку не засчитываем

@@ -263,7 +263,8 @@ final class AIModelRegistry: @unchecked Sendable {
         prompt: String,
         systemPrompt: String? = nil,
         jsonMode: Bool = false,
-        maxTokens: Int = 1024
+        maxTokens: Int = 1024,
+        task: AITask = .general
     ) async throws -> (text: String, usedModel: String) {
         let result = try await executeRequestUnfiltered(
             provider: provider,
@@ -271,7 +272,8 @@ final class AIModelRegistry: @unchecked Sendable {
             prompt: prompt,
             systemPrompt: systemPrompt,
             jsonMode: jsonMode,
-            maxTokens: maxTokens
+            maxTokens: maxTokens,
+            task: task
         )
         if jsonMode { return result }
         return (text: ArmenianText.clean(result.text), usedModel: result.usedModel)
@@ -283,10 +285,11 @@ final class AIModelRegistry: @unchecked Sendable {
         prompt: String,
         systemPrompt: String? = nil,
         jsonMode: Bool = false,
-        maxTokens: Int = 1024
+        maxTokens: Int = 1024,
+        task: AITask = .general
     ) async throws -> (text: String, usedModel: String) {
         if apiKey == AIProxy.sentinelKey {
-            return try await serverRequest(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            return try await serverRequest(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens, task: task)
         }
         do {
             let result = try await executeDirectRequest(provider: provider, apiKey: apiKey, prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
@@ -297,13 +300,13 @@ final class AIModelRegistry: @unchecked Sendable {
                 Funnel.track("ai_result", ["result": Self.aiOutcome(error), "via": "own"])
                 throw error
             }
-            return try await serverRequest(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            return try await serverRequest(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens, task: task)
         }
     }
 
-    private func serverRequest(prompt: String, systemPrompt: String?, jsonMode: Bool, maxTokens: Int) async throws -> (text: String, usedModel: String) {
+    private func serverRequest(prompt: String, systemPrompt: String?, jsonMode: Bool, maxTokens: Int, task: AITask) async throws -> (text: String, usedModel: String) {
         do {
-            let text = try await AIProxy.generate(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens)
+            let text = try await AIProxy.generate(prompt: prompt, systemPrompt: systemPrompt, jsonMode: jsonMode, maxTokens: maxTokens, task: task)
             Funnel.track("ai_result", ["result": "ok", "via": "server"])
             return (text, "server")
         } catch {

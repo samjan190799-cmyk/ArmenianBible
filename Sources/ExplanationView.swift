@@ -219,7 +219,7 @@ struct ExplanationView: View {
             prompt = "You are a Bible expert and theologian. Explain and interpret the following Bible verse: \"\(manager.currentVerse.text)\" (\(manager.currentVerse.reference)). Provide a deep theological but easy-to-understand explanation in English. \(depthPrompt) Write in clean, structured paragraphs."
         }
         
-        manager.generateTextFromAI(prompt: prompt) { result in
+        manager.generateTextFromAI(prompt: prompt, task: .explain) { result in
             switch result {
             case .success(let text):
                 DispatchQueue.main.async {

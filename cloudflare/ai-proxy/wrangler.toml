@@ -23,6 +23,10 @@ ALLOW_SANDBOX = "true"
 # Сверено с документацией Google 2026-11-05: gemini-2.0-flash закрыта, gemini-2.5-flash с 1 декабря 2026 уходит на gemini-3.5-flash-lite.
 # Хотите качество выше, а расход больше: поставьте gemini-3.6-flash первой
 GEMINI_MODELS = "gemini-3.5-flash-lite,gemini-3.6-flash,gemini-2.5-flash-lite"
+# Задачи ИИ (chat, quiz, consolation, explain, verse): для каждой можно задать свой ключ Gemini, свои модели и суточный потолок.
+#   секрет:      npx wrangler secret put GEMINI_API_KEY_CHAT   (так же _QUIZ, _CONSOLATION, _EXPLAIN, _VERSE)
+#   переменные:  GEMINI_MODELS_CHAT = "..."  (свой список моделей),  TASK_DAILY_LIMIT_QUIZ = "200"  (запросов в сутки по UTC на всех вместе)
+# Что не задано, берётся общее (GEMINI_API_KEY, GEMINI_MODELS), а потолка у задачи нет. Подробности: src/tasks.js
 # Список моделей для кнопки «Обновить модели» в приложении (GET /v1/models) лежит в src/models.js.
 # Заменить его без правки кода можно переменной AI_MODEL_CATALOG (JSON вида {"gemini":[...],"openai":[...],"claude":[...]})
 

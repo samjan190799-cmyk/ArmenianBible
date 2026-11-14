@@ -14,11 +14,7 @@ struct SettingsView: View {
     @State var isShowingPaywall = false
     @State var isShowingSanctuarySheet = false
     @State var selectedCandleTierForDirectLight: CandleTier? = nil
-    @State var selectedProvider: AIProvider = .gemini
     @State var selectedLanguage: AppLanguage = .armenian
-    @State var geminiKeyInput = ""
-    @State var openaiKeyInput = ""
-    @State var anthropicKeyInput = ""
     @State var isCheckingModels = false
     @State var activeKeyCheckToast: String? = nil
     
@@ -310,11 +306,7 @@ struct SettingsView: View {
                 }
             }
             .onAppear {
-                selectedProvider = manager.activeProvider
                 selectedLanguage = manager.appLanguage
-                geminiKeyInput = manager.geminiApiKey
-                openaiKeyInput = manager.openaiApiKey
-                anthropicKeyInput = manager.anthropicApiKey
                 selectedInterval = manager.updateInterval
                 selectedCategory = manager.selectedCategory
                 selectedScope = manager.verseSourceScope

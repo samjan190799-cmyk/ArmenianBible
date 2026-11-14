@@ -476,7 +476,7 @@ struct NarekConsolationView: View {
             themes: selectedThemes.map { $0.title(for: language) },
             chapterTitle: match.prayer.inspiredTitle(for: language)
         )
-        manager.generateTextFromAI(prompt: prompt) { result in
+        manager.generateTextFromAI(prompt: prompt, task: .consolation) { result in
             isAskingAI = false
             switch result {
             case .success(let answer):

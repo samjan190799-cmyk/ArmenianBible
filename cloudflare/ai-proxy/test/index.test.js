@@ -211,3 +211,45 @@ test('сеть в счётчике не хранится в открытом в�
   assert.ok(names.some((name) => name.startsWith('net:')));
   assert.ok(!names.some((name) => name.includes('203.0.113.7')));
 });
+
+// --- Задачи: свой ключ, свои модели, свой суточный потолок ---
+
+function recordingAi(calls) {
+  return {
+    fetch: async (url, init) => {
+      calls.push({ url: String(url), key: init.headers['x-goog-api-key'] });
+      return okAi();
+    }
+  };
+}
+
+test('у задачи свой ключ и свои модели, остальные задачи работают на общем', { skip }, async () => {
+  const env = makeEnv({ GEMINI_API_KEY_CHAT: 'chat-key', GEMINI_MODELS_CHAT: 'chat-model' });
+  const calls = [];
+  const deps = recordingAi(calls);
+  assert.equal((await ask(env, validBody({ task: 'chat' }), deps)).status, 200);
+  assert.equal((await ask(env, validBody({ task: 'quiz' }), deps)).status, 200);
+  assert.equal(calls[0].key, 'chat-key');
+  assert.ok(calls[0].url.includes('models/chat-model:'));
+  assert.equal(calls[1].key, 'test-key');
+});
+
+test('без поля task и с неизвестным именем работает общий ключ', { skip }, async () => {
+  const env = makeEnv({ GEMINI_API_KEY_CHAT: 'chat-key', DAILY_LIMIT: '5' });
+  const calls = [];
+  const deps = recordingAi(calls);
+  assert.equal((await ask(env, validBody(), deps)).status, 200);
+  assert.equal((await ask(env, validBody({ task: 'CHAT' }), deps)).status, 200);
+  assert.equal((await ask(env, validBody({ task: 'GEMINI_API_KEY' }), deps)).status, 200);
+  assert.deepEqual(calls.map((call) => call.key), ['test-key', 'test-key', 'test-key']);
+});
+
+test('суточный потолок задачи: после него задача получает 503, а вопрос не сгорает, другие задачи работают', { skip }, async () => {
+  const env = makeEnv({ DAILY_LIMIT: '2', GLOBAL_DAILY_LIMIT: '10', TASK_DAILY_LIMIT_QUIZ: '1' });
+  assert.equal((await ask(env, validBody({ task: 'quiz' }))).status, 200);
+  const second = await ask(env, validBody({ task: 'quiz' }));
+  assert.equal(second.status, 503);
+  assert.equal((await second.json()).error, 'busy');
+  // личный лимит подписчика 2: отказ задачи его не списал, поэтому чат ещё отвечает
+  assert.equal((await ask(env, validBody({ task: 'chat' }))).status, 200);
+});

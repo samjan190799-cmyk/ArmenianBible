@@ -227,41 +227,6 @@ extension AIGuideView {
                         .foregroundColor(primaryTextColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
-                    
-                    // Меню переключения активной модели ИИ
-                    Menu {
-                        ForEach(AIProvider.allCases) { provider in
-                            Button {
-                                triggerHaptic(.soft)
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    manager.activeProvider = provider
-                                }
-                            } label: {
-                                HStack {
-                                    Text(provider.displayName)
-                                    if manager.activeProvider == provider {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 5) {
-                            Circle()
-                                .fill(manager.activeProvider.color)
-                                .frame(width: 6, height: 6)
-                            Text(manager.activeProvider.displayName)
-                                .font(PaperFont.font(size: 11, weight: .semibold))
-                                .foregroundColor(primaryTextColor)
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(Paper.inkSecondary)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(manager.activeProvider.color.opacity(0.12))
-                        .cornerRadius(8)
-                    }
                 }
                 
                 // Статус подписки и кнопка пополнения копилки вопросов
@@ -341,40 +306,6 @@ extension AIGuideView {
                     .padding(.horizontal, 20)
                     .lineSpacing(4)
             }
-            
-            // MARK: - Переключатель моделей ИИ
-            HStack(spacing: 8) {
-                ForEach(AIProvider.allCases) { provider in
-                    Button {
-                        triggerHaptic(.light)
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                            manager.activeProvider = provider
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: provider.iconName)
-                                .font(.system(size: 11, weight: .semibold))
-                            Text(provider.displayName)
-                                .font(PaperFont.font(size: 12, weight: .semibold))
-                        }
-                        .foregroundColor(manager.activeProvider == provider ? Paper.onAccent : primaryTextColor.opacity(0.7))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(
-                            manager.activeProvider == provider ?
-                            provider.color :
-                            cardBackgroundColor
-                        )
-                        .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(manager.activeProvider == provider ? Color.clear : Paper.ink.opacity(0.08), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                }
-            }
-            .padding(.vertical, 2)
             
             // Подсказки быстрых вопросов
             VStack(alignment: .leading, spacing: 10) {

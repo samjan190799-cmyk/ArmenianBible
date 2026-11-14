@@ -133,7 +133,8 @@ final class QuizAIEngine {
             prompt: prompt,
             systemPrompt: systemPrompt,
             jsonMode: true,
-            maxTokens: 4096
+            maxTokens: 4096,
+            task: .quiz
         )
         let providerName = registry.displayName(for: provider)
         let parsed = parseQuestions(from: rawContent, category: category, language: language, providerName: providerName)
