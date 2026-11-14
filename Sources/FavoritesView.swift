@@ -82,18 +82,19 @@ struct FavoritesView: View {
         if selectedSectionTab == 2 || selectedSectionTab == 3 {
             return []
         }
-        if selectedTagFilter != nil {
-            return [] // Избранное не имеет тегов напрямую
+        // Категория избранного стиха определяется по смыслу (VerseTagClassifier), поэтому он попадает в категории
+        var list = manager.favoriteVerses
+        if let tag = selectedTagFilter {
+            list = list.filter { VerseTag.suggested(for: $0).contains(tag) }
         }
-        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return manager.favoriteVerses
-        } else {
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let query = searchText.lowercased()
-            return manager.favoriteVerses.filter { item in
+            list = list.filter { item in
                 item.text(for: manager.appLanguage).lowercased().contains(query) ||
                 item.reference(for: manager.appLanguage).lowercased().contains(query)
             }
         }
+        return list
     }
     
     private var totalItemsCount: Int {
@@ -232,7 +233,7 @@ struct FavoritesView: View {
                 .padding(.bottom, 6)
                 
                 // MARK: - Список карточек или Пустое состояние
-                let showFavorites = (selectedSectionTab == 0 || selectedSectionTab == 1) && selectedTagFilter == nil
+                let showFavorites = (selectedSectionTab == 0 || selectedSectionTab == 1)
                 let hasAnnotations = !filteredAnnotations.isEmpty
                 let hasFavorites = showFavorites && !filteredFavorites.isEmpty
                 
@@ -751,6 +752,23 @@ struct FavoriteCardView: View {
                 .foregroundColor(primaryTextColor)
                 .lineSpacing(6)
                 .multilineTextAlignment(.leading)
+            
+            // Категории стиха (определяются по смыслу): по ним работает фильтр сверху
+            HStack(spacing: 6) {
+                ForEach(VerseTag.suggested(for: item)) { tag in
+                    HStack(spacing: 3) {
+                        Image(systemName: tag.symbol)
+                            .font(.system(size: 10))
+                        Text(tag.localizedTitle(for: language))
+                            .font(PaperFont.font(size: 10.5, weight: .semibold))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(tag.color.opacity(0.16))
+                    .foregroundColor(tag.color)
+                    .cornerRadius(8)
+                }
+            }
             
             HStack {
                 Text(item.reference(for: language))
