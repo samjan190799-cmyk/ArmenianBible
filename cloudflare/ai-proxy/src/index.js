@@ -9,11 +9,13 @@ import { generate, GenerateError } from './gemini.js';
 import { normalizeTask, geminiEnvFor, taskDailyLimit } from './tasks.js';
 import { parseBatch } from './events.js';
 import { dashboardHtml } from './dashboard.js';
-import { giftPageHtml, duelPageHtml, PAGE_HEADERS } from './pages.js';
+import { giftPageHtml, duelPageHtml, roomPageHtml, PAGE_HEADERS } from './pages.js';
+import { validCode } from './duel-room.js';
 import { readCatalog } from './models.js';
 
 export { Quota } from './quota.js';
 export { Stats } from './stats.js';
+export { DuelRoom } from './duel-do.js';
 
 const MAX_BODY_BYTES = 24_000;
 const MAX_EVENTS_BODY_BYTES = 12_000;
@@ -214,6 +216,17 @@ export default {
       return handleStatsReset(request, env);
     }
     // Страницы ссылок «для двоих»: лист в подарок и вызов на дуэль. Данные в части после «#», сервер их не видит
+    const room = /^\/v1\/duel\/([^/]+)$/.exec(url.pathname);
+    if (request.method === 'GET' && room) {
+      // Дуэль в реальном времени: каждой комнате свой Durable Object, соединение — WebSocket
+      if (!validCode(room[1])) return json({ error: 'bad_code' }, 400);
+      if (request.headers.get('Upgrade') !== 'websocket') return json({ error: 'websocket_required' }, 426);
+      if (!env.DUEL) return json({ error: 'duel_unavailable' }, 503);
+      return env.DUEL.get(env.DUEL.idFromName(room[1])).fetch(request);
+    }
+    if (request.method === 'GET' && url.pathname === '/r') {
+      return new Response(roomPageHtml(), { headers: PAGE_HEADERS });
+    }
     if (request.method === 'GET' && url.pathname === '/g') {
       return new Response(giftPageHtml(), { headers: PAGE_HEADERS });
     }

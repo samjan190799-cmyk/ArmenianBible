@@ -18,6 +18,8 @@ struct QuizStartView: View {
     let onStart: () -> Void
     /// Вызвать друга на дуэль; nil — кнопки нет
     var onChallenge: (() -> Void)? = nil
+    /// Дуэль в реальном времени; nil — кнопки нет
+    var onLive: (() -> Void)? = nil
     
     private let counts = [5, 10, 15, 20]
     
@@ -251,6 +253,29 @@ struct QuizStartView: View {
                             Image(systemName: "flag.2.crossed.fill")
                                 .font(.system(size: 14, weight: .semibold))
                             Text(language.pick(hy: "Մենամարտ ընկերոջ հետ", ru: "Дуэль с другом", en: "Duel with a friend"))
+                                .font(PaperFont.font(size: 15, weight: .semibold))
+                        }
+                        .foregroundColor(accentColor)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(accentColor.opacity(0.6), lineWidth: 1.2)
+                        )
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, onLive == nil ? 24 : 8)
+                }
+
+                if let onLive {
+                    Button {
+                        onLive()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "bolt.horizontal.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text(language.pick(hy: "Ուղիղ մենամարտ", ru: "Дуэль онлайн", en: "Live duel"))
                                 .font(PaperFont.font(size: 15, weight: .semibold))
                         }
                         .foregroundColor(accentColor)

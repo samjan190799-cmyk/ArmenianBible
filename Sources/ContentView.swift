@@ -283,6 +283,7 @@ struct HomeView: View {
     @State private var manuscriptLaunch: ManuscriptLaunch? = nil
     /// Вызов на дуэль или итог дуэли, пришедшие по ссылке: открываются в викторине
     @State private var incomingDuel: QuizDuel? = nil
+    @State private var incomingRoom: String? = nil
     @State private var isShowingCodex = false
     @State private var isShowingConsolation = false
     @State private var isShowingSanctuaryMap = false
@@ -641,8 +642,8 @@ struct HomeView: View {
             ReadingPlansCatalogView()
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
         }
-        .sheet(isPresented: $isShowingQuiz, onDismiss: { incomingDuel = nil }) {
-            BibleQuizView(incomingDuel: incomingDuel)
+        .sheet(isPresented: $isShowingQuiz, onDismiss: { incomingDuel = nil; incomingRoom = nil }) {
+            BibleQuizView(incomingDuel: incomingDuel, incomingRoom: incomingRoom)
         }
         .sheet(isPresented: $isShowingCalendar) {
             ChurchCalendarView()
@@ -770,6 +771,15 @@ struct HomeView: View {
                         triggerHaptic(.soft)
                         Funnel.track("feature_used", ["feature": "duel_opened"])
                         incomingDuel = duel
+                        isShowingQuiz = true
+                    }
+                } else if url.host == "room" {
+                    // Приглашение в дуэль онлайн: armenianbible://room?c=КОД
+                    if let code = LiveDuelCode.code(from: url) {
+                        triggerHaptic(.soft)
+                        Funnel.track("feature_used", ["feature": "live_opened"])
+                        incomingDuel = nil
+                        incomingRoom = code
                         isShowingQuiz = true
                     }
                 } else if url.host == "quiz" {

@@ -48,3 +48,12 @@ class_name = "Stats"
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Stats"]
+
+# Дуэль в реальном времени: одна комната на код, два игрока по WebSocket
+[[durable_objects.bindings]]
+name = "DUEL"
+class_name = "DuelRoom"
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["DuelRoom"]

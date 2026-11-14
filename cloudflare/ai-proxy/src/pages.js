@@ -51,13 +51,13 @@ const SHARED_SCRIPT = `
     return a;
   }
   var card = document.getElementById('card');
-  function finish(openHost) {
+  function finish(openHost, key) {
     card.appendChild(el('div', 'hint', t({
       hy: 'Հավելվածում ամեն ինչ կենդանանում է:',
       ru: 'В приложении всё оживает.',
       en: 'It all comes alive in the app.'
     })));
-    if (raw) card.appendChild(button('primary', t({ hy: 'Բացել հավելվածում', ru: 'Открыть в приложении', en: 'Open in the app' }), 'armenianbible://' + openHost + '?d=' + raw));
+    if (raw) card.appendChild(button('primary', t({ hy: 'Բացել հավելվածում', ru: 'Открыть в приложении', en: 'Open in the app' }), 'armenianbible://' + openHost + '?' + (key || 'd') + '=' + raw));
     card.appendChild(button('secondary', t({ hy: 'Ներբեռնել App Store-ից', ru: 'Скачать в App Store', en: 'Get it on the App Store' }), '${APP_STORE}'));
   }
   function broken() {
@@ -96,6 +96,16 @@ const DUEL_SCRIPT = `
   }
 `;
 
+const ROOM_SCRIPT = `
+  if (!/^[A-HJ-NP-Z2-9]{5}$/.test(raw)) { broken(); } else {
+    card.appendChild(el('h1', '', t({ hy: 'Ձեզ կանչում են ուղիղ մենամարտի', ru: 'Вас зовут на дуэль онлайн', en: 'You are invited to a live duel' })));
+    card.appendChild(el('div', 'from', t({ hy: 'Աստվածաշնչի վիկտորինա երկուսի համար', ru: 'Библейская викторина на двоих', en: 'A Bible quiz for two' })));
+    card.appendChild(el('div', 'score', raw));
+    card.appendChild(el('div', 'caption', t({ hy: 'Սենյակի կոդ', ru: 'Код комнаты', en: 'Room code' })));
+    finish('room', 'c');
+  }
+`;
+
 function page(title, script) {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -114,6 +124,10 @@ export function giftPageHtml() {
 
 export function duelPageHtml() {
   return page('Luys', DUEL_SCRIPT);
+}
+
+export function roomPageHtml() {
+  return page('Luys', ROOM_SCRIPT);
 }
 
 /** Заголовки страниц: скрипт и стили только свои, ничего чужого страница не грузит и не отправляет */

@@ -53,7 +53,15 @@ struct BibleQuizView: View {
     @State private var isDuelResponder = false
     @State private var duelShare: PairShareItem?
 
-    init(incomingDuel: QuizDuel? = nil) {
+    // Дуэль в реальном времени: окно входа, сам экран комнаты и код из ссылки, который открывается при появлении
+    @State private var showLiveEntry = false
+    @State private var liveLaunch: LiveDuelLaunch?
+    @State private var pendingRoomCode: String?
+
+    init(incomingDuel: QuizDuel? = nil, incomingRoom: String? = nil) {
+        if let code = incomingRoom, LiveDuelCode.isValid(code) {
+            _pendingRoomCode = State(initialValue: code)
+        }
         if let duel = incomingDuel {
             if duel.isFinished {
                 _incomingResult = State(initialValue: duel)
@@ -178,7 +186,8 @@ struct BibleQuizView: View {
                             isShowingAchievements = true
                         },
                         onStart: startQuiz,
-                        onChallenge: startChallenge
+                        onChallenge: startChallenge,
+                        onLive: { showLiveEntry = true }
                     )
                 } else if quizFinished, let duel = activeDuel {
                     // MARK: - Итог дуэли
@@ -531,6 +540,28 @@ struct BibleQuizView: View {
         .sheet(item: $duelShare) { item in
             ActivityView(activityItems: item.items)
         }
+        .sheet(isPresented: $showLiveEntry) {
+            LiveDuelEntryView(
+                language: manager.appLanguage,
+                accentColor: accentColor,
+                primaryTextColor: primaryTextColor,
+                categoryTitle: QuizDuelEngine.playableCategory(selectedCategory).title(for: manager.appLanguage),
+                onCreate: { createLiveRoom() },
+                onJoin: { joinLiveRoom($0) },
+                onClose: { showLiveEntry = false }
+            )
+        }
+        .fullScreenCover(item: $liveLaunch) { launch in
+            LiveDuelView(launch: launch)
+        }
+        .onAppear {
+            if let code = pendingRoomCode {
+                pendingRoomCode = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    liveLaunch = LiveDuelLaunch(code: code, config: nil)
+                }
+            }
+        }
         .alert(item: $activeAlert) { alertType in
             switch alertType {
             case .limitReached:
@@ -759,6 +790,25 @@ struct BibleQuizView: View {
     }
 
     // MARK: - Дуэль с другом
+    /// Новая комната: свои вопросы из кураторской базы, случайный код; друг входит по коду или по ссылке
+    private func createLiveRoom() {
+        guard let duel = QuizDuelEngine.newDuel(category: selectedCategory, name: ManuscriptPage.rememberedName) else { return }
+        presentLive(LiveDuelLaunch(code: LiveDuelCode.random(), config: LiveDuelConfig(duel)))
+    }
+
+    private func joinLiveRoom(_ code: String) {
+        guard LiveDuelCode.isValid(code) else { return }
+        presentLive(LiveDuelLaunch(code: code, config: nil))
+    }
+
+    /// Окно входа сначала закрывается: два экрана сразу iOS не показывает
+    private func presentLive(_ launch: LiveDuelLaunch) {
+        showLiveEntry = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            liveLaunch = launch
+        }
+    }
+
     /// Принять вызов из ссылки: те же вопросы, что у друга
     private func acceptInvite(_ invite: QuizDuel) {
         guard startDuelQuestions(invite) else { return }
