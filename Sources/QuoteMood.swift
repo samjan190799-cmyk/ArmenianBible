@@ -17,7 +17,7 @@ enum QuoteMood: String, CaseIterable {
     /// Сколько фотографий этого настроения лежит в Assets.xcassets
     var photoCount: Int {
         switch self {
-        case .light: return 10
+        case .light: return 9
         case .love: return 9
         case .wisdom: return 8
         case .trial: return 8
@@ -215,8 +215,7 @@ extension QuoteBackdrop {
         "QuoteLight6": 0.49,
         "QuoteLight7": 0.62,
         "QuoteLight8": 0.32,
-        "QuoteLight9": 0.46,
-        "QuoteLight10": 0.56,
+        "QuoteLight9": 0.47,
         "QuoteLove1": 0.71,
         "QuoteLove2": 0.54,
         "QuoteLove3": 0.53,
@@ -225,7 +224,7 @@ extension QuoteBackdrop {
         "QuoteLove6": 0.57,
         "QuoteLove7": 0.4,
         "QuoteLove8": 0.25,
-        "QuoteLove9": 0.58,
+        "QuoteLove9": 0.59,
         "QuotePeace1": 0.42,
         "QuotePeace2": 0.61,
         "QuotePeace3": 0.76,
@@ -234,7 +233,7 @@ extension QuoteBackdrop {
         "QuotePeace6": 0.32,
         "QuotePeace7": 0.48,
         "QuotePeace8": 0.58,
-        "QuotePeace9": 0.53,
+        "QuotePeace9": 0.51,
         "QuotePeace10": 0.62,
         "QuotePrayer1": 0.18,
         "QuotePrayer2": 0.19,
@@ -252,8 +251,8 @@ extension QuoteBackdrop {
         "QuoteStrength6": 0.5,
         "QuoteStrength7": 0.61,
         "QuoteStrength8": 0.39,
-        "QuoteStrength9": 0.54,
-        "QuoteStrength10": 0.48,
+        "QuoteStrength9": 0.52,
+        "QuoteStrength10": 0.46,
         "QuoteStrength11": 0.49,
         "QuoteTrial1": 0.42,
         "QuoteTrial2": 0.38,
