@@ -78,7 +78,7 @@ struct OnboardingView: View {
                         .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(accent)
+                        .background(Paper.accentFill)
                         .cornerRadius(18)
                 }
                 .buttonStyle(ScaleButtonStyle())

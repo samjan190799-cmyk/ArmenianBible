@@ -104,7 +104,7 @@ struct BibleQuizView: View {
                             
                             if achievements.unlockedCount > 0 {
                                 Circle()
-                                    .fill(Paper.cinnabar)
+                                    .fill(Paper.terracotta)
                                     .frame(width: 8, height: 8)
                                     .offset(x: 2, y: -2)
                             }
@@ -370,7 +370,7 @@ struct BibleQuizView: View {
                                                 .foregroundColor(Paper.onAccent)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
-                                                .background(accentColor)
+                                                .background(Paper.accentFill)
                                                 .cornerRadius(14)
                                                 .shadow(color: Paper.shadow, radius: 6, y: 3)
                                         }

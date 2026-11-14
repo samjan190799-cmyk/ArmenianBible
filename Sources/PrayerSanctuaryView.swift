@@ -22,8 +22,7 @@ struct PrayerSanctuaryView: View {
         NavigationStack {
             ZStack {
                 // Глубокий благоговейный фон храма
-                Paper.page
-                    .ignoresSafeArea()
+                PaperBackground()
                 
                 // Теплое фоновое свечение лампады
                 DivineBreathingGlow(color: Paper.gold)
@@ -371,7 +370,7 @@ struct LightCandleFormSheetView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Paper.page.ignoresSafeArea()
+                PaperBackground()
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 22) {
@@ -876,7 +875,7 @@ struct CandleDetailPrayerSheetView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Paper.page.ignoresSafeArea()
+                PaperBackground()
                 DivineBreathingGlow(color: Paper.gold).offset(y: -50)
                 
                 ScrollView(showsIndicators: false) {

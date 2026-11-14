@@ -159,7 +159,7 @@ struct FavoritesView: View {
                                     .font(PaperFont.font(size: 12, weight: selectedTagFilter == nil ? .semibold : .medium))
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(selectedTagFilter == nil ? accentColor : cardBackgroundColor)
+                                    .background(selectedTagFilter == nil ? Paper.accentFill : cardBackgroundColor)
                                     .foregroundColor(selectedTagFilter == nil ? Paper.onAccent : primaryTextColor)
                                     .cornerRadius(20)
                                     .overlay(

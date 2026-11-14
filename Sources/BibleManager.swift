@@ -16,7 +16,7 @@ class BibleManager: ObservableObject {
     @Published var activeProvider: AIProvider = .gemini
     @Published var appLanguage: AppLanguage = .armenian
     @Published var favoriteVerses: [FavoriteItem] = []
-    @Published var appearanceMode: AppAppearanceMode = .light
+    @Published var appearanceMode: AppAppearanceMode = .dark
     @Published var accentTheme: AccentColorTheme = .cinnabar
     @Published var dailyNotificationsEnabled: Bool = false
     @Published var dailyNotificationTime: Date = Date()
@@ -356,7 +356,9 @@ class BibleManager: ObservableObject {
            let savedMode = AppAppearanceMode(rawValue: savedModeRaw) {
             self.appearanceMode = savedMode
         } else {
-            self.appearanceMode = .light
+            // Тема по умолчанию — тёмная («Sacred Dark»). Светлая остаётся в настройках:
+            // кто выбрал её сам, у того выбор сохранён и не меняется.
+            self.appearanceMode = .dark
         }
         
         // Загрузка Цветовой темы

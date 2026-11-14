@@ -458,7 +458,7 @@ extension AIGuideView {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(canSubmit ? accentColor : Paper.fillMuted)
+                            .fill(canSubmit ? Paper.accentFill : Paper.fillMuted)
                             .frame(width: 42, height: 42)
                         
                         Image(systemName: "paperplane.fill")

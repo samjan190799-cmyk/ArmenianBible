@@ -309,7 +309,7 @@ struct ManuscriptPenSheet: View {
 
     var body: some View {
         ZStack {
-            Paper.page.ignoresSafeArea()
+            PaperBackground()
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Text(language.pick(hy: "Գրիչ", ru: "Перо", en: "Pen"))

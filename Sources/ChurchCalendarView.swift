@@ -475,7 +475,7 @@ struct ChurchFeastCardView: View {
                     .foregroundColor(Paper.onAccent)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3.5)
-                    .background(Paper.cinnabar)
+                    .background(Paper.terracotta)
                     .cornerRadius(6)
                 } else if countdown.isUpcoming {
                     HStack(spacing: 3) {
@@ -725,7 +725,7 @@ struct FeastMeaningSheetView: View {
                                     .foregroundColor(Paper.onAccent)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 3.5)
-                                    .background(Paper.cinnabar)
+                                    .background(Paper.terracotta)
                                     .cornerRadius(6)
                             } else if countdown.isUpcoming {
                                 Text(countdown.text)

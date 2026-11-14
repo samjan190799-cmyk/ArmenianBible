@@ -41,8 +41,7 @@ struct ReadingPlansCatalogView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundColor
-                    .ignoresSafeArea()
+                PaperBackground()
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
@@ -115,7 +114,7 @@ struct ReadingPlansCatalogView: View {
                     
                     Image(systemName: "flame.fill")
                         .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onAccent)
                 }
                 
                 VStack(alignment: .leading, spacing: 3) {
@@ -199,7 +198,7 @@ struct ReadingPlansCatalogView: View {
                     
                     Image(systemName: plan.icon)
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onPigment)
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -245,7 +244,7 @@ struct ReadingPlansCatalogView: View {
                             Text("read_today_button".localized(for: language))
                                 .font(PaperFont.font(size: 13, weight: .semibold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onPigment)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                         .background(plan.gradient)
@@ -331,7 +330,7 @@ struct ReadingPlansCatalogView: View {
                     
                     Image(systemName: plan.icon)
                         .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onPigment)
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
@@ -427,8 +426,7 @@ struct ReadingPlanDetailView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundColor
-                    .ignoresSafeArea()
+                PaperBackground()
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
@@ -468,7 +466,7 @@ struct ReadingPlanDetailView: View {
                     
                     Image(systemName: plan.icon)
                         .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onPigment)
                 }
                 
                 VStack(alignment: .leading, spacing: 3) {
@@ -586,7 +584,7 @@ struct ReadingPlanDetailView: View {
                             if isDone {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Paper.onAccent)
                                     .transition(.scale.combined(with: .opacity))
                             } else {
                                 Text("\(day.dayNumber)")

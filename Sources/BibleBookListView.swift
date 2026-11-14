@@ -111,7 +111,7 @@ struct BibleBookListView: View {
                                                     .frame(height: 2)
 
                                                 Capsule()
-                                                    .fill(accentColor)
+                                                    .fill(Paper.accentFill)
                                                     .frame(width: max(3, geo.size.width * CGFloat(min(progress.percent, 1.0))), height: 2)
                                                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: progress.percent)
                                             }
@@ -140,7 +140,6 @@ struct BibleBookListView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
             }
-            .background(Paper.page)
         }
         .navigationTitle("tab_bible".localized(for: manager.appLanguage))
         .navigationBarTitleDisplayMode(.inline)

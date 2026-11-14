@@ -404,7 +404,7 @@ struct SanctuaryMapView: View {
                     .foregroundColor(Paper.onAccent)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 11)
-                    .background(Capsule().fill(Paper.cinnabar))
+                    .background(Capsule().fill(Paper.terracotta))
             }
             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.95))
         }
@@ -474,7 +474,7 @@ struct SanctuaryPin: View {
         VStack(spacing: 3) {
             ZStack {
                 Circle()
-                    .fill(isSelected ? Paper.cinnabar : Paper.sheet)
+                    .fill(isSelected ? Paper.terracotta : Paper.sheet)
                     .frame(width: isSelected ? 36 : 28, height: isSelected ? 36 : 28)
                     .overlay(Circle().strokeBorder(Paper.gold, lineWidth: isSelected ? 2 : 1.5))
                     .shadow(color: Paper.shadow, radius: 4, y: 2)

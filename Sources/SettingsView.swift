@@ -26,7 +26,7 @@ struct SettingsView: View {
     @State var selectedCategory: TextCategory = .both
     @State var selectedScope: VerseSourceScope = .allBible
     @State var selectedTheme: AccentColorTheme = .cinnabar
-    @State var selectedAppearanceMode: AppAppearanceMode = .light
+    @State var selectedAppearanceMode: AppAppearanceMode = .dark
     @State var selectedWidgetLanguage: WidgetLanguage = .followApp
     @State var selectedWidgetStyle: WidgetVisualStyle = .posterFrame
     @State var selectedLockCategory: LockScreenCategory = .pearls
@@ -277,8 +277,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundColor
-                    .ignoresSafeArea()
+                PaperBackground()
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 30) {
@@ -1003,7 +1002,7 @@ struct SettingsView: View {
                                                 .frame(width: 22, height: 22)
                                             Image(systemName: "checkmark")
                                                 .font(.system(size: 11, weight: .semibold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(Paper.onAccent)
                                         }
                                         .offset(x: 6, y: -6)
                                         .transition(.scale.combined(with: .opacity))

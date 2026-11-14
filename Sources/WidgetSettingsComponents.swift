@@ -238,7 +238,7 @@ struct WidgetInstructionSheetView: View {
                         .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(accentColor)
+                        .background(Paper.accentFill)
                         .cornerRadius(14)
                 }
                 .buttonStyle(ScaleButtonStyle())
@@ -521,7 +521,7 @@ struct ReadingPlanBannerCardView: View {
                                     .frame(height: 3)
 
                                 Capsule()
-                                    .fill(accentColor)
+                                    .fill(Paper.accentFill)
                                     .frame(width: max(3, geo.size.width * CGFloat(progress)), height: 3)
                             }
                         }

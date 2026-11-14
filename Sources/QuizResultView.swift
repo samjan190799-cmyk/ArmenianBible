@@ -34,12 +34,12 @@ struct QuizResultView: View {
                     VStack(spacing: 10) {
                         HStack(spacing: 8) {
                             Image(systemName: "sparkles")
-                                .foregroundColor(.yellow)
+                                .foregroundColor(Paper.gold)
                             Text("new_badge_unlocked".localized(for: language))
                                 .font(PaperFont.font(size: 15, weight: .semibold))
-                                .foregroundColor(.yellow)
+                                .foregroundColor(Paper.gold)
                             Image(systemName: "sparkles")
-                                .foregroundColor(.yellow)
+                                .foregroundColor(Paper.gold)
                         }
                         
                         ForEach(newlyUnlockedBadges) { badge in
@@ -59,7 +59,7 @@ struct QuizResultView: View {
                                 Spacer()
                             }
                             .padding(12)
-                            .background(Color.yellow.opacity(0.12))
+                            .background(Paper.gold.opacity(0.12))
                             .cornerRadius(14)
                         }
                     }
@@ -151,7 +151,7 @@ struct QuizResultView: View {
                         .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(accentColor)
+                        .background(Paper.accentFill)
                         .cornerRadius(16)
                         .shadow(color: Paper.shadow, radius: 8, y: 4)
                 }

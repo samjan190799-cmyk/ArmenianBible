@@ -36,7 +36,7 @@ struct PomegranateTaskToastView: View {
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.regularMaterial)
+                        .fill(Paper.sheetRaised)
                         .shadow(color: Paper.shadow, radius: 10, y: 4)
                 )
                 .overlay(

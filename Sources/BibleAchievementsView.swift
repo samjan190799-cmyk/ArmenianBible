@@ -74,7 +74,7 @@ struct BibleAchievementsView: View {
                                     Circle()
                                         .fill(
                                             LinearGradient(
-                                                colors: [Paper.gold, Color.yellow],
+                                                colors: [Paper.gold, Paper.ochre],
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             )
@@ -84,7 +84,7 @@ struct BibleAchievementsView: View {
                                     
                                     Image(systemName: "trophy.fill")
                                         .font(.system(size: 26))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(Paper.onAccent)
                                 }
                                 
                                 VStack(alignment: .leading, spacing: 4) {
@@ -120,7 +120,7 @@ struct BibleAchievementsView: View {
                                     Capsule()
                                         .fill(
                                             LinearGradient(
-                                                colors: [Paper.gold, Color.yellow],
+                                                colors: [Paper.gold, Paper.ochre],
                                                 startPoint: .leading,
                                                 endPoint: .trailing
                                             )
@@ -186,7 +186,7 @@ struct BadgeCardView: View {
     private var gradient: LinearGradient {
         let colors = badge.gradientColors.compactMap { Color(hex: $0) }
         return LinearGradient(
-            colors: colors.isEmpty ? [Color.blue, Color.purple] : colors,
+            colors: colors.isEmpty ? [Paper.lapis, Paper.plum] : colors,
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -207,7 +207,7 @@ struct BadgeCardView: View {
                         
                         Image(systemName: badge.icon)
                             .font(.system(size: 26, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Paper.onPigment)
                     } else {
                         Circle()
                             .fill(Paper.ink.opacity(0.06))
@@ -269,7 +269,7 @@ struct BadgeDetailSheet: View {
     private var gradient: LinearGradient {
         let colors = badge.gradientColors.compactMap { Color(hex: $0) }
         return LinearGradient(
-            colors: colors.isEmpty ? [Color.blue, Color.purple] : colors,
+            colors: colors.isEmpty ? [Paper.lapis, Paper.plum] : colors,
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -286,7 +286,7 @@ struct BadgeDetailSheet: View {
                     
                     Image(systemName: badge.icon)
                         .font(.system(size: 32, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onPigment)
                 } else {
                     Circle()
                         .fill(Paper.ink.opacity(0.08))
