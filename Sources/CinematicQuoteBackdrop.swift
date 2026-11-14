@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 // MARK: - Кинематографический фон карточки цитаты
-// Фотографии лежат в Assets.xcassets (QuoteLight1…QuoteWisdom8, QuoteStrength11): они уже уменьшены до 1080×1350 и сжаты,
+// Фотографии лежат в Assets.xcassets (QuoteLight1…QuoteWisdom8): они уже уменьшены до 1080×1350 и сжаты,
 // поэтому работают без интернета и не тянут тяжёлых оригиналов. Список авторов: PHOTO_CREDITS.md.
 //
 // Как устроено (пункты 1–3 лежат в QuoteMood.swift: он общий с виджетами):

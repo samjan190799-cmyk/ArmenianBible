@@ -14,8 +14,6 @@
 | QuoteLight6 | https://unsplash.com/photos/8kbWTofZR4M | https://unsplash.com/@dhban5 |
 | QuoteLight7 | https://unsplash.com/photos/Ih3-ww0fBHM | https://unsplash.com/@pawel_czerwinski |
 | QuoteLight8 | https://unsplash.com/photos/873kfoV_XLc | https://unsplash.com/@wolfgang_hasselmann |
-| QuoteLight9 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
-| QuoteLight10 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
 | QuoteLove1 | https://unsplash.com/photos/El3mPBICeaY | https://unsplash.com/@kiaramartin |
 | QuoteLove2 | https://unsplash.com/photos/OuJ9biU6mIc | https://unsplash.com/@kaspercph |
 | QuoteLove3 | https://unsplash.com/photos/G0w-u4yXB8Y | https://unsplash.com/@sa_suncem |
@@ -24,7 +22,6 @@
 | QuoteLove6 | https://unsplash.com/photos/aOmDdmGVIPY | https://unsplash.com/@native7photo |
 | QuoteLove7 | https://unsplash.com/photos/wOlrDOuMhYI | https://unsplash.com/@winstontjia |
 | QuoteLove8 | https://unsplash.com/photos/P4LB9TCiBSc | https://unsplash.com/@mustafijpg |
-| QuoteLove9 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
 | QuoteWisdom1 | https://unsplash.com/photos/5fgGk4Eg6yw | https://unsplash.com/@jfdelp |
 | QuoteWisdom2 | https://unsplash.com/photos/yEEHg9ft_TA | https://unsplash.com/@huzeyfet |
 | QuoteWisdom3 | https://unsplash.com/photos/TIS8AnSiFI4 | https://unsplash.com/@micmurph12 |
@@ -57,9 +54,6 @@
 | QuoteStrength6 | https://unsplash.com/photos/tXfrnNNHWvY | https://unsplash.com/@taguhi_mesropyan |
 | QuoteStrength7 | https://unsplash.com/photos/tDYcC9sIyZ4 | https://unsplash.com/@hypnopony |
 | QuoteStrength8 | https://unsplash.com/photos/qNMfMdvdnAY | https://unsplash.com/@hypnopony |
-| QuoteStrength9 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
-| QuoteStrength10 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
-| QuoteStrength11 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
 | QuotePeace1 | https://unsplash.com/photos/jtLc2j0pQbQ | https://unsplash.com/@ispywithmylittleeye |
 | QuotePeace2 | https://unsplash.com/photos/HwO7BKVxsug | https://unsplash.com/@createinme_nz |
 | QuotePeace3 | https://unsplash.com/photos/i7e8lCCDrVU | https://unsplash.com/@hameen |
@@ -68,11 +62,6 @@
 | QuotePeace6 | https://unsplash.com/photos/P_lyT2-TxCE | https://unsplash.com/@pedrino5_official |
 | QuotePeace7 | https://unsplash.com/photos/9hh3X1CFTr0 | https://unsplash.com/@auroulien |
 | QuotePeace8 | https://unsplash.com/photos/OKMvQq2y-3U | https://unsplash.com/@lives_atreo |
-| QuotePeace9 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
-| QuotePeace10 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
-
-
-Снимки автора приложения (строки «собственный снимок») сделаны им самим и добавлены с его разрешения. Они меньше по размеру (исходники высотой 869 px), поэтому кадрированы и увеличены под размеры ассетов; метаданные (в том числе геопозиция) из них удалены.
 
 ## Обои экрана блокировки
 
@@ -84,8 +73,6 @@
 | WallpaperArarat2 | https://unsplash.com/photos/wGRY6UEYJMc | https://unsplash.com/@arshia8318 |
 | WallpaperArarat3 | https://unsplash.com/photos/gtN6hOxlJLs | https://unsplash.com/@dkuva |
 | WallpaperArarat4 | https://unsplash.com/photos/tO49SpTSP6Y | https://unsplash.com/@aspectum |
-| WallpaperArarat5 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
-| WallpaperArarat6 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
 | WallpaperTatev1 | https://unsplash.com/photos/zwip2iL57Jw | https://unsplash.com/@k0k0graphy |
 | WallpaperTatev2 | https://unsplash.com/photos/nkCLl9VlGac | https://unsplash.com/@joejojoestar |
 | WallpaperTatev3 | https://unsplash.com/photos/ZTUOozRrSic | https://unsplash.com/@darkpro1337 |
@@ -106,7 +93,6 @@
 | WallpaperSunset2 | https://unsplash.com/photos/OCInEkEJWfE | https://unsplash.com/@danieljschwarz |
 | WallpaperSunset3 | https://unsplash.com/photos/_PK7rviBLG0 | https://unsplash.com/@nate_dumlao |
 | WallpaperSunset4 | https://unsplash.com/photos/GRrvAEFko4c | https://unsplash.com/@crissnamon |
-| WallpaperSunset5 | собственный снимок автора приложения (Арарат, виноградники Араратской долины) | права принадлежат автору приложения |
 | WallpaperGraphite1 | https://unsplash.com/photos/9erjfn6UsZg | https://unsplash.com/@adrientutinphoto |
 | WallpaperGraphite2 | https://unsplash.com/photos/Salfd8sLVTA | https://unsplash.com/@asoggetti |
 | WallpaperGraphite3 | https://unsplash.com/photos/24X1ImeSZrc | https://unsplash.com/@adenlao |

@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Настроение цитаты и выбор кадра
 // Файл общий для приложения и виджетов (project.yml: оба таргета): в нём нет ничего, что есть только в одном из них.
-// Фотографии лежат в Assets.xcassets обоих таргетов под одними именами (QuoteLight1…QuoteWisdom8, QuoteStrength11); у виджета они меньше.
+// Фотографии лежат в Assets.xcassets обоих таргетов под одними именами (QuoteLight1…QuoteWisdom8); у виджета они меньше.
 
 // MARK: - Настроение цитаты
 enum QuoteMood: String, CaseIterable {
@@ -17,13 +17,13 @@ enum QuoteMood: String, CaseIterable {
     /// Сколько фотографий этого настроения лежит в Assets.xcassets
     var photoCount: Int {
         switch self {
-        case .light: return 10
-        case .love: return 9
+        case .light: return 8
+        case .love: return 8
         case .wisdom: return 8
         case .trial: return 8
         case .prayer: return 8
-        case .strength: return 11
-        case .peace: return 10
+        case .strength: return 8
+        case .peace: return 8
         }
     }
 
@@ -215,8 +215,6 @@ extension QuoteBackdrop {
         "QuoteLight6": 0.49,
         "QuoteLight7": 0.62,
         "QuoteLight8": 0.32,
-        "QuoteLight9": 0.46,
-        "QuoteLight10": 0.56,
         "QuoteLove1": 0.71,
         "QuoteLove2": 0.54,
         "QuoteLove3": 0.53,
@@ -225,7 +223,6 @@ extension QuoteBackdrop {
         "QuoteLove6": 0.57,
         "QuoteLove7": 0.4,
         "QuoteLove8": 0.25,
-        "QuoteLove9": 0.58,
         "QuotePeace1": 0.42,
         "QuotePeace2": 0.61,
         "QuotePeace3": 0.76,
@@ -234,8 +231,6 @@ extension QuoteBackdrop {
         "QuotePeace6": 0.32,
         "QuotePeace7": 0.48,
         "QuotePeace8": 0.58,
-        "QuotePeace9": 0.53,
-        "QuotePeace10": 0.62,
         "QuotePrayer1": 0.18,
         "QuotePrayer2": 0.19,
         "QuotePrayer3": 0.13,
@@ -252,9 +247,6 @@ extension QuoteBackdrop {
         "QuoteStrength6": 0.5,
         "QuoteStrength7": 0.61,
         "QuoteStrength8": 0.39,
-        "QuoteStrength9": 0.54,
-        "QuoteStrength10": 0.48,
-        "QuoteStrength11": 0.49,
         "QuoteTrial1": 0.42,
         "QuoteTrial2": 0.38,
         "QuoteTrial3": 0.3,

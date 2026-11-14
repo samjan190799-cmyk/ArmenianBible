@@ -244,7 +244,7 @@ struct BibleWallpaperMakerView: View {
                             Button {
                                 triggerHaptic(.light)
                                 withAnimation(.easeInOut(duration: 0.45)) {
-                                    selectedPhoto = (selectedPhoto + 1) % selectedTheme.photoCount
+                                    selectedPhoto = (selectedPhoto + 1) % WallpaperTheme.photoCount
                                 }
                             } label: {
                                 Image(systemName: "photo.on.rectangle.angled")
