@@ -25,6 +25,7 @@ ALLOW_SANDBOX = "true"
 GEMINI_MODELS = "gemini-3.5-flash-lite,gemini-3.6-flash,gemini-2.5-flash-lite"
 # Задачи ИИ (chat, quiz, consolation, explain, verse): для каждой можно задать свой ключ Gemini, свои модели и суточный потолок.
 #   секрет:      npx wrangler secret put GEMINI_API_KEY_CHAT   (так же _QUIZ, _CONSOLATION, _EXPLAIN, _VERSE)
+#   или в секретах GitHub под теми же именами: при выпуске из main их передаёт Worker .github/workflows/ai-proxy.yml
 #   переменные:  GEMINI_MODELS_CHAT = "..."  (свой список моделей),  TASK_DAILY_LIMIT_QUIZ = "200"  (запросов в сутки по UTC на всех вместе)
 # Что не задано, берётся общее (GEMINI_API_KEY, GEMINI_MODELS), а потолка у задачи нет. Подробности: src/tasks.js
 # Список моделей для кнопки «Обновить модели» в приложении (GET /v1/models) лежит в src/models.js.

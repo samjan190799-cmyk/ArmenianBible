@@ -91,6 +91,14 @@
 | Свои модели | переменная `GEMINI_MODELS_CHAT` (список через запятую) | например, мощнее для чата и дешевле для викторины |
 | Суточный потолок | переменная `TASK_DAILY_LIMIT_QUIZ` (запросов в сутки по UTC на всех вместе) | чтобы одна задача не съела общий бюджет; сверх потолка ответ 503 `busy`, вопрос человеку не засчитывается |
 
+**Ключи из секретов GitHub.** Ключи задач можно не вводить в Cloudflare руками, а хранить в секретах репозитория под теми же именами:
+`GEMINI_API_KEY_CHAT`, `GEMINI_API_KEY_QUIZ`, `GEMINI_API_KEY_CONSOLATION`, `GEMINI_API_KEY_EXPLAIN`, `GEMINI_API_KEY_VERSE` (и по желанию общий `GEMINI_API_KEY`).
+При выпуске Worker из `main` (шаг «Ключи задач из секретов GitHub» в `.github/workflows/ai-proxy.yml`) непустые из них передаются Worker командой
+`wrangler secret bulk`; что в GitHub не задано, в Cloudflare остаётся как есть. Нужны секреты `CLOUDFLARE_API_TOKEN` и `CLOUDFLARE_ACCOUNT_ID`.
+Добавить: `gh secret set GEMINI_API_KEY_QUIZ --repo samjan190799-cmyk/ArmenianBible` (значение вводится скрыто). Сменили ключ в GitHub:
+запустите workflow вручную (`gh workflow run ai-proxy.yml --ref main`), сам он от смены секрета не стартует. Значения в журнале запуска скрыты GitHub, но ключ
+проходит через сборочную машину; если это нежелательно, задавайте секреты прямо в Cloudflare (`npx wrangler secret put`).
+
 Что не задано, берётся общее: `GEMINI_API_KEY` и `GEMINI_MODELS` работают как раньше, потолка у задачи нет. Общий ключ остаётся обязательным
 (на нём работают `general` и все задачи без своего ключа). Имя задачи из запроса в настройки напрямую не подставляется: допустимы только пять имён из списка (src/tasks.js).
 

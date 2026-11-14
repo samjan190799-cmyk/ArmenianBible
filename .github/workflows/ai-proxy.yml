@@ -5,6 +5,8 @@ on:
     paths:
       - 'cloudflare/ai-proxy/**'
       - '.github/workflows/ai-proxy.yml'
+  # Ручной запуск (Actions, Run workflow): передаёт Worker новые ключи задач после смены секретов GitHub
+  workflow_dispatch:
 
 jobs:
   test:
@@ -50,3 +52,23 @@ jobs:
           fi
           npm install --no-audit --no-fund
           npx wrangler deploy
+
+      - name: Ключи задач из секретов GitHub
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        working-directory: cloudflare/ai-proxy
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_CHAT: ${{ secrets.GEMINI_API_KEY_CHAT }}
+          GEMINI_API_KEY_QUIZ: ${{ secrets.GEMINI_API_KEY_QUIZ }}
+          GEMINI_API_KEY_CONSOLATION: ${{ secrets.GEMINI_API_KEY_CONSOLATION }}
+          GEMINI_API_KEY_EXPLAIN: ${{ secrets.GEMINI_API_KEY_EXPLAIN }}
+          GEMINI_API_KEY_VERSE: ${{ secrets.GEMINI_API_KEY_VERSE }}
+        run: |
+          # Только непустые секреты; что в GitHub не задано, в Cloudflare остаётся как есть. Значения в журнал не печатаются
+          node -e "import('./scripts/task-secrets.mjs').then((m) => process.stdout.write(JSON.stringify(m.collectTaskSecrets(process.env))))" > "$RUNNER_TEMP/task-secrets.json"
+          if [ "$(cat "$RUNNER_TEMP/task-secrets.json")" = "{}" ]; then
+            echo "Ключей Gemini в секретах GitHub нет: в Cloudflare остаются заданные там"
+          else
+            npx wrangler secret bulk "$RUNNER_TEMP/task-secrets.json"
+          fi
+          rm -f "$RUNNER_TEMP/task-secrets.json"
