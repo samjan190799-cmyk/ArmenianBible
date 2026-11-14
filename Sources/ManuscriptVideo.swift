@@ -14,7 +14,8 @@ enum ManuscriptVideoError: Error {
 }
 
 enum ManuscriptVideoExporter {
-    static let framesPerSecond = 24
+    /// 60 кадров в секунду: перо и блик на золоте двигаются плавно; сборка идёт дольше, чем при 24, зато видео как на экране
+    static let framesPerSecond = 60
     /// Двойной масштаб листа 360×640: 720×1280, достаточно для сторис и вдвое легче, чем 1080×1920
     static let scale: CGFloat = 2
     /// Сколько секунд после письма остаётся готовый лист с бликом
@@ -43,7 +44,11 @@ enum ManuscriptVideoExporter {
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: width,
             AVVideoHeightKey: height,
-            AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: 4_000_000]
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 8_000_000,
+                AVVideoExpectedSourceFrameRateKey: framesPerSecond,
+                AVVideoMaxKeyFrameIntervalKey: framesPerSecond
+            ]
         ])
         input.expectsMediaDataInRealTime = false
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(
