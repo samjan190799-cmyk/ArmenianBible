@@ -499,7 +499,7 @@ extension SettingsView {
                         Text(activeBadgeText)
                             .font(PaperFont.font(size: 11, weight: .semibold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(Paper.onAccent)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
                     .background(

@@ -55,8 +55,7 @@ struct WallpaperAutomationSheetView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Paper.page
-                    .ignoresSafeArea()
+                PaperBackground()
                 
                 // Фоновые мягкие градиенты
                 Circle()

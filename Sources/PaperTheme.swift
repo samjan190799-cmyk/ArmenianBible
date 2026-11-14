@@ -3,27 +3,37 @@ import UIKit
 
 // MARK: - Дизайн-система «Бумага и чернила»
 // Светлая тема: тёплая бумага и чернила, как страница рукописи.
-// Тёмная тема: «ночное чтение» в тех же тёплых тонах.
-// Контраст основных пар проверен по WCAG: ink ≥ 13:1, inkSecondary ≥ 5:1, cinnabar ≥ 5.7:1.
+// Тёмная тема — основная, «Sacred Dark»: тёмный камень (#17120E), карточки (#292019),
+// старое золото (#B69A68), терракота (#A66D61), тёплый светлый текст. Чистого белого,
+// яркого жёлтого и насыщенных цветов в ней нет.
+// Контраст тёмной темы по WCAG (на фоне / на карточке): ink 14.6 / 12.5, inkSecondary 7.8 / 6.7,
+// gold 6.9 / 5.9, cinnabar (терракота для текста) 6.4 / 5.5, пигменты категорий ≥ 5.8.
 enum Paper {
     // MARK: UIKit-цвета (для NSAttributedString и UIKit-компонентов)
-    static let uiPage = dynamic(light: 0xF4EEE3, dark: 0x17130F)
-    static let uiSheet = dynamic(light: 0xFCF9F3, dark: 0x211C17)
+    static let uiPage = dynamic(light: 0xF4EEE3, dark: 0x17120E)
+    static let uiSheet = dynamic(light: 0xFCF9F3, dark: 0x292019)
+    /// Вторичная поверхность «приподнятая»: выбранный сегмент, всплывающие подсказки.
+    /// Ещё две вторичные поверхности — подложки `fillSubtle` и `fillMuted` поверх карточки.
+    static let uiSheetRaised = dynamic(light: 0xFCF9F3, dark: 0x33281F)
     static let uiInk = dynamic(light: 0x2B241D, dark: 0xECE3D2)
-    static let uiInkSecondary = dynamic(light: 0x6E6152, dark: 0xA99C89)
-    static let uiInkTertiary = dynamic(light: 0x9C8E7C, dark: 0x776C5E)
-    static let uiCinnabar = dynamic(light: 0x9E3226, dark: 0xDB7B6D)
-    static let uiGold = dynamic(light: 0x8F6B2A, dark: 0xCFAE6E)
-    static let uiHairline = dynamic(light: 0x2B241D, lightAlpha: 0.10, dark: 0xECE3D2, darkAlpha: 0.09)
+    static let uiInkSecondary = dynamic(light: 0x6E6152, dark: 0xB5A690)
+    static let uiInkTertiary = dynamic(light: 0x9C8E7C, dark: 0x8F8270)
+    /// Киноварь; в тёмной теме — светлый тон терракоты: он читается мелким текстом и в значках
+    static let uiCinnabar = dynamic(light: 0x9E3226, dark: 0xC4897B)
+    /// Терракота для заливок (кнопки, плашки). Мелким текстом на тёмном её не пишем: контраст 3.8:1
+    static let uiTerracotta = dynamic(light: 0x9E3226, dark: 0xA66D61)
+    static let uiGold = dynamic(light: 0x8F6B2A, dark: 0xB69A68)
+    /// Тонкие линии: в тёмной теме — старое золото низкой интенсивности
+    static let uiHairline = dynamic(light: 0x2B241D, lightAlpha: 0.10, dark: 0xB69A68, darkAlpha: 0.20)
     static let uiShadow = dynamic(light: 0x4A3517, lightAlpha: 0.08, dark: 0x000000, darkAlpha: 0.35)
-    static let uiMoss = dynamic(light: 0x4F6B45, dark: 0x9DBB8E)
-    static let uiOnAccent = dynamic(light: 0xFCF9F3, dark: 0x17130F)
-    static let uiLapis = dynamic(light: 0x3D5A8C, dark: 0x8FA9D6)
-    static let uiIndigo = dynamic(light: 0x4B4F8F, dark: 0xA5A9E0)
-    static let uiPlum = dynamic(light: 0x6E4B73, dark: 0xC1A0C6)
-    static let uiOchre = dynamic(light: 0xA4622A, dark: 0xE0A26B)
-    static let uiUmber = dynamic(light: 0x6B5238, dark: 0xC8AC8B)
-    static let uiTeal = dynamic(light: 0x2F6F6B, dark: 0x8EC8C2)
+    static let uiMoss = dynamic(light: 0x4F6B45, dark: 0x9BAF8A)
+    static let uiOnAccent = dynamic(light: 0xFCF9F3, dark: 0x17120E)
+    static let uiLapis = dynamic(light: 0x3D5A8C, dark: 0x8C9DBD)
+    static let uiIndigo = dynamic(light: 0x4B4F8F, dark: 0x9D9FC4)
+    static let uiPlum = dynamic(light: 0x6E4B73, dark: 0xB59AB6)
+    static let uiOchre = dynamic(light: 0xA4622A, dark: 0xC9996A)
+    static let uiUmber = dynamic(light: 0x6B5238, dark: 0xBFA688)
+    static let uiTeal = dynamic(light: 0x2F6F6B, dark: 0x8CB3AC)
     static let uiFillSubtle = dynamic(light: 0x2B241D, lightAlpha: 0.045, dark: 0xECE3D2, darkAlpha: 0.06)
     static let uiFillMuted = dynamic(light: 0x2B241D, lightAlpha: 0.08, dark: 0xECE3D2, darkAlpha: 0.11)
 
@@ -32,6 +42,8 @@ enum Paper {
     static let page = Color(uiColor: uiPage)
     /// Лист бумаги (карточки) — чуть светлее страницы
     static let sheet = Color(uiColor: uiSheet)
+    /// Вторичная поверхность «приподнятая» (выбранное, всплывающее)
+    static let sheetRaised = Color(uiColor: uiSheetRaised)
     /// Основной текст — чернила
     static let ink = Color(uiColor: uiInk)
     /// Вторичный текст — выцветшие чернила
@@ -40,6 +52,8 @@ enum Paper {
     static let inkTertiary = Color(uiColor: uiInkTertiary)
     /// Киноварь — красные чернила рубрик армянских рукописей
     static let cinnabar = Color(uiColor: uiCinnabar)
+    /// Терракота для заливок: кнопки и плашки с текстом `onAccent`
+    static let terracotta = Color(uiColor: uiTerracotta)
     /// Золото орнаментов
     static let gold = Color(uiColor: uiGold)
     /// Тонкие линии и рамки
@@ -48,6 +62,9 @@ enum Paper {
     static let shadow = Color(uiColor: uiShadow)
     /// Текст на залитой акцентной плашке (светлый на светлой теме, тёмный на ночной)
     static let onAccent = Color(uiColor: uiOnAccent)
+    /// Тёплый светлый знак на цветном медальоне с постоянным цветом (обложки, значки планов и наград).
+    /// Заменяет чистый белый; для заливок цветами `Paper.*`, которые меняются с темой, берётся `onAccent`.
+    static let onPigment = Color(red: 0.97, green: 0.94, blue: 0.89)
     // Пигменты рукописи: приглушённые цвета для категорий (теги, праздники, ИИ)
     static let lapis = Color(uiColor: uiLapis)
     static let indigo = Color(uiColor: uiIndigo)
@@ -99,6 +116,22 @@ extension AccentColorTheme {
         case .purple: return Paper.uiPlum
         }
     }
+
+    /// Цвет заливки под текст `Paper.onAccent` (кнопки, выбранные чипы).
+    /// У киновари это терракота #A66D61, у остальных акцентов заливка совпадает с цветом текста.
+    var fillColor: Color {
+        switch self {
+        case .cinnabar: return Paper.terracotta
+        default: return color
+        }
+    }
+}
+
+extension Paper {
+    /// Заливка в цвет выбранного пользователем акцента (см. `AccentColorTheme.fillColor`)
+    static var accentFill: Color {
+        BibleManager.shared.accentTheme.fillColor
+    }
 }
 
 // MARK: - Книжный шрифт
@@ -130,12 +163,18 @@ enum PaperFont {
 // MARK: - Лист бумаги (фон карточки)
 struct PaperSheetModifier: ViewModifier {
     var cornerRadius: CGFloat
-    /// На главном экране карточки — тёплая поверхность «святилища» (SanctuaryAtmosphere.swift)
+    /// В светлой теме тёплую поверхность «святилища» включает главный экран (SanctuaryAtmosphere.swift)
     @Environment(\.paperSurface) private var surface
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// В тёмной теме поверхность карточек одна на всё приложение
+    private var resolvedSurface: PaperSurfaceStyle {
+        colorScheme == .dark ? .sanctuary : surface
+    }
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        switch surface {
+        switch resolvedSurface {
         case .paper:
             content
                 .background(
@@ -183,20 +222,28 @@ extension View {
     }
 }
 
-// MARK: - Фон страницы с лёгкой виньеткой по краям
+// MARK: - Фон страницы
+// Тёмная тема: единый фон «Sacred Dark» (SanctuaryAtmosphere.swift), один и тот же на всех экранах.
+// Светлая тема: бумага с лёгкой виньеткой по краям.
 struct PaperBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        ZStack {
-            Paper.page
-            RadialGradient(
-                colors: [Color.clear, Paper.shadow],
-                center: .center,
-                startRadius: 180,
-                endRadius: 720
-            )
+        if colorScheme == .dark {
+            SanctuaryBackground()
+        } else {
+            ZStack {
+                Paper.page
+                RadialGradient(
+                    colors: [Color.clear, Paper.shadow],
+                    center: .center,
+                    startRadius: 180,
+                    endRadius: 720
+                )
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
         }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
     }
 }
 
@@ -251,7 +298,10 @@ enum PaperAppearance {
         // Навигационная панель: книжный заголовок, чернила и тонкая линия
         let nav = UINavigationBarAppearance()
         nav.configureWithTransparentBackground()
-        nav.backgroundColor = Paper.uiPage.withAlphaComponent(0.94)
+        // Цвет считается под текущую тему в момент показа: приложение может быть тёмным при светлой системе
+        nav.backgroundColor = UIColor { traits in
+            Paper.uiPage.resolvedColor(with: traits).withAlphaComponent(0.94)
+        }
         nav.shadowColor = Paper.uiHairline
         nav.titleTextAttributes = [
             .font: PaperFont.uiFont(size: 17, weight: .semibold),
@@ -270,42 +320,47 @@ enum PaperAppearance {
         UINavigationBar.appearance().compactAppearance = nav
         UINavigationBar.appearance().scrollEdgeAppearance = navScrollEdge
         
-        // Панель вкладок: подписи книжным шрифтом, спокойный цвет неактивных вкладок,
-        // у выбранной вкладки подпись плотнее (цвет даёт акцент темы через .tint)
+        // Панель вкладок: подписи книжным шрифтом. Неактивные вкладки — вторичный цвет текста
+        // (контраст на тёмном фоне 7.8:1, прежний третичный давал 3.6:1 и читался плохо),
+        // у выбранной вкладки подпись плотнее, а цвет даёт .tint у TabView (ContentView.swift).
         let tabTitleNormal: [NSAttributedString.Key: Any] = [
-            .font: PaperFont.uiFont(size: 10, weight: .medium)
+            .font: PaperFont.uiFont(size: 11, weight: .medium)
         ]
         let tabTitleSelected: [NSAttributedString.Key: Any] = [
-            .font: PaperFont.uiFont(size: 10, weight: .semibold)
+            .font: PaperFont.uiFont(size: 11, weight: .semibold)
         ]
         UITabBarItem.appearance().setTitleTextAttributes(tabTitleNormal, for: .normal)
         UITabBarItem.appearance().setTitleTextAttributes(tabTitleSelected, for: .selected)
-        UITabBar.appearance().unselectedItemTintColor = Paper.uiInkTertiary
+        UITabBar.appearance().unselectedItemTintColor = Paper.uiInkSecondary
         if #unavailable(iOS 26.0) {
-            // Тёмное полупрозрачное стекло в тон фону «святилища» и тонкая тёплая линия сверху.
-            // Размытие только в полосе панели, на весь экран его нет. На iOS 26 панель — системное
-            // «жидкое стекло», его фон не трогаем, чтобы не сломать.
+            // Плотная панель в тон фону с тонкой линией старого золота сверху. Вид один и тот же
+            // и в покое, и при прокрутке (standard = scrollEdge), поэтому панель не «мигает»,
+            // когда содержимое доходит до края. На iOS 26 панель — системное «жидкое стекло»,
+            // его фон не трогаем: подложку под ним даёт `.sacredTabBarFade()`.
             let tab = UITabBarAppearance()
             tab.configureWithDefaultBackground()
             tab.backgroundEffect = UIBlurEffect(style: .systemThinMaterial)
             tab.backgroundColor = UIColor { traits in
                 traits.userInterfaceStyle == .dark
-                    ? SanctuaryPalette.uiBase.resolvedColor(with: traits).withAlphaComponent(0.72)
+                    ? SanctuaryPalette.uiDepth.resolvedColor(with: traits).withAlphaComponent(0.92)
                     : Paper.uiPage.resolvedColor(with: traits).withAlphaComponent(0.86)
             }
             tab.shadowColor = SanctuaryPalette.uiBorder
             for layout in [tab.stackedLayoutAppearance, tab.inlineLayoutAppearance, tab.compactInlineLayoutAppearance] {
-                layout.normal.titleTextAttributes = tabTitleNormal
+                layout.normal.iconColor = Paper.uiInkSecondary
+                var normalAttributes = tabTitleNormal
+                normalAttributes[.foregroundColor] = Paper.uiInkSecondary
+                layout.normal.titleTextAttributes = normalAttributes
                 layout.selected.titleTextAttributes = tabTitleSelected
             }
             UITabBar.appearance().standardAppearance = tab
             UITabBar.appearance().scrollEdgeAppearance = tab
         }
         
-        // Сегментированные переключатели: лист бумаги на тёплой подложке
+        // Сегментированные переключатели: приподнятый лист на тёплой подложке
         let segmented = UISegmentedControl.appearance()
         segmented.backgroundColor = Paper.uiFillMuted
-        segmented.selectedSegmentTintColor = Paper.uiSheet
+        segmented.selectedSegmentTintColor = Paper.uiSheetRaised
         segmented.setTitleTextAttributes([
             .font: PaperFont.uiFont(size: 14, weight: .medium),
             .foregroundColor: Paper.uiInkSecondary

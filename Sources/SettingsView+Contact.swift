@@ -102,7 +102,7 @@ extension SettingsView {
                     Circle().fill(contact.tint)
                     Image(systemName: contact.symbol)
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onPigment)
                 }
                 .frame(width: 36, height: 36)
 

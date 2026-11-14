@@ -106,11 +106,13 @@ final class QuoteBackdropCache {
 
 // MARK: - Цвета текста поверх фотографии
 enum CinematicPalette {
-    /// Тёплое золото ссылки: хорошо видно и на тёмном, и на затемнённом светлом кадре
-    static let gold = Color(red: 0.97, green: 0.83, blue: 0.55)
-    static let text = Color.white
-    static let secondary = Color.white.opacity(0.78)
-    static let hairline = Color.white.opacity(0.18)
+    /// Старое золото ссылки (#D6BD87): светлее золота интерфейса, чтобы читаться на затемнённом кадре,
+    /// но без яркой желтизны
+    static let gold = Color(red: 0.84, green: 0.74, blue: 0.53)
+    /// Тёплый светлый текст (#F5EDDE) вместо чистого белого
+    static let text = Color(red: 0.96, green: 0.93, blue: 0.87)
+    static let secondary = text.opacity(0.78)
+    static let hairline = text.opacity(0.18)
     static let textShadow = Color.black.opacity(0.45)
 }
 

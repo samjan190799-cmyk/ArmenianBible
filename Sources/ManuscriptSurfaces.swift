@@ -456,7 +456,7 @@ struct ManuscriptSurfaceSheet: View {
 
     var body: some View {
         ZStack {
-            Paper.page.ignoresSafeArea()
+            PaperBackground()
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Text(language.pick(hy: "Էջի հիմք", ru: "Основа листа", en: "Page surface"))

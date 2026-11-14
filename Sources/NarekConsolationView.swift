@@ -127,7 +127,7 @@ struct NarekConsolationView: View {
                     .foregroundColor(isSelected ? Paper.onAccent : Paper.ink)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Capsule().fill(isSelected ? Paper.cinnabar : Paper.sheet))
+                    .background(Capsule().fill(isSelected ? Paper.terracotta : Paper.sheet))
                     .overlay(Capsule().strokeBorder(isSelected ? Paper.cinnabar : Paper.hairline, lineWidth: 1))
                 }
                 .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.95))
@@ -230,7 +230,7 @@ struct NarekConsolationView: View {
                     .foregroundColor(Paper.onAccent)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 11)
-                    .background(Capsule().fill(Paper.cinnabar))
+                    .background(Capsule().fill(Paper.terracotta))
             }
             .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.95))
         }
@@ -384,7 +384,7 @@ struct NarekConsolationView: View {
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isProminent ? Paper.cinnabar : Paper.fillSubtle)
+                    .fill(isProminent ? Paper.terracotta : Paper.fillSubtle)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)

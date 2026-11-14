@@ -70,14 +70,14 @@ struct QuizStartView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "medal.fill")
-                                .foregroundColor(.yellow)
+                                .foregroundColor(Paper.gold)
                             Text("\(unlockedBadgesCount)/\(totalBadgesCount) " + "achievements_btn".localized(for: language))
                                 .font(PaperFont.font(size: 12, weight: .semibold))
                                 .foregroundColor(primaryTextColor)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(Color.yellow.opacity(0.12))
+                        .background(Paper.gold.opacity(0.12))
                         .cornerRadius(20)
                     }
                     .buttonStyle(ScaleButtonStyle())
@@ -106,7 +106,7 @@ struct QuizStartView: View {
                             .foregroundColor(isAIGenerationEnabled ? Paper.onAccent : primaryTextColor)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 11)
-                            .background(isAIGenerationEnabled ? accentColor : cardBackgroundColor)
+                            .background(isAIGenerationEnabled ? Paper.accentFill : cardBackgroundColor)
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
@@ -130,7 +130,7 @@ struct QuizStartView: View {
                             .foregroundColor(!isAIGenerationEnabled ? Paper.onAccent : primaryTextColor)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 11)
-                            .background(!isAIGenerationEnabled ? accentColor : cardBackgroundColor)
+                            .background(!isAIGenerationEnabled ? Paper.accentFill : cardBackgroundColor)
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
@@ -173,7 +173,7 @@ struct QuizStartView: View {
                                     .foregroundColor(selectedQuestionCount == count ? Paper.onAccent : primaryTextColor)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
-                                    .background(selectedQuestionCount == count ? accentColor : cardBackgroundColor)
+                                    .background(selectedQuestionCount == count ? Paper.accentFill : cardBackgroundColor)
                                     .cornerRadius(12)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
@@ -232,7 +232,7 @@ struct QuizStartView: View {
                         .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)
-                        .background(accentColor)
+                        .background(Paper.accentFill)
                         .cornerRadius(16)
                         .shadow(color: Paper.shadow, radius: 8, y: 4)
                 }

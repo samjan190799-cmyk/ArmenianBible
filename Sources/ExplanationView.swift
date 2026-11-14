@@ -106,7 +106,7 @@ struct ExplanationView: View {
                         .foregroundColor(Paper.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(accentColor)
+                        .background(Paper.accentFill)
                         .cornerRadius(14)
                         .shadow(color: Paper.shadow, radius: 8, y: 4)
                     }

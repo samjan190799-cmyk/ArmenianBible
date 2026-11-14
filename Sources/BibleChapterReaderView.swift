@@ -248,7 +248,7 @@ struct BibleChapterReaderView: View {
                     .padding(.bottom, 24)
                 }
             }
-            .background(Paper.page.ignoresSafeArea())
+            .background(PaperBackground())
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
@@ -301,7 +301,7 @@ struct ChapterSelectionCell: View {
 
                 if isRead && !isCurrent {
                     Circle()
-                        .fill(accentColor)
+                        .fill(Paper.accentFill)
                         .frame(width: 5, height: 5)
                         .padding(6)
                 }

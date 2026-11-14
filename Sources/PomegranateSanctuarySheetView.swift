@@ -76,7 +76,7 @@ struct PomegranateSanctuarySheetView: View {
                                     .padding(.vertical, 6)
                                     .background(
                                         Capsule()
-                                            .fill(.ultraThinMaterial)
+                                            .fill(Paper.sheetRaised)
                                             .shadow(color: Paper.shadow, radius: 4)
                                     )
                                     .padding(.bottom, -12)
@@ -889,7 +889,7 @@ struct SpiritualFruitDetailSheetView: View {
                     .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(Paper.cinnabar)
+                    .background(Paper.terracotta)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .shadow(color: Paper.shadow, radius: 8, y: 3)
             }
@@ -1178,7 +1178,7 @@ struct PomegranateStageDetailSheetView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
-                .background(Capsule().fill(.ultraThinMaterial))
+                .background(Capsule().fill(Paper.sheetRaised))
             }
             
             // Описание стадии
@@ -1232,7 +1232,7 @@ struct PomegranateStageDetailSheetView: View {
                     .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
-                    .background(Paper.cinnabar)
+                    .background(Paper.terracotta)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .padding(.horizontal, 20)

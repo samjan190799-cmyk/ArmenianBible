@@ -35,7 +35,7 @@ struct BibleReaderView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
-                backgroundColor.ignoresSafeArea()
+                PaperBackground()
                 
                 VStack(spacing: 0) {
                     Picker("", selection: $manager.selectedReaderSection) {

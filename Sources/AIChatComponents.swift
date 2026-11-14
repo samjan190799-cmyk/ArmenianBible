@@ -28,7 +28,7 @@ struct AIChatBubbleRow: View {
                     .foregroundColor(Paper.onAccent)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(accentColor)
+                    .background(Paper.accentFill)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
         } else {

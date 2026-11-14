@@ -127,7 +127,7 @@ struct PaywallView: View {
                             .foregroundColor(Paper.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(accentColor)
+                            .background(Paper.accentFill)
                             .cornerRadius(18)
                             .shadow(color: Paper.shadow, radius: 12, y: 4)
                         }

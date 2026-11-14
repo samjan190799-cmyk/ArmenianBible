@@ -138,7 +138,7 @@ struct BibleLibrarySheetView: View {
                         .padding(.vertical, 12)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(accentColor)
+                                .fill(Paper.accentFill)
                                 .shadow(color: Paper.shadow, radius: 6, x: 0, y: 3)
                         )
                     }
@@ -282,7 +282,7 @@ struct SheetBookCoverContentView: View {
                 VStack(spacing: 4) {
                     Text(edition.title)
                         .font(PaperFont.font(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Paper.onPigment)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 10)
                         .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)

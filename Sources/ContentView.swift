@@ -13,6 +13,16 @@ struct ContentView: View {
         manager.accentTheme.color
     }
 
+    /// Цвет выбранной вкладки: в тёмной теме — старое золото дизайн-системы, в светлой — акцент пользователя
+    private var tabSelectionColor: Color {
+        let accent = manager.accentTheme.uiColor
+        return Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? Paper.uiGold.resolvedColor(with: traits)
+                : accent.resolvedColor(with: traits)
+        })
+    }
+
     var body: some View {
         ZStack {
             if UserDefaults.standard.string(forKey: "openTab") == "lockscreen" {
@@ -27,31 +37,42 @@ struct ContentView: View {
                 )
             } else {
                 TabView(selection: $manager.activeTabSelection) {
+                    // Акцент пользователя задаётся каждой вкладке отдельно: у самой панели свой цвет выбора.
+                    // Подложка под панелью (sacredTabBarFade) — на прокручиваемых вкладках с плавным переходом,
+                    // на экранах с нижней панелью ввода и навигацией — без него, чтобы не затенять кнопки.
                     HomeView()
+                        .sacredTabBarFade()
+                        .tint(accentColor)
                         .tabItem {
                             Label("tab_home".localized(for: manager.appLanguage), systemImage: "house")
                         }
                         .tag(0)
                     
                     FavoritesView()
+                        .sacredTabBarFade()
+                        .tint(accentColor)
                         .tabItem {
                             Label("tab_favorites".localized(for: manager.appLanguage), systemImage: "heart")
                         }
                         .tag(1)
                     
                     AIGuideView()
+                        .sacredTabBarFade(reach: 0)
+                        .tint(accentColor)
                         .tabItem {
                             Label("tab_ai_guide".localized(for: manager.appLanguage), systemImage: "sparkles")
                         }
                         .tag(2)
                     
                     BibleReaderView()
+                        .sacredTabBarFade(reach: 0)
+                        .tint(accentColor)
                         .tabItem {
                             Label("tab_bible".localized(for: manager.appLanguage), systemImage: "book.pages")
                         }
                         .tag(3)
                 }
-                .tint(accentColor)
+                .tint(tabSelectionColor)
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
                 // Статистика: какие вкладки открывают (Funnel, анонимно)
                 .onChange(of: manager.activeTabSelection) { tab in
@@ -230,7 +251,7 @@ struct BiometricLockOverlayView: View {
                     .foregroundColor(Paper.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(accentColor)
+                    .background(Paper.accentFill)
                     .cornerRadius(16)
                     .shadow(color: Paper.shadow, radius: 10, y: 4)
                 }
@@ -499,7 +520,7 @@ struct HomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                            .strokeBorder(CinematicPalette.gold.opacity(0.22), lineWidth: 1)
                     )
                     .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.20), radius: 18, x: 0, y: 10)
                     .environment(\.colorScheme, .dark)
