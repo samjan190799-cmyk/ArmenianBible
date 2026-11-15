@@ -297,12 +297,12 @@ final class SubscriptionManager: ObservableObject {
         // Раньше уходила первая попавшаяся запись из currentEntitlements. В песочнице TestFlight (и при продлении в фоне)
         // StoreKit может отдать запись прошлого периода с уже истёкшим сроком, и сервер отвечал «expired», сколько ни покупай.
         // Теперь берём все записи подписки (действующие и последние по каждому тарифу) и отправляем ту, чей срок дальше всего
-        var candidates: [VerificationResult<Transaction>] = []
+        var candidates: [VerificationResult<StoreKit.Transaction>] = []
         for await result in Transaction.currentEntitlements {
             candidates.append(result)
         }
         for plan in SubscriptionPlan.allCases {
-            if let latest = await Transaction.latest(for: plan.rawValue) {
+            if let latest = await StoreKit.Transaction.latest(for: plan.rawValue) {
                 candidates.append(latest)
             }
         }
