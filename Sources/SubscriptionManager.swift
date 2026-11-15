@@ -294,13 +294,32 @@ final class SubscriptionManager: ObservableObject {
 
     /// Подписанное Apple подтверждение действующей подписки (JWS из StoreKit 2): сервер ИИ проверяет его подпись и срок
     func currentEntitlementJWS() async -> String? {
+        // Раньше уходила первая попавшаяся запись из currentEntitlements. В песочнице TestFlight (и при продлении в фоне)
+        // StoreKit может отдать запись прошлого периода с уже истёкшим сроком, и сервер отвечал «expired», сколько ни покупай.
+        // Теперь берём все записи подписки (действующие и последние по каждому тарифу) и отправляем ту, чей срок дальше всего
+        var candidates: [VerificationResult<Transaction>] = []
         for await result in Transaction.currentEntitlements {
+            candidates.append(result)
+        }
+        for plan in SubscriptionPlan.allCases {
+            if let latest = await Transaction.latest(for: plan.rawValue) {
+                candidates.append(latest)
+            }
+        }
+
+        var best: (jws: String, expires: Date)?
+        for result in candidates {
             guard case .verified(let transaction) = result,
                   SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }),
-                  transaction.revocationDate == nil else { continue }
-            return result.jwsRepresentation
+                  transaction.revocationDate == nil,
+                  let expires = transaction.expirationDate else { continue }
+            if best == nil || expires > best!.expires {
+                best = (result.jwsRepresentation, expires)
+            }
         }
-        return nil
+        // Если даже самая свежая запись просрочена, подписки по факту нет: вопрос уйдёт как бесплатный, а не с отказом «expired»
+        guard let chosen = best, chosen.expires > Date() else { return nil }
+        return chosen.jws
     }
 
     // MARK: - Восстановление покупок (Restore Purchases)
