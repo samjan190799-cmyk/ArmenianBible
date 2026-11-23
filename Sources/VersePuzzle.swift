@@ -57,9 +57,25 @@ enum VersePuzzleLogic {
         return count >= minWords && count <= maxWords
     }
 
+    /// Слово для плитки: без знаков препинания и заглавных букв, чтобы они не подсказывали порядок
+    /// (запятая в конце плитки или заглавная буква в начале сразу выдают начало и конец стиха). Дефис внутри слова остаётся
+    static func tileWord(_ word: String) -> String {
+        var kept = String.UnicodeScalarView()
+        for scalar in word.unicodeScalars {
+            if CharacterSet.punctuationCharacters.contains(scalar) && scalar != "-" { continue }
+            kept.append(scalar)
+        }
+        return String(kept).trimmingCharacters(in: CharacterSet(charactersIn: "-")).lowercased()
+    }
+
+    /// Слова стиха в виде плиток: знаки препинания сняты, слова из одних знаков (тире) отброшены
+    static func tileWords(of text: String) -> [String] {
+        words(of: text).map { tileWord($0) }.filter { !$0.isEmpty }
+    }
+
     /// Плитки: каждое слово отдельно, а у длинного стиха слова собраны в куски так, чтобы плиток было не больше `maxTiles`
     static func chunks(of text: String, maxTiles: Int = VersePuzzleLogic.maxTiles) -> [String] {
-        let all = words(of: text)
+        let all = tileWords(of: text)
         let limit = max(2, maxTiles)
         guard all.count > limit else { return all }
         var result: [String] = []
