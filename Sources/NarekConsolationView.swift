@@ -398,13 +398,20 @@ struct NarekConsolationView: View {
     private func search() {
         isTextFocused = false
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Бережная заметка не зависит от дневного лимита: человеку, которому плохо, она нужна и во второй раз за день
+        let needsCare = NarekConsolationEngine.needsGentleCare(trimmed)
+        showsCareNote = needsCare
         guard PremiumTaste.isAllowed(Self.feature, freePerDay: 1) else {
-            Haptics.notify(.warning)
-            withAnimation(PaperMotion.appear) { isLimitReached = true }
+            if needsCare {
+                // Рядом с заметкой «Вы не одни» не предлагаем купить подписку
+                isLimitReached = false
+            } else {
+                Haptics.notify(.warning)
+                withAnimation(PaperMotion.appear) { isLimitReached = true }
+            }
             return
         }
         isLimitReached = false
-        showsCareNote = NarekConsolationEngine.needsGentleCare(trimmed)
         let ranked = NarekConsolationEngine.rank(text: trimmed, chips: selectedThemes, language: language)
         guard !ranked.isEmpty else { return }
         PremiumTaste.record(Self.feature)

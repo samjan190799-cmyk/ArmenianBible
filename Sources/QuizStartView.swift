@@ -100,6 +100,30 @@ struct QuizStartView: View {
                         Button {
                             triggerHaptic(.light)
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                isAIGenerationEnabled = false
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "book.closed.fill")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("quiz_mode_classic".localized(for: language))
+                                    .font(PaperFont.font(size: 13, weight: !isAIGenerationEnabled ? .semibold : .medium))
+                            }
+                            .foregroundColor(!isAIGenerationEnabled ? Paper.onAccent : primaryTextColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 11)
+                            .background(!isAIGenerationEnabled ? Paper.accentFill : cardBackgroundColor)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(!isAIGenerationEnabled ? accentColor : Paper.ink.opacity(0.06), lineWidth: 1.2)
+                            )
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                        
+                        Button {
+                            triggerHaptic(.light)
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
                                 isAIGenerationEnabled = true
                             }
                         } label: {
@@ -122,30 +146,6 @@ struct QuizStartView: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(isAIGenerationEnabled ? accentColor : Paper.ink.opacity(0.06), lineWidth: 1.2)
-                            )
-                        }
-                        .buttonStyle(ScaleButtonStyle())
-                        
-                        Button {
-                            triggerHaptic(.light)
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                                isAIGenerationEnabled = false
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "book.closed.fill")
-                                    .font(.system(size: 12, weight: .semibold))
-                                Text("quiz_mode_classic".localized(for: language))
-                                    .font(PaperFont.font(size: 13, weight: !isAIGenerationEnabled ? .semibold : .medium))
-                            }
-                            .foregroundColor(!isAIGenerationEnabled ? Paper.onAccent : primaryTextColor)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
-                            .background(!isAIGenerationEnabled ? Paper.accentFill : cardBackgroundColor)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(!isAIGenerationEnabled ? accentColor : Paper.ink.opacity(0.06), lineWidth: 1.2)
                             )
                         }
                         .buttonStyle(ScaleButtonStyle())

@@ -192,13 +192,47 @@ enum NarekConsolationEngine {
         return Array(scored.prefix(5))
     }
 
-    /// Слова, при которых утешение не должно быть «автоматическим»: человеку важнее живой человек рядом
+    /// Слова, при которых утешение не должно быть «автоматическим»: человеку важнее живой человек рядом.
+    /// Список намеренно широкий: лишняя бережная заметка безобидна, а пропущенная нет.
+    /// Записан в обычном виде; перед сравнением и фразы, и текст человека проходят через `normalizedForCare`
+    static let careMarkers: [String] = [
+        // русский
+        "не хочу жить", "не хочу больше жить", "жить не хочу", "не хочется жить", "жить не хочется",
+        "нет смысла жить", "не вижу смысла жить", "незачем жить", "жить незачем",
+        "самоубийств", "суицид", "покончить с собой", "покончу с собой", "покончить с жизнью",
+        "убить себя", "убью себя", "свести счеты с жизнью", "наложить на себя руки", "наложу на себя руки",
+        "лучше умереть", "хочу умереть", "хочу сдохнуть", "лучше бы я умер", "лучше бы меня не было",
+        "повеситься", "вскрыть вены", "порезать вены", "навредить себе",
+        // английский
+        "kill myself", "killing myself", "suicide", "suicidal", "end my life", "end it all", "take my own life",
+        "don't want to live", "dont want to live", "do not want to live", "don't want to be alive", "don't want to be here anymore",
+        "want to die", "wanna die", "better off dead", "wish i was dead", "wish i were dead", "wish i was never born",
+        "hurt myself", "harm myself", "self-harm", "self harm",
+        // армянский
+        "ինքնասպան", "չեմ ուզում ապրել", "չեմ ուզում այլևս ապրել", "ուզում եմ մեռնել", "ուզում եմ մահանալ",
+        "կյանքիս վերջ տալ", "կյանքին վերջ տալ"
+    ]
+
+    /// Приводит текст к виду, в котором фразы сравниваются надёжно: строчные буквы, «е» вместо «ё»,
+    /// прямой апостроф вместо изогнутого (клавиатура iPhone ставит ’, и «don’t» раньше не находилось),
+    /// обычный дефис и одиночные пробелы
+    static func normalizedForCare(_ text: String) -> String {
+        var result = text.lowercased()
+        for apostrophe in ["\u{2019}", "\u{2018}", "\u{02BC}", "\u{00B4}", "`"] {
+            result = result.replacingOccurrences(of: apostrophe, with: "'")
+        }
+        for dash in ["\u{2010}", "\u{2011}", "\u{2012}", "\u{2013}", "\u{2014}"] {
+            result = result.replacingOccurrences(of: dash, with: "-")
+        }
+        result = result.replacingOccurrences(of: "ё", with: "е")
+        return result.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+    }
+
+    private static let normalizedCareMarkers: [String] = careMarkers.map { NarekConsolationEngine.normalizedForCare($0) }
+
     static func needsGentleCare(_ text: String) -> Bool {
-        let lowered = text.lowercased()
-        let markers = ["не хочу жить", "покончить с собой", "суицид", "убить себя", "лучше умереть", "хочу умереть",
-                       "kill myself", "suicide", "end my life", "don't want to live", "want to die",
-                       "ինքնասպան", "չեմ ուզում ապրել", "ուզում եմ մեռնել"]
-        return markers.contains { lowered.contains($0) }
+        let normalized = normalizedForCare(text)
+        return normalizedCareMarkers.contains { normalized.contains($0) }
     }
 }
 
