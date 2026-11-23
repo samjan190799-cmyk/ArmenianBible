@@ -113,11 +113,14 @@ export async function verifyAppleJws(jws, { rootSha256 = APPLE_ROOT_G3_SHA256 } 
 /** Годится ли транзакция для доступа к ИИ. Возвращает null, если да, или короткую причину отказа */
 export function checkEntitlement(payload, env, now = Date.now()) {
   const bundleId = env.BUNDLE_ID || 'com.samvel.armenianbible';
-  const products = (env.PRODUCT_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const list = (value) => (value || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const products = list(env.PRODUCT_IDS);
+  // Пожизненная покупка (Non-Consumable) срока не имеет: у неё нет expiresDate, и отозванной она быть может
+  const lifetime = list(env.LIFETIME_PRODUCT_IDS).includes(payload.productId);
   if (payload.bundleId !== bundleId) return 'bundle';
-  if (!products.includes(payload.productId)) return 'product';
+  if (!lifetime && !products.includes(payload.productId)) return 'product';
   if (payload.revocationDate) return 'revoked';
-  if (typeof payload.expiresDate !== 'number' || payload.expiresDate < now) return 'expired';
+  if (!lifetime && (typeof payload.expiresDate !== 'number' || payload.expiresDate < now)) return 'expired';
   if (payload.environment !== 'Production' && payload.environment !== 'Sandbox') return 'environment';
   if (payload.environment === 'Sandbox' && env.ALLOW_SANDBOX === 'false') return 'sandbox';
   if (!payload.originalTransactionId) return 'no_id';

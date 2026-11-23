@@ -6,6 +6,8 @@ compatibility_date = "2025-09-01"
 [vars]
 BUNDLE_ID = "com.samvel.armenianbible"
 PRODUCT_IDS = "com.samvel.armenianbible.subscription.monthly,com.samvel.armenianbible.subscription.yearly"
+# Пожизненная покупка (разовая, без срока): права на ИИ те же, что у подписчика, но expiresDate у неё нет
+LIFETIME_PRODUCT_IDS = "com.samvel.armenianbible.lifetime"
 # Сколько запросов к ИИ в сутки (по UTC) у одного подписчика и у всего сервиса вместе (потолок расходов)
 DAILY_LIMIT = "30"
 GLOBAL_DAILY_LIMIT = "3000"

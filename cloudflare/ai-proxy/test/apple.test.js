@@ -63,6 +63,16 @@ test('правила доступа: подходящая подписка', () 
   assert.equal(checkEntitlement(goodPayload(), env), null);
 });
 
+test('правила доступа: пожизненная покупка не имеет срока', () => {
+  const withLifetime = { ...env, LIFETIME_PRODUCT_IDS: 'com.samvel.armenianbible.lifetime' };
+  const lifetime = goodPayload({ productId: 'com.samvel.armenianbible.lifetime', expiresDate: undefined });
+  assert.equal(checkEntitlement(lifetime, withLifetime), null);
+  assert.equal(checkEntitlement({ ...lifetime, revocationDate: Date.now() }, withLifetime), 'revoked');
+  assert.equal(checkEntitlement({ ...lifetime, bundleId: 'x.y' }, withLifetime), 'bundle');
+  assert.equal(checkEntitlement(lifetime, env), 'product', 'пока сервер не настроен на пожизненную покупку, он её не принимает');
+  assert.equal(checkEntitlement(goodPayload({ expiresDate: undefined }), withLifetime), 'expired', 'подписке срок по-прежнему обязателен');
+});
+
 test('правила доступа: отказы', () => {
   assert.equal(checkEntitlement(goodPayload({ bundleId: 'x.y' }), env), 'bundle');
   assert.equal(checkEntitlement(goodPayload({ productId: 'other' }), env), 'product');

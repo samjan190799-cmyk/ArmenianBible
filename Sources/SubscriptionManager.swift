@@ -8,6 +8,8 @@ import WidgetKit
 enum SubscriptionPlan: String, CaseIterable, Identifiable {
     case monthly = "com.samvel.armenianbible.subscription.monthly"
     case yearly = "com.samvel.armenianbible.subscription.yearly"
+    /// Пожизненная покупка: разовый платёж (Non-Consumable), не подписка. Ничего не продлевается и не истекает
+    case lifetime = "com.samvel.armenianbible.lifetime"
     
     var id: String { rawValue }
     
@@ -25,6 +27,12 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
             case .russian: return "1 Год"
             case .english: return "1 Year"
             }
+        case .lifetime:
+            switch language {
+            case .armenian: return "Ընդմիշտ"
+            case .russian: return "Навсегда"
+            case .english: return "Lifetime"
+            }
         }
     }
     
@@ -34,6 +42,9 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
             return "$0.99"
         case .yearly:
             return "$9.99"
+        case .lifetime:
+            // Настоящая цена приходит из App Store; выдумывать её здесь не нужно
+            return "—"
         }
     }
 }
@@ -332,7 +343,7 @@ final class SubscriptionManager: ObservableObject {
             do {
                 let transaction = try Self.checkVerified(result)
                 
-                if SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }) || transaction.productID == "com.samvel.armenianbible.lifetime" {
+                if SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }) {
                     if transaction.revocationDate == nil {
                         hasActivePremium = true
                     }

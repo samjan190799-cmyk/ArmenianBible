@@ -37,7 +37,11 @@ struct PaywallView: View {
     }
 
     private func planCode(_ plan: SubscriptionPlan) -> String {
-        plan == .yearly ? "yearly" : "monthly"
+        switch plan {
+        case .monthly: return "monthly"
+        case .yearly: return "yearly"
+        case .lifetime: return "lifetime"
+        }
     }
 
     /// Есть ли у годового тарифа бесплатный пробный период в App Store (пока тарифы не загрузились, неизвестно)
@@ -327,6 +331,9 @@ struct PaywallView: View {
     
     /// «Экономия 17% · 7 дней бесплатно»: только то, что подтверждено настоящими ценами и правом на пробный период
     private func badgeText(for plan: SubscriptionPlan) -> String? {
+        if plan == .lifetime {
+            return language.pick(hy: "Մեկանգամյա", ru: "Один раз", en: "Pay once")
+        }
         guard plan == .yearly else { return nil }
         var parts: [String] = []
         if let percent = subscriptionManager.yearlySavingsPercent {
@@ -589,6 +596,16 @@ struct PaywallView: View {
             ru: "Отмена в любой момент в настройках учётной записи Apple ID.",
             en: "Cancel anytime in your Apple ID Subscription Settings."
         )
+        // Пожизненная покупка не подписка: ничего не продлевается, отменять нечего
+        if selectedPlan == .lifetime {
+            let oneTime = language.pick(
+                hy: "Միանվագ վճար, առանց բաժանորդագրության:",
+                ru: "Единоразовый платёж, без подписки.",
+                en: "One-time payment, no subscription."
+            )
+            guard let lifetime = product(for: .lifetime) else { return oneTime }
+            return "\(lifetime.displayPrice) · " + oneTime
+        }
         guard let selected = product(for: selectedPlan) else { return cancel }
         let period = selectedPlan == .yearly
             ? language.pick(hy: "տարեկան", ru: "в год", en: "per year")
