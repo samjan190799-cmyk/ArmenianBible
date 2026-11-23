@@ -138,18 +138,20 @@ extension BibleManager {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         
         let anyEnabled = morningNotificationsEnabled || eveningNotificationsEnabled || churchFeastsNotificationsEnabled || readingPlanNotificationsEnabled
+            || PrayerHoursStore.hasEnabledReminders
         guard anyEnabled else { return }
         
         let calendar = Calendar.current
         let now = Date()
         
-        // 1. Утренний стих дня (на три недели вперёд: iOS хранит до 64 запланированных уведомлений,
-        //    всего здесь выходит не больше 61 — утро 21, вечер 14, праздники 12, посты 7, план чтения 7)
+        // 1. Утренний стих дня (почти на три недели вперёд: iOS хранит до 64 запланированных уведомлений,
+        //    всего здесь выходит не больше 64 — утро 20, вечер 14, праздники 12, посты 7, план чтения 7,
+        //    молитвы по часам 4 повторяющихся)
         if morningNotificationsEnabled {
             let database = getFilteredDatabase(for: selectedCategory)
             if !database.isEmpty {
                 let timeComponents = calendar.dateComponents([.hour, .minute], from: morningNotificationTime)
-                for dayOffset in 0..<21 {
+                for dayOffset in 0..<20 {
                     let verse = database.randomElement() ?? database[0]
                     let content = UNMutableNotificationContent()
                     content.title = appLanguage == .armenian ? "Առավոտյան օրվա համար" : (appLanguage == .russian ? "Утренний стих дня" : "Morning Verse of the Day")
@@ -320,6 +322,11 @@ extension BibleManager {
                 )
                 UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
             }
+        }
+
+        // 5. Молитвы по часам (PrayerHours.swift): до четырёх повторяющихся напоминаний, у каждого своё время
+        for request in PrayerHoursStore.reminderRequests(language: appLanguage) {
+            UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
         }
     }
     

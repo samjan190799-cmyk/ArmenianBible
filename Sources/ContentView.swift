@@ -288,6 +288,9 @@ struct HomeView: View {
     @State private var isShowingConsolation = false
     @State private var isShowingSanctuaryMap = false
     @State private var isShowingNativity = false
+    @State private var isShowingPuzzle = false
+    @State private var isShowingPrayerHours = false
+    @State private var isShowingRecap = false
 
     // Порядок разделов на экране (HomeSectionOrder.swift): сохранённые идентификаторы через запятую
     @AppStorage(HomeSectionOrder.storageKey) private var savedSectionOrderRaw: String = ""
@@ -685,6 +688,12 @@ struct HomeView: View {
             SanctuaryMapView()
                 .preferredColorScheme(manager.appearanceMode.colorScheme)
         }
+        .modifier(HomeNewFeatureSheets(
+            isShowingPuzzle: $isShowingPuzzle,
+            isShowingPrayerHours: $isShowingPrayerHours,
+            isShowingRecap: $isShowingRecap,
+            colorScheme: manager.appearanceMode.colorScheme
+        ))
         .onReceive(PomegranateTreeManager.shared.$isShowingSanctuarySheet) { show in
             if show {
                 isShowingPomegranateSanctuary = true
@@ -884,6 +893,17 @@ struct HomeView: View {
                     isShowingSanctuary = true
                 }
             )
+        case .prayerHours:
+            // Карточка «Молитвы по часам»: утро, день, вечер, ночь и напоминания
+            PrayerHoursBannerCardView(
+                language: manager.appLanguage,
+                primaryTextColor: primaryTextColor,
+                secondaryAccentColor: secondaryAccentColor,
+                onOpen: {
+                    triggerHaptic(.soft)
+                    isShowingPrayerHours = true
+                }
+            )
         case .tree:
             // Карточка Гранатового Древа Веры (Հոգևոր Աճի Նռնենի)
             PomegranateTreeBannerCardView(
@@ -927,6 +947,17 @@ struct HomeView: View {
                     isShowingQuiz = true
                 }
             )
+        case .puzzle:
+            // Карточка «Головоломка дня»: собрать стих по порядку
+            VersePuzzleBannerCardView(
+                language: manager.appLanguage,
+                primaryTextColor: primaryTextColor,
+                secondaryAccentColor: secondaryAccentColor,
+                onOpen: {
+                    triggerHaptic(.soft)
+                    isShowingPuzzle = true
+                }
+            )
         case .feasts:
             // Карточка Церковных праздников и Календаря
             ChurchFeastsBannerCardView(
@@ -950,6 +981,17 @@ struct HomeView: View {
                 onOpen: {
                     triggerHaptic(.soft)
                     isShowingSanctuaryMap = true
+                }
+            )
+        case .recap:
+            // Карточка «Мой путь с Luys»: итоги одной картинкой
+            LuysRecapBannerCardView(
+                language: manager.appLanguage,
+                primaryTextColor: primaryTextColor,
+                secondaryAccentColor: secondaryAccentColor,
+                onOpen: {
+                    triggerHaptic(.soft)
+                    isShowingRecap = true
                 }
             )
         case .premium:

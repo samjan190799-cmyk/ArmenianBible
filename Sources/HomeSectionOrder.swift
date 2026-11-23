@@ -12,11 +12,14 @@ enum HomeSection: String, CaseIterable, Identifiable {
     case consolation
     case nativity
     case prayer
+    case prayerHours
     case tree
     case readingPlan
     case quiz
+    case puzzle
     case feasts
     case sanctuaryMap
+    case recap
     case premium
 
     var id: String { rawValue }
