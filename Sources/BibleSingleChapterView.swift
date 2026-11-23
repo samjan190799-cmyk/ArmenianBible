@@ -1,5 +1,97 @@
 import SwiftUI
 
+// MARK: - Отслеживание места остановки в главе
+
+/// Верх текста главы в системе координат прокрутки (уходит в минус по мере прокрутки)
+private struct ChapterTextTopKey: PreferenceKey {
+    static var defaultValue: CGFloat = .nan
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        if !next.isNaN { value = next }
+    }
+}
+
+/// Высота видимой области прокрутки
+private struct ChapterViewportHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        if next > 0 { value = next }
+    }
+}
+
+/// Состояние отслеживания живёт в классе, а не в @State: положение прокрутки меняется каждый кадр,
+/// а любое изменение @State перестроило бы весь текст главы (и сбросило бы выделение).
+private final class ChapterReadingTracker {
+    /// Начала стихов от верха текста, по возрастанию
+    var verseStarts: [(verse: Int, y: CGFloat)] = []
+    var textTop: CGFloat = .nan
+    var viewportHeight: CGFloat = 0
+    /// Отслеживание включается, когда глава показана и (если открывали по стиху) прокрутка к стиху закончилась
+    var isReady = false
+    /// Верх текста в момент включения: пока читатель не сдвинул страницу, ничего не сохраняем
+    var baselineTop: CGFloat? = nil
+    var hasMoved = false
+    var saveTask: Task<Void, Never>? = nil
+
+    /// Включает отслеживание: с этого момента положение страницы считается исходным
+    /// `restoredVerse` — стих, к которому только что прокрутили при открытии: по тому, где он оказался на экране на самом деле,
+    /// уточняем строку чтения (система может считать «верхнюю треть» с учётом полос навигации), чтобы сохранённый стих
+    /// не съезжал назад при каждом следующем открытии.
+    func markReady(restoredVerse: Int?) {
+        guard !isReady else { return }
+        isReady = true
+        baselineTop = textTop.isNaN ? nil : textTop
+        if let verse = restoredVerse, viewportHeight > 0, !textTop.isNaN,
+           let start = verseStarts.first(where: { $0.verse == verse }) {
+            let measured = textTop + start.y
+            let formula = viewportHeight * Self.readLineFraction
+            // Если прокрутка упёрлась в конец главы, стих окажется ниже строки чтения: такое измерение не годится
+            if abs(measured - formula) <= 120 {
+                calibratedLine = measured
+            }
+        }
+    }
+
+    /// Измеренная строка чтения (расстояние от верха области прокрутки) после прокрутки к стиху; nil — считаем по формуле
+    var calibratedLine: CGFloat? = nil
+
+    /// Принимает новое положение текста; true — читатель сдвинул страницу и место остановки пора пересчитать
+    func registerTextTop(_ top: CGFloat) -> Bool {
+        textTop = top
+        guard isReady, !top.isNaN else { return false }
+        guard let baseline = baselineTop else {
+            baselineTop = top
+            return false
+        }
+        if !hasMoved {
+            guard abs(top - baseline) > 24 else { return false }
+            hasMoved = true
+        }
+        return true
+    }
+
+    /// Доля высоты, на которой лежит строка чтения: туда же прокручиваем при открытии (anchor y = 0.22)
+    static let readLineFraction: CGFloat = 0.22
+
+    /// Стих, лежащий на строке чтения; nil — на строке ещё заголовок главы или первый стих
+    func verseOnReadLine() -> Int? {
+        guard !verseStarts.isEmpty, viewportHeight > 0, !textTop.isNaN else { return nil }
+        // Небольшой запас: после прокрутки к стиху его верх может отстоять от строки на пару пунктов
+        let line = (calibratedLine ?? viewportHeight * Self.readLineFraction) + 6
+        var found: Int? = nil
+        for item in verseStarts {
+            if textTop + item.y <= line {
+                found = item.verse
+            } else {
+                break
+            }
+        }
+        if let verse = found, verse > 1 { return verse }
+        return nil
+    }
+}
+
 // MARK: - Внутреннее вью для отображения конкретной главы
 
 struct BibleSingleChapterView: View {
@@ -14,8 +106,11 @@ struct BibleSingleChapterView: View {
     @State private var targetOffset: CGFloat? = nil
     @State private var selectedVerseForSheet: BibleVerseText? = nil
     @State private var toastMessage: String? = nil
-    
+    @State private var tracker = ChapterReadingTracker()
+
     @Environment(\.colorScheme) private var colorScheme
+
+    private static let scrollSpaceName = "chapter-scroll-space"
 
     /// Невидимая метка в тексте главы на уровне целевого стиха: к ней прокручивает ScrollViewReader
     private static let verseAnchorId = "verse-scroll-anchor"
@@ -107,10 +202,21 @@ struct BibleSingleChapterView: View {
                                 scrollToVerse: targetVerse,
                                 onVerseOffset: { offset in
                                     targetOffset = offset
+                                },
+                                onVerseStarts: { starts in
+                                    tracker.verseStarts = starts
                                 }
                             )
                             .padding(.horizontal, 24)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.preference(
+                                        key: ChapterTextTopKey.self,
+                                        value: geo.frame(in: .named(Self.scrollSpaceName)).minY
+                                    )
+                                }
+                            )
                             .overlay(alignment: .topLeading) {
                                 // Метка на высоте целевого стиха. Отступ делаем соседним элементом, а не padding вокруг метки:
                                 // иначе ScrollViewReader берёт рамку вместе с отступом и прокручивает не туда
@@ -197,12 +303,26 @@ struct BibleSingleChapterView: View {
                         }
                         .padding(.bottom, 32)
                     }
+                    .coordinateSpace(name: Self.scrollSpaceName)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.preference(key: ChapterViewportHeightKey.self, value: geo.size.height)
+                        }
+                    )
+                    .onPreferenceChange(ChapterViewportHeightKey.self) { height in
+                        tracker.viewportHeight = height
+                    }
+                    .onPreferenceChange(ChapterTextTopKey.self) { top in
+                        if tracker.registerTextTop(top) {
+                            scheduleVerseSave()
+                        }
+                    }
                     .onChange(of: targetOffset) { offset in
                         // Смещение стиха стало известно: прокручиваем так, чтобы стих лёг в верхнюю треть экрана
                         guard offset != nil else { return }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             withAnimation(.easeInOut(duration: 0.5)) {
-                                proxy.scrollTo(Self.verseAnchorId, anchor: UnitPoint(x: 0.5, y: 0.22))
+                                proxy.scrollTo(Self.verseAnchorId, anchor: UnitPoint(x: 0.5, y: ChapterReadingTracker.readLineFraction))
                             }
                         }
                     }
@@ -235,6 +355,13 @@ struct BibleSingleChapterView: View {
         }
         .onAppear {
             loadChapterText()
+        }
+        .onDisappear {
+            // Ушли с главы (назад к каталогу, закрыли экран): сразу записываем, где остановились
+            tracker.saveTask?.cancel()
+            if tracker.hasMoved {
+                saveReadingVerseNow()
+            }
         }
         .sheet(item: $selectedVerseForSheet) { v in
             VerseActionSheetView(
@@ -325,8 +452,32 @@ struct BibleSingleChapterView: View {
                 withAnimation(PaperMotion.animation(PaperMotion.swap)) {
                     self.chapterText = data
                 }
+                // Место остановки начинаем отслеживать, когда страница устоялась: при открытии на стихе — после прокрутки к нему
+                // (она заканчивается примерно через секунду после показа текста), иначе положение «до прокрутки» затёрло бы сохранённый стих
+                let settleDelay: Double = (targetVerse == nil) ? 0.8 : 2.2
+                DispatchQueue.main.asyncAfter(deadline: .now() + settleDelay) {
+                    tracker.markReady(restoredVerse: targetVerse)
+                }
             }
         }
+    }
+
+    // MARK: - Сохранение стиха, на котором остановился читатель
+
+    /// Записывает стих не на каждый кадр прокрутки, а когда страница остановилась на пару мгновений
+    private func scheduleVerseSave() {
+        tracker.saveTask?.cancel()
+        tracker.saveTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            guard !Task.isCancelled else { return }
+            saveReadingVerseNow()
+        }
+    }
+
+    private func saveReadingVerseNow() {
+        // Страницы соседних глав прогреваются заранее: пишем только за ту, что сейчас открыта (её глава записана как последняя прочитанная)
+        guard manager.lastReadBookId == book.id, manager.lastReadChapter == chapter else { return }
+        manager.saveBookLastReadVerse(bookId: book.id, chapter: chapter, verse: tracker.verseOnReadLine())
     }
     
     private func copyToClipboard(verse: BibleVerseText) {

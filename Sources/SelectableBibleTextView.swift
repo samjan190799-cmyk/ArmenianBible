@@ -11,11 +11,15 @@ struct SelectableBibleTextView: UIViewRepresentable {
     var scrollToVerse: Int? = nil
     /// Сообщает, на каком расстоянии от верха текста начинается нужный стих при текущей ширине
     var onVerseOffset: ((CGFloat) -> Void)? = nil
+    /// Сообщает, где начинается каждый стих (расстояние от верха текста, по возрастанию): нужно, чтобы по положению
+    /// прокрутки понять, на каком стихе остановился читатель
+    var onVerseStarts: (([(verse: Int, y: CGFloat)]) -> Void)? = nil
 
     func makeUIView(context: Context) -> UITextView {
         let textView = VerseTextView()
         textView.onLayout = { [weak coordinator = context.coordinator] view in
             coordinator?.reportVerseOffsetIfNeeded(in: view)
+            coordinator?.reportVerseStartsIfNeeded(in: view)
         }
         textView.isEditable = false
         textView.isSelectable = true
@@ -42,6 +46,7 @@ struct SelectableBibleTextView: UIViewRepresentable {
         context.coordinator.language = language
         context.coordinator.scrollToVerse = scrollToVerse
         context.coordinator.onVerseOffset = onVerseOffset
+        context.coordinator.onVerseStarts = onVerseStarts
         // Текст мог смениться (другая глава, размер шрифта): положение стиха пересчитается при следующей раскладке
         uiView.setNeedsLayout()
     }
@@ -80,6 +85,39 @@ struct SelectableBibleTextView: UIViewRepresentable {
         var reportedOffsetKey: String? = nil
         var scrollToVerse: Int? = nil
         var onVerseOffset: ((CGFloat) -> Void)? = nil
+        var onVerseStarts: (([(verse: Int, y: CGFloat)]) -> Void)? = nil
+        /// Для какой раскладки (ширина, высота, длина текста) начала стихов уже сообщены
+        var reportedStartsKey: String? = nil
+
+        /// Начала всех стихов главы после раскладки. Считается один раз на раскладку (ширина, высота, текст),
+        /// а не на каждый проход вёрстки: в длинной главе (Псалом 118) это до ста семидесяти стихов.
+        func reportVerseStartsIfNeeded(in textView: UITextView) {
+            guard let report = onVerseStarts else { return }
+            let width = textView.bounds.width
+            let height = textView.bounds.height
+            guard width > 0, height > 0 else { return }
+            let text = textView.attributedText ?? NSAttributedString()
+            let key = "\(Int(width))x\(Int(height))#\(text.length)"
+            guard reportedStartsKey != key else { return }
+
+            var starts: [(verse: Int, y: CGFloat)] = []
+            let verseKey = NSAttributedString.Key("verseNumber")
+            var seen = Set<Int>()
+            text.enumerateAttribute(verseKey, in: NSRange(location: 0, length: text.length)) { value, range, _ in
+                guard let number = value as? Int, !seen.contains(number),
+                      let startPosition = textView.position(from: textView.beginningOfDocument, offset: range.location),
+                      let endPosition = textView.position(from: startPosition, offset: 1),
+                      let textRange = textView.textRange(from: startPosition, to: endPosition) else { return }
+                let rect = textView.firstRect(for: textRange)
+                guard !rect.isNull, !rect.isInfinite, rect.minY.isFinite else { return }
+                seen.insert(number)
+                starts.append((verse: number, y: max(0, rect.minY)))
+            }
+            guard !starts.isEmpty else { return }
+            reportedStartsKey = key
+            starts.sort { $0.y < $1.y }
+            DispatchQueue.main.async { report(starts) }
+        }
 
         /// Положение стиха берётся у самого поля после его раскладки (firstRect работает и в TextKit 2):
         /// раньше его считала отдельная раскладка TextKit 1, а у неё строки чуть другой высоты,

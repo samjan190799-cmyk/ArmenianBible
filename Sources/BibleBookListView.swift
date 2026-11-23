@@ -63,8 +63,10 @@ struct BibleBookListView: View {
                         ForEach(Array(filteredBooks.enumerated()), id: \.element.id) { index, book in
                             let progress = manager.getBookProgress(bookId: book.id, totalChapters: book.chaptersCount)
                             Button {
+                                // Открываем там, где остановились: глава и стих (если стих не сохранён, глава с начала)
                                 let savedChapter = manager.getBookLastReadChapter(bookId: book.id)
-                                navigationPath.append(.reader(book: book, chapter: savedChapter, targetVerse: nil))
+                                let savedVerse = manager.getBookLastReadVerse(bookId: book.id)
+                                navigationPath.append(.reader(book: book, chapter: savedChapter, targetVerse: savedVerse))
                             } label: {
                                 VStack(alignment: .leading, spacing: 8) {
                                     HStack(alignment: .center, spacing: 10) {

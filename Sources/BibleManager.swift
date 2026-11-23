@@ -498,10 +498,14 @@ class BibleManager: ObservableObject {
         if lastReadBookId != bookId || lastReadChapter != chapter {
             lastReadBookId = bookId
             lastReadChapter = chapter
-            
+
             if let defaults = sharedDefaults {
                 defaults.set(bookId, forKey: "last_read_book_id")
                 defaults.set(chapter, forKey: "last_read_chapter")
+                // Стих относится к конкретной главе: ушли в другую главу — прежний стих больше не годится
+                if defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)") != chapter {
+                    defaults.removeObject(forKey: "last_read_verse_for_book_\(bookId)")
+                }
                 defaults.set(chapter, forKey: "last_read_chapter_for_book_\(bookId)")
                 defaults.synchronize()
             }
@@ -577,6 +581,29 @@ class BibleManager: ObservableObject {
     func getBookLastReadChapter(bookId: Int) -> Int {
         let chapter = AppGroupConstants.sharedDefaults.integer(forKey: "last_read_chapter_for_book_\(bookId)")
         return chapter > 0 ? chapter : 1
+    }
+
+    // MARK: - Стих, на котором остановились в книге
+    /// Запоминает верхний видимый стих главы (nil — читатель вернулся к началу главы).
+    /// Стих действует только вместе с главой, записанной в `last_read_chapter_for_book_*`.
+    func saveBookLastReadVerse(bookId: Int, chapter: Int, verse: Int?) {
+        let defaults = AppGroupConstants.sharedDefaults
+        guard defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)") == chapter else { return }
+        let key = "last_read_verse_for_book_\(bookId)"
+        if let verse = verse, verse > 1 {
+            defaults.set(verse, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    /// Стих остановки в книге или nil, если он не сохранён (старые данные: только номер главы) или относится к другой главе.
+    /// Читается без ошибок для старых сохранений: пока ключа нет, глава открывается с начала, как раньше.
+    func getBookLastReadVerse(bookId: Int) -> Int? {
+        let defaults = AppGroupConstants.sharedDefaults
+        let verse = defaults.integer(forKey: "last_read_verse_for_book_\(bookId)")
+        guard verse > 1, defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)") > 0 else { return nil }
+        return verse
     }
     
     // MARK: - Сохранение активного провайдера ИИ
