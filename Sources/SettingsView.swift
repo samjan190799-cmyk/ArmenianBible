@@ -74,12 +74,6 @@ struct SettingsView: View {
     @State var isFunnelEnabled = Funnel.isEnabled
     /// Ответ на кнопку «Восстановить» в карточке подписки (раньше нажатие ничего не показывало)
     @State var restoreResultMessage: String? = nil
-    // Переключатель режима теста Авто/Free/Pro (только TestFlight/DEBUG): подсказка при смене режима
-    @State var devToastMessage = ""
-    @State var devToastSubtitle = ""
-    @State var devToastIcon = "crown.fill"
-    @State var devToastColor: [Color] = [Paper.gold, Paper.gold]
-    @State var showDevToast = false
     @State var isWidgetsUpdatedSuccess = false
 
     @Environment(\.colorScheme) var colorScheme
@@ -151,7 +145,7 @@ struct SettingsView: View {
     /// помощник, викторина и аудио; данные (iCloud, резервная копия, кэш) — в одной карточке.
     private var settingGroups: [SettingsGroup] {
         let language = selectedLanguage
-        return [
+        var groups: [SettingsGroup] = [
             SettingsGroup(id: "premium", title: nil, icon: "", items: [
                 SettingsSectionItem(id: "premium", view: AnyView(premiumMembershipSection))
             ]),
@@ -211,6 +205,16 @@ struct SettingsView: View {
                 ]
             )
         ]
+        // Переключатель режима теста Авто/Free/Pro: в самом начале экрана, только в TestFlight и DEBUG
+        if SubscriptionManager.devToolsAvailable {
+            groups.insert(
+                SettingsGroup(id: "devmode", title: nil, icon: "", items: [
+                    SettingsSectionItem(id: "devmode", view: AnyView(developerModeBlock))
+                ]),
+                at: 0
+            )
+        }
+        return groups
     }
 
     private func blocks(of items: [SettingsSectionItem]) -> [SettingsBlock] {

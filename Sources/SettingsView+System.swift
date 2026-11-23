@@ -466,25 +466,18 @@ extension SettingsView {
     
     @ViewBuilder
     var aboutSection: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 12) {
-                aboutAppHeaderBlock
-                Divider().opacity(0.4)
-                aboutAppSubscriptionAndReviewBlock
-                developerModeBlock
-            }
-            .padding(18)
-            .background(aboutBlockBgColor)
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(aboutBlockBorderColor, lineWidth: 1)
-            )
-            
-            if showDevToast {
-                devToastOverlay
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            aboutAppHeaderBlock
+            Divider().opacity(0.4)
+            aboutAppSubscriptionAndReviewBlock
         }
+        .padding(18)
+        .background(aboutBlockBgColor)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(aboutBlockBorderColor, lineWidth: 1)
+        )
     }
     
     @ViewBuilder
@@ -629,42 +622,10 @@ extension SettingsView {
         .buttonStyle(ScaleButtonStyle())
     }
     
-    @ViewBuilder
-    private var devToastOverlay: some View {
-        HStack(spacing: 12) {
-            Image(systemName: devToastIcon)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.white)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(devToastMessage)
-                    .font(PaperFont.font(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                Text(devToastSubtitle)
-                    .font(PaperFont.font(size: 12))
-                    .foregroundColor(.white.opacity(0.85))
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(
-                    LinearGradient(
-                        colors: devToastColor,
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .shadow(color: (devToastColor.first ?? .clear).opacity(0.45), radius: 12, x: 0, y: 4)
-        )
-        .padding(.top, 10)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-    }
-    
     // MARK: - Переключатель режима теста: Авто / Free / Pro (только TestFlight и DEBUG)
+    /// Показывается в самом начале экрана настроек. Вне TestFlight и DEBUG пустой
     @ViewBuilder
-    private var developerModeBlock: some View {
+    var developerModeBlock: some View {
         if SubscriptionManager.devToolsAvailable {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
@@ -719,31 +680,6 @@ extension SettingsView {
         }
         subscriptionManager.setDeveloperMode(mode)
         Haptics.notify(.success)
-
-        switch mode {
-        case .pro:
-            devToastIcon = "crown.fill"
-            devToastMessage = "Pro включён"
-            devToastSubtitle = "Premium открыт без покупки."
-            devToastColor = [Paper.gold, Paper.gold]
-        case .free:
-            devToastIcon = "hammer.fill"
-            devToastMessage = "Free включён"
-            devToastSubtitle = "Лимиты Free включены для теста."
-            devToastColor = [Paper.lapis, Paper.lapis]
-        case .auto:
-            devToastIcon = "arrow.triangle.2.circlepath"
-            devToastMessage = "Авто"
-            devToastSubtitle = "Статус по настоящей подписке."
-            devToastColor = [Paper.moss, Paper.moss]
-        }
-
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            showDevToast = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-            withAnimation { showDevToast = false }
-        }
     }
     
     // MARK: - Выбор стиха для текущего размера виджета в предпросмотре
