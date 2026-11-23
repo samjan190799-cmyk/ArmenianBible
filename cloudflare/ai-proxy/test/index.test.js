@@ -40,6 +40,7 @@ function makeEnv(overrides = {}) {
     GEMINI_API_KEY: 'test-key',
     BUNDLE_ID: 'com.samvel.armenianbible',
     PRODUCT_IDS: 'com.samvel.armenianbible.subscription.monthly,com.samvel.armenianbible.subscription.yearly',
+    LIFETIME_PRODUCT_IDS: 'com.samvel.armenianbible.lifetime',
     DAILY_LIMIT: '2',
     GLOBAL_DAILY_LIMIT: '3',
     ALLOW_SANDBOX: 'true',
@@ -283,4 +284,49 @@ test('суточный потолок задачи: после него зада
   assert.equal((await second.json()).error, 'busy');
   // личный лимит подписчика 2: отказ задачи его не списал, поэтому чат ещё отвечает
   assert.equal((await ask(env, validBody({ task: 'chat' }))).status, 200);
+});
+
+// --- Пожизненная покупка и ранние покупатели платной версии: ИИ у них работает, как у подписчика
+
+const lifetimeJws = (overrides = {}) =>
+  makeJws(chain, goodPayload({ productId: 'com.samvel.armenianbible.lifetime', type: 'Non-Consumable', expiresDate: undefined, ...overrides }));
+const appPurchaseJws = (overrides = {}) =>
+  makeJws(chain, { bundleId: 'com.samvel.armenianbible', originalAppVersion: '57', environment: 'Production', appTransactionId: '704000000000001', ...overrides });
+
+test('пожизненная покупка: ответ как у подписчика, в том числе по задаче quiz', { skip }, async () => {
+  const env = makeEnv();
+  const res = await ask(env, { prompt: 'Вопрос', transaction: lifetimeJws() });
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).tier, 'premium');
+  const quiz = await ask(env, { prompt: 'Вопросы викторины', task: 'quiz', transaction: lifetimeJws() });
+  assert.equal(quiz.status, 200);
+});
+
+test('пожизненная покупка: возвращённая отклонена (revoked), без неё ни подписки, ни срока не засчитывается', { skip }, async () => {
+  const res = await ask(makeEnv(), { prompt: 'Вопрос', transaction: lifetimeJws({ revocationDate: Date.now() }) });
+  assert.equal(res.status, 403);
+  assert.equal((await res.json()).reason, 'revoked');
+});
+
+test('ранний покупатель платной версии: ИИ-викторина работает, у него свой суточный лимит', { skip }, async () => {
+  const env = makeEnv({ DAILY_LIMIT: '2', GLOBAL_DAILY_LIMIT: '10' });
+  const body = { prompt: 'Вопросы викторины', task: 'quiz', transaction: appPurchaseJws() };
+  const first = await ask(env, body);
+  assert.equal(first.status, 200);
+  assert.equal((await first.json()).tier, 'premium');
+  assert.equal((await ask(env, body)).status, 200);
+  assert.equal((await ask(env, body)).status, 429);
+  // другой ранний покупатель этим лимитом не затронут
+  const other = { ...body, transaction: appPurchaseJws({ appTransactionId: '704000000000002' }) };
+  assert.equal((await ask(env, other)).status, 200);
+});
+
+test('покупка приложения: TestFlight (Sandbox) и поздние версии не получают ИИ-викторину', { skip }, async () => {
+  const env = makeEnv();
+  const sandbox = await ask(env, { prompt: 'Вопрос', task: 'quiz', transaction: appPurchaseJws({ environment: 'Sandbox' }) });
+  assert.equal(sandbox.status, 403);
+  assert.equal((await sandbox.json()).reason, 'environment');
+  const late = await ask(env, { prompt: 'Вопрос', task: 'quiz', transaction: appPurchaseJws({ originalAppVersion: '4.3.1' }) });
+  assert.equal(late.status, 403);
+  assert.equal((await late.json()).reason, 'not_early');
 });

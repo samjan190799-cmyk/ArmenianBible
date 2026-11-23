@@ -37,7 +37,17 @@ struct PaywallView: View {
     }
 
     private func planCode(_ plan: SubscriptionPlan) -> String {
-        plan == .yearly ? "yearly" : "monthly"
+        switch plan {
+        case .monthly: return "monthly"
+        case .yearly: return "yearly"
+        case .lifetime: return "lifetime"
+        }
+    }
+
+    /// Тарифы на экране. Пожизненная покупка показывается, только когда App Store отдал товар: пока он не заведён
+    /// или не загрузился, карточки нет (нажимать было бы нечего)
+    private var visiblePlans: [SubscriptionPlan] {
+        SubscriptionPlan.allCases.filter { $0 != .lifetime || product(for: .lifetime) != nil }
     }
 
     /// Есть ли у годового тарифа бесплатный пробный период в App Store (пока тарифы не загрузились, неизвестно)
@@ -101,7 +111,7 @@ struct PaywallView: View {
                     
                     // MARK: - Выбор Тарифного Плана
                     VStack(spacing: 12) {
-                        ForEach(SubscriptionPlan.allCases) { plan in
+                        ForEach(visiblePlans) { plan in
                             planCard(plan: plan)
                         }
                     }
@@ -327,6 +337,9 @@ struct PaywallView: View {
     
     /// «Экономия 17% · 7 дней бесплатно»: только то, что подтверждено настоящими ценами и правом на пробный период
     private func badgeText(for plan: SubscriptionPlan) -> String? {
+        if plan == .lifetime {
+            return language.pick(hy: "Մեկ վճարում", ru: "Один раз", en: "Pay once")
+        }
         guard plan == .yearly else { return nil }
         var parts: [String] = []
         if let percent = subscriptionManager.yearlySavingsPercent {
@@ -569,6 +582,9 @@ struct PaywallView: View {
     }
 
     private var ctaButtonTitle: String {
+        if selectedPlan == .lifetime {
+            return language.pick(hy: "Գնել ընդմիշտ", ru: "Купить навсегда", en: "Buy lifetime access")
+        }
         if let days = selectedTrialDays {
             return language.pick(
                 hy: "Փորձել \(daysText(days)) անվճար",
@@ -591,6 +607,14 @@ struct PaywallView: View {
             en: "Cancel anytime in your Apple ID Subscription Settings."
         )
         guard let selected = product(for: selectedPlan) else { return cancel }
+        // Пожизненная покупка: платёж один раз, ни продления, ни отмены не бывает
+        if selectedPlan == .lifetime {
+            return language.pick(
+                hy: "\(selected.displayPrice)՝ մեկանգամյա վճարում, առանց բաժանորդագրության և ավտոմատ երկարաձգման:",
+                ru: "\(selected.displayPrice) один раз, без подписки и автопродления.",
+                en: "\(selected.displayPrice) one-time payment. No subscription, no renewals."
+            )
+        }
         let period = selectedPlan == .yearly
             ? language.pick(hy: "տարեկան", ru: "в год", en: "per year")
             : language.pick(hy: "ամսական", ru: "в месяц", en: "per month")

@@ -115,12 +115,49 @@ export function checkEntitlement(payload, env, now = Date.now()) {
   const bundleId = env.BUNDLE_ID || 'com.samvel.armenianbible';
   const products = (env.PRODUCT_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
   if (payload.bundleId !== bundleId) return 'bundle';
-  if (!products.includes(payload.productId)) return 'product';
+  // Пожизненная покупка: разовая («Non-Consumable»), срока у неё нет, отзыв (возврат) виден по revocationDate
+  const lifetime = (env.LIFETIME_PRODUCT_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const isLifetime = lifetime.includes(payload.productId);
+  if (!products.includes(payload.productId) && !isLifetime) return 'product';
+  if (isLifetime && payload.type !== 'Non-Consumable') return 'product';
   if (payload.revocationDate) return 'revoked';
-  if (typeof payload.expiresDate !== 'number' || payload.expiresDate < now) return 'expired';
+  if (!isLifetime && (typeof payload.expiresDate !== 'number' || payload.expiresDate < now)) return 'expired';
   if (payload.environment !== 'Production' && payload.environment !== 'Sandbox') return 'environment';
   if (payload.environment === 'Sandbox' && env.ALLOW_SANDBOX === 'false') return 'sandbox';
   if (!payload.originalTransactionId) return 'no_id';
+  return null;
+}
+
+/**
+ * Ранний покупатель платной версии: как в приложении (SubscriptionManager.isPaidEarlyAdopter).
+ * originalAppVersion в App Store для iOS это номер сборки при первой загрузке («57»), для версий с точкой берём главную цифру.
+ * Платные версии 1.x: сборки до 100 включительно и версии ниже 2.0.
+ */
+export function isEarlyAdopterVersion(version) {
+  if (typeof version !== 'string' || !version.trim()) return false;
+  const text = version.trim();
+  if (/^\d+$/.test(text)) return Number(text) <= 100;
+  const major = Number.parseInt(text.split('.')[0], 10);
+  return Number.isFinite(major) && major < 2;
+}
+
+/** Номер для суточного счётчика раннего покупателя: у подтверждения покупки приложения своего transactionId нет */
+export function appPurchaseId(payload) {
+  const id = payload.appTransactionId || payload.originalPurchaseDate;
+  return id === undefined || id === null || id === '' ? '' : String(id);
+}
+
+/**
+ * Подтверждение покупки самого приложения (AppTransaction): ранний покупатель платной версии 1.x имеет Premium без подписки.
+ * Годится только из App Store (в TestFlight originalAppVersion у всех «1.0») и для нашего приложения.
+ * Возвращает null, если подходит, или короткую причину отказа.
+ */
+export function checkAppPurchase(payload, env) {
+  const bundleId = env.BUNDLE_ID || 'com.samvel.armenianbible';
+  if (payload.bundleId !== bundleId) return 'bundle';
+  if (payload.environment !== 'Production') return 'environment';
+  if (!isEarlyAdopterVersion(payload.originalAppVersion)) return 'not_early';
+  if (!appPurchaseId(payload)) return 'no_id';
   return null;
 }
 

@@ -8,7 +8,10 @@ import WidgetKit
 enum SubscriptionPlan: String, CaseIterable, Identifiable {
     case monthly = "com.samvel.armenianbible.subscription.monthly"
     case yearly = "com.samvel.armenianbible.subscription.yearly"
-    
+    /// Пожизненная покупка: разовая («непотребляемая»), без срока и продления. Товар заводится в App Store Connect;
+    /// пока App Store его не отдал, Paywall карточку не показывает
+    case lifetime = "com.samvel.armenianbible.lifetime"
+
     var id: String { rawValue }
     
     func localizedTitle(for language: AppLanguage) -> String {
@@ -25,15 +28,23 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
             case .russian: return "1 Год"
             case .english: return "1 Year"
             }
+        case .lifetime:
+            switch language {
+            case .armenian: return "Ընդմիշտ"
+            case .russian: return "Навсегда"
+            case .english: return "Lifetime"
+            }
         }
     }
-    
+
     func fallbackPrice(for language: AppLanguage) -> String {
         switch self {
         case .monthly:
             return "$0.99"
         case .yearly:
             return "$9.99"
+        case .lifetime:
+            return "$29.99"
         }
     }
 }
@@ -311,15 +322,32 @@ final class SubscriptionManager: ObservableObject {
         for result in candidates {
             guard case .verified(let transaction) = result,
                   SubscriptionPlan.allCases.contains(where: { $0.rawValue == transaction.productID }),
-                  transaction.revocationDate == nil,
-                  let expires = transaction.expirationDate else { continue }
+                  transaction.revocationDate == nil else { continue }
+            // У пожизненной покупки срока нет: она действует, пока её не вернули (тогда выше сработает revocationDate)
+            let isLifetime = transaction.productID == SubscriptionPlan.lifetime.rawValue
+            guard let expires = isLifetime ? Date.distantFuture : transaction.expirationDate else { continue }
             if best == nil || expires > best!.expires {
                 best = (result.jwsRepresentation, expires)
             }
         }
-        // Если даже самая свежая запись просрочена, подписки по факту нет: вопрос уйдёт как бесплатный, а не с отказом «expired»
-        guard let chosen = best, chosen.expires > Date() else { return nil }
+        // Если даже самая свежая запись просрочена, подписки по факту нет. Остаётся ранний покупатель платной версии
+        // (у него Premium по покупке приложения), иначе вопрос уйдёт как бесплатный, а не с отказом «expired»
+        guard let chosen = best, chosen.expires > Date() else { return await earlyAdopterJWS() }
         return chosen.jws
+    }
+
+    /// Ранний покупатель платной версии 1.x: Premium у него по покупке самого приложения, а не по подписке, поэтому сервер ИИ
+    /// получает подписанное Apple подтверждение этой покупки. Только из App Store: в TestFlight originalAppVersion у всех «1.0»
+    private func earlyAdopterJWS() async -> String? {
+        #if targetEnvironment(simulator)
+        return nil
+        #else
+        guard let result = try? await AppTransaction.shared,
+              case .verified(let appTransaction) = result,
+              appTransaction.environment == .production,
+              isPaidEarlyAdopter(versionString: appTransaction.originalAppVersion) else { return nil }
+        return result.jwsRepresentation
+        #endif
     }
 
     // MARK: - Восстановление покупок (Restore Purchases)
@@ -422,19 +450,20 @@ final class SubscriptionManager: ObservableObject {
     
     /// Определение ранних покупателей, купивших платное приложение до перехода на подписки (< 2.0)
     private func isPaidEarlyAdopter(versionString: String) -> Bool {
-        guard !versionString.isEmpty else { return false }
-        
-        // В App Store originalAppVersion возвращает либо строку версии (например "1.0", "1.9"), либо build number
-        let components = versionString.split(separator: ".")
-        if let majorStr = components.first, let major = Int(majorStr) {
-            return major < 2
-        }
-        
-        // Если это целочисленный номер сборки до релиза 2.0
-        if let buildNum = Int(versionString) {
+        let version = versionString.trimmingCharacters(in: .whitespaces)
+        guard !version.isEmpty else { return false }
+
+        // В App Store originalAppVersion для iOS это номер сборки при первой загрузке («57»): платные версии до 2.0 это сборки до 100.
+        // Раньше целое число разбиралось как «главная цифра версии» («57» < 2 неверно), и ранние покупатели не узнавались
+        if let buildNum = Int(version) {
             return buildNum <= 100
         }
-        
+
+        // Версия с точкой («1.0», «1.9»): платные версии 1.x
+        if let majorStr = version.split(separator: ".").first, let major = Int(majorStr) {
+            return major < 2
+        }
+
         return false
     }
     

@@ -4,7 +4,7 @@
 // на установку и на сеть, а у всех бесплатных вместе свой потолок расходов.
 // Ключ ИИ хранится только как секрет Worker (GEMINI_API_KEY) и в приложение не попадает.
 
-import { verifyAppleJws, checkEntitlement, VerifyError } from './apple.js';
+import { verifyAppleJws, checkEntitlement, checkAppPurchase, appPurchaseId, VerifyError } from './apple.js';
 import { generate, GenerateError } from './gemini.js';
 import { normalizeTask, geminiEnvFor, taskDailyLimit } from './tasks.js';
 import { parseBatch } from './events.js';
@@ -89,11 +89,14 @@ async function handleGenerate(request, env, deps) {
     } catch (error) {
       return json({ error: 'unauthorized', reason: error instanceof VerifyError ? error.code : 'bad_format' }, 401);
     }
-    const reason = checkEntitlement(payload, env, deps.now ? deps.now() : Date.now());
+    // Подтверждение бывает двух видов: покупка товара (подписка или пожизненная, есть productId) и покупка самого приложения
+    // (AppTransaction: ранний покупатель платной версии 1.x, productId нет, зато есть originalAppVersion)
+    const isAppPurchase = payload.productId === undefined && typeof payload.originalAppVersion === 'string';
+    const reason = isAppPurchase ? checkAppPurchase(payload, env) : checkEntitlement(payload, env, deps.now ? deps.now() : Date.now());
     if (reason) return json({ error: 'no_subscription', reason }, 403);
 
     tier = 'premium';
-    userName = `user:${payload.originalTransactionId}`;
+    userName = isAppPurchase ? `early:${appPurchaseId(payload)}` : `user:${payload.originalTransactionId}`;
     userLimit = Number(env.DAILY_LIMIT) || 30;
     counters = [{ name: userName, limit: userLimit, failure: 'quota' }, global];
   } else if (typeof body.installId === 'string' && INSTALL_ID.test(body.installId)) {
