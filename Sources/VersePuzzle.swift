@@ -1,16 +1,33 @@
 import SwiftUI
 
-// MARK: - Головоломка дня: собрать стих по порядку
-// Каждый день один стих, разрезанный на плитки. Человек ставит плитки по порядку: верные закрепляются,
-// неверные возвращаются на стол. Шесть попыток; результатом делятся цветными квадратами, без текста стиха.
+// MARK: - «Собери стих»: игра с уровнями и головоломка дня
+// Стих разрезан на плитки, их нужно поставить по порядку: верные закрепляются, неверные возвращаются на стол.
+// Шесть попыток на стих, две подсказки (каждая отнимает звезду), до трёх звёзд за уровень.
+// Уровни идут от коротких стихов к длинным; первые пять бесплатны, остальные и головоломка дня по подписке.
+
+/// Что играем: уровень по номеру или головоломку дня
+enum PuzzleMode: Equatable {
+    case daily
+    case level(Int)
+
+    var key: String {
+        switch self {
+        case .daily: return "daily"
+        case .level(let number): return "level_\(number)"
+        }
+    }
+}
 
 // MARK: Логика (без интерфейса)
 enum VersePuzzleLogic {
     static let maxAttempts = 6
-    /// Больше плиток на экране неудобно: длинные стихи режутся на куски по два слова
+    /// Больше плиток на экране неудобно: длинные стихи режутся на куски по несколько слов
     static let maxTiles = 8
     static let minWords = 6
     static let maxWords = 18
+    static let maxHints = 2
+    /// Сколько первых уровней бесплатно
+    static let freeLevels = 5
 
     private static func gregorian() -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -18,7 +35,7 @@ enum VersePuzzleLogic {
         return calendar
     }
 
-    /// Номер головоломки: сколько дней прошло с 1 января 2026 (первая головоломка №1). Меняется в полночь по местному времени
+    /// Номер головоломки дня: сколько дней прошло с 1 января 2026 (первая №1). Меняется в полночь по местному времени
     static func dayNumber(for date: Date = Date()) -> Int {
         let calendar = gregorian()
         var parts = DateComponents()
@@ -40,20 +57,32 @@ enum VersePuzzleLogic {
         return count >= minWords && count <= maxWords
     }
 
-    /// Плитки: каждое слово отдельно, а у длинного стиха слова собраны в куски так, чтобы плиток было не больше восьми
-    static func chunks(of text: String) -> [String] {
+    /// Плитки: каждое слово отдельно, а у длинного стиха слова собраны в куски так, чтобы плиток было не больше `maxTiles`
+    static func chunks(of text: String, maxTiles: Int = VersePuzzleLogic.maxTiles) -> [String] {
         let all = words(of: text)
-        guard all.count > maxTiles else { return all }
+        let limit = max(2, maxTiles)
+        guard all.count > limit else { return all }
         var result: [String] = []
         var start = 0
-        for index in 0..<maxTiles {
-            let end = (all.count * (index + 1)) / maxTiles
+        for index in 0..<limit {
+            let end = (all.count * (index + 1)) / limit
             if end > start {
                 result.append(all[start..<end].joined(separator: " "))
                 start = end
             }
         }
         return result
+    }
+
+    /// Сколько плиток на уровне: сначала четыре, к тринадцатому уровню восемь
+    static func tileCount(forLevel level: Int) -> Int {
+        min(maxTiles, 4 + (max(1, level) - 1) / 3)
+    }
+
+    /// Звёзды за пройденный уровень: чем меньше попыток, тем больше; каждая подсказка отнимает одну (но не меньше одной)
+    static func stars(attempts: Int, hints: Int) -> Int {
+        let base = attempts <= 2 ? 3 : (attempts <= 4 ? 2 : 1)
+        return max(1, base - max(0, hints))
     }
 
     /// Текст стиха без обращения к базе: для отбора подходящих стихов (полный текст берётся только у выбранного)
@@ -65,7 +94,7 @@ enum VersePuzzleLogic {
         }
     }
 
-    /// Стих дня для головоломки: у каждого дня свой, перебор по кругу с шагом, чтобы соседние дни не шли подряд по теме
+    /// Стих головоломки дня: у каждого дня свой, перебор по кругу с шагом, чтобы соседние дни не шли подряд по теме
     static func verse(forDay day: Int, language: AppLanguage) -> BibleVerse? {
         let pool = BibleVerse.database.filter { isEligible(rawText($0, language)) }
         guard !pool.isEmpty else { return nil }
@@ -76,6 +105,23 @@ enum VersePuzzleLogic {
             if isEligible(candidate.text(for: language)) { return candidate }
         }
         return nil
+    }
+
+    /// Стихи для уровней: без повторов, от коротких к длинным (при равной длине порядок базы). Номер уровня это место в списке
+    static func levelPool(language: AppLanguage) -> [BibleVerse] {
+        var seen = Set<String>()
+        var items: [(verse: BibleVerse, words: Int, index: Int)] = []
+        for (index, verse) in BibleVerse.database.enumerated() {
+            let raw = rawText(verse, language)
+            let count = words(of: raw).count
+            guard count >= minWords && count <= maxWords else { continue }
+            guard seen.insert(raw.lowercased()).inserted else { continue }
+            items.append((verse, count, index))
+        }
+        items.sort { left, right in
+            left.words != right.words ? left.words < right.words : left.index < right.index
+        }
+        return items.map { $0.verse }
     }
 
     /// Генератор с заданным зерном: порядок плиток одинаков весь день и после перезапуска
@@ -96,9 +142,9 @@ enum VersePuzzleLogic {
     }
 
     /// Порядок плиток на столе: перемешанный, но никогда не равный правильному
-    static func shuffled(_ correct: [String], day: Int) -> [String] {
+    static func shuffled(_ correct: [String], seed: Int) -> [String] {
         guard correct.count > 1 else { return correct }
-        var generator = SeededGenerator(seed: UInt64(max(1, day)))
+        var generator = SeededGenerator(seed: UInt64(max(1, seed)))
         var result = correct
         for _ in 0..<10 {
             result.shuffle(using: &generator)
@@ -117,11 +163,13 @@ struct VersePuzzleBoard: Equatable {
     private(set) var slots: [Int?]
     private(set) var locked: Set<Int>
     private(set) var attempts: [[Bool]]
+    private(set) var hintsUsed: Int
 
-    init(correct: [String], tray: [String], attempts: [[Bool]] = [], locked: Set<Int> = []) {
+    init(correct: [String], tray: [String], attempts: [[Bool]] = [], locked: Set<Int> = [], hintsUsed: Int = 0) {
         self.correct = correct
         self.tray = tray
         self.attempts = attempts
+        self.hintsUsed = max(0, hintsUsed)
         var filled = [Int?](repeating: nil, count: correct.count)
         var confirmed = Set<Int>()
         var used = Set<Int>()
@@ -138,10 +186,16 @@ struct VersePuzzleBoard: Equatable {
     }
 
     var maxAttempts: Int { VersePuzzleLogic.maxAttempts }
+    var hintsLeft: Int { max(0, VersePuzzleLogic.maxHints - hintsUsed) }
     var isSolved: Bool { !correct.isEmpty && locked.count == correct.count }
     var isFailed: Bool { !isSolved && attempts.count >= maxAttempts }
     var isFinished: Bool { isSolved || isFailed }
     var isFull: Bool { !slots.contains(where: { $0 == nil }) }
+
+    /// Звёзды за решённую головоломку (для неразрешённой 0)
+    var stars: Int {
+        isSolved ? VersePuzzleLogic.stars(attempts: max(1, attempts.count), hints: hintsUsed) : 0
+    }
 
     /// Плитки, которые ещё лежат на столе
     var poolTiles: [Int] {
@@ -185,36 +239,70 @@ struct VersePuzzleBoard: Equatable {
         }
         return result
     }
+
+    /// Подсказка: первая ещё не закреплённая ячейка получает верную плитку и закрепляется. Попытку не тратит
+    @discardableResult
+    mutating func useHint() -> Bool {
+        guard !isFinished, hintsLeft > 0,
+              let slot = correct.indices.first(where: { !locked.contains($0) }) else { return false }
+        let needed = correct[slot]
+        // Сначала плитка со стола, потом такая же из чужой незакреплённой ячейки
+        var tile: Int? = poolTiles.first(where: { tray[$0] == needed })
+        if tile == nil {
+            tile = slots.indices.compactMap { index -> Int? in
+                guard !locked.contains(index), let placed = slots[index], tray[placed] == needed else { return nil }
+                return placed
+            }.first
+        }
+        guard let found = tile else { return false }
+        for index in slots.indices where !locked.contains(index) && slots[index] == found {
+            slots[index] = nil
+        }
+        slots[slot] = found
+        locked.insert(slot)
+        hintsUsed += 1
+        return true
+    }
 }
 
 // MARK: Хранилище
-/// Прогресс сегодняшней головоломки и решённые дни (для серии). Всё хранится на телефоне
+/// Прогресс головоломок: решённые дни (серия), звёзды по уровням и незаконченные партии. Всё хранится на телефоне
 final class VersePuzzleStore: ObservableObject {
     static let shared = VersePuzzleStore()
 
-    private struct Saved: Codable {
-        var key: String
+    /// Незаконченная или законченная партия одного уровня или дня
+    struct Saved: Codable {
         var count: Int
         var attempts: [[Bool]]
         var locked: [Int]
+        var hints: Int
+        /// Сколько раз уровень начинали заново: от этого зависит порядок плиток
+        var retry: Int
     }
 
-    private let progressKey = "verse_puzzle_progress_v1"
     private let solvedKey = "verse_puzzle_solved_days_v1"
+    private let starsKey = "verse_puzzle_level_stars_v1"
     private let defaults = UserDefaults.standard
 
     @Published private(set) var solvedDays: Set<Int> = []
+    /// Лучший результат по уровню: номер уровня → звёзды (1…3)
+    @Published private(set) var levelStars: [Int: Int] = [:]
 
     private init() {
         let stored = defaults.array(forKey: solvedKey) as? [Int] ?? []
         solvedDays = Set(stored)
+        let rawStars = defaults.dictionary(forKey: starsKey) as? [String: Int] ?? [:]
+        for (key, value) in rawStars {
+            if let level = Int(key), level > 0, value > 0 { levelStars[level] = min(3, value) }
+        }
     }
 
+    // MARK: Головоломка дня
     var totalSolved: Int { solvedDays.count }
 
     var isSolvedToday: Bool { solvedDays.contains(VersePuzzleLogic.dayNumber()) }
 
-    /// Сколько дней подряд решена головоломка. Если сегодня ещё не решена, серия считается до вчера
+    /// Сколько дней подряд решена головоломка дня. Если сегодня ещё не решена, серия считается до вчера
     var streak: Int {
         let today = VersePuzzleLogic.dayNumber()
         var day = solvedDays.contains(today) ? today : today - 1
@@ -226,24 +314,56 @@ final class VersePuzzleStore: ObservableObject {
         return count
     }
 
-    func progress(forKey key: String, count: Int) -> (attempts: [[Bool]], locked: [Int]) {
-        guard let data = defaults.data(forKey: progressKey),
-              let saved = try? JSONDecoder().decode(Saved.self, from: data),
-              saved.key == key, saved.count == count else { return ([], []) }
-        return (saved.attempts, saved.locked)
-    }
-
-    func save(key: String, board: VersePuzzleBoard) {
-        let saved = Saved(key: key, count: board.correct.count, attempts: board.attempts, locked: board.locked.sorted())
-        if let data = try? JSONEncoder().encode(saved) {
-            defaults.set(data, forKey: progressKey)
-        }
-    }
-
     func markSolved(day: Int) {
         guard !solvedDays.contains(day) else { return }
         solvedDays.insert(day)
         defaults.set(solvedDays.sorted(), forKey: solvedKey)
+    }
+
+    // MARK: Уровни
+    var completedLevels: Int { levelStars.count }
+
+    var totalStars: Int { levelStars.values.reduce(0, +) }
+
+    /// Первый ещё не пройденный уровень
+    var nextLevel: Int {
+        var level = 1
+        while levelStars[level] != nil { level += 1 }
+        return level
+    }
+
+    func stars(for level: Int) -> Int { levelStars[level] ?? 0 }
+
+    /// Записывает результат уровня (остаётся лучший). Возвращает true, если уровень пройден впервые
+    @discardableResult
+    func recordStars(level: Int, stars: Int) -> Bool {
+        guard level > 0, stars > 0 else { return false }
+        let first = levelStars[level] == nil
+        levelStars[level] = max(levelStars[level] ?? 0, min(3, stars))
+        var raw: [String: Int] = [:]
+        for (key, value) in levelStars { raw[String(key)] = value }
+        defaults.set(raw, forKey: starsKey)
+        return first
+    }
+
+    // MARK: Партии
+    private func progressKey(_ id: String) -> String { "verse_puzzle_prog_v2_" + id }
+
+    /// Сохранённая партия; если плиток стало другое число (сменилось издание текста), партия начинается заново, но счётчик повторов остаётся
+    func progress(id: String, count: Int) -> Saved {
+        let fresh = Saved(count: count, attempts: [], locked: [], hints: 0, retry: 0)
+        guard let data = defaults.data(forKey: progressKey(id)),
+              let saved = try? JSONDecoder().decode(Saved.self, from: data) else { return fresh }
+        if saved.count == count { return saved }
+        var reset = fresh
+        reset.retry = saved.retry
+        return reset
+    }
+
+    func save(id: String, _ saved: Saved) {
+        if let data = try? JSONEncoder().encode(saved) {
+            defaults.set(data, forKey: progressKey(id))
+        }
     }
 }
 
@@ -255,26 +375,36 @@ struct VersePuzzleBannerCardView: View {
     let onOpen: () -> Void
 
     @ObservedObject private var store = VersePuzzleStore.shared
+    @ObservedObject private var subscription = SubscriptionManager.shared
 
     private var subtitle: String {
-        let streak = store.streak
-        if store.isSolvedToday {
-            if streak >= 2 {
-                return language.pick(
-                    hy: "Այսօր լուծված է · շարք՝ \(streak) օր",
-                    ru: "Решено сегодня · серия \(streak) дн.",
-                    en: "Solved today · \(streak) day streak"
-                )
-            }
-            return language.pick(hy: "Այսօր լուծված է", ru: "Решено сегодня", en: "Solved today")
+        let done = store.completedLevels
+        if done > 0 {
+            let stars = store.totalStars
+            return language.pick(
+                hy: "Անցած՝ \(done) · ★ \(stars)",
+                ru: "Пройдено: \(done) · ★ \(stars)",
+                en: "Completed: \(done) · ★ \(stars)"
+            )
         }
-        return language.pick(hy: "Նոր համար ամեն օր", ru: "Новый стих каждый день", en: "A new verse every day")
+        if subscription.isPremium {
+            return language.pick(
+                hy: "Հարյուրավոր համարներ՝ պարզից բարդ",
+                ru: "Сотни стихов, от простых к сложным",
+                en: "Hundreds of verses, from easy to hard"
+            )
+        }
+        return language.pick(
+            hy: "Առաջին \(VersePuzzleLogic.freeLevels) մակարդակն անվճար է",
+            ru: "Первые \(VersePuzzleLogic.freeLevels) уровней бесплатно",
+            en: "The first \(VersePuzzleLogic.freeLevels) levels are free"
+        )
     }
 
     var body: some View {
         HomeFeatureCard(
             symbol: "puzzlepiece.extension.fill",
-            label: language.pick(hy: "ՕՐՎԱ ՀԱՆԵԼՈՒԿ", ru: "ГОЛОВОЛОМКА ДНЯ", en: "PUZZLE OF THE DAY"),
+            label: language.pick(hy: "ԽԱՂ՝ ՀԱՎԱՔԵՔ ՀԱՄԱՐԸ", ru: "ИГРА: СОБЕРИ СТИХ", en: "GAME: VERSE PUZZLE"),
             labelColor: Paper.gold,
             title: language.pick(hy: "Հավաքեք համարը ըստ կարգի", ru: "Соберите стих по порядку", en: "Put the verse in order"),
             subtitle: subtitle,
@@ -285,19 +415,389 @@ struct VersePuzzleBannerCardView: View {
     }
 }
 
-// MARK: Экран головоломки
+// MARK: Экран игры: уровни и головоломка дня
 struct VersePuzzleView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var manager = BibleManager.shared
+    @ObservedObject private var store = VersePuzzleStore.shared
+    @ObservedObject private var subscription = SubscriptionManager.shared
+
+    @State private var pool: [BibleVerse] = []
+    @State private var mode: PuzzleMode? = nil
+    @State private var isShowingPaywall = false
+    @State private var didLoad = false
+
+    private var language: AppLanguage { manager.appLanguage }
+    private var freeLevels: Int { VersePuzzleLogic.freeLevels }
+    private let packSize = 10
+
+    var body: some View {
+        ZStack {
+            PaperBackground()
+
+            if let current = mode {
+                VersePuzzlePlayView(
+                    mode: current,
+                    pool: pool,
+                    onExit: {
+                        withAnimation(.easeInOut(duration: 0.2)) { mode = nil }
+                    },
+                    onNextLevel: { openLevel($0) }
+                )
+                .id(current.key)
+            } else {
+                hub
+            }
+        }
+        .sheet(isPresented: $isShowingPaywall) {
+            PaywallView(source: "puzzle")
+        }
+        .onAppear {
+            guard !didLoad else { return }
+            didLoad = true
+            pool = VersePuzzleLogic.levelPool(language: language)
+            Funnel.track("feature_used", ["feature": "puzzle_opened"])
+        }
+        .onChange(of: manager.appLanguage) { newLanguage in
+            pool = VersePuzzleLogic.levelPool(language: newLanguage)
+            mode = nil
+        }
+    }
+
+    // MARK: Вход в уровень или в головоломку дня (с проверкой подписки)
+    private func openLevel(_ level: Int) {
+        guard level >= 1, level <= pool.count else { return }
+        if level > freeLevels && !subscription.isPremium {
+            lockedTapped()
+            return
+        }
+        Haptics.impact(.light)
+        withAnimation(.easeInOut(duration: 0.2)) { mode = .level(level) }
+    }
+
+    private func openDaily() {
+        if !subscription.isPremium {
+            lockedTapped()
+            return
+        }
+        Haptics.impact(.light)
+        withAnimation(.easeInOut(duration: 0.2)) { mode = .daily }
+    }
+
+    private func lockedTapped() {
+        Haptics.notify(.warning)
+        Funnel.track("feature_used", ["feature": "puzzle_locked"])
+        isShowingPaywall = true
+    }
+
+    // MARK: Главная страница игры
+    private var hub: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button {
+                    Haptics.impact(.light)
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(Paper.ink.opacity(0.6))
+                }
+                .buttonStyle(ScaleButtonStyle())
+
+                Spacer()
+
+                Text(language.pick(hy: "Հավաքեք համարը", ru: "Собери стих", en: "Verse Puzzle"))
+                    .font(PaperFont.font(size: 18, weight: .semibold))
+                    .foregroundColor(Paper.ink)
+
+                Spacer()
+
+                Color.clear.frame(width: 24, height: 24)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    summaryCard
+                    continueButton
+                    dailyCard
+                    if !subscription.isPremium {
+                        freeBanner
+                    }
+                    levelsSection
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 28)
+            }
+        }
+    }
+
+    private var summaryCard: some View {
+        HStack(spacing: 0) {
+            summaryItem(
+                value: "★ \(store.totalStars)",
+                caption: language.pick(hy: "աստղ", ru: "звёзд", en: "stars")
+            )
+            Divider().frame(height: 34).opacity(0.5)
+            summaryItem(
+                value: "\(store.completedLevels) / \(pool.count)",
+                caption: language.pick(hy: "մակարդակ անցած", ru: "уровней пройдено", en: "levels completed")
+            )
+        }
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .paperSheet(cornerRadius: 18)
+    }
+
+    private func summaryItem(value: String, caption: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(PaperFont.font(size: 22, weight: .semibold).monospacedDigit())
+                .foregroundColor(Paper.gold)
+            Text(caption)
+                .font(PaperFont.font(size: 12, weight: .medium))
+                .foregroundColor(Paper.inkSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var continueButton: some View {
+        let next = store.nextLevel
+        let allDone = !pool.isEmpty && next > pool.count
+        return Button {
+            if allDone { return }
+            openLevel(next)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: allDone ? "checkmark.seal.fill" : "play.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                Text(allDone
+                     ? language.pick(hy: "Բոլոր մակարդակներն անցած են", ru: "Все уровни пройдены", en: "All levels completed")
+                     : language.pick(hy: "Շարունակել · մակարդակ \(next)", ru: "Продолжить · уровень \(next)", en: "Continue · level \(next)"))
+                    .font(PaperFont.font(size: 16, weight: .semibold))
+            }
+            .foregroundColor(Paper.onAccent)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Paper.accentFill)
+            .cornerRadius(16)
+            .opacity(pool.isEmpty ? 0.4 : 1)
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .disabled(pool.isEmpty)
+    }
+
+    private var dailyCard: some View {
+        let day = VersePuzzleLogic.dayNumber()
+        let streak = store.streak
+        let subtitle: String
+        if store.isSolvedToday {
+            subtitle = streak >= 2
+                ? language.pick(hy: "Այսօր լուծված է · շարք՝ \(streak) օր", ru: "Решено сегодня · серия \(streak) дн.", en: "Solved today · \(streak) day streak")
+                : language.pick(hy: "Այսօր լուծված է", ru: "Решено сегодня", en: "Solved today")
+        } else {
+            subtitle = language.pick(hy: "Նոր համար ամեն օր", ru: "Новый стих каждый день", en: "A new verse every day")
+        }
+        return Button {
+            openDaily()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(Paper.gold)
+                    .frame(width: 28)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(language.pick(hy: "Օրվա հանելուկ №\(day)", ru: "Головоломка дня №\(day)", en: "Puzzle of the day #\(day)"))
+                        .font(PaperFont.font(size: 15, weight: .semibold))
+                        .foregroundColor(Paper.ink)
+                    Text(subtitle)
+                        .font(PaperFont.font(size: 12))
+                        .foregroundColor(Paper.inkSecondary)
+                }
+
+                Spacer(minLength: 8)
+
+                if subscription.isPremium {
+                    Image(systemName: store.isSolvedToday ? "checkmark.circle.fill" : "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(store.isSolvedToday ? Paper.moss : Paper.inkTertiary)
+                } else {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Paper.gold)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .paperSheet(cornerRadius: 18)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+
+    private var freeBanner: some View {
+        let rest = max(0, pool.count - freeLevels)
+        return Button {
+            lockedTapped()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(Paper.gold)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(language.pick(
+                        hy: "Անվճար՝ 1–\(freeLevels) մակարդակները",
+                        ru: "Бесплатно: уровни 1–\(freeLevels)",
+                        en: "Free: levels 1–\(freeLevels)"
+                    ))
+                    .font(PaperFont.font(size: 15, weight: .semibold))
+                    .foregroundColor(Paper.ink)
+
+                    Text(language.pick(
+                        hy: "Մնացած \(rest) մակարդակը և օրվա հանելուկը՝ Premium-ով",
+                        ru: "Ещё \(rest) уровней и головоломка дня: с Premium",
+                        en: "\(rest) more levels and the daily puzzle come with Premium"
+                    ))
+                    .font(PaperFont.font(size: 12))
+                    .foregroundColor(Paper.inkSecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.gold.opacity(0.7))
+            }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Paper.gold.opacity(0.1)))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Paper.gold.opacity(0.3), lineWidth: 1.2))
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+
+    // MARK: Уровни пачками по десять
+    private var levelsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(language.pick(hy: "ՄԱԿԱՐԴԱԿՆԵՐ", ru: "УРОВНИ", en: "LEVELS"))
+                .font(PaperFont.font(size: 11, weight: .semibold))
+                .foregroundColor(Paper.inkSecondary)
+                .tracking(1.0)
+
+            if pool.isEmpty {
+                Text(language.pick(
+                    hy: "Մակարդակները հասանելի չեն",
+                    ru: "Уровни сейчас недоступны",
+                    en: "Levels are not available right now"
+                ))
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
+            } else {
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    ForEach(0..<packCount, id: \.self) { pack in
+                        packView(pack)
+                    }
+                }
+            }
+        }
+    }
+
+    private var packCount: Int {
+        (pool.count + packSize - 1) / packSize
+    }
+
+    private func packView(_ pack: Int) -> some View {
+        let start = pack * packSize + 1
+        let end = min(pool.count, start + packSize - 1)
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(language.pick(
+                hy: "Մակարդակներ \(start)–\(end)",
+                ru: "Уровни \(start)–\(end)",
+                en: "Levels \(start)–\(end)"
+            ))
+            .font(PaperFont.font(size: 12, weight: .semibold))
+            .foregroundColor(Paper.inkSecondary)
+
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(start...end, id: \.self) { level in
+                    levelCell(level)
+                }
+            }
+        }
+    }
+
+    private func levelCell(_ level: Int) -> some View {
+        let stars = store.stars(for: level)
+        let isLocked = level > freeLevels && !subscription.isPremium
+        let isNext = level == store.nextLevel
+        return Button {
+            openLevel(level)
+        } label: {
+            VStack(spacing: 4) {
+                Text("\(level)")
+                    .font(PaperFont.font(size: 17, weight: .semibold).monospacedDigit())
+                    .foregroundColor(Paper.ink)
+
+                if isLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(Paper.gold)
+                } else {
+                    HStack(spacing: 1) {
+                        ForEach(1...3, id: \.self) { index in
+                            Image(systemName: index <= stars ? "star.fill" : "star")
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundColor(index <= stars ? Paper.gold : Paper.inkTertiary.opacity(0.6))
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(stars > 0 ? Paper.gold.opacity(0.16) : Paper.sheet)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(isNext && !isLocked ? Paper.gold : Paper.hairline, lineWidth: isNext && !isLocked ? 1.5 : 1)
+            )
+            .opacity(isLocked ? 0.6 : 1)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: Экран одного уровня или головоломки дня
+struct VersePuzzlePlayView: View {
+    let mode: PuzzleMode
+    let pool: [BibleVerse]
+    let onExit: () -> Void
+    let onNextLevel: (Int) -> Void
+
     @ObservedObject private var manager = BibleManager.shared
     @ObservedObject private var store = VersePuzzleStore.shared
 
     @State private var board: VersePuzzleBoard? = nil
     @State private var verse: BibleVerse? = nil
     @State private var day = VersePuzzleLogic.dayNumber()
+    @State private var retry = 0
     @State private var didLoad = false
 
     private var language: AppLanguage { manager.appLanguage }
-    private var storageKey: String { "\(day)_\(language.rawValue)" }
+
+    private var progressId: String {
+        switch mode {
+        case .daily: return "daily_\(day)_\(language.rawValue)"
+        case .level(let number): return "level_\(number)_\(language.rawValue)"
+        }
+    }
 
     private enum ChipStyle {
         case tray
@@ -306,42 +806,46 @@ struct VersePuzzleView: View {
     }
 
     var body: some View {
-        ZStack {
-            PaperBackground()
+        VStack(spacing: 0) {
+            header
 
-            VStack(spacing: 0) {
-                header
-
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 18) {
-                        if let current = board {
-                            content(for: current)
-                        } else {
-                            emptyState
-                        }
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 18) {
+                    if let current = board {
+                        content(for: current)
+                    } else {
+                        emptyState
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 28)
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 28)
             }
         }
         .onAppear {
             guard !didLoad else { return }
             didLoad = true
             load()
-            Funnel.track("feature_used", ["feature": "puzzle_opened"])
         }
     }
 
     // MARK: Верх экрана
+    private var title: String {
+        switch mode {
+        case .daily:
+            return language.pick(hy: "Օրվա հանելուկ №\(day)", ru: "Головоломка дня №\(day)", en: "Puzzle of the day #\(day)")
+        case .level(let number):
+            return language.pick(hy: "Մակարդակ \(number)", ru: "Уровень \(number)", en: "Level \(number)")
+        }
+    }
+
     private var header: some View {
         HStack {
             Button {
                 Haptics.impact(.light)
-                dismiss()
+                onExit()
             } label: {
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: "chevron.left.circle.fill")
                     .font(.system(size: 24, weight: .medium))
                     .foregroundColor(Paper.ink.opacity(0.6))
             }
@@ -349,13 +853,9 @@ struct VersePuzzleView: View {
 
             Spacer()
 
-            Text(language.pick(
-                hy: "Օրվա հանելուկ №\(day)",
-                ru: "Головоломка дня №\(day)",
-                en: "Puzzle of the day #\(day)"
-            ))
-            .font(PaperFont.font(size: 18, weight: .semibold))
-            .foregroundColor(Paper.ink)
+            Text(title)
+                .font(PaperFont.font(size: 18, weight: .semibold))
+                .foregroundColor(Paper.ink)
 
             Spacer()
 
@@ -368,9 +868,9 @@ struct VersePuzzleView: View {
 
     private var emptyState: some View {
         Text(language.pick(
-            hy: "Այսօր հանելուկ չկա։ Վաղը նորից եկեք։",
-            ru: "Сегодня головоломки нет. Загляните завтра.",
-            en: "No puzzle today. Come back tomorrow."
+            hy: "Այս հանելուկը հասանելի չէ։",
+            ru: "Эта головоломка сейчас недоступна.",
+            en: "This puzzle is not available right now."
         ))
         .font(PaperFont.font(size: 15))
         .foregroundColor(Paper.inkSecondary)
@@ -395,7 +895,7 @@ struct VersePuzzleView: View {
     }
 
     private func statusLine(for current: VersePuzzleBoard) -> some View {
-        HStack {
+        HStack(spacing: 10) {
             if !current.isFinished {
                 Text(language.pick(
                     hy: "Փորձ \(current.attempts.count + 1) / \(current.maxAttempts)",
@@ -408,7 +908,11 @@ struct VersePuzzleView: View {
 
             Spacer()
 
-            if store.streak > 0 {
+            if !current.isFinished {
+                hintButton(for: current)
+            }
+
+            if case .daily = mode, store.streak > 0 {
                 HStack(spacing: 4) {
                     Image(systemName: "flame.fill")
                         .font(.system(size: 12, weight: .semibold))
@@ -423,6 +927,30 @@ struct VersePuzzleView: View {
                 }
             }
         }
+    }
+
+    private func hintButton(for current: VersePuzzleBoard) -> some View {
+        let enabled = current.hintsLeft > 0
+        return Button {
+            useHint()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                Text(language.pick(
+                    hy: "Հուշում · \(current.hintsLeft)",
+                    ru: "Подсказка · \(current.hintsLeft)",
+                    en: "Hint · \(current.hintsLeft)"
+                ))
+                .font(PaperFont.font(size: 13, weight: .semibold))
+            }
+            .foregroundColor(enabled ? Paper.gold : Paper.inkTertiary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Paper.gold.opacity(enabled ? 0.12 : 0.04)))
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .disabled(!enabled)
     }
 
     private func answerArea(for current: VersePuzzleBoard) -> some View {
@@ -509,6 +1037,16 @@ struct VersePuzzleView: View {
             .font(PaperFont.font(size: 12, weight: .medium))
             .foregroundColor(Paper.inkSecondary)
 
+            if case .level = mode {
+                Text(language.pick(
+                    hy: "Յուրաքանչյուր հուշում հանում է մեկ աստղ",
+                    ru: "Каждая подсказка отнимает одну звезду",
+                    en: "Each hint costs one star"
+                ))
+                .font(PaperFont.font(size: 11, weight: .medium))
+                .foregroundColor(Paper.inkTertiary)
+            }
+
             FlowLayout(spacing: 8) {
                 ForEach(current.poolTiles, id: \.self) { tile in
                     Button {
@@ -544,17 +1082,18 @@ struct VersePuzzleView: View {
     }
 
     // MARK: Итог
+    @ViewBuilder
     private func finishCard(for current: VersePuzzleBoard) -> some View {
-        VStack(spacing: 14) {
-            Image(systemName: current.isSolved ? "checkmark.seal.fill" : "book.closed.fill")
-                .font(.system(size: 34))
-                .foregroundColor(current.isSolved ? Paper.moss : Paper.gold)
+        switch mode {
+        case .daily:
+            dailyFinishCard(for: current)
+        case .level(let number):
+            levelFinishCard(for: current, level: number)
+        }
+    }
 
-            Text(finishTitle(for: current))
-                .font(PaperFont.font(size: 17, weight: .semibold))
-                .foregroundColor(Paper.ink)
-                .multilineTextAlignment(.center)
-
+    private var verseBlock: some View {
+        Group {
             if let verse {
                 VStack(spacing: 6) {
                     Text("«\(verse.text(for: language))»")
@@ -567,6 +1106,102 @@ struct VersePuzzleView: View {
                         .foregroundColor(Paper.gold)
                 }
             }
+        }
+    }
+
+    private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(PaperFont.font(size: 16, weight: .semibold))
+                .foregroundColor(Paper.onAccent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(Paper.accentFill)
+                .cornerRadius(16)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+
+    private func secondaryButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(PaperFont.font(size: 15, weight: .semibold))
+                .foregroundColor(Paper.ink)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .paperField(cornerRadius: 16)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+
+    private func levelFinishCard(for current: VersePuzzleBoard, level: Int) -> some View {
+        let stars = current.stars
+        return VStack(spacing: 14) {
+            if current.isSolved {
+                HStack(spacing: 6) {
+                    ForEach(1...3, id: \.self) { index in
+                        Image(systemName: index <= stars ? "star.fill" : "star")
+                            .font(.system(size: 30))
+                            .foregroundColor(index <= stars ? Paper.gold : Paper.inkTertiary.opacity(0.5))
+                    }
+                }
+            } else {
+                Image(systemName: "book.closed.fill")
+                    .font(.system(size: 34))
+                    .foregroundColor(Paper.gold)
+            }
+
+            Text(current.isSolved
+                 ? language.pick(
+                    hy: "Մակարդակն անցած է։ Փորձ՝ \(max(1, current.attempts.count))",
+                    ru: "Уровень пройден! Попыток: \(max(1, current.attempts.count))",
+                    en: "Level complete! Attempts: \(max(1, current.attempts.count))")
+                 : language.pick(
+                    hy: "Այս անգամ չստացվեց։ Ահա այդ համարը՝",
+                    ru: "Не вышло. Вот этот стих:",
+                    en: "Not this time. Here is the verse:"))
+                .font(PaperFont.font(size: 17, weight: .semibold))
+                .foregroundColor(Paper.ink)
+                .multilineTextAlignment(.center)
+
+            verseBlock
+
+            if current.isSolved {
+                if level < pool.count {
+                    primaryButton(language.pick(hy: "Հաջորդ մակարդակ", ru: "Следующий уровень", en: "Next level")) {
+                        onNextLevel(level + 1)
+                    }
+                }
+                secondaryButton(language.pick(hy: "Նորից խաղալ", ru: "Играть заново", en: "Play again")) {
+                    restart()
+                }
+            } else {
+                primaryButton(language.pick(hy: "Փորձել նորից", ru: "Попробовать снова", en: "Try again")) {
+                    restart()
+                }
+            }
+
+            secondaryButton(language.pick(hy: "Մակարդակներին", ru: "К уровням", en: "All levels")) {
+                onExit()
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .paperSheet(cornerRadius: 22)
+    }
+
+    private func dailyFinishCard(for current: VersePuzzleBoard) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: current.isSolved ? "checkmark.seal.fill" : "book.closed.fill")
+                .font(.system(size: 34))
+                .foregroundColor(current.isSolved ? Paper.moss : Paper.gold)
+
+            Text(dailyFinishTitle(for: current))
+                .font(PaperFont.font(size: 17, weight: .semibold))
+                .foregroundColor(Paper.ink)
+                .multilineTextAlignment(.center)
+
+            verseBlock
 
             ShareLink(item: shareText(for: current)) {
                 HStack(spacing: 8) {
@@ -582,6 +1217,10 @@ struct VersePuzzleView: View {
             }
             .buttonStyle(ScaleButtonStyle())
 
+            secondaryButton(language.pick(hy: "Մակարդակներին", ru: "К уровням", en: "All levels")) {
+                onExit()
+            }
+
             Text(language.pick(hy: "Նոր հանելուկը՝ վաղը", ru: "Новая головоломка завтра", en: "A new puzzle tomorrow"))
                 .font(PaperFont.font(size: 12, weight: .medium))
                 .foregroundColor(Paper.inkSecondary)
@@ -591,9 +1230,9 @@ struct VersePuzzleView: View {
         .paperSheet(cornerRadius: 22)
     }
 
-    private func finishTitle(for current: VersePuzzleBoard) -> String {
+    private func dailyFinishTitle(for current: VersePuzzleBoard) -> String {
         if current.isSolved {
-            let used = current.attempts.count
+            let used = max(1, current.attempts.count)
             let total = current.maxAttempts
             return language.pick(
                 hy: "Ճիշտ է։ Փորձ՝ \(used)/\(total)",
@@ -618,7 +1257,7 @@ struct VersePuzzleView: View {
         let rows = current.attempts
             .map { row in row.map { $0 ? "🟩" : "⬜" }.joined() }
             .joined(separator: "\n")
-        let score = current.isSolved ? "\(current.attempts.count)/\(current.maxAttempts)" : "X/\(current.maxAttempts)"
+        let score = current.isSolved ? "\(max(1, current.attempts.count))/\(current.maxAttempts)" : "X/\(current.maxAttempts)"
         let link = "https://apps.apple.com/app/id\(ReviewManager.shared.appStoreID)"
         return "\(header) \(score)\n\(rows)\n\(link)"
     }
@@ -632,19 +1271,69 @@ struct VersePuzzleView: View {
         board?.remove(slot: slot)
     }
 
+    /// Стих и число плиток для текущей партии: у дня своё правило, у уровня своё
+    private func makeSetup() -> (verse: BibleVerse, tiles: Int, seedBase: Int)? {
+        switch mode {
+        case .daily:
+            guard let chosen = VersePuzzleLogic.verse(forDay: day, language: language) else { return nil }
+            return (chosen, VersePuzzleLogic.maxTiles, day)
+        case .level(let number):
+            guard pool.indices.contains(number - 1) else { return nil }
+            return (pool[number - 1], VersePuzzleLogic.tileCount(forLevel: number), number * 100)
+        }
+    }
+
     private func load() {
         day = VersePuzzleLogic.dayNumber()
-        guard let chosen = VersePuzzleLogic.verse(forDay: day, language: language) else { return }
-        let correct = VersePuzzleLogic.chunks(of: chosen.text(for: language))
+        guard let chosen = makeSetup() else { return }
+        let correct = VersePuzzleLogic.chunks(of: chosen.verse.text(for: language), maxTiles: chosen.tiles)
         guard correct.count >= 3 else { return }
-        let saved = store.progress(forKey: storageKey, count: correct.count)
-        verse = chosen
+        let saved = store.progress(id: progressId, count: correct.count)
+        retry = saved.retry
+        verse = chosen.verse
         board = VersePuzzleBoard(
             correct: correct,
-            tray: VersePuzzleLogic.shuffled(correct, day: day),
+            tray: VersePuzzleLogic.shuffled(correct, seed: chosen.seedBase + saved.retry),
             attempts: saved.attempts,
-            locked: Set(saved.locked)
+            locked: Set(saved.locked),
+            hintsUsed: saved.hints
         )
+    }
+
+    /// Уровень начинается заново: другой порядок плиток, попытки и подсказки с нуля (лучшие звёзды остаются)
+    private func restart() {
+        guard let current = board else { return }
+        Haptics.impact(.light)
+        store.save(id: progressId, VersePuzzleStore.Saved(count: current.correct.count, attempts: [], locked: [], hints: 0, retry: retry + 1))
+        withAnimation(.easeInOut(duration: 0.2)) {
+            load()
+        }
+    }
+
+    private func persist(_ updated: VersePuzzleBoard) {
+        store.save(
+            id: progressId,
+            VersePuzzleStore.Saved(
+                count: updated.correct.count,
+                attempts: updated.attempts,
+                locked: updated.locked.sorted(),
+                hints: updated.hintsUsed,
+                retry: retry
+            )
+        )
+    }
+
+    private func useHint() {
+        guard var updated = board else { return }
+        guard updated.useHint() else { return }
+        Haptics.impact(.medium)
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            board = updated
+        }
+        persist(updated)
+        if updated.isSolved {
+            finished(updated)
+        }
     }
 
     private func submit() {
@@ -653,18 +1342,32 @@ struct VersePuzzleView: View {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             board = updated
         }
-        store.save(key: storageKey, board: updated)
+        persist(updated)
 
         if updated.isSolved {
-            Haptics.notify(.success)
-            store.markSolved(day: day)
-            PomegranateTreeManager.shared.record(.plan)
-            Funnel.track("feature_used", ["feature": "puzzle_solved"])
+            finished(updated)
         } else if updated.isFailed {
             Haptics.notify(.error)
             Funnel.track("feature_used", ["feature": "puzzle_failed"])
         } else {
             Haptics.notify(result.contains(true) ? .success : .warning)
+        }
+    }
+
+    /// Головоломка решена: запоминаем результат и кормим Гранатовое древо (за уровень только при первом прохождении)
+    private func finished(_ solved: VersePuzzleBoard) {
+        Haptics.notify(.success)
+        switch mode {
+        case .daily:
+            store.markSolved(day: day)
+            PomegranateTreeManager.shared.record(.plan)
+            Funnel.track("feature_used", ["feature": "puzzle_solved"])
+        case .level(let number):
+            let isFirst = store.recordStars(level: number, stars: solved.stars)
+            if isFirst {
+                PomegranateTreeManager.shared.record(.plan)
+            }
+            Funnel.track("feature_used", ["feature": "puzzle_level_won"])
         }
     }
 }
