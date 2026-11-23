@@ -37,6 +37,8 @@ final class CloudSyncManager: ObservableObject {
     private var timer: Timer?
     private var observers: [NSObjectProtocol] = []
     private var isSyncing = false
+    private var lastSyncStartedAt: Date?
+    private let minSyncInterval: TimeInterval = 4
 
     private init() {
         self.isEnabled = UserDefaults.standard.bool(forKey: "icloud_sync_enabled")
@@ -103,6 +105,10 @@ final class CloudSyncManager: ObservableObject {
             return
         }
         guard !isSyncing else { return }
+        // Не чаще раза в несколько секунд: подряд идущие поводы (возврат в приложение, сообщение от iCloud, таймер) склеиваются.
+        // Пропущенное подхватит следующий повод или таймер на 45 секунд.
+        if let last = lastSyncStartedAt, Date().timeIntervalSince(last) < minSyncInterval { return }
+        lastSyncStartedAt = Date()
         isSyncing = true
         status = .syncing
 
@@ -188,9 +194,22 @@ final class CloudSyncManager: ObservableObject {
     private static let favoritesKey = "favorite_verses"
     private static let annotationsKey = "verse_annotations_map"
     private static let highlightsKey = "highlighted_verses_map"
-    private static let readChaptersKey = "bible_read_chapters_by_book"
 
     private static var sharedDefaults: UserDefaults { AppGroupConstants.sharedDefaults }
+
+    /// Прогресс чтения из общего хранилища (при необходимости собирается из старых значений: перенос безопасно повторять)
+    private static func localReadingProgress() -> ReadingProgress {
+        ReadingProgressStore.loadOrMigrate(
+            primary: sharedDefaults,
+            extraSources: [UserDefaults.standard],
+            persist: { saveReadingProgress($0) }
+        )
+    }
+
+    /// Записывает прогресс во все хранилища и в старые ключи (зеркало)
+    private static func saveReadingProgress(_ progress: ReadingProgress) {
+        AppGroupConstants.syncToAll { ReadingProgressStore.save(progress, to: $0) }
+    }
 
     private static func encoder() -> JSONEncoder {
         let e = JSONEncoder()
@@ -269,17 +288,26 @@ final class CloudSyncManager: ObservableObject {
                 return (try? encoder().encode(result)) ?? l
             }
         ),
-        // Прочитанные главы
+        // Прочитанные главы в СТАРОМ формате (книга → главы). Его читают прежние версии приложения на других устройствах,
+        // поэтому пишем и читаем его по-прежнему; полный прогресс лежит рядом в наборе «readingProgress».
         Spec(
             name: "readChapters",
             read: {
-                guard let map = sharedDefaults.dictionary(forKey: readChaptersKey) as? [String: [Int]] else { return nil }
-                let sorted = map.mapValues { Array(Set($0)).sorted() }
-                return try? encoder().encode(sorted)
+                let sets = localReadingProgress().legacyReadSets()
+                guard !sets.isEmpty else { return nil }
+                var map: [String: [Int]] = [:]
+                for (bookId, chapters) in sets { map[String(bookId)] = chapters }
+                return try? encoder().encode(map)
             },
             write: { data in
                 guard let map = try? JSONDecoder().decode([String: [Int]].self, from: data) else { return }
-                AppGroupConstants.syncToAll { $0.set(map, forKey: readChaptersKey) }
+                var sets: [Int: [Int]] = [:]
+                for (key, chapters) in map {
+                    if let bookId = Int(key) { sets[bookId] = chapters }
+                }
+                // Старые данные без времени: слияние не отменяет более позднее снятие отметки
+                let merged = ReadingProgress.merged(localReadingProgress(), ReadingProgress.fromLegacyReadSets(sets))
+                saveReadingProgress(merged)
             },
             merge: { l, r in
                 var result = (try? JSONDecoder().decode([String: [Int]].self, from: l)) ?? [:]
@@ -290,46 +318,23 @@ final class CloudSyncManager: ObservableObject {
                 return (try? encoder().encode(result)) ?? l
             }
         ),
-        // Где остановились в каждой книге: глава и стих (новый набор рядом с прочитанными главами; старые данные не затронуты)
+        // Прогресс чтения целиком (новый набор): прочитанные главы со временем отметки, снятые отметки,
+        // место остановки по каждой книге. Старые наборы не затронуты.
         Spec(
-            name: "readPosition",
+            name: "readingProgress",
             read: {
-                let all = sharedDefaults.dictionaryRepresentation()
-                let prefix = "last_read_chapter_for_book_"
-                var map: [String: ReadPositionPayload] = [:]
-                for (key, value) in all where key.hasPrefix(prefix) {
-                    let bookKey = String(key.dropFirst(prefix.count))
-                    guard Int(bookKey) != nil, let chapter = value as? Int, chapter > 0 else { continue }
-                    let verse = all["last_read_verse_for_book_\(bookKey)"] as? Int
-                    let updated = all["last_read_updated_for_book_\(bookKey)"] as? Double
-                    map[bookKey] = ReadPositionPayload(chapter: chapter, verse: (verse ?? 0) > 1 ? verse : nil, updatedAt: updated ?? 0)
-                }
-                guard !map.isEmpty else { return nil }
-                return try? encoder().encode(map)
+                let progress = localReadingProgress()
+                guard !progress.isEmpty else { return nil }
+                return ReadingProgressStore.encode(progress)
             },
             write: { data in
-                guard let map = try? JSONDecoder().decode([String: ReadPositionPayload].self, from: data) else { return }
-                AppGroupConstants.syncToAll { d in
-                    for (bookKey, position) in map where Int(bookKey) != nil && position.chapter > 0 {
-                        d.set(position.chapter, forKey: "last_read_chapter_for_book_\(bookKey)")
-                        if let verse = position.verse, verse > 1 {
-                            d.set(verse, forKey: "last_read_verse_for_book_\(bookKey)")
-                        } else {
-                            d.removeObject(forKey: "last_read_verse_for_book_\(bookKey)")
-                        }
-                        d.set(position.updatedAt, forKey: "last_read_updated_for_book_\(bookKey)")
-                    }
-                }
+                // Неизвестный формат из iCloud локальные данные не затирает; известный сливается с локальным
+                guard let remote = ReadingProgressStore.decode(data) else { return }
+                saveReadingProgress(ReadingProgress.merged(localReadingProgress(), remote))
             },
             merge: { l, r in
-                var result = (try? JSONDecoder().decode([String: ReadPositionPayload].self, from: l)) ?? [:]
-                let remote = (try? JSONDecoder().decode([String: ReadPositionPayload].self, from: r)) ?? [:]
-                // По каждой книге побеждает более свежее место остановки
-                for (key, value) in remote {
-                    if let existing = result[key], existing.updatedAt >= value.updatedAt { continue }
-                    result[key] = value
-                }
-                return (try? encoder().encode(result)) ?? l
+                guard let local = ReadingProgressStore.decode(l), let remote = ReadingProgressStore.decode(r) else { return l }
+                return ReadingProgressStore.encode(ReadingProgress.merged(local, remote)) ?? l
             }
         ),
         // Основные настройки (язык, оформление, шрифт, издание)
@@ -428,13 +433,6 @@ final class CloudSyncManager: ObservableObject {
         var fontSize: Double?
         var edition: String?
         var scope: String?
-    }
-
-    /// Место остановки в одной книге; `updatedAt` (секунды с 1970 г.) — для слияния: побеждает более свежее
-    struct ReadPositionPayload: Codable {
-        var chapter: Int
-        var verse: Int?
-        var updatedAt: Double
     }
 
     struct QuizPayload: Codable {
