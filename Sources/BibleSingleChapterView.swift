@@ -199,7 +199,7 @@ struct BibleSingleChapterView: View {
                                         colorHex: nil
                                     )
                                 },
-                                scrollToVerse: targetVerse,
+                                scrollToVerse: resolvedTargetVerse(in: text),
                                 onVerseOffset: { offset in
                                     targetOffset = offset
                                 },
@@ -328,7 +328,7 @@ struct BibleSingleChapterView: View {
                     }
                     .onAppear {
                         // Подсвечиваем целевой стих, если он передан (ссылка, поиск, избранное); прокрутка к нему — в onChange выше
-                        if let target = targetVerse {
+                        if let target = resolvedTargetVerse(in: text) {
                             highlightedVerseId = target
                             
                             // Убираем подсветку через 3 секунды
@@ -454,9 +454,10 @@ struct BibleSingleChapterView: View {
                 }
                 // Место остановки начинаем отслеживать, когда страница устоялась: при открытии на стихе — после прокрутки к нему
                 // (она заканчивается примерно через секунду после показа текста), иначе положение «до прокрутки» затёрло бы сохранённый стих
-                let settleDelay: Double = (targetVerse == nil) ? 0.8 : 2.2
+                let resolvedTarget = data.flatMap { resolvedTargetVerse(in: $0) }
+                let settleDelay: Double = (resolvedTarget == nil) ? 0.8 : 2.2
                 DispatchQueue.main.asyncAfter(deadline: .now() + settleDelay) {
-                    tracker.markReady(restoredVerse: targetVerse)
+                    tracker.markReady(restoredVerse: resolvedTarget)
                 }
             }
         }
@@ -474,10 +475,15 @@ struct BibleSingleChapterView: View {
         }
     }
 
+    /// Стих из ссылки или сохранённого места, только если он есть в этой главе (в другом переводе стихов бывает меньше): иначе глава с начала
+    private func resolvedTargetVerse(in text: BibleChapterText) -> Int? {
+        let maxVerse = text.verses.map { $0.verseNumber }.max() ?? 0
+        return ReadingProgress.clampedVerse(targetVerse, maxVerse: maxVerse)
+    }
+
     private func saveReadingVerseNow() {
-        // Страницы соседних глав прогреваются заранее: пишем только за ту, что сейчас открыта (её глава записана как последняя прочитанная)
-        guard manager.lastReadBookId == book.id, manager.lastReadChapter == chapter else { return }
-        manager.saveBookLastReadVerse(bookId: book.id, chapter: chapter, verse: tracker.verseOnReadLine())
+        // Страницы соседних глав прогреваются заранее: менеджер пишет только за ту главу, что сейчас открыта у читателя
+        manager.recordReadingScroll(bookId: book.id, chapter: chapter, verse: tracker.verseOnReadLine())
     }
     
     private func copyToClipboard(verse: BibleVerseText) {

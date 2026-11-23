@@ -74,15 +74,28 @@ struct BibleChapterReaderView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            // Открытие главы место остановки не меняет: оно запишется, когда человек начнёт читать
             currentChapterIndex = initialChapter - 1
             manager.saveLastReadLocation(bookId: book.id, chapter: initialChapter)
         }
         .onDisappear {
             manager.cancelReadingDew()
         }
+        // Остался на главе заметное время — это место остановки (стих из ссылки сохраняется, если открывали по ссылке)
+        .task(id: currentChapterIndex) {
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            guard !Task.isCancelled else { return }
+            let chapter = currentChapterIndex + 1
+            manager.recordChapterDwell(bookId: book.id, chapter: chapter, verse: chapter == initialChapter ? targetVerse : nil)
+        }
         .onChange(of: currentChapterIndex) { newValue in
             let newChapter = newValue + 1
+            // Сам перелистнул или выбрал другую главу (а не открытие экрана): место остановки — начало этой главы
+            let previous = manager.activeReading
             manager.saveLastReadLocation(bookId: book.id, chapter: newChapter)
+            if let previous = previous, previous.bookId == book.id, previous.chapter != newChapter {
+                manager.recordChapterChange(bookId: book.id, chapter: newChapter)
+            }
             // Если пользователь перелистнул сам, скрываем подсказки
             if showNavigationHints {
                 withAnimation(.easeOut(duration: 0.4)) {

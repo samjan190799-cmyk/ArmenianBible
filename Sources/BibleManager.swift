@@ -55,10 +55,12 @@ class BibleManager: ObservableObject {
     @Published var deepLinkBookId: Int? = nil
     @Published var deepLinkChapter: Int? = nil
     @Published var deepLinkVerse: Int? = nil
-    @Published var lastReadBookId: Int? = nil
-    @Published var lastReadChapter: Int? = nil
+    /// Прочитанные главы по книгам (для экранов; источник правды — readingProgress)
     @Published var readChaptersByBook: [Int: Set<Int>] = [:]
-    private let readChaptersKey = "bible_read_chapters_by_book"
+    /// Единая модель прогресса чтения: прочитанные главы и место остановки по каждой книге
+    var readingProgress = ReadingProgress()
+    /// Глава, открытая сейчас у читателя. Не @Published: перерисовывать экраны по ней не нужно
+    private(set) var activeReading: (bookId: Int, chapter: Int)? = nil
     /// Ожидание, после которого прочитанная глава питает Гранатовое древо
     private var readingDewTask: Task<Void, Never>?
     
@@ -463,26 +465,10 @@ class BibleManager: ObservableObject {
             }
         }
         
-        // Загрузка последнего места чтения
+        // Прогресс чтения: прочитанные главы и место остановки (при первом запуске новой версии собирается из старых значений)
+        loadReadingProgress()
+
         if let defaults = sharedDefaults {
-            let savedBookId = defaults.integer(forKey: "last_read_book_id")
-            let savedChapter = defaults.integer(forKey: "last_read_chapter")
-            if savedBookId != 0 && savedChapter != 0 {
-                self.lastReadBookId = savedBookId
-                self.lastReadChapter = savedChapter
-            }
-            
-            // Загрузка прочитанных глав Библии
-            if let savedDict = defaults.dictionary(forKey: readChaptersKey) as? [String: [Int]] {
-                var loaded: [Int: Set<Int>] = [:]
-                for (key, values) in savedDict {
-                    if let bookId = Int(key) {
-                        loaded[bookId] = Set(values)
-                    }
-                }
-                self.readChaptersByBook = loaded
-            }
-            
             // Гарантируем первоначальную инициализацию короткого стиха для экрана блокировки, если еще не настроен
             if defaults.string(forKey: "currentLockScreenVerseId") == nil {
                 syncLockScreenWidget()
@@ -493,29 +479,17 @@ class BibleManager: ObservableObject {
         self.currentVerse = BibleDatabase.shared.enrichVerse(self.currentVerse)
     }
     
-    // MARK: - Сохранение последней позиции чтения и отметка главы как прочитанной
-    func saveLastReadLocation(bookId: Int, chapter: Int) {
-        if lastReadBookId != bookId || lastReadChapter != chapter {
-            lastReadBookId = bookId
-            lastReadChapter = chapter
+    // MARK: - Прогресс чтения Библии (обёртка над ReadingProgress)
 
-            if let defaults = sharedDefaults {
-                defaults.set(bookId, forKey: "last_read_book_id")
-                defaults.set(chapter, forKey: "last_read_chapter")
-                // Стих относится к конкретной главе: ушли в другую главу — прежний стих больше не годится
-                if defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)") != chapter {
-                    defaults.removeObject(forKey: "last_read_verse_for_book_\(bookId)")
-                    // Время правки нужно iCloud, чтобы при слиянии побеждало более свежее место остановки
-                    defaults.set(Date().timeIntervalSince1970, forKey: "last_read_updated_for_book_\(bookId)")
-                }
-                defaults.set(chapter, forKey: "last_read_chapter_for_book_\(bookId)")
-                defaults.synchronize()
-            }
-        }
+    /// Главу открыли (или читатель перелистнул на неё): отмечаем прочитанной и запускаем ожидание для древа.
+    /// Место остановки здесь НЕ пишется: оно пишется только когда человек реально читает (прокрутил, сам сменил главу,
+    /// остался на главе), иначе случайное открытие главы 1 затирало настоящее место.
+    func saveLastReadLocation(bookId: Int, chapter: Int) {
+        activeReading = (bookId, chapter)
         markChapterAsRead(bookId: bookId, chapter: chapter)
         scheduleTreeDewForReading(bookId: bookId, chapter: chapter)
     }
-    
+
     /// Глава питает древо, когда её читают хотя бы 20 секунд: простое пролистывание глав не считается
     private func scheduleTreeDewForReading(bookId: Int, chapter: Int) {
         readingDewTask?.cancel()
@@ -526,99 +500,109 @@ class BibleManager: ObservableObject {
             self.offerMorningVerseIfNeeded(after: "chapter")
         }
     }
-    
+
     /// Человек ушёл с экрана чтения раньше, чем прошло время: глава древу не засчитывается
     func cancelReadingDew() {
         readingDewTask?.cancel()
     }
-    
-    // MARK: - Учет прогресса чтения Библии
+
+    // MARK: Прочитанные главы
     func markChapterAsRead(bookId: Int, chapter: Int) {
-        var currentSet = readChaptersByBook[bookId] ?? []
-        if !currentSet.contains(chapter) {
-            currentSet.insert(chapter)
-            readChaptersByBook[bookId] = currentSet
-            persistReadChapters()
+        if readingProgress.markRead(bookId: bookId, chapter: chapter, now: Date().timeIntervalSince1970) {
+            readChaptersByBook[bookId] = readingProgress.readChapters(bookId: bookId)
+            persistReadingProgress()
         }
     }
-    
+
     func isChapterRead(bookId: Int, chapter: Int) -> Bool {
         return readChaptersByBook[bookId]?.contains(chapter) ?? false
     }
-    
+
     func toggleChapterRead(bookId: Int, chapter: Int) {
-        var currentSet = readChaptersByBook[bookId] ?? []
-        if currentSet.contains(chapter) {
-            currentSet.remove(chapter)
-        } else {
-            currentSet.insert(chapter)
-        }
-        readChaptersByBook[bookId] = currentSet
-        persistReadChapters()
+        readingProgress.toggleRead(bookId: bookId, chapter: chapter, now: Date().timeIntervalSince1970)
+        readChaptersByBook[bookId] = readingProgress.readChapters(bookId: bookId)
+        persistReadingProgress()
     }
-    
+
     func getBookProgress(bookId: Int, totalChapters: Int) -> (readCount: Int, percent: Double) {
         let count = readChaptersByBook[bookId]?.count ?? 0
         let percent = totalChapters > 0 ? min(1.0, Double(count) / Double(totalChapters)) : 0.0
         return (count, percent)
     }
-    
-    private func persistReadChapters() {
-        var saveDict: [String: [Int]] = [:]
-        for (bookId, set) in readChaptersByBook {
-            saveDict[String(bookId)] = Array(set).sorted()
-        }
-        AppGroupConstants.syncToAll { defaults in
-            defaults.set(saveDict, forKey: readChaptersKey)
-        }
-    }
-    
-    // MARK: - Сохранение и получение позиции чтения для конкретной книги
-    func saveBookLastReadChapter(bookId: Int, chapter: Int) {
-        AppGroupConstants.syncToAll { defaults in
-            defaults.set(chapter, forKey: "last_read_chapter_for_book_\(bookId)")
-        }
-    }
-    
-    /// Глава, на которой остановились в книге. Нет сохранённой главы (новый телефон, переустановка: прогресс «7/28»
-    /// пришёл из iCloud, а место остановки нет), берём наибольшую прочитанную главу; нет и её — первую.
+
+    // MARK: Место остановки
+    /// Глава, на которой остановились в книге (нет сохранённого места: наибольшая прочитанная, иначе первая)
     func getBookLastReadChapter(bookId: Int) -> Int {
-        let chapter = AppGroupConstants.sharedDefaults.integer(forKey: "last_read_chapter_for_book_\(bookId)")
-        if chapter > 0 { return chapter }
-        if let lastReadInBook = readChaptersByBook[bookId]?.max(), lastReadInBook > 0 {
-            return lastReadInBook
-        }
-        return 1
+        return readingProgress.resumePoint(bookId: bookId).chapter
     }
 
-    // MARK: - Стих, на котором остановились в книге
-    /// Запоминает верхний видимый стих главы (nil — читатель вернулся к началу главы).
-    /// Стих действует только вместе с главой, записанной в `last_read_chapter_for_book_*`.
-    func saveBookLastReadVerse(bookId: Int, chapter: Int, verse: Int?) {
-        let defaults = AppGroupConstants.sharedDefaults
-        guard defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)") == chapter else { return }
-        let key = "last_read_verse_for_book_\(bookId)"
-        let newVerse = (verse ?? 0) > 1 ? verse : nil
-        let storedVerse = defaults.integer(forKey: key) > 1 ? defaults.integer(forKey: key) : nil
-        // Пишем и обновляем время правки только при настоящем изменении: каждая запись уходит в iCloud
-        guard newVerse != storedVerse else { return }
-        if let newVerse = newVerse {
-            defaults.set(newVerse, forKey: key)
-        } else {
-            defaults.removeObject(forKey: key)
-        }
-        defaults.set(Date().timeIntervalSince1970, forKey: "last_read_updated_for_book_\(bookId)")
-    }
-
-    /// Стих остановки в книге или nil, если он не сохранён (старые данные: только номер главы) или относится к другой главе.
-    /// Читается без ошибок для старых сохранений: пока ключа нет, глава открывается с начала, как раньше.
+    /// Стих остановки в книге; nil — глава с начала
     func getBookLastReadVerse(bookId: Int) -> Int? {
-        let defaults = AppGroupConstants.sharedDefaults
-        let verse = defaults.integer(forKey: "last_read_verse_for_book_\(bookId)")
-        guard verse > 1, defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)") > 0 else { return nil }
-        return verse
+        return readingProgress.resumePoint(bookId: bookId).verse
     }
-    
+
+    /// Записывает место остановки (nil вместо стиха — глава с начала). Без изменений ничего не пишет.
+    func saveBookLastReadVerse(bookId: Int, chapter: Int, verse: Int?) {
+        if readingProgress.setPosition(bookId: bookId, chapter: chapter, verse: verse, now: Date().timeIntervalSince1970) {
+            persistReadingProgress()
+        }
+    }
+
+    /// Прокрутка внутри главы: пишем, только если эта глава сейчас открыта у читателя
+    /// (страницы соседних глав подгружаются заранее и к чтению отношения не имеют)
+    func recordReadingScroll(bookId: Int, chapter: Int, verse: Int?) {
+        guard let active = activeReading, active.bookId == bookId, active.chapter == chapter else { return }
+        saveBookLastReadVerse(bookId: bookId, chapter: chapter, verse: verse)
+    }
+
+    /// Читатель сам перелистнул или выбрал главу: место остановки — её начало
+    func recordChapterChange(bookId: Int, chapter: Int) {
+        saveBookLastReadVerse(bookId: bookId, chapter: chapter, verse: nil)
+    }
+
+    /// Читатель пробыл на главе заметное время. Если место остановки уже на этой главе, оно не меняется
+    /// (сохранённый стих остаётся); иначе глава становится местом остановки (стих — из ссылки, если открывали по ссылке).
+    func recordChapterDwell(bookId: Int, chapter: Int, verse: Int?) {
+        guard readingProgress.position(bookId: bookId)?.chapter != chapter else { return }
+        saveBookLastReadVerse(bookId: bookId, chapter: chapter, verse: verse)
+    }
+
+    /// Последняя книга и глава, которые читали (для виджетов и ссылок «продолжить», если появятся)
+    var lastReadBookId: Int? { readingProgress.lastLocation?.bookId }
+    var lastReadChapter: Int? { readingProgress.lastLocation?.chapter }
+
+    // MARK: Хранение
+    private func persistReadingProgress() {
+        let snapshot = readingProgress
+        AppGroupConstants.syncToAll { defaults in
+            ReadingProgressStore.save(snapshot, to: defaults)
+        }
+    }
+
+    /// Подхватывает прогресс при запуске (при первом запуске новой версии собирает его из старых значений)
+    private func loadReadingProgress() {
+        let shared = AppGroupConstants.sharedDefaults
+        let progress = ReadingProgressStore.loadOrMigrate(
+            primary: shared,
+            extraSources: [UserDefaults.standard],
+            persist: { migrated in
+                AppGroupConstants.syncToAll { defaults in
+                    ReadingProgressStore.save(migrated, to: defaults)
+                }
+            }
+        )
+        readingProgress = progress
+        readChaptersByBook = progress.allReadChapters()
+    }
+
+    /// Перечитывает прогресс из общего хранилища после того, как его обновила синхронизация iCloud
+    func reloadReadingProgressFromStorage() {
+        if let progress = ReadingProgressStore.load(from: AppGroupConstants.sharedDefaults) {
+            readingProgress = progress
+            readChaptersByBook = progress.allReadChapters()
+        }
+    }
+
     // MARK: - Сохранение активного провайдера ИИ
     func setActiveProvider(_ provider: AIProvider) {
         self.activeProvider = provider

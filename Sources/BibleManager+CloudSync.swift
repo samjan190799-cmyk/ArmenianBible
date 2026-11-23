@@ -19,15 +19,8 @@ extension BibleManager {
            let map = try? JSONDecoder().decode([String: VerseAnnotation].self, from: data) {
             annotations = map
         }
-        if let saved = defaults.dictionary(forKey: "bible_read_chapters_by_book") as? [String: [Int]] {
-            var loaded: [Int: Set<Int>] = [:]
-            for (key, values) in saved {
-                if let bookId = Int(key) {
-                    loaded[bookId] = Set(values)
-                }
-            }
-            readChaptersByBook = loaded
-        }
+        // Прогресс чтения: прочитанные главы и места остановки (единая модель)
+        reloadReadingProgressFromStorage()
 
         if let raw = defaults.string(forKey: appLanguageKey), let value = AppLanguage(rawValue: raw) {
             appLanguage = value
