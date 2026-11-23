@@ -87,17 +87,10 @@ public final class ReviewManager: ObservableObject {
     public func openAppStoreReviewDirectly() {
         UserDefaults.standard.set(true, forKey: kHasRatedKey)
         UserDefaults.standard.set(Date(), forKey: kLastRequestedDateKey)
-        
-        // Сначала пробуем системный prompt
-        requestSystemReview()
-        
-        // Через секунду гарантированно открываем страницу написания отзыва в App Store
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self = self else { return }
-            if UIApplication.shared.canOpenURL(self.appStoreReviewURL) {
-                UIApplication.shared.open(self.appStoreReviewURL, options: [:], completionHandler: nil)
-            }
-        }
+
+        // Человек сам нажал кнопку, поэтому ведём сразу на страницу отзыва в App Store. Системное окно оценки по нажатию
+        // не вызываем: Apple это не рекомендует, оно могло показаться на долю секунды и тут же уйти вместе с приложением
+        UIApplication.shared.open(appStoreReviewURL, options: [:], completionHandler: nil)
     }
     
     public func dismissLater() {

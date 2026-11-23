@@ -26,6 +26,8 @@ struct BibleQuizView: View {
     @ObservedObject var achievements = AchievementsManager.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var isShowingPaywall = false
+    /// Подписку открыли с экрана итогов: в воронке это отдельный источник
+    @State private var paywallFromResult = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
@@ -230,6 +232,13 @@ struct BibleQuizView: View {
                             quizFinished = false
                             newlyUnlockedBadges = []
                             categoryBreakdown = [:]
+                        },
+                        showsPremiumOffer: !subscriptionManager.isPremium,
+                        showsReviewAsk: Double(score) / Double(max(1, activeQuestions.count)) >= 0.7
+                            && !ReviewManager.shared.hasAlreadyRated,
+                        onOpenPremium: {
+                            paywallFromResult = true
+                            isShowingPaywall = true
                         }
                     )
                 } else if currentQuestionIndex < activeQuestions.count {
@@ -536,8 +545,8 @@ struct BibleQuizView: View {
         .sheet(isPresented: $isShowingAchievements) {
             BibleAchievementsView()
         }
-        .sheet(isPresented: $isShowingPaywall) {
-            PaywallView(source: "quiz")
+        .sheet(isPresented: $isShowingPaywall, onDismiss: { paywallFromResult = false }) {
+            PaywallView(source: paywallFromResult ? "quiz_result" : "quiz")
         }
         .sheet(item: $duelShare) { item in
             ActivityView(activityItems: item.items)
@@ -941,7 +950,7 @@ struct BibleQuizView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                 quizFinished = true
             }
-            ReviewManager.shared.recordPositiveAction()
+            // Об отзыве теперь просит сам экран итогов (спокойная строка при хорошем результате), всплывающее окно не нужно
             PomegranateTreeManager.shared.record(.quiz)
         }
     }

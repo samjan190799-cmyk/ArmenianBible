@@ -14,7 +14,14 @@ struct QuizResultView: View {
     let primaryTextColor: Color
     let onOpenAchievements: () -> Void
     let onRestart: () -> Void
-    
+    /// Предложение Premium (ИИ-вопросы): показывается только тем, у кого подписки нет
+    var showsPremiumOffer: Bool = false
+    /// Просьба об отзыве в App Store: вызывающий решает, когда она уместна (хороший результат, ещё не оценили)
+    var showsReviewAsk: Bool = false
+    var onOpenPremium: () -> Void = {}
+
+    @State private var reviewAsked = false
+
     private var resultTitle: String {
         let percentage = Double(score) / Double(total)
         if percentage >= 0.9 {
@@ -141,7 +148,15 @@ struct QuizResultView: View {
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .padding(.horizontal, 20)
-                
+
+                if showsPremiumOffer {
+                    premiumOfferRow
+                }
+
+                if showsReviewAsk {
+                    reviewAskRow
+                }
+
                 Button {
                     triggerHaptic(.soft)
                     onRestart()
@@ -170,6 +185,121 @@ struct QuizResultView: View {
         )
     }
     
+    // MARK: - Предложение Premium
+    /// Человек только что доиграл; в классической базе вопросы ограничены, а ИИ составляет новые без повторов
+    private var premiumOfferRow: some View {
+        Button {
+            triggerHaptic(.medium)
+            Funnel.track("feature_used", ["feature": "quiz_offer_tapped"])
+            onOpenPremium()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(Paper.gold)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(language.pick(
+                        hy: "Ցանկանո՞ւմ եք նոր հարցեր",
+                        ru: "Хотите новые вопросы?",
+                        en: "Want fresh questions?"
+                    ))
+                    .font(PaperFont.font(size: 15, weight: .semibold))
+                    .foregroundColor(primaryTextColor)
+
+                    Text(language.pick(
+                        hy: "Premium-ով ԱԻ-ն կազմում է նոր հարցեր՝ առանց կրկնությունների",
+                        ru: "С Premium ИИ составляет новые вопросы без повторов",
+                        en: "With Premium, AI writes new questions with no repeats"
+                    ))
+                    .font(PaperFont.font(size: 12))
+                    .foregroundColor(Paper.inkSecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Paper.gold.opacity(0.7))
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Paper.gold.opacity(0.1))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Paper.gold.opacity(0.3), lineWidth: 1.2)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .padding(.horizontal, 20)
+        .onAppear { Funnel.track("feature_used", ["feature": "quiz_offer_shown"]) }
+    }
+
+    // MARK: - Просьба об отзыве
+    /// Спокойная строка на экране итогов, без всплывающих окон: человек сам решает, нажимать ли
+    @ViewBuilder
+    private var reviewAskRow: some View {
+        if reviewAsked {
+            Text(language.pick(
+                hy: "Շնորհակալություն աջակցության համար",
+                ru: "Спасибо за поддержку!",
+                en: "Thank you for your support!"
+            ))
+            .font(PaperFont.font(size: 13, weight: .medium))
+            .foregroundColor(Paper.inkSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .transition(.opacity)
+        } else {
+            Button {
+                triggerHaptic(.medium)
+                Funnel.track("feature_used", ["feature": "quiz_review_tapped"])
+                ReviewManager.shared.openAppStoreReviewDirectly()
+                withAnimation(.easeInOut(duration: 0.25)) { reviewAsked = true }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(Paper.gold)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(language.pick(
+                            hy: "Գնահատել Luys-ը App Store-ում",
+                            ru: "Оценить Luys в App Store",
+                            en: "Rate Luys on the App Store"
+                        ))
+                        .font(PaperFont.font(size: 15, weight: .semibold))
+                        .foregroundColor(primaryTextColor)
+
+                        Text(language.pick(
+                            hy: "Ձեր կարծիքն օգնում է ուրիշներին գտնել Luys-ը",
+                            ru: "Ваш отзыв помогает другим найти Luys",
+                            en: "Your review helps others find Luys"
+                        ))
+                        .font(PaperFont.font(size: 12))
+                        .foregroundColor(Paper.inkSecondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Paper.inkSecondary.opacity(0.7))
+                }
+                .padding(14)
+                .paperField(cornerRadius: 16)
+            }
+            .buttonStyle(ScaleButtonStyle())
+            .padding(.horizontal, 20)
+        }
+    }
+
     private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         Haptics.impact(style)
     }
