@@ -505,6 +505,8 @@ class BibleManager: ObservableObject {
                 // Стих относится к конкретной главе: ушли в другую главу — прежний стих больше не годится
                 if defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)") != chapter {
                     defaults.removeObject(forKey: "last_read_verse_for_book_\(bookId)")
+                    // Время правки нужно iCloud, чтобы при слиянии побеждало более свежее место остановки
+                    defaults.set(Date().timeIntervalSince1970, forKey: "last_read_updated_for_book_\(bookId)")
                 }
                 defaults.set(chapter, forKey: "last_read_chapter_for_book_\(bookId)")
                 defaults.synchronize()
@@ -578,9 +580,15 @@ class BibleManager: ObservableObject {
         }
     }
     
+    /// Глава, на которой остановились в книге. Нет сохранённой главы (новый телефон, переустановка: прогресс «7/28»
+    /// пришёл из iCloud, а место остановки нет), берём наибольшую прочитанную главу; нет и её — первую.
     func getBookLastReadChapter(bookId: Int) -> Int {
         let chapter = AppGroupConstants.sharedDefaults.integer(forKey: "last_read_chapter_for_book_\(bookId)")
-        return chapter > 0 ? chapter : 1
+        if chapter > 0 { return chapter }
+        if let lastReadInBook = readChaptersByBook[bookId]?.max(), lastReadInBook > 0 {
+            return lastReadInBook
+        }
+        return 1
     }
 
     // MARK: - Стих, на котором остановились в книге
@@ -590,11 +598,16 @@ class BibleManager: ObservableObject {
         let defaults = AppGroupConstants.sharedDefaults
         guard defaults.integer(forKey: "last_read_chapter_for_book_\(bookId)") == chapter else { return }
         let key = "last_read_verse_for_book_\(bookId)"
-        if let verse = verse, verse > 1 {
-            defaults.set(verse, forKey: key)
+        let newVerse = (verse ?? 0) > 1 ? verse : nil
+        let storedVerse = defaults.integer(forKey: key) > 1 ? defaults.integer(forKey: key) : nil
+        // Пишем и обновляем время правки только при настоящем изменении: каждая запись уходит в iCloud
+        guard newVerse != storedVerse else { return }
+        if let newVerse = newVerse {
+            defaults.set(newVerse, forKey: key)
         } else {
             defaults.removeObject(forKey: key)
         }
+        defaults.set(Date().timeIntervalSince1970, forKey: "last_read_updated_for_book_\(bookId)")
     }
 
     /// Стих остановки в книге или nil, если он не сохранён (старые данные: только номер главы) или относится к другой главе.

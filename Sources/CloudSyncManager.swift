@@ -290,6 +290,48 @@ final class CloudSyncManager: ObservableObject {
                 return (try? encoder().encode(result)) ?? l
             }
         ),
+        // Где остановились в каждой книге: глава и стих (новый набор рядом с прочитанными главами; старые данные не затронуты)
+        Spec(
+            name: "readPosition",
+            read: {
+                let all = sharedDefaults.dictionaryRepresentation()
+                let prefix = "last_read_chapter_for_book_"
+                var map: [String: ReadPositionPayload] = [:]
+                for (key, value) in all where key.hasPrefix(prefix) {
+                    let bookKey = String(key.dropFirst(prefix.count))
+                    guard Int(bookKey) != nil, let chapter = value as? Int, chapter > 0 else { continue }
+                    let verse = all["last_read_verse_for_book_\(bookKey)"] as? Int
+                    let updated = all["last_read_updated_for_book_\(bookKey)"] as? Double
+                    map[bookKey] = ReadPositionPayload(chapter: chapter, verse: (verse ?? 0) > 1 ? verse : nil, updatedAt: updated ?? 0)
+                }
+                guard !map.isEmpty else { return nil }
+                return try? encoder().encode(map)
+            },
+            write: { data in
+                guard let map = try? JSONDecoder().decode([String: ReadPositionPayload].self, from: data) else { return }
+                AppGroupConstants.syncToAll { d in
+                    for (bookKey, position) in map where Int(bookKey) != nil && position.chapter > 0 {
+                        d.set(position.chapter, forKey: "last_read_chapter_for_book_\(bookKey)")
+                        if let verse = position.verse, verse > 1 {
+                            d.set(verse, forKey: "last_read_verse_for_book_\(bookKey)")
+                        } else {
+                            d.removeObject(forKey: "last_read_verse_for_book_\(bookKey)")
+                        }
+                        d.set(position.updatedAt, forKey: "last_read_updated_for_book_\(bookKey)")
+                    }
+                }
+            },
+            merge: { l, r in
+                var result = (try? JSONDecoder().decode([String: ReadPositionPayload].self, from: l)) ?? [:]
+                let remote = (try? JSONDecoder().decode([String: ReadPositionPayload].self, from: r)) ?? [:]
+                // По каждой книге побеждает более свежее место остановки
+                for (key, value) in remote {
+                    if let existing = result[key], existing.updatedAt >= value.updatedAt { continue }
+                    result[key] = value
+                }
+                return (try? encoder().encode(result)) ?? l
+            }
+        ),
         // Основные настройки (язык, оформление, шрифт, издание)
         Spec(
             name: "settings",
@@ -386,6 +428,13 @@ final class CloudSyncManager: ObservableObject {
         var fontSize: Double?
         var edition: String?
         var scope: String?
+    }
+
+    /// Место остановки в одной книге; `updatedAt` (секунды с 1970 г.) — для слияния: побеждает более свежее
+    struct ReadPositionPayload: Codable {
+        var chapter: Int
+        var verse: Int?
+        var updatedAt: Double
     }
 
     struct QuizPayload: Codable {
