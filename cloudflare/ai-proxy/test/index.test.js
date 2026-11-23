@@ -197,6 +197,37 @@ test('бесплатные вопросы можно выключить, под�
   assert.equal((await ask(env, validBody())).status, 200);
 });
 
+// --- ИИ-викторина только по подписке (задача quiz)
+
+test('ИИ-викторина: бесплатному задача quiz отказана (403 quiz_premium), остальные задачи не затронуты', { skip }, async () => {
+  const env = makeEnv({ FREE_DAILY_LIMIT: '1', GLOBAL_DAILY_LIMIT: '100' });
+  const res = await ask(env, freeBody(1, { task: 'quiz' }));
+  assert.equal(res.status, 403);
+  assert.deepEqual(await res.json(), { error: 'no_subscription', reason: 'quiz_premium' });
+  // отказ не списывает вопрос установки: единственный бесплатный вопрос остался для другой задачи
+  assert.equal((await ask(env, freeBody(1, { task: 'chat' }))).status, 200);
+});
+
+test('ИИ-викторина: подписчик получает ответ по задаче quiz', { skip }, async () => {
+  const res = await ask(makeEnv(), validBody({ task: 'quiz' }));
+  const data = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(data.tier, 'premium');
+});
+
+test('ИИ-викторина: просроченная подписка по задаче quiz — 403 expired, не quiz_premium', { skip }, async () => {
+  const body = validBody({ task: 'quiz', transaction: makeJws(chain, goodPayload({ expiresDate: Date.now() - 1000 })) });
+  const res = await ask(makeEnv(), body);
+  assert.equal(res.status, 403);
+  assert.equal((await res.json()).reason, 'expired');
+});
+
+test('QUIZ_PAID_ONLY = "false" возвращает бесплатную ИИ-викторину в пределах лимитов', { skip }, async () => {
+  const env = makeEnv({ QUIZ_PAID_ONLY: 'false', FREE_DAILY_LIMIT: '1', GLOBAL_DAILY_LIMIT: '100' });
+  assert.equal((await ask(env, freeBody(1, { task: 'quiz' }))).status, 200);
+  assert.equal((await ask(env, freeBody(1, { task: 'quiz' }))).status, 429);
+});
+
 test('бесплатный запрос с неверным номером установки — 401', { skip }, async () => {
   assert.equal((await ask(makeEnv(), { prompt: 'Привет', installId: 'не-uuid' })).status, 401);
   assert.equal((await ask(makeEnv(), { prompt: 'Привет', installId: '' })).status, 401);

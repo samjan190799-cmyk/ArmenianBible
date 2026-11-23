@@ -112,13 +112,19 @@ final class QuizAIEngine {
     ) async throws -> [QuizQuestion] {
         let manager = BibleManager.shared
         let provider = manager.activeProvider
-        
+
         let apiKey = manager.effectiveAPIKey(for: provider)
-        
+
         guard !apiKey.isEmpty else {
             throw QuizAIError.missingApiKey
         }
-        
+
+        // ИИ-викторина только по подписке: экран старта и так не зовёт сюда без Premium, а сервер закрывает бесплатный путь для задачи quiz.
+        // Эта проверка не даёт вызвать генерацию из другого места в обход Paywall.
+        guard SubscriptionManager.premiumSnapshot else {
+            throw QuizAIError.generationFailed("AI quiz requires Premium")
+        }
+
         // Получаем адаптивную директиву из невидимого дневника со случайными якорями и запретами
         let adaptiveDirective = QuizAdaptiveDiary.shared.makeAdaptivePromptDirective(category: category, language: language)
         let prompt = buildPrompt(category: category, count: count, language: language, adaptiveDirective: adaptiveDirective)

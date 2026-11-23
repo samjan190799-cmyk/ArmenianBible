@@ -154,6 +154,15 @@ enum AIProxy {
         let reason = (json?["reason"] as? String) ?? (json?["error"] as? String) ?? "\(status)"
         switch status {
         case 401, 403:
+            // ИИ-викторина только по подписке: сервер отказывает по задаче quiz без подтверждённой подписки (403 quiz_premium).
+            // Подписчику, чью покупку не удалось подтвердить, подсказываем восстановить покупки.
+            if isFree && task == .quiz {
+                throw failure(status, language.pick(
+                    hy: "AI վիկտորինան հասանելի է Premium բաժանորդագրությամբ: Եթե այն ունեք, բացեք բաժանորդագրության էկրանը և սեղմեք «Վերականգնել գնումները»",
+                    ru: "ИИ-викторина доступна по подписке Premium. Если подписка у вас есть, откройте экран подписки и нажмите «Восстановить покупки»",
+                    en: "The AI quiz comes with Premium. If you already subscribed, open the subscription screen and tap “Restore Purchases”"
+                ))
+            }
             if isFree {
                 throw failure(status, language.pick(
                     hy: "Անվճար հարցերն այժմ հասանելի չեն: Փորձեք ավելի ուշ կամ ձեռք բերեք բաժանորդագրություն",

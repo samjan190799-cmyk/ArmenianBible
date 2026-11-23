@@ -70,6 +70,7 @@
 | --- | --- |
 | `DAILY_LIMIT` | запросов к ИИ в сутки (по UTC) на одного подписчика, по умолчанию 30 |
 | `ALLOW_FREE` | `"false"` выключает бесплатные вопросы |
+| `QUIZ_PAID_ONLY` | по умолчанию `"true"`: задача `quiz` (ИИ-викторина) без подписки получает 403 `quiz_premium`; `"false"` возвращает бесплатные вопросы викторины |
 | `FREE_DAILY_LIMIT` | бесплатных вопросов в сутки на установку, по умолчанию 5 |
 | `FREE_NET_DAILY_LIMIT` | бесплатных вопросов в сутки с одной сети, по умолчанию 15 |
 | `FREE_GLOBAL_DAILY_LIMIT` | бесплатных вопросов в сутки на всех вместе, по умолчанию 300 |
@@ -150,7 +151,7 @@
 | --- | --- | --- |
 | 200 | `{text, model, remaining}` | всё хорошо; `remaining` сколько вопросов осталось сегодня |
 | 401 | `unauthorized`, `reason` | подпись Apple не прошла (`bad_format`, `bad_header`, `bad_chain`, `bad_root`, `bad_leaf`, `bad_signature`) |
-| 403 | `no_subscription`, `reason` | подписка не подходит (`expired`, `revoked`, `bundle`, `product`, `sandbox`, `environment`, `no_id`) или бесплатный путь выключен (`free_disabled`) |
+| 403 | `no_subscription`, `reason` | подписка не подходит (`expired`, `revoked`, `bundle`, `product`, `sandbox`, `environment`, `no_id`) или бесплатный путь выключен (`free_disabled`), или задача `quiz` без подписки (`quiz_premium`) |
 | 429 | `quota` | дневной лимит человека (или его сети) исчерпан; в ответе `tier`: `premium` или `free` |
 | 503 | `busy` / `not_configured` | общий потолок сервиса или нет ключа в секретах |
 | 502 | `ai_failed` | ИИ не ответил; вопрос не списан |

@@ -98,6 +98,8 @@ async function handleGenerate(request, env, deps) {
     counters = [{ name: userName, limit: userLimit, failure: 'quota' }, global];
   } else if (typeof body.installId === 'string' && INSTALL_ID.test(body.installId)) {
     // Бесплатные вопросы: без подписки, поэтому лимит строже и есть отдельный потолок для всех бесплатных
+    // ИИ-викторина только по подписке: задача quiz на бесплатный путь не пускается (классическая офлайн-викторина сервера не требует)
+    if (task === 'quiz' && env.QUIZ_PAID_ONLY !== 'false') return json({ error: 'no_subscription', reason: 'quiz_premium' }, 403);
     if (env.ALLOW_FREE === 'false') return json({ error: 'no_subscription', reason: 'free_disabled' }, 403);
     tier = 'free';
     userName = `free:${body.installId.toLowerCase()}`;

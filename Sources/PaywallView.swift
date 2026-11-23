@@ -522,11 +522,12 @@ struct PaywallView: View {
                 id: "ai",
                 icon: "sparkles",
                 color: Paper.plum,
-                title: language.pick(hy: "Անսահմանափակ AI. օգնական և վիկտորինա", ru: "Безлимитный ИИ: наставник и викторина", en: "Unlimited AI: guide & quiz"),
+                // ИИ-викторина только по подписке (классическая офлайн-викторина и игра с друзьями бесплатны)
+                title: language.pick(hy: "AI վիկտորինա և անսահմանափակ օգնական", ru: "ИИ-викторина и безлимитный наставник", en: "AI quiz & unlimited guide"),
                 subtitle: language.pick(
-                    hy: "Մեկնաբանություններ Եկեղեցու Հայրերի ավանդությամբ, վիկտորինայի նոր հարցեր առանց կրկնությունների",
-                    ru: "Толкования в традиции Святых Отцов ААЦ, новые вопросы викторины без повторов",
-                    en: "Explanations in the Armenian Church tradition, new quiz questions without repeats"
+                    hy: "AI վիկտորինայի նոր հարցեր առանց կրկնությունների, մեկնաբանություններ Եկեղեցու Հայրերի ավանդությամբ",
+                    ru: "Новые ИИ-вопросы викторины без повторов, толкования в традиции Святых Отцов ААЦ",
+                    en: "New AI quiz questions without repeats, explanations in the Armenian Church tradition"
                 ) + aiTail
             ),
             Feature(

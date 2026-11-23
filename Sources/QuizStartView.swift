@@ -5,6 +5,8 @@ struct QuizStartView: View {
     @Binding var selectedCategory: QuizCategory
     @Binding var selectedQuestionCount: Int
     @Binding var isAIGenerationEnabled: Bool
+    /// ИИ-вопросы только по подписке: без Premium кнопка ИИ помечена замком, а её нажатие открывает Paywall
+    var isAILocked: Bool = false
     let bestScore: Int
     let unlockedBadgesCount: Int
     let totalBadgesCount: Int
@@ -106,6 +108,11 @@ struct QuizStartView: View {
                                     .font(.system(size: 13, weight: .semibold))
                                 Text("quiz_mode_ai".localized(for: language))
                                     .font(PaperFont.font(size: 13, weight: isAIGenerationEnabled ? .semibold : .medium))
+                                if isAILocked {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(Paper.gold)
+                                }
                             }
                             .foregroundColor(isAIGenerationEnabled ? Paper.onAccent : primaryTextColor)
                             .frame(maxWidth: .infinity)
@@ -156,6 +163,24 @@ struct QuizStartView: View {
                             .foregroundColor(Paper.inkSecondary)
                     }
                     .padding(.horizontal, 4)
+
+                    // Без подписки: объясняем замок и напоминаем, что бесплатно
+                    if isAILocked {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(Paper.gold)
+                            Text(language.pick(
+                                hy: "ԱԻ հարցերը հասանելի են Premium-ով։ Դասական բազան և խաղը ընկերների հետ անվճար են։",
+                                ru: "ИИ-вопросы доступны с Premium. Классическая база и игра с друзьями бесплатны.",
+                                en: "AI questions come with Premium. The classic question base and playing with friends are free."
+                            ))
+                                .font(PaperFont.font(size: 11, weight: .medium))
+                                .foregroundColor(Paper.inkSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.horizontal, 4)
+                    }
                 }
                 .padding(.horizontal, 20)
                 

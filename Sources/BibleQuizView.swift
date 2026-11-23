@@ -5,14 +5,15 @@ import AudioToolbox
 // MARK: - Тип модального предупреждения викторины
 private enum QuizAlertType: Identifiable {
     case noKey
-    case limitReached
+    /// ИИ-викторина только по подписке, а сервер её не подтвердил; в тексте подсказка, что делать
+    case premiumNeeded(String)
     case aiFailure(String)
     case duelMismatch
 
     var id: String {
         switch self {
         case .noKey: return "noKey"
-        case .limitReached: return "limitReached"
+        case .premiumNeeded(let msg): return "premiumNeeded_\(msg)"
         case .aiFailure(let msg): return "aiFailure_\(msg)"
         case .duelMismatch: return "duelMismatch"
         }
@@ -171,7 +172,8 @@ struct BibleQuizView: View {
                     QuizStartView(
                         selectedCategory: $selectedCategory,
                         selectedQuestionCount: $selectedQuestionCount,
-                        isAIGenerationEnabled: $isAIGenerationEnabled,
+                        isAIGenerationEnabled: aiModeBinding,
+                        isAILocked: !subscriptionManager.isPremium,
                         bestScore: manager.quizBestScore,
                         unlockedBadgesCount: achievements.unlockedCount,
                         totalBadgesCount: achievements.badges.count,
@@ -564,11 +566,11 @@ struct BibleQuizView: View {
         }
         .alert(item: $activeAlert) { alertType in
             switch alertType {
-            case .limitReached:
+            case .premiumNeeded(let text):
                 return Alert(
-                    title: Text(aiQuizLimitTitle),
-                    message: Text(aiQuizLimitMessage),
-                    primaryButton: .default(Text(aiQuizLimitPremiumButton), action: {
+                    title: Text(manager.appLanguage.pick(hy: "AI վիկտորինան Premium-ով է", ru: "ИИ-викторина по подписке", en: "AI quiz is a Premium feature")),
+                    message: Text(text),
+                    primaryButton: .default(Text(manager.appLanguage.pick(hy: "Բացել Premium-ը", ru: "Открыть Premium", en: "Open Premium")), action: {
                         isShowingPaywall = true
                     }),
                     secondaryButton: .default(Text("quiz_play_classic_button".localized(for: manager.appLanguage)), action: {
@@ -715,16 +717,10 @@ struct BibleQuizView: View {
         triggerHaptic(.soft)
         Funnel.track("feature_used", ["feature": "quiz"])
         
-        if isAIGenerationEnabled {
+        // ИИ-вопросы только у подписчиков: без Premium всегда классическая офлайн-викторина (она бесплатная)
+        if useAIQuestions {
             guard QuizAIEngine.shared.isAIAvailable else {
                 activeAlert = .noKey
-                return
-            }
-
-            // ИИ-викторина «безлимитна» только с Premium: без него тратит суточный лимит ИИ-вопросов
-            guard subscriptionManager.canAskAI() else {
-                triggerHapticNotification(.warning)
-                activeAlert = .limitReached
                 return
             }
 
@@ -739,7 +735,6 @@ struct BibleQuizView: View {
                         language: manager.appLanguage
                     )
                     stopAITimer()
-                    subscriptionManager.recordAiQuestionUsed()
                     activeQuestions = questions
                     currentQuestionIndex = 0
                     score = 0
@@ -756,37 +751,42 @@ struct BibleQuizView: View {
                 } catch {
                     stopAITimer()
                     isGeneratingAI = false
-                    print("[BibleQuizView] ⚠️ Сбой генерации ИИ: \(error.localizedDescription). Бесшовный переход на проверенную базу.")
-                    startOfflineQuiz()
+                    let code = (error as NSError).code
+                    if (code == 401 || code == 403), error.localizedDescription.hasPrefix(AIProxy.messagePrefix) {
+                        // Сервер не подтвердил подписку: скажем об этом человеку, а не подменим вопросы молча
+                        let text = String(error.localizedDescription.dropFirst(AIProxy.messagePrefix.count))
+                        activeAlert = .premiumNeeded(text)
+                    } else {
+                        print("[BibleQuizView] ⚠️ Сбой генерации ИИ: \(error.localizedDescription). Бесшовный переход на проверенную базу.")
+                        startOfflineQuiz()
+                    }
                 }
             }
         } else {
             startOfflineQuiz()
         }
     }
-    
-    private var aiQuizLimitTitle: String {
-        switch manager.appLanguage {
-        case .armenian: return "Հարցերի սահմանաչափը սպառվել է"
-        case .russian: return "Лимит ИИ-вопросов исчерпан"
-        case .english: return "Daily AI Limit Reached"
-        }
+
+    // MARK: - ИИ-викторина только по подписке
+    /// ИИ-вопросы только у подписчиков; без Premium (даже если режим ИИ был выбран раньше) идёт классическая офлайн-база
+    private var useAIQuestions: Bool {
+        isAIGenerationEnabled && subscriptionManager.isPremium
     }
 
-    private var aiQuizLimitMessage: String {
-        switch manager.appLanguage {
-        case .armenian: return "Անսահմանափակ AI վիկտորինայի համար ակտիվացրեք Premium կամ խաղացեք օֆլայն:"
-        case .russian: return "Для безлимитной ИИ-викторины оформите Premium или сыграйте в обычную офлайн-викторину."
-        case .english: return "Get Premium for an unlimited AI quiz, or play the classic offline quiz."
-        }
-    }
-
-    private var aiQuizLimitPremiumButton: String {
-        switch manager.appLanguage {
-        case .armenian: return "Ակտիվացնել Premium"
-        case .russian: return "Оформить Premium"
-        case .english: return "Upgrade to Premium"
-        }
+    /// Переключатель режима для экрана старта: без Premium выбор ИИ открывает Paywall, режим остаётся классическим.
+    /// Выбор человека сохраняется: после покупки ИИ-режим включится сам.
+    private var aiModeBinding: Binding<Bool> {
+        Binding(
+            get: { useAIQuestions },
+            set: { wantsAI in
+                if wantsAI && !subscriptionManager.isPremium {
+                    triggerHapticNotification(.warning)
+                    isShowingPaywall = true
+                } else {
+                    isAIGenerationEnabled = wantsAI
+                }
+            }
+        )
     }
 
     // MARK: - Дуэль с другом
