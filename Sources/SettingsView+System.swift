@@ -471,6 +471,7 @@ extension SettingsView {
                 aboutAppHeaderBlock
                 Divider().opacity(0.4)
                 aboutAppSubscriptionAndReviewBlock
+                developerModeBlock
             }
             .padding(18)
             .background(aboutBlockBgColor)
@@ -488,33 +489,13 @@ extension SettingsView {
     
     @ViewBuilder
     private var aboutAppHeaderBlock: some View {
-        // 🔐 Секретная зона тестировщика: 5 быстрых тапов → диалог переключения Premium/Free (только TestFlight/DEBUG)
         HStack(spacing: 6) {
             Text("about_app_title".localized(for: selectedLanguage))
                 .font(PaperFont.font(size: 15, weight: .semibold))
                 .foregroundColor(primaryTextColor)
             Spacer()
         }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            // Панель тестировщика есть только в TestFlight и DEBUG-сборках
-            guard SubscriptionManager.devToolsAvailable else { return }
-            let now = Date()
-            if now.timeIntervalSince(secretLastTap) > 2.5 {
-                secretTapCount = 0
-            }
-            secretLastTap = now
-            secretTapCount += 1
-            
-            Haptics.impact(secretTapCount >= 5 ? .heavy : .light)
-            
-            if secretTapCount >= 5 {
-                secretTapCount = 0
-                devPasscodeInput = ""
-                isShowingDevPasscodeAlert = true
-            }
-        }
-        
+
         HStack {
             Text("about_app_version".localized(for: selectedLanguage))
             Spacer()
@@ -681,34 +662,88 @@ extension SettingsView {
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
     
-    // MARK: - Обработка переключения режима разработчика
-    func handleDevToggle(enablePremium: Bool) {
+    // MARK: - Переключатель режима теста: Авто / Free / Pro (только TestFlight и DEBUG)
+    @ViewBuilder
+    private var developerModeBlock: some View {
         if SubscriptionManager.devToolsAvailable {
-            subscriptionManager.toggleDeveloperPremium(to: enablePremium)
-            Haptics.notify(.success)
-            
-            if enablePremium {
-                devToastIcon = "crown.fill"
-                devToastMessage = "Premium активирован!"
-                devToastSubtitle = "Все возможности открыты, лимиты сняты."
-                devToastColor = [Paper.gold, Paper.gold]
-            } else {
-                devToastIcon = "hammer.fill"
-                devToastMessage = "🧪 Free-режим включен!"
-                devToastSubtitle = "Лимиты Free включены для теста."
-                devToastColor = [Paper.lapis, Paper.lapis]
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "hammer.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Paper.lapis)
+                    Text("РЕЖИМ ТЕСТА (ТОЛЬКО TESTFLIGHT)")
+                        .font(PaperFont.font(size: 11, weight: .semibold))
+                        .foregroundColor(Paper.inkSecondary)
+                        .tracking(0.8)
+                }
+                Picker("Режим теста", selection: developerModeBinding) {
+                    Text("Авто").tag(DeveloperPremiumMode.auto)
+                    Text("Free").tag(DeveloperPremiumMode.free)
+                    Text("Pro").tag(DeveloperPremiumMode.pro)
+                }
+                .pickerStyle(.segmented)
+                Text(developerModeCaption)
+                    .font(PaperFont.font(size: 11))
+                    .foregroundColor(Paper.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                showDevToast = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                withAnimation { showDevToast = false }
-            }
-        } else {
-            Haptics.notify(.error)
+            .padding(12)
+            .background(Paper.lapis.opacity(0.07))
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Paper.lapis.opacity(0.25), lineWidth: 1))
         }
-        devPasscodeInput = ""
+    }
+
+    private var developerModeBinding: Binding<DeveloperPremiumMode> {
+        Binding(
+            get: { subscriptionManager.developerMode },
+            set: { applyDeveloperMode($0) }
+        )
+    }
+
+    private var developerModeCaption: String {
+        switch subscriptionManager.developerMode {
+        case .auto:
+            return "Как у обычного человека: Premium только по настоящей подписке или покупке."
+        case .free:
+            return "Premium выключен, действуют лимиты Free. Покупка или восстановление вернут «Авто»."
+        case .pro:
+            return "Premium открыт без покупки. ИИ-викторина и безлимитный ИИ всё равно требуют настоящей подписки (песочница)."
+        }
+    }
+
+    func applyDeveloperMode(_ mode: DeveloperPremiumMode) {
+        guard SubscriptionManager.devToolsAvailable else {
+            Haptics.notify(.error)
+            return
+        }
+        subscriptionManager.setDeveloperMode(mode)
+        Haptics.notify(.success)
+
+        switch mode {
+        case .pro:
+            devToastIcon = "crown.fill"
+            devToastMessage = "Pro включён"
+            devToastSubtitle = "Premium открыт без покупки."
+            devToastColor = [Paper.gold, Paper.gold]
+        case .free:
+            devToastIcon = "hammer.fill"
+            devToastMessage = "Free включён"
+            devToastSubtitle = "Лимиты Free включены для теста."
+            devToastColor = [Paper.lapis, Paper.lapis]
+        case .auto:
+            devToastIcon = "arrow.triangle.2.circlepath"
+            devToastMessage = "Авто"
+            devToastSubtitle = "Статус по настоящей подписке."
+            devToastColor = [Paper.moss, Paper.moss]
+        }
+
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            showDevToast = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            withAnimation { showDevToast = false }
+        }
     }
     
     // MARK: - Выбор стиха для текущего размера виджета в предпросмотре

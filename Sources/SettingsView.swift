@@ -70,15 +70,11 @@ struct SettingsView: View {
     @State var isShowingWidgetInstruction = false
     @State var isShowingWallpaperAutomation = false
     
-    // 🔐 Панель тестировщика: 5 быстрых тапов по «О приложении», только TestFlight/DEBUG
-    @State var secretTapCount = 0
     /// Анонимная статистика (воронка): человек может выключить
     @State var isFunnelEnabled = Funnel.isEnabled
     /// Ответ на кнопку «Восстановить» в карточке подписки (раньше нажатие ничего не показывало)
     @State var restoreResultMessage: String? = nil
-    @State var secretLastTap = Date.distantPast
-    @State var isShowingDevPasscodeAlert = false
-    @State var devPasscodeInput = ""
+    // Переключатель режима теста Авто/Free/Pro (только TestFlight/DEBUG): подсказка при смене режима
     @State var devToastMessage = ""
     @State var devToastSubtitle = ""
     @State var devToastIcon = "crown.fill"
@@ -361,21 +357,6 @@ struct SettingsView: View {
                 if let url = backupShareUrl {
                     ActivityView(activityItems: [url])
                 }
-            }
-            .alert("Панель тестировщика (TestFlight)", isPresented: $isShowingDevPasscodeAlert) {
-                Button("Включить Free (для теста лимитов)") {
-                    handleDevToggle(enablePremium: false)
-                }
-                
-                Button("Включить Premium") {
-                    handleDevToggle(enablePremium: true)
-                }
-                
-                Button("Отмена", role: .cancel) {
-                    devPasscodeInput = ""
-                }
-            } message: {
-                Text("Текущий статус: \(subscriptionManager.isPremium ? "Premium активен" : "Free режим")")
             }
             .alert("ai_clear_chat_confirm_title".localized(for: selectedLanguage), isPresented: $isShowingClearAIChatAlert) {
                 Button("ai_clear_chat_btn".localized(for: selectedLanguage), role: .destructive) {

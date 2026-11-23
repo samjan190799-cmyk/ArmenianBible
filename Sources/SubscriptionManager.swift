@@ -49,12 +49,21 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
     }
 }
 
+/// Режим проверки Premium для тестировщика (только TestFlight и DEBUG):
+/// «Авто» — по настоящей подписке или покупке, «Free» — лимиты Free, «Pro» — Premium без покупки
+enum DeveloperPremiumMode: String, CaseIterable, Identifiable {
+    case auto, free, pro
+    var id: String { rawValue }
+}
+
 // MARK: - Главный Менеджер Подписок (StoreKit 2 + Offline Fallback)
 @MainActor
 final class SubscriptionManager: ObservableObject {
     static let shared = SubscriptionManager()
     
     @Published private(set) var isPremium: Bool = false
+    /// Выбранный тестировщиком режим (в App Store всегда «Авто»)
+    @Published private(set) var developerMode: DeveloperPremiumMode = .auto
     @Published private(set) var products: [Product] = []
     @Published private(set) var isLoadingProducts: Bool = false
     /// Товары, на которые у этого человека действует бесплатный пробный период (App Store сам знает, пользовался ли он им)
@@ -91,6 +100,16 @@ final class SubscriptionManager: ObservableObject {
     private func clearDeveloperFreeMode() {
         guard Self.devToolsAvailable else { return }
         UserDefaults.standard.removeObject(forKey: kForceFreeModeKey)
+        if developerMode == .free { developerMode = .auto }
+    }
+
+    /// Режим, сохранённый тестировщиком: принудительный Free, принудительный Pro или «Авто»
+    private func storedDeveloperMode() -> DeveloperPremiumMode {
+        guard Self.devToolsAvailable else { return .auto }
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: kForceFreeModeKey) { return .free }
+        if defaults.bool(forKey: kDebugUnlockedKey) { return .pro }
+        return .auto
     }
 
     /// Стирает следы панели разработчика, включённой в прежних версиях приложения.
@@ -121,7 +140,8 @@ final class SubscriptionManager: ObservableObject {
         AppGroupConstants.syncToAll { defs in
             defs.set(self.isPremium, forKey: "is_premium_active")
         }
-        
+        self.developerMode = storedDeveloperMode()
+
         #if !targetEnvironment(simulator)
         // Запуск слушателя транзакций StoreKit 2
         updateListenerTask = listenForTransactions()
@@ -565,32 +585,39 @@ final class SubscriptionManager: ObservableObject {
         }
     }
     
-    /// Для внутреннего тестирования / отладки
-    func setDebugPremium(_ enabled: Bool) {
+    /// Переключатель режима теста (только TestFlight и DEBUG): «Авто» возвращает настоящий статус по покупке,
+    /// «Free» включает лимиты Free для проверки, «Pro» открывает Premium без покупки (сервер ИИ по-прежнему ждёт настоящую подписку)
+    func setDeveloperMode(_ mode: DeveloperPremiumMode) {
         guard Self.devToolsAvailable else { return }
-        self.isPremium = enabled
-        UserDefaults.standard.set(enabled, forKey: kDebugUnlockedKey)
-        UserDefaults.standard.set(enabled, forKey: kPremiumOverrideKey)
-        AppGroupConstants.syncToAll { defs in
-            defs.set(enabled, forKey: "is_premium_active")
+        let defaults = UserDefaults.standard
+        switch mode {
+        case .pro:
+            defaults.set(false, forKey: kForceFreeModeKey)
+            defaults.set(true, forKey: kDebugUnlockedKey)
+            applyDeveloperPremium(true)
+        case .free:
+            defaults.set(true, forKey: kForceFreeModeKey)
+            defaults.set(false, forKey: kDebugUnlockedKey)
+            applyDeveloperPremium(false)
+        case .auto:
+            defaults.set(false, forKey: kForceFreeModeKey)
+            defaults.set(false, forKey: kDebugUnlockedKey)
+            // Кэш права мог выставить сам переключатель: настоящий статус подтвердит StoreKit
+            defaults.set(false, forKey: kPremiumOverrideKey)
+            #if targetEnvironment(simulator)
+            applyDeveloperPremium(false)
+            #else
+            Task { await updatePurchasedStatus() }
+            #endif
         }
+        developerMode = mode
     }
-    
-    /// Переключение режима разработчика: принудительный Free для проверки лимитов или Premium
-    func toggleDeveloperPremium(to enablePremium: Bool) {
-        guard Self.devToolsAvailable else { return }
-        if enablePremium {
-            UserDefaults.standard.set(false, forKey: kForceFreeModeKey)
-            setDebugPremium(true)
-        } else {
-            UserDefaults.standard.set(true, forKey: kForceFreeModeKey)
-            UserDefaults.standard.set(false, forKey: kDebugUnlockedKey)
-            UserDefaults.standard.set(false, forKey: kLegacyPremiumKey)
-            UserDefaults.standard.set(false, forKey: kPremiumOverrideKey)
-            self.isPremium = false
-            AppGroupConstants.syncToAll { defs in
-                defs.set(false, forKey: "is_premium_active")
-            }
+
+    private func applyDeveloperPremium(_ value: Bool) {
+        isPremium = value
+        UserDefaults.standard.set(value, forKey: kPremiumOverrideKey)
+        AppGroupConstants.syncToAll { defs in
+            defs.set(value, forKey: "is_premium_active")
         }
         WidgetCenter.shared.reloadTimelines(ofKind: "BibleWidget")
         WidgetCenter.shared.reloadAllTimelines()
