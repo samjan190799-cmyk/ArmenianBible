@@ -193,6 +193,8 @@ enum PomegranateActivity {
 /// Задания дня: чтение главы и свеча каждый день, ещё два из трёх по кругу
 enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
     case readChapter, readThree, candle, quiz, narek, manuscript
+    /// Эти два подтверждаются в древе вручную (см. isManual)
+    case puzzle, prayerHours
 
     var id: String { rawValue }
 
@@ -202,6 +204,9 @@ enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
     /// Сколько росинок получает древо за выполненное задание
     var dew: Int { self == .readThree ? 2 : 1 }
 
+    /// Приложение не может проверить такое задание: человек заходит в древо и сам нажимает «Выполнено»
+    var isManual: Bool { self == .puzzle || self == .prayerHours }
+
     var icon: String {
         switch self {
         case .readChapter: return "book.fill"
@@ -210,6 +215,8 @@ enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
         case .quiz: return "questionmark.bubble.fill"
         case .narek: return "headphones"
         case .manuscript: return "pencil.and.outline"
+        case .puzzle: return "puzzlepiece.extension.fill"
+        case .prayerHours: return "sunrise.fill"
         }
     }
 
@@ -227,6 +234,10 @@ enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
             return language.pick(hy: "Գրեք էջ Ձեռագրում", ru: "Напишите лист в рукописи", en: "Write a manuscript page")
         case .narek:
             return language.pick(hy: "Լսեք Նարեկացու մի գլուխ", ru: "Послушайте главу Нарекаци", en: "Listen to a chapter of Narekatsi")
+        case .puzzle:
+            return language.pick(hy: "Խաղացեք «Հավաքեք համարը»", ru: "Сыграйте в «Собери стих»", en: "Play the Verse Puzzle")
+        case .prayerHours:
+            return language.pick(hy: "Աղոթեք ժամերով", ru: "Помолитесь по часам", en: "Pray by the hour")
         }
     }
 
@@ -244,6 +255,10 @@ enum PomegranateTask: String, CaseIterable, Identifiable, Hashable {
             return language.pick(hy: "Սպասեք, մինչև գրիչը ավարտի էջը", ru: "Дождитесь, пока перо допишет страницу", en: "Let the quill finish the page")
         case .narek:
             return language.pick(hy: "Միացրեք ցանկացած գլուխ", ru: "Включите любую главу", en: "Play any chapter")
+        case .puzzle:
+            return language.pick(hy: "Հավաքեք առնվազն մեկ համար և հաստատեք այստեղ", ru: "Соберите хотя бы один стих и подтвердите здесь", en: "Solve at least one verse and confirm here")
+        case .prayerHours:
+            return language.pick(hy: "Աղոթեք օրվա ցանկացած ժամի և հաստատեք այստեղ", ru: "Помолитесь в любой час дня и подтвердите здесь", en: "Pray at any hour of the day and confirm here")
         }
     }
 }
@@ -278,6 +293,7 @@ final class PomegranateTreeManager: ObservableObject {
     private let kTasksChaptersKey = "pomegranate_tasks_chapters"
     private let kTasksDoneKey = "pomegranate_tasks_done"
     private let kPerfectDaysKey = "pomegranate_perfect_days"
+    private let kPerfectDayGivenKey = "pomegranate_perfect_day_given"
     // Каким древо видели в прошлый раз: от этого состояния идёт анимация роста
     private let kSeenStageKey = "pomegranate_seen_stage"
     private let kSeenWithinKey = "pomegranate_seen_within"
@@ -640,14 +656,17 @@ final class PomegranateTreeManager: ObservableObject {
         return formatter.string(from: date)
     }
 
-    /// Задания дня: чтение главы и свеча всегда, а из «три главы», «викторина», «Нарекаци» по кругу пропускается одно
+    /// Задания дня: чтение главы и свеча всегда, два из четырёх по кругу и одно, которое человек подтверждает в древе сам (стих или молитва)
     static func tasks(forDayIndex index: Int) -> [PomegranateTask] {
         // Чтение главы и свеча каждый день, а два из четырёх остальных меняются по кругу (шесть сочетаний):
-        // так «Рукопись» попадает в задания дня примерно через день, а число заданий остаётся прежним
+        // так «Рукопись» попадает в задания дня примерно через день
         let rotating: [PomegranateTask] = [.readThree, .quiz, .narek, .manuscript]
         let pairs: [(Int, Int)] = [(0, 1), (2, 3), (0, 2), (1, 3), (0, 3), (1, 2)]
         let pair = pairs[((index % pairs.count) + pairs.count) % pairs.count]
-        return [.readChapter, rotating[pair.0], rotating[pair.1], .candle]
+        // Пятое задание приложение проверить не может: человек заходит в древо и подтверждает его кнопкой.
+        // По чётным дням «Собери стих», по нечётным «Молитвы по часам»
+        let manual: PomegranateTask = ((index % 2) + 2) % 2 == 0 ? .puzzle : .prayerHours
+        return [.readChapter, rotating[pair.0], rotating[pair.1], .candle, manual]
     }
 
     /// Подтягивает состояние заданий на сегодня; новый день начинается с нуля
@@ -710,12 +729,29 @@ final class PomegranateTreeManager: ObservableObject {
             break
         }
 
+        settleTasks()
+    }
+
+    /// «Собери стих» и «Молитвы по часам» приложение проверить не может: человек заходит в древо и подтверждает задание кнопкой «Выполнено»
+    func confirmManual(_ task: PomegranateTask) {
+        guard task.isManual else { return }
+        refreshTasksForToday()
+        guard todayTasks.contains(task), !completedTasks.contains(task) else { return }
+        advance(task, to: task.target)
+        Funnel.track("feature_used", ["feature": "tree_confirm"])
+        settleTasks()
+    }
+
+    /// Что из заданий дня выполнено: росинки, награда за идеальный день, подсказка поверх приложения
+    private func settleTasks() {
         let finished = todayTasks.filter { !completedTasks.contains($0) && (taskProgress[$0] ?? 0) >= $0.target }
         completedTasks.formUnion(finished)
 
         var dew = finished.reduce(0) { $0 + $1.dew }
         var bonus = 0
-        if !finished.isEmpty, completedTasks.isSuperset(of: todayTasks) {
+        if !finished.isEmpty, completedTasks.isSuperset(of: todayTasks), defaults.string(forKey: kPerfectDayGivenKey) != Self.dayString() {
+            // Награда за идеальный день выдаётся раз в сутки: в день обновления четыре задания могли быть закрыты раньше пятого
+            defaults.set(Self.dayString(), forKey: kPerfectDayGivenKey)
             bonus = Self.perfectDayBonus
             dew += bonus
             perfectDays += 1

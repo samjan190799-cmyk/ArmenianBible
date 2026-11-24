@@ -490,6 +490,15 @@ struct PomegranateSanctuarySheetView: View {
         )
     }
 
+    private func confirmManualTask(_ task: PomegranateTask) {
+        // Та же рябь росы, что у кнопки «Омыть»
+        dewAnimationPulse = false
+        withAnimation {
+            dewAnimationPulse = true
+        }
+        treeManager.confirmManual(task)
+    }
+
     private func taskRow(_ task: PomegranateTask) -> some View {
         let done = treeManager.completedTasks.contains(task)
         let progress = treeManager.taskProgress[task] ?? 0
@@ -512,6 +521,26 @@ struct PomegranateSanctuarySheetView: View {
                     .font(PaperFont.font(size: 12))
                     .foregroundColor(Paper.inkSecondary)
                     .lineLimit(2)
+                // Такие задания приложение проверить не может: подтверждение здесь и есть заход в раздел древа
+                if task.isManual && !done {
+                    Button {
+                        bibleManager.triggerHapticImpact(.medium)
+                        confirmManualTask(task)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 12))
+                            Text(language.pick(hy: "Կատարված է", ru: "Выполнено", en: "Done"))
+                                .font(PaperFont.font(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(Paper.onAccent)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(Paper.lapis))
+                    }
+                    .buttonStyle(FluidSpringButtonStyle(scaleDown: 0.92))
+                    .padding(.top, 6)
+                }
             }
 
             Spacer(minLength: 4)
