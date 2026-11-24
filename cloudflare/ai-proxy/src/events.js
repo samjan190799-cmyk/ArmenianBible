@@ -18,6 +18,15 @@ const VALUE = /^[a-z0-9_.-]{1,32}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MAX_EVENTS = 25;
 
+/**
+ * Страна по соединению: двухбуквенный код, который Cloudflare определяет сам (например «am»). Сетевой адрес Worker не читает и
+ * нигде не хранит. «xx» — страна неизвестна (сеть скрыта или кода нет).
+ */
+export function countryOf(request) {
+  const code = String(request?.cf?.country ?? request?.headers?.get?.('cf-ipcountry') ?? '').toLowerCase();
+  return /^[a-z0-9]{2}$/.test(code) ? code : 'xx';
+}
+
 /** Проверяет пачку событий от приложения и приводит её к безопасному виду. null, если принимать нечего */
 export function parseBatch(body) {
   if (!body || typeof body !== 'object') return null;

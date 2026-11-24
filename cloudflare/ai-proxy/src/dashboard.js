@@ -22,6 +22,7 @@ const AI_RESULTS = {
 };
 const AI_SPEED = { lt5: 'до 5 секунд', s5_15: '5–15 секунд', s15_30: '15–30 секунд', s30p: 'дольше 30 секунд' };
 const AI_TASKS = { chat: 'чат', quiz: 'викторина', consolation: 'Нарек утешает', explain: 'толкование', verse: 'подбор стиха', general: 'прочее' };
+const REGIONS = (() => { try { return new Intl.DisplayNames(['ru'], { type: 'region' }); } catch (e) { return null; } })();
 const app = document.getElementById('app');
 let days = Number(localStorage.getItem('luys_stats_days')) || 14;
 
@@ -64,6 +65,16 @@ function countRows(events, name, key, labels) {
     .filter(([dim]) => dim.startsWith(prefix))
     .map(([dim, v]) => [labels && labels[dim.slice(prefix.length)] || dim.slice(prefix.length), v.events, percent(v.events, total)])
     .sort((a, b) => b[1] - a[1]);
+}
+// Код страны в понятный вид: флаг, название по-русски и сам код (для xx и t1 пояснение)
+function countryLabel(code) {
+  const up = String(code).toUpperCase();
+  if (up === 'XX') return 'не определена';
+  if (up === 'T1') return 'сеть Tor (страна скрыта)';
+  let name = '';
+  try { name = REGIONS ? (REGIONS.of(up) || '') : ''; } catch (e) { name = ''; }
+  const flag = /^[A-Z]{2}$/.test(up) ? String.fromCodePoint(127397 + up.charCodeAt(0), 127397 + up.charCodeAt(1)) : '';
+  return (flag ? flag + ' ' : '') + (name && name !== up ? name + ' (' + up + ')' : up);
 }
 function section(title) {
   app.appendChild(h('h2', title));
@@ -151,6 +162,16 @@ function render(data) {
 
   section('Языки активных людей');
   app.appendChild(table(['Язык', 'Людей-дней'], Object.entries(ev._active || {}).filter(([d]) => d.startsWith('lang=')).map(([d, v]) => [d.slice(5), v.events])));
+
+  // Страна определяется по соединению при каждом запуске; сетевой адрес сервер не хранит
+  const countries = Object.entries(ev._active || {})
+    .filter(([d]) => d.startsWith('country='))
+    .map(([d, v]) => [countryLabel(d.slice(8)), v.people, v.events])
+    .sort((a, b) => b[1] - a[1] || b[2] - a[2]);
+  if (countries.length) {
+    section('Страны активных людей');
+    app.appendChild(table(['Страна', 'Людей', 'Людей-дней'], countries));
+  }
 
   section('По дням');
   app.appendChild(table(['День', 'Активных', 'Новых', 'Видели подписку', 'Покупок'],
