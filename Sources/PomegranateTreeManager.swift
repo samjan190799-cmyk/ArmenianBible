@@ -708,6 +708,12 @@ final class PomegranateTreeManager: ObservableObject {
         taskProgress[task] = min(task.target, max(taskProgress[task] ?? 0, value))
     }
 
+    /// Сколько глав человек прочитал за день (каждую не меньше 20 секунд): по порогам статистика видит, на какой главе чтение обрывается. Книга и глава не передаются.
+    private func trackReadingDepth(_ count: Int) {
+        guard [1, 2, 3, 5, 10].contains(count) else { return }
+        Funnel.track("feature_used", ["feature": "read_ch_\(count)"])
+    }
+
     /// Действие в приложении питает древо: засчитывается в задания дня, а первое за день ещё и поливает древо
     func record(_ activity: PomegranateActivity) {
         refreshTasksForToday()
@@ -717,6 +723,7 @@ final class PomegranateTreeManager: ObservableObject {
             guard chaptersToday.insert("\(book):\(chapter)").inserted else { return }
             advance(.readChapter, to: chaptersToday.count)
             advance(.readThree, to: chaptersToday.count)
+            trackReadingDepth(chaptersToday.count)
         case .candle:
             advance(.candle, to: (taskProgress[.candle] ?? 0) + 1)
         case .quiz:
