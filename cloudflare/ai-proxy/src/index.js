@@ -7,7 +7,7 @@
 import { verifyAppleJws, checkEntitlement, checkAppPurchase, appPurchaseId, VerifyError } from './apple.js';
 import { generate, GenerateError } from './gemini.js';
 import { normalizeTask, geminiEnvFor, taskDailyLimit } from './tasks.js';
-import { parseBatch } from './events.js';
+import { parseBatch, countryOf } from './events.js';
 import { dashboardHtml } from './dashboard.js';
 import { giftPageHtml, duelPageHtml, roomPageHtml, PAGE_HEADERS } from './pages.js';
 import { validCode } from './duel-room.js';
@@ -239,7 +239,7 @@ async function handleEvents(request, env) {
   const batch = parseBatch(body);
   if (!batch) return json({ error: 'bad_request' }, 400);
   const day = new Date().toISOString().slice(0, 10);
-  const res = await statsStub(env).fetch('https://stats/ingest', { method: 'POST', body: JSON.stringify({ day, ...batch }) });
+  const res = await statsStub(env).fetch('https://stats/ingest', { method: 'POST', body: JSON.stringify({ day, country: countryOf(request), ...batch }) });
   const { accepted } = await res.json();
   return json({ ok: true, accepted });
 }

@@ -4,8 +4,10 @@
 //   f|человек                            когда впервые увидели
 //   n|ДЕНЬ|человек                       сколько событий за день уже принято (потолок против накрутки)
 // Человек — случайный идентификатор установки: он не связан ни с Apple ID, ни с рекламным идентификатором.
+// Страна активного человека: двухбуквенный код по соединению (измерение country=am у _active), сетевой адрес не читается и не хранится.
 
 const DAY_LIMIT_PER_INSTALL = 400;
+const COUNTRY = /^[a-z0-9]{2}$/;
 
 // Серверные счётчики без людей (их пишет сам Worker, приложение их присылать не может): исходы запросов к ИИ
 const NOTE_NAMES = new Set(['ai_server', 'ai_attempt']);
@@ -70,7 +72,7 @@ export class Stats {
     return { accepted };
   }
 
-  async ingest({ day, installId, lang, app, premium, events }) {
+  async ingest({ day, installId, lang, app, premium, events, country }) {
     const countKey = `n|${day}|${installId}`;
     let used = (await this.storage.get(countKey)) ?? 0;
     if (used >= DAY_LIMIT_PER_INSTALL) return { accepted: 0 };
@@ -81,6 +83,10 @@ export class Stats {
       await this.bump(`c|${day}|_active|lang=${lang}`);
       await this.bump(`c|${day}|_active|premium=${premium ? 'yes' : 'no'}`);
       await this.bump(`c|${day}|_active|app=${app}`);
+      // Страна: счётчик людей-дней и отметка человека, чтобы за период считать разных людей. «xx» — не определена
+      const geo = typeof country === 'string' && COUNTRY.test(country) ? country : 'xx';
+      await this.bump(`c|${day}|_active|country=${geo}`);
+      await this.mark(`u|${day}|_active|country=${geo}|${installId}`);
     }
 
     let accepted = 0;
