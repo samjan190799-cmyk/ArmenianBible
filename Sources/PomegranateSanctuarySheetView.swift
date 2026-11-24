@@ -14,6 +14,8 @@ struct PomegranateSanctuarySheetView: View {
     @State private var isSparkBurstActive: Bool = false
     @State private var isSharingTreeCard: Bool = false
     @State private var shareItem: ShareItem? = nil
+    // Заход на экран древа пишется в статистику один раз за показ
+    @State private var openTracked: Bool = false
     
     private var language: AppLanguage {
         bibleManager.appLanguage
@@ -124,6 +126,11 @@ struct PomegranateSanctuarySheetView: View {
             .onAppear {
                 treeManager.refreshDewAndStreakStatus()
                 treeManager.refreshTasksForToday()
+                // Задания засчитываются и без захода сюда, поэтому сам заход пишем отдельно: раз за показ экрана
+                if !openTracked {
+                    openTracked = true
+                    Funnel.track("feature_used", ["feature": "tree_opened"])
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
