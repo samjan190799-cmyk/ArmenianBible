@@ -63,6 +63,8 @@ enum AITask: String {
     case explain
     /// Подбор и генерация стиха
     case verse
+    /// ИИ-уровни игры «Собери стих»: ИИ выбирает стихи по всей Библии (только по подписке)
+    case puzzle
 }
 
 // MARK: - Серверный ИИ: для подписчиков и для бесплатных вопросов
@@ -208,6 +210,14 @@ enum AIProxy {
         let reason = (json?["reason"] as? String) ?? (json?["error"] as? String) ?? "\(status)"
         switch status {
         case 401, 403:
+            // ИИ-уровни игры только по подписке: сервер отказывает по задаче puzzle без подтверждённой подписки (403 puzzle_premium).
+            if isFree && task == .puzzle {
+                throw failure(status, language.pick(
+                    hy: "Խաղի ԱԲ մակարդակները հասանելի են Premium բաժանորդագրությամբ: Եթե այն ունեք, բացեք բաժանորդագրության էկրանը և սեղմեք «Վերականգնել գնումները»",
+                    ru: "ИИ-уровни игры доступны по подписке Premium. Если подписка у вас есть, откройте экран подписки и нажмите «Восстановить покупки»",
+                    en: "AI levels come with Premium. If you already subscribed, open the subscription screen and tap “Restore Purchases”"
+                ))
+            }
             // ИИ-викторина только по подписке: сервер отказывает по задаче quiz без подтверждённой подписки (403 quiz_premium).
             // Подписчику, чью покупку не удалось подтвердить, подсказываем восстановить покупки.
             if isFree && task == .quiz {
