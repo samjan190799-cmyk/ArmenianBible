@@ -3,7 +3,8 @@ import SwiftUI
 // MARK: - «Собери стих»: игра с уровнями и головоломка дня
 // Стих разрезан на плитки, их нужно поставить по порядку: верные закрепляются, неверные возвращаются на стол.
 // Шесть попыток на стих, две подсказки (каждая отнимает звезду), до трёх звёзд за уровень.
-// Уровни идут от коротких стихов к длинным; первые пять бесплатны, остальные и головоломка дня по подписке.
+// Уровни идут от коротких стихов к длинным. Бесплатная вкладка выдаёт по пять стихов раз в два дня (следующие,
+// когда решены прошлые пять), вкладка ИИ и головоломка дня по подписке.
 
 /// Что играем: уровень по номеру или головоломку дня
 enum PuzzleMode: Equatable {
@@ -18,6 +19,12 @@ enum PuzzleMode: Equatable {
     }
 }
 
+/// Вкладки экрана игры: классические уровни из офлайн-базы и уровни от ИИ (по подписке)
+private enum PuzzleTab: Hashable {
+    case classic
+    case ai
+}
+
 // MARK: Логика (без интерфейса)
 enum VersePuzzleLogic {
     static let maxAttempts = 6
@@ -26,8 +33,9 @@ enum VersePuzzleLogic {
     static let minWords = 6
     static let maxWords = 18
     static let maxHints = 2
-    /// Сколько первых уровней бесплатно
-    static let freeLevels = 5
+    /// Бесплатная вкладка выдаёт стихи пятёрками: следующая приходит, когда решены все выданные и с выдачи прошло два дня
+    static let releaseSize = 5
+    static let releaseInterval: TimeInterval = 2 * 24 * 60 * 60
 
     private static func gregorian() -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -298,15 +306,23 @@ final class VersePuzzleStore: ObservableObject {
 
     private let solvedKey = "verse_puzzle_solved_days_v1"
     private let starsKey = "verse_puzzle_level_stars_v1"
+    private let releasedKey = "verse_puzzle_released_levels_v1"
+    private let releasedAtKey = "verse_puzzle_released_at_v1"
     private let defaults = UserDefaults.standard
 
     @Published private(set) var solvedDays: Set<Int> = []
     /// Лучший результат по уровню: номер уровня → звёзды (1…3)
     @Published private(set) var levelStars: [Int: Int] = [:]
+    /// Сколько первых уровней уже выдано бесплатной вкладке (пятёрками)
+    @Published private(set) var releasedLevels: Int = 0
+    /// Когда выдана последняя пятёрка
+    @Published private(set) var releasedAt: Date? = nil
 
     private init() {
         let stored = defaults.array(forKey: solvedKey) as? [Int] ?? []
         solvedDays = Set(stored)
+        releasedLevels = defaults.integer(forKey: releasedKey)
+        releasedAt = defaults.object(forKey: releasedAtKey) as? Date
         let rawStars = defaults.dictionary(forKey: starsKey) as? [String: Int] ?? [:]
         for (key, value) in rawStars {
             if let level = Int(key), level > 0, value > 0 { levelStars[level] = min(3, value) }
@@ -362,6 +378,55 @@ final class VersePuzzleStore: ObservableObject {
         return first
     }
 
+    // MARK: Пятёрки бесплатной вкладки
+    /// Самый дальний решённый уровень
+    var highestSolvedLevel: Int { levelStars.keys.max() ?? 0 }
+
+    /// Решены ли все выданные уровни
+    private var allReleasedSolved: Bool {
+        releasedLevels > 0 && (1...releasedLevels).allSatisfy { levelStars[$0] != nil }
+    }
+
+    private func setReleased(_ levels: Int, at date: Date) {
+        releasedLevels = levels
+        releasedAt = date
+        defaults.set(levels, forKey: releasedKey)
+        defaults.set(date, forKey: releasedAtKey)
+    }
+
+    /// Выдаёт следующую пятёрку, если решены все выданные и прошло два дня. Первый запуск: выдаётся первая пятёрка,
+    /// а у тех, кто уже решал уровни, выданными остаются все решённые. Возвращает true, если выдана новая пятёрка
+    @discardableResult
+    func refreshReleases(poolCount: Int, now: Date = Date()) -> Bool {
+        let size = VersePuzzleLogic.releaseSize
+        guard poolCount > 0 else { return false }
+        if releasedLevels == 0 {
+            let rounded = ((highestSolvedLevel + size - 1) / size) * size
+            setReleased(min(poolCount, max(size, rounded)), at: now)
+            return false
+        }
+        guard releasedLevels < poolCount, allReleasedSolved else { return false }
+        let since = releasedAt ?? Date.distantPast
+        guard now.timeIntervalSince(since) >= VersePuzzleLogic.releaseInterval else { return false }
+        setReleased(min(poolCount, releasedLevels + size), at: now)
+        return true
+    }
+
+    /// Сколько осталось ждать следующую пятёрку; nil, если ждать нечего (не всё решено или всё уже выдано)
+    func waitForNextRelease(poolCount: Int, now: Date = Date()) -> TimeInterval? {
+        guard releasedLevels > 0, releasedLevels < poolCount, allReleasedSolved else { return nil }
+        let since = releasedAt ?? Date.distantPast
+        let left = VersePuzzleLogic.releaseInterval - now.timeIntervalSince(since)
+        return left > 0 ? left : nil
+    }
+
+    /// Решено уровней в последней выданной пятёрке
+    func solvedInCurrentRelease() -> Int {
+        guard releasedLevels > 0 else { return 0 }
+        let start = max(1, releasedLevels - VersePuzzleLogic.releaseSize + 1)
+        return (start...releasedLevels).filter { levelStars[$0] != nil }.count
+    }
+
     // MARK: Партии
     private func progressKey(_ id: String) -> String { "verse_puzzle_prog_v2_" + id }
 
@@ -411,9 +476,9 @@ struct VersePuzzleBannerCardView: View {
             )
         }
         return language.pick(
-            hy: "Առաջին \(VersePuzzleLogic.freeLevels) մակարդակն անվճար է",
-            ru: "Первые \(VersePuzzleLogic.freeLevels) уровней бесплатно",
-            en: "The first \(VersePuzzleLogic.freeLevels) levels are free"
+            hy: "\(VersePuzzleLogic.releaseSize) համար ամեն 2 օրը՝ անվճար",
+            ru: "\(VersePuzzleLogic.releaseSize) стихов каждые 2 дня бесплатно",
+            en: "\(VersePuzzleLogic.releaseSize) free verses every 2 days"
         )
     }
 
@@ -441,10 +506,12 @@ struct VersePuzzleView: View {
     @State private var pool: [BibleVerse] = []
     @State private var mode: PuzzleMode? = nil
     @State private var isShowingPaywall = false
+    @State private var paywallSource = "puzzle"
+    @State private var tab: PuzzleTab = .classic
     @State private var didLoad = false
+    @Environment(\.scenePhase) private var scenePhase
 
     private var language: AppLanguage { manager.appLanguage }
-    private var freeLevels: Int { VersePuzzleLogic.freeLevels }
     private let packSize = 10
 
     var body: some View {
@@ -458,7 +525,8 @@ struct VersePuzzleView: View {
                     onExit: {
                         withAnimation(.easeInOut(duration: 0.2)) { mode = nil }
                     },
-                    onNextLevel: { openLevel($0) }
+                    onNextLevel: { openLevel($0) },
+                    canOpenLevel: { isOpen($0) }
                 )
                 .id(current.key)
             } else {
@@ -466,25 +534,36 @@ struct VersePuzzleView: View {
             }
         }
         .sheet(isPresented: $isShowingPaywall) {
-            PaywallView(source: "puzzle")
+            PaywallView(source: paywallSource)
         }
         .onAppear {
             guard !didLoad else { return }
             didLoad = true
             pool = VersePuzzleLogic.levelPool(language: language)
+            refreshReleases()
             Funnel.track("feature_used", ["feature": "puzzle_opened"])
         }
         .onChange(of: manager.appLanguage) { newLanguage in
             pool = VersePuzzleLogic.levelPool(language: newLanguage)
+            refreshReleases()
             mode = nil
+        }
+        .onChange(of: mode) { _ in refreshReleases() }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { refreshReleases() }
+        }
+        .onChange(of: tab) { newTab in
+            if newTab == .ai { Funnel.track("feature_used", ["feature": "puzzle_tab_ai"]) }
         }
     }
 
     // MARK: Вход в уровень или в головоломку дня (с проверкой подписки)
     private func openLevel(_ level: Int) {
         guard level >= 1, level <= pool.count else { return }
-        if level > freeLevels && !subscription.isPremium {
-            lockedTapped()
+        if !isOpen(level) {
+            // Следующая пятёрка ещё не выдана: возвращаемся к списку, где написано, когда она откроется
+            Haptics.notify(.warning)
+            withAnimation(.easeInOut(duration: 0.2)) { mode = nil }
             return
         }
         Haptics.impact(.light)
@@ -503,7 +582,42 @@ struct VersePuzzleView: View {
     private func lockedTapped() {
         Haptics.notify(.warning)
         Funnel.track("feature_used", ["feature": "puzzle_locked"])
+        paywallSource = "puzzle"
         isShowingPaywall = true
+    }
+
+    /// Открыт ли уровень: подписчику все, остальным выданные пятёрки и уже решённые
+    private func isOpen(_ level: Int) -> Bool {
+        subscription.isPremium || level <= store.releasedLevels || store.stars(for: level) > 0
+    }
+
+    /// Сколько уровней показывать в списке: подписчику все, остальным выданные и уже решённые
+    private var visibleCount: Int {
+        if subscription.isPremium { return pool.count }
+        return min(pool.count, max(store.releasedLevels, store.highestSolvedLevel))
+    }
+
+    /// Если пришло время, выдаёт следующую пятёрку
+    private func refreshReleases() {
+        guard !pool.isEmpty else { return }
+        if store.refreshReleases(poolCount: pool.count) {
+            Funnel.track("feature_used", ["feature": "puzzle_pack_next"])
+        }
+    }
+
+    /// Сколько ждать, по-человечески: «1 д 14 ч», «5 ч 20 мин», «12 мин»
+    private func waitText(_ seconds: TimeInterval) -> String {
+        let minutes = max(1, Int(seconds / 60))
+        let days = minutes / (24 * 60)
+        let hours = (minutes % (24 * 60)) / 60
+        let mins = minutes % 60
+        if days > 0 {
+            return language.pick(hy: "\(days) օր \(hours) ժ", ru: "\(days) д \(hours) ч", en: "\(days) d \(hours) h")
+        }
+        if hours > 0 {
+            return language.pick(hy: "\(hours) ժ \(mins) ր", ru: "\(hours) ч \(mins) мин", en: "\(hours) h \(mins) min")
+        }
+        return language.pick(hy: "\(mins) ր", ru: "\(mins) мин", en: "\(mins) min")
     }
 
     // MARK: Главная страница игры
@@ -534,15 +648,27 @@ struct VersePuzzleView: View {
             .padding(.top, 16)
             .padding(.bottom, 12)
 
+            Picker("", selection: $tab) {
+                Text(language.pick(hy: "Դասական", ru: "Классика", en: "Classic")).tag(PuzzleTab.classic)
+                Text(language.pick(hy: "ԱԲ", ru: "ИИ", en: "AI")).tag(PuzzleTab.ai)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 8)
+
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
-                    summaryCard
-                    continueButton
-                    dailyCard
-                    if !subscription.isPremium {
-                        freeBanner
+                    if tab == .classic {
+                        summaryCard
+                        if !subscription.isPremium {
+                            releaseCard
+                        }
+                        continueButton
+                        dailyCard
+                        levelsSection
+                    } else {
+                        aiTab
                     }
-                    levelsSection
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -559,7 +685,7 @@ struct VersePuzzleView: View {
             )
             Divider().frame(height: 34).opacity(0.5)
             summaryItem(
-                value: "\(store.completedLevels) / \(pool.count)",
+                value: "\(store.completedLevels) / \(visibleCount)",
                 caption: language.pick(hy: "մակարդակ անցած", ru: "уровней пройдено", en: "levels completed")
             )
         }
@@ -583,16 +709,25 @@ struct VersePuzzleView: View {
     private var continueButton: some View {
         let next = store.nextLevel
         let allDone = !pool.isEmpty && next > pool.count
+        // Следующая пятёрка ещё не выдана: кнопка показывает, сколько осталось ждать
+        let waiting = !allDone && !pool.isEmpty && !isOpen(next)
+        let wait = store.waitForNextRelease(poolCount: pool.count) ?? 60
+        let label: String
+        if allDone {
+            label = language.pick(hy: "Բոլոր մակարդակներն անցած են", ru: "Все уровни пройдены", en: "All levels completed")
+        } else if waiting {
+            label = language.pick(hy: "Հաջորդ հնգյակը՝ \(waitText(wait)) հետո", ru: "Следующая пятёрка через \(waitText(wait))", en: "Next set in \(waitText(wait))")
+        } else {
+            label = language.pick(hy: "Շարունակել · մակարդակ \(next)", ru: "Продолжить · уровень \(next)", en: "Continue · level \(next)")
+        }
         return Button {
-            if allDone { return }
+            if allDone || waiting { return }
             openLevel(next)
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: allDone ? "checkmark.seal.fill" : "play.fill")
+                Image(systemName: allDone ? "checkmark.seal.fill" : (waiting ? "clock.fill" : "play.fill"))
                     .font(.system(size: 14, weight: .semibold))
-                Text(allDone
-                     ? language.pick(hy: "Բոլոր մակարդակներն անցած են", ru: "Все уровни пройдены", en: "All levels completed")
-                     : language.pick(hy: "Շարունակել · մակարդակ \(next)", ru: "Продолжить · уровень \(next)", en: "Continue · level \(next)"))
+                Text(label)
                     .font(PaperFont.font(size: 16, weight: .semibold))
             }
             .foregroundColor(Paper.onAccent)
@@ -600,10 +735,10 @@ struct VersePuzzleView: View {
             .padding(.vertical, 16)
             .background(Paper.accentFill)
             .cornerRadius(16)
-            .opacity(pool.isEmpty ? 0.4 : 1)
+            .opacity(pool.isEmpty ? 0.4 : (waiting ? 0.6 : 1))
         }
         .buttonStyle(ScaleButtonStyle())
-        .disabled(pool.isEmpty)
+        .disabled(pool.isEmpty || waiting)
     }
 
     private var dailyCard: some View {
@@ -654,47 +789,135 @@ struct VersePuzzleView: View {
         .buttonStyle(ScaleButtonStyle())
     }
 
-    private var freeBanner: some View {
-        let rest = max(0, pool.count - freeLevels)
-        return Button {
-            lockedTapped()
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(Paper.gold)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(language.pick(
-                        hy: "Անվճար՝ 1–\(freeLevels) մակարդակները",
-                        ru: "Бесплатно: уровни 1–\(freeLevels)",
-                        en: "Free: levels 1–\(freeLevels)"
-                    ))
+    // MARK: Пятёрка бесплатной вкладки: сколько решено и когда придёт следующая
+    private var releaseCard: some View {
+        let size = VersePuzzleLogic.releaseSize
+        let solved = store.solvedInCurrentRelease()
+        let number = max(1, (store.releasedLevels + size - 1) / size)
+        let wait = store.waitForNextRelease(poolCount: pool.count)
+        let allReleased = !pool.isEmpty && store.releasedLevels >= pool.count
+        let status: String
+        if allReleased {
+            status = language.pick(hy: "Բոլոր համարներն արդեն բացված են", ru: "Все стихи уже открыты", en: "All verses are unlocked")
+        } else if let wait = wait {
+            status = language.pick(
+                hy: "Հաջորդ \(size) համարը կբացվի \(waitText(wait)) հետո",
+                ru: "Следующие \(size) стихов откроются через \(waitText(wait))",
+                en: "The next \(size) verses unlock in \(waitText(wait))"
+            )
+        } else {
+            status = language.pick(
+                hy: "Լուծված է \(solved)՝ \(size)-ից։ Լուծեք բոլորը՝ հաջորդը ստանալու համար",
+                ru: "Решено \(solved) из \(size). Решите все, чтобы получить следующие",
+                en: "\(solved) of \(size) solved. Solve them all to unlock the next set"
+            )
+        }
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(language.pick(hy: "Հնգյակ №\(number)", ru: "Пятёрка №\(number)", en: "Set #\(number)"))
                     .font(PaperFont.font(size: 15, weight: .semibold))
                     .foregroundColor(Paper.ink)
 
-                    Text(language.pick(
-                        hy: "Մնացած \(rest) մակարդակը և օրվա հանելուկը՝ Premium-ով",
-                        ru: "Ещё \(rest) уровней и головоломка дня: с Premium",
-                        en: "\(rest) more levels and the daily puzzle come with Premium"
-                    ))
-                    .font(PaperFont.font(size: 12))
-                    .foregroundColor(Paper.inkSecondary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-
                 Spacer(minLength: 8)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Paper.gold.opacity(0.7))
+                HStack(spacing: 5) {
+                    ForEach(0..<size, id: \.self) { index in
+                        Circle()
+                            .fill(index < solved ? Paper.gold : Paper.hairline)
+                            .frame(width: 10, height: 10)
+                    }
+                }
             }
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Paper.gold.opacity(0.1)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Paper.gold.opacity(0.3), lineWidth: 1.2))
+
+            Text(status)
+                .font(PaperFont.font(size: 12))
+                .foregroundColor(Paper.inkSecondary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .buttonStyle(ScaleButtonStyle())
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Paper.gold.opacity(0.1)))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Paper.gold.opacity(0.3), lineWidth: 1.2))
+    }
+
+    // MARK: Вкладка «ИИ»: по подписке (сами ИИ-уровни появятся на следующем этапе)
+    private var aiTab: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(Paper.gold)
+                    Text(language.pick(hy: "ԱԲ մակարդակներ", ru: "ИИ-уровни", en: "AI levels"))
+                        .font(PaperFont.font(size: 18, weight: .semibold))
+                        .foregroundColor(Paper.ink)
+                }
+
+                aiPoint(language.pick(
+                    hy: "ԱԲ-ն ինքն է ընտրում համարները ողջ Աստվածաշնչից",
+                    ru: "ИИ сам подбирает стихи по всей Библии",
+                    en: "AI picks verses from the whole Bible"
+                ))
+                aiPoint(language.pick(
+                    hy: "Որքան առաջ, այնքան դժվար մակարդակներ",
+                    ru: "Чем дальше, тем сложнее уровни",
+                    en: "The further you go, the harder the levels"
+                ))
+                aiPoint(language.pick(
+                    hy: "Մտնում է Luys Premium բաժանորդագրության մեջ",
+                    ru: "Входит в подписку Luys Premium",
+                    en: "Included with Luys Premium"
+                ))
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .paperSheet(cornerRadius: 18)
+
+            if subscription.isPremium {
+                Text(language.pick(
+                    hy: "Շուտով. ԱԲ մակարդակները կհայտնվեն առաջիկա թարմացումներից մեկում",
+                    ru: "Скоро: ИИ-уровни появятся в одном из ближайших обновлений",
+                    en: "Coming soon: AI levels will arrive in an upcoming update"
+                ))
+                .font(PaperFont.font(size: 13))
+                .foregroundColor(Paper.inkSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+            } else {
+                Button {
+                    Haptics.impact(.light)
+                    paywallSource = "puzzle_ai"
+                    isShowingPaywall = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.open.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(language.pick(hy: "Բացել Premium-ը", ru: "Открыть Premium", en: "Unlock Premium"))
+                            .font(PaperFont.font(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(Paper.onAccent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Paper.accentFill)
+                    .cornerRadius(16)
+                }
+                .buttonStyle(ScaleButtonStyle())
+            }
+        }
+    }
+
+    private func aiPoint(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(Paper.moss)
+                .padding(.top, 2)
+            Text(text)
+                .font(PaperFont.font(size: 14))
+                .foregroundColor(Paper.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     // MARK: Уровни пачками по десять
@@ -724,12 +947,12 @@ struct VersePuzzleView: View {
     }
 
     private var packCount: Int {
-        (pool.count + packSize - 1) / packSize
+        (visibleCount + packSize - 1) / packSize
     }
 
     private func packView(_ pack: Int) -> some View {
         let start = pack * packSize + 1
-        let end = min(pool.count, start + packSize - 1)
+        let end = min(visibleCount, start + packSize - 1)
         let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
         return VStack(alignment: .leading, spacing: 8) {
             Text(language.pick(
@@ -750,7 +973,7 @@ struct VersePuzzleView: View {
 
     private func levelCell(_ level: Int) -> some View {
         let stars = store.stars(for: level)
-        let isLocked = level > freeLevels && !subscription.isPremium
+        let isLocked = !isOpen(level)
         let isNext = level == store.nextLevel
         return Button {
             openLevel(level)
@@ -796,6 +1019,8 @@ struct VersePuzzlePlayView: View {
     let pool: [BibleVerse]
     let onExit: () -> Void
     let onNextLevel: (Int) -> Void
+    /// Открыт ли уровень: бесплатному игроку после последнего уровня пятёрки кнопки «Следующий уровень» нет
+    let canOpenLevel: (Int) -> Bool
 
     @ObservedObject private var manager = BibleManager.shared
     @ObservedObject private var store = VersePuzzleStore.shared
@@ -1183,7 +1408,7 @@ struct VersePuzzlePlayView: View {
             verseBlock
 
             if current.isSolved {
-                if level < pool.count {
+                if level < pool.count && canOpenLevel(level + 1) {
                     primaryButton(language.pick(hy: "Հաջորդ մակարդակ", ru: "Следующий уровень", en: "Next level")) {
                         onNextLevel(level + 1)
                     }
