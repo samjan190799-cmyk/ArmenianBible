@@ -455,12 +455,9 @@ struct PaywallView: View {
     
     // MARK: - Локализация текстов
     
+    /// Название подписки одно на всех языках
     private var headerTitle: String {
-        switch language {
-        case .armenian: return "Աստվածաշունչ Premium"
-        case .russian: return "Библия Premium"
-        case .english: return "Armenian Bible Premium"
-        }
+        "Luys Premium"
     }
     
     private var headerSubtitle: String {
@@ -656,9 +653,9 @@ struct PaywallView: View {
     
     private var successMessage: String {
         switch language {
-        case .armenian: return "Դուք հաջողությամբ ակտիվացրել եք Armenian Bible Premium-ը: Շնորհակալություն աջակցության համար!"
-        case .russian: return "Вы успешно активировали Armenian Bible Premium! Благодарим за вашу поддержку!"
-        case .english: return "You have successfully activated Armenian Bible Premium! Thank you for your support!"
+        case .armenian: return "Դուք հաջողությամբ ակտիվացրել եք Luys Premium-ը: Շնորհակալություն աջակցության համար!"
+        case .russian: return "Вы успешно активировали Luys Premium! Благодарим за вашу поддержку!"
+        case .english: return "You have successfully activated Luys Premium! Thank you for your support!"
         }
     }
 }

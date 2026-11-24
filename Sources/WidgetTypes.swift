@@ -143,7 +143,7 @@ enum LockScreenCategory: String, CaseIterable, Identifiable, Codable {
     
     var id: String { rawValue }
     
-    /// Требуется ли подписка Armenian Bible Premium
+    /// Требуется ли подписка Luys Premium
     var isPremiumRequired: Bool {
         return self != .pearls
     }

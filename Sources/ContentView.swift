@@ -995,7 +995,7 @@ struct HomeView: View {
                 }
             )
         case .premium:
-            // Карточка Armenian Bible Premium
+            // Карточка Luys Premium
             PremiumPromoBannerCardView(
                 language: manager.appLanguage,
                 accentColor: accentColor,
@@ -1401,7 +1401,7 @@ struct ChurchFeastsBannerCardView: View {
     }
 }
 
-// MARK: - Карточка Подписки Armenian Bible Premium на Главном экране
+// MARK: - Карточка Подписки Luys Premium на Главном экране
 struct PremiumPromoBannerCardView: View {
     let language: AppLanguage
     let accentColor: Color
@@ -1421,7 +1421,7 @@ struct PremiumPromoBannerCardView: View {
                 HomeArtTile(art: .premium)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(isPremium ? language.pick(hy: "Premium ակտիվ է", ru: "Premium активен", en: "Premium is active") : "Armenian Bible Premium")
+                    Text(isPremium ? language.pick(hy: "Premium ակտիվ է", ru: "Premium активен", en: "Premium is active") : "Luys Premium")
                         .font(PaperFont.font(size: 17, weight: .semibold))
                         .foregroundColor(primaryTextColor)
                         .lineLimit(1)

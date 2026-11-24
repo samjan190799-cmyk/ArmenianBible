@@ -424,7 +424,7 @@ struct SettingsView: View {
                 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text("Armenian Bible Premium")
+                        Text("Luys Premium")
                             .font(PaperFont.font(size: 16, weight: .semibold))
                             .foregroundColor(primaryTextColor)
                         
