@@ -71,6 +71,7 @@ struct ReadingPlansCatalogView: View {
                 }
             }
             .navigationTitle("reading_plans_title".localized(for: language))
+            .onAppear { Funnel.track("feature_used", ["feature": "plans_opened"]) }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

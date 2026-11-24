@@ -486,8 +486,17 @@ class BibleManager: ObservableObject {
     /// остался на главе), иначе случайное открытие главы 1 затирало настоящее место.
     func saveLastReadLocation(bookId: Int, chapter: Int) {
         activeReading = (bookId, chapter)
+        trackChapterOpenedOncePerDay()
         markChapterAsRead(bookId: bookId, chapter: chapter)
         scheduleTreeDewForReading(bookId: bookId, chapter: chapter)
+    }
+
+    /// Первая за день открытая глава: статистике нужно отличать «зашёл во вкладку Библии» от «открыл текст». Книга и глава не передаются.
+    private func trackChapterOpenedOncePerDay() {
+        let key = "reading_open_tracked_at"
+        if let last = UserDefaults.standard.object(forKey: key) as? Date, Calendar.current.isDateInToday(last) { return }
+        UserDefaults.standard.set(Date(), forKey: key)
+        Funnel.track("feature_used", ["feature": "chapter_open"])
     }
 
     /// Глава питает древо, когда её читают хотя бы 20 секунд: простое пролистывание глав не считается

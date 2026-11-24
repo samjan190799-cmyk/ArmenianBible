@@ -89,11 +89,15 @@ final class ReadingPlanManager: ObservableObject {
     func startPlan(id: String) {
         self.activePlanId = id
         defaults.set(id, forKey: activePlanKey)
+        Funnel.track("feature_used", ["feature": "plan_started"])
         
         Haptics.impact(.soft)
     }
     
     func stopActivePlan() {
+        if activePlanId != nil {
+            Funnel.track("feature_used", ["feature": "plan_stopped"])
+        }
         self.activePlanId = nil
         defaults.removeObject(forKey: activePlanKey)
     }
@@ -116,6 +120,8 @@ final class ReadingPlanManager: ObservableObject {
             completedDays[planId] = days
             saveCompletedDays()
             
+            trackPlanProgress(planId: planId, completed: days.count)
+
             // Начисляем стрик за чтение
             recordStreakForToday()
             
@@ -123,6 +129,16 @@ final class ReadingPlanManager: ObservableObject {
         }
     }
     
+    /// Сколько дней плана человек отметил: по порогам статистика видит, на каком дне бросают план. Какой именно план, не передаётся.
+    private func trackPlanProgress(planId: String, completed: Int) {
+        if [1, 3, 7, 14, 30].contains(completed) {
+            Funnel.track("feature_used", ["feature": "plan_day_\(completed)"])
+        }
+        if let plan = ReadingPlan.getPlan(by: planId), plan.daysCount > 0, completed == plan.daysCount {
+            Funnel.track("feature_used", ["feature": "plan_done"])
+        }
+    }
+
     func completedDaysCount(for planId: String) -> Int {
         return completedDays[planId]?.count ?? 0
     }
