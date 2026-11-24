@@ -10,11 +10,22 @@ import SwiftUI
 enum PuzzleMode: Equatable {
     case daily
     case level(Int)
+    /// Уровень вкладки «ИИ» (по подписке)
+    case ai(Int)
 
     var key: String {
         switch self {
         case .daily: return "daily"
         case .level(let number): return "level_\(number)"
+        case .ai(let number): return "ai_level_\(number)"
+        }
+    }
+
+    /// Уровень (классический или ИИ), а не головоломка дня
+    var isLevel: Bool {
+        switch self {
+        case .daily: return false
+        case .level, .ai: return true
         }
     }
 }
@@ -184,14 +195,20 @@ enum VersePuzzleLogic {
 struct VersePuzzleBoard: Equatable {
     let correct: [String]
     let tray: [String]
+    /// Сколько попыток и подсказок у партии: у классических уровней и головоломки дня обычные, у ИИ-уровней их задаёт ступень
+    let attemptLimit: Int
+    let hintLimit: Int
     private(set) var slots: [Int?]
     private(set) var locked: Set<Int>
     private(set) var attempts: [[Bool]]
     private(set) var hintsUsed: Int
 
-    init(correct: [String], tray: [String], attempts: [[Bool]] = [], locked: Set<Int> = [], hintsUsed: Int = 0) {
+    init(correct: [String], tray: [String], attempts: [[Bool]] = [], locked: Set<Int> = [], hintsUsed: Int = 0,
+         attemptLimit: Int = VersePuzzleLogic.maxAttempts, hintLimit: Int = VersePuzzleLogic.maxHints) {
         self.correct = correct
         self.tray = tray
+        self.attemptLimit = max(1, attemptLimit)
+        self.hintLimit = max(0, hintLimit)
         self.attempts = attempts
         self.hintsUsed = max(0, hintsUsed)
         var filled = [Int?](repeating: nil, count: correct.count)
@@ -209,8 +226,8 @@ struct VersePuzzleBoard: Equatable {
         self.locked = confirmed
     }
 
-    var maxAttempts: Int { VersePuzzleLogic.maxAttempts }
-    var hintsLeft: Int { max(0, VersePuzzleLogic.maxHints - hintsUsed) }
+    var maxAttempts: Int { attemptLimit }
+    var hintsLeft: Int { max(0, hintLimit - hintsUsed) }
     var isSolved: Bool { !correct.isEmpty && locked.count == correct.count }
     var isFailed: Bool { !isSolved && attempts.count >= maxAttempts }
     var isFinished: Bool { isSolved || isFailed }
@@ -508,6 +525,9 @@ struct VersePuzzleView: View {
     @State private var isShowingPaywall = false
     @State private var paywallSource = "puzzle"
     @State private var tab: PuzzleTab = .classic
+    @State private var aiLoading = false
+    @State private var aiUsedFallback = false
+    @ObservedObject private var aiStore = AIPuzzleStore.shared
     @State private var didLoad = false
     @Environment(\.scenePhase) private var scenePhase
 
@@ -525,7 +545,9 @@ struct VersePuzzleView: View {
                     onExit: {
                         withAnimation(.easeInOut(duration: 0.2)) { mode = nil }
                     },
-                    onNextLevel: { openLevel($0) },
+                    onNextLevel: { next in
+                        if case .ai = current { openAILevel(next) } else { openLevel(next) }
+                    },
                     canOpenLevel: { isOpen($0) }
                 )
                 .id(current.key)
@@ -548,12 +570,18 @@ struct VersePuzzleView: View {
             refreshReleases()
             mode = nil
         }
-        .onChange(of: mode) { _ in refreshReleases() }
+        .onChange(of: mode) { _ in
+            refreshReleases()
+            if tab == .ai { refillAILevelsIfNeeded() }
+        }
         .onChange(of: scenePhase) { phase in
             if phase == .active { refreshReleases() }
         }
         .onChange(of: tab) { newTab in
-            if newTab == .ai { Funnel.track("feature_used", ["feature": "puzzle_tab_ai"]) }
+            if newTab == .ai {
+                Funnel.track("feature_used", ["feature": "puzzle_tab_ai"])
+                refillAILevelsIfNeeded()
+            }
         }
     }
 
@@ -620,6 +648,33 @@ struct VersePuzzleView: View {
         return language.pick(hy: "\(mins) ր", ru: "\(mins) мин", en: "\(mins) min")
     }
 
+    // MARK: ИИ-уровни: открыть и догрузить
+    private func openAILevel(_ level: Int) {
+        guard subscription.isPremium else { return }
+        guard aiStore.reference(forLevel: level) != nil else {
+            // Уровень ещё не загружен: возвращаемся к списку, пока подбирается следующая пачка
+            withAnimation(.easeInOut(duration: 0.2)) { mode = nil }
+            refillAILevelsIfNeeded()
+            return
+        }
+        Haptics.impact(.light)
+        withAnimation(.easeInOut(duration: 0.2)) { mode = .ai(level) }
+        // Пока человек играет, следующая пачка догружается в фоне
+        refillAILevelsIfNeeded()
+    }
+
+    /// Догружает пачку ИИ-уровней, если впереди осталось мало; один запрос за раз
+    private func refillAILevelsIfNeeded() {
+        guard subscription.isPremium, !aiLoading, aiStore.needsRefill else { return }
+        aiLoading = true
+        let requestLanguage = language
+        Task { @MainActor in
+            let result = await AIPuzzleService.loadNextBatch(language: requestLanguage)
+            aiLoading = false
+            aiUsedFallback = !result.usedAI
+        }
+    }
+
     // MARK: Главная страница игры
     private var hub: some View {
         VStack(spacing: 0) {
@@ -666,6 +721,8 @@ struct VersePuzzleView: View {
                         continueButton
                         dailyCard
                         levelsSection
+                    } else if subscription.isPremium {
+                        aiPremiumView
                     } else {
                         aiTab
                     }
@@ -841,7 +898,7 @@ struct VersePuzzleView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Paper.gold.opacity(0.3), lineWidth: 1.2))
     }
 
-    // MARK: Вкладка «ИИ»: по подписке (сами ИИ-уровни появятся на следующем этапе)
+    // MARK: Вкладка «ИИ» без подписки: что это и кнопка Premium
     private var aiTab: some View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 12) {
@@ -874,36 +931,24 @@ struct VersePuzzleView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .paperSheet(cornerRadius: 18)
 
-            if subscription.isPremium {
-                Text(language.pick(
-                    hy: "Շուտով. ԱԲ մակարդակները կհայտնվեն առաջիկա թարմացումներից մեկում",
-                    ru: "Скоро: ИИ-уровни появятся в одном из ближайших обновлений",
-                    en: "Coming soon: AI levels will arrive in an upcoming update"
-                ))
-                .font(PaperFont.font(size: 13))
-                .foregroundColor(Paper.inkSecondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-            } else {
-                Button {
-                    Haptics.impact(.light)
-                    paywallSource = "puzzle_ai"
-                    isShowingPaywall = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "lock.open.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text(language.pick(hy: "Բացել Premium-ը", ru: "Открыть Premium", en: "Unlock Premium"))
-                            .font(PaperFont.font(size: 16, weight: .semibold))
-                    }
-                    .foregroundColor(Paper.onAccent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Paper.accentFill)
-                    .cornerRadius(16)
+            Button {
+                Haptics.impact(.light)
+                paywallSource = "puzzle_ai"
+                isShowingPaywall = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.open.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(language.pick(hy: "Բացել Premium-ը", ru: "Открыть Premium", en: "Unlock Premium"))
+                        .font(PaperFont.font(size: 16, weight: .semibold))
                 }
-                .buttonStyle(ScaleButtonStyle())
+                .foregroundColor(Paper.onAccent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Paper.accentFill)
+                .cornerRadius(16)
             }
+            .buttonStyle(ScaleButtonStyle())
         }
     }
 
@@ -918,6 +963,155 @@ struct VersePuzzleView: View {
                 .foregroundColor(Paper.ink)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // MARK: Вкладка «ИИ» у подписчика: уровни по ступеням, загрузка пачек
+    private var aiPremiumView: some View {
+        VStack(spacing: 16) {
+            aiSummaryCard
+            aiContinueButton
+            if aiUsedFallback {
+                Text(language.pick(
+                    hy: "ԱԲ-ն այժմ հասանելի չէ. համարներն ընտրվել են առանց դրա",
+                    ru: "ИИ сейчас недоступен: стихи подобраны без него",
+                    en: "AI is unavailable right now: the verses were picked without it"
+                ))
+                .font(PaperFont.font(size: 12))
+                .foregroundColor(Paper.inkSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+            }
+            aiLevelsSection
+        }
+    }
+
+    private var aiSummaryCard: some View {
+        HStack(spacing: 0) {
+            summaryItem(
+                value: "★ \(aiStore.totalStars)",
+                caption: language.pick(hy: "աստղ", ru: "звёзд", en: "stars")
+            )
+            Divider().frame(height: 34).opacity(0.5)
+            summaryItem(
+                value: "\(aiStore.completedLevels) / \(aiStore.loadedLevels)",
+                caption: language.pick(hy: "մակարդակ անցած", ru: "уровней пройдено", en: "levels completed")
+            )
+        }
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .paperSheet(cornerRadius: 18)
+    }
+
+    private var aiContinueButton: some View {
+        let next = aiStore.nextLevel
+        let ready = aiStore.reference(forLevel: next) != nil
+        let label: String
+        if aiLoading {
+            label = language.pick(hy: "Ընտրվում են համարներ…", ru: "Подбираю стихи…", en: "Picking verses…")
+        } else if ready {
+            label = language.pick(hy: "Շարունակել · մակարդակ \(next)", ru: "Продолжить · уровень \(next)", en: "Continue · level \(next)")
+        } else {
+            label = language.pick(hy: "Բեռնել մակարդակները", ru: "Загрузить уровни", en: "Load levels")
+        }
+        return Button {
+            if ready {
+                openAILevel(next)
+            } else {
+                refillAILevelsIfNeeded()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                if aiLoading {
+                    ProgressView()
+                        .tint(Paper.onAccent)
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                Text(label)
+                    .font(PaperFont.font(size: 16, weight: .semibold))
+            }
+            .foregroundColor(Paper.onAccent)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Paper.accentFill)
+            .cornerRadius(16)
+            .opacity(aiLoading ? 0.6 : 1)
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .disabled(aiLoading)
+    }
+
+    private var aiLevelsSection: some View {
+        let tierCount = (aiStore.loadedLevels + AIPuzzleLogic.levelsPerTier - 1) / AIPuzzleLogic.levelsPerTier
+        return VStack(alignment: .leading, spacing: 14) {
+            Text(language.pick(hy: "ՄԱԿԱՐԴԱԿՆԵՐ", ru: "УРОВНИ", en: "LEVELS"))
+                .font(PaperFont.font(size: 11, weight: .semibold))
+                .foregroundColor(Paper.inkSecondary)
+                .tracking(1.0)
+
+            LazyVStack(alignment: .leading, spacing: 16) {
+                ForEach(0..<tierCount, id: \.self) { index in
+                    aiTierView(index)
+                }
+            }
+        }
+    }
+
+    private func aiTierView(_ index: Int) -> some View {
+        let size = AIPuzzleLogic.levelsPerTier
+        let start = index * size + 1
+        let end = min(aiStore.loadedLevels, start + size - 1)
+        let tier = AIPuzzleLogic.tier(forLevel: start)
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(language.pick(
+                hy: "Աստիճան \(tier.number) · \(tier.minWords)–\(tier.maxWords) բառ",
+                ru: "Ступень \(tier.number) · \(tier.minWords)–\(tier.maxWords) слов",
+                en: "Step \(tier.number) · \(tier.minWords)–\(tier.maxWords) words"
+            ))
+            .font(PaperFont.font(size: 12, weight: .semibold))
+            .foregroundColor(Paper.inkSecondary)
+
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(start...end, id: \.self) { level in
+                    aiLevelCell(level)
+                }
+            }
+        }
+    }
+
+    private func aiLevelCell(_ level: Int) -> some View {
+        let stars = aiStore.stars(for: level)
+        let isNext = level == aiStore.nextLevel
+        return Button {
+            openAILevel(level)
+        } label: {
+            VStack(spacing: 4) {
+                Text("\(level)")
+                    .font(PaperFont.font(size: 17, weight: .semibold).monospacedDigit())
+                    .foregroundColor(Paper.ink)
+
+                HStack(spacing: 1) {
+                    ForEach(1...3, id: \.self) { index in
+                        Image(systemName: index <= stars ? "star.fill" : "star")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundColor(index <= stars ? Paper.gold : Paper.inkTertiary.opacity(0.6))
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(stars > 0 ? Paper.gold.opacity(0.16) : Paper.sheet)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(isNext ? Paper.gold : Paper.hairline, lineWidth: isNext ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
     }
 
     // MARK: Уровни пачками по десять
@@ -1025,6 +1219,7 @@ struct VersePuzzlePlayView: View {
     @ObservedObject private var manager = BibleManager.shared
     @ObservedObject private var store = VersePuzzleStore.shared
 
+    @ObservedObject private var aiStore = AIPuzzleStore.shared
     @State private var board: VersePuzzleBoard? = nil
     @State private var verse: BibleVerse? = nil
     @State private var day = VersePuzzleLogic.dayNumber()
@@ -1037,6 +1232,7 @@ struct VersePuzzlePlayView: View {
         switch mode {
         case .daily: return "daily_\(day)_\(language.rawValue)"
         case .level(let number): return "level_\(number)_\(language.rawValue)"
+        case .ai(let number): return "ai_level_\(number)_\(language.rawValue)"
         }
     }
 
@@ -1077,6 +1273,8 @@ struct VersePuzzlePlayView: View {
             return language.pick(hy: "Օրվա հանելուկ №\(day)", ru: "Головоломка дня №\(day)", en: "Puzzle of the day #\(day)")
         case .level(let number):
             return language.pick(hy: "Մակարդակ \(number)", ru: "Уровень \(number)", en: "Level \(number)")
+        case .ai(let number):
+            return language.pick(hy: "ԱԲ մակարդակ \(number)", ru: "ИИ-уровень \(number)", en: "AI level \(number)")
         }
     }
 
@@ -1149,7 +1347,7 @@ struct VersePuzzlePlayView: View {
 
             Spacer()
 
-            if !current.isFinished {
+            if !current.isFinished && current.hintLimit > 0 {
                 hintButton(for: current)
             }
 
@@ -1278,7 +1476,7 @@ struct VersePuzzlePlayView: View {
             .font(PaperFont.font(size: 12, weight: .medium))
             .foregroundColor(Paper.inkSecondary)
 
-            if case .level = mode {
+            if mode.isLevel && current.hintLimit > 0 {
                 Text(language.pick(
                     hy: "Յուրաքանչյուր հուշում հանում է մեկ աստղ",
                     ru: "Каждая подсказка отнимает одну звезду",
@@ -1329,6 +1527,8 @@ struct VersePuzzlePlayView: View {
         case .daily:
             dailyFinishCard(for: current)
         case .level(let number):
+            levelFinishCard(for: current, level: number)
+        case .ai(let number):
             levelFinishCard(for: current, level: number)
         }
     }
@@ -1408,7 +1608,7 @@ struct VersePuzzlePlayView: View {
             verseBlock
 
             if current.isSolved {
-                if level < pool.count && canOpenLevel(level + 1) {
+                if hasNextLevel(after: level) {
                     primaryButton(language.pick(hy: "Հաջորդ մակարդակ", ru: "Следующий уровень", en: "Next level")) {
                         onNextLevel(level + 1)
                     }
@@ -1503,6 +1703,21 @@ struct VersePuzzlePlayView: View {
         return "\(header) \(score)\n\(rows)\n\(link)"
     }
 
+    /// Есть ли куда идти дальше: у классики пока не кончился список и следующий уровень открыт, у ИИ уровни догружаются сами
+    private func hasNextLevel(after level: Int) -> Bool {
+        if case .ai = mode { return true }
+        return level < pool.count && canOpenLevel(level + 1)
+    }
+
+    /// Попытки и подсказки партии: у ИИ-уровня их задаёт ступень, у остальных обычные
+    private var limits: (attempts: Int, hints: Int) {
+        if case .ai(let number) = mode {
+            let tier = AIPuzzleLogic.tier(forLevel: number)
+            return (tier.attempts, tier.hints)
+        }
+        return (VersePuzzleLogic.maxAttempts, VersePuzzleLogic.maxHints)
+    }
+
     // MARK: Действия
     private func placeTile(_ tile: Int) {
         board?.place(tile)
@@ -1521,6 +1736,10 @@ struct VersePuzzlePlayView: View {
         case .level(let number):
             guard pool.indices.contains(number - 1) else { return nil }
             return (pool[number - 1], VersePuzzleLogic.tileCount(forLevel: number), number * 100)
+        case .ai(let number):
+            guard let reference = aiStore.reference(forLevel: number),
+                  let chosen = AIPuzzleLogic.verse(for: reference) else { return nil }
+            return (chosen, AIPuzzleLogic.tier(forLevel: number).tiles, 1_000_000 + number * 100)
         }
     }
 
@@ -1537,7 +1756,9 @@ struct VersePuzzlePlayView: View {
             tray: VersePuzzleLogic.shuffled(correct, seed: chosen.seedBase + saved.retry),
             attempts: saved.attempts,
             locked: Set(saved.locked),
-            hintsUsed: saved.hints
+            hintsUsed: saved.hints,
+            attemptLimit: limits.attempts,
+            hintLimit: limits.hints
         )
     }
 
@@ -1609,6 +1830,12 @@ struct VersePuzzlePlayView: View {
                 PomegranateTreeManager.shared.record(.plan)
             }
             Funnel.track("feature_used", ["feature": "puzzle_level_won"])
+        case .ai(let number):
+            let isFirst = aiStore.recordStars(level: number, stars: solved.stars)
+            if isFirst {
+                PomegranateTreeManager.shared.record(.plan)
+            }
+            Funnel.track("feature_used", ["feature": "puzzle_ai_level_won"])
         }
     }
 }

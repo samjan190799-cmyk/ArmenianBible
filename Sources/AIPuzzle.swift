@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - ИИ-уровни игры «Собери стих» (логика без экрана)
+// MARK: - ИИ-уровни игры «Собери стих» (логика; экран во вкладке «ИИ» в VersePuzzle.swift)
 // Вкладка «ИИ» (по подписке): ИИ сам выбирает стихи по всей Библии, а уровни идут от известных стихов к редким и становятся сложнее.
 // ИИ присылает только ссылки на стихи. Текст всегда берётся из офлайн-Библии приложения, поэтому выдуманной цитаты не бывает,
 // а несуществующие ссылки отбрасываются. Десять уровней одной ступени приходят одним запросом и хранятся на телефоне:
@@ -183,6 +183,24 @@ enum AIPuzzleLogic {
             result.append(reference)
         }
         return result
+    }
+
+    // MARK: Стих уровня
+    /// Стих для игры по ссылке: настоящий текст из офлайн-Библии на трёх языках и название книги для подписи
+    static func verse(for reference: AIPuzzleReference) -> BibleVerse? {
+        guard let book = BibleDatabase.shared.getBook(id: reference.bookId),
+              let text = BibleDatabase.shared.getVerseText(bookId: reference.bookId, chapter: reference.chapter, verse: reference.verse) else { return nil }
+        let place = "\(reference.chapter):\(reference.verse)"
+        return BibleVerse(
+            textHy: text.textHy,
+            textHyArarat: text.textHyArarat,
+            textRu: text.textRu,
+            textEn: text.textEn,
+            refHy: "\(book.nameHy) \(place)",
+            refRu: "\(book.nameRu) \(place)",
+            refEn: "\(book.nameEn) \(place)",
+            isPrayer: false
+        )
     }
 
     // MARK: Запасной выбор без ИИ
