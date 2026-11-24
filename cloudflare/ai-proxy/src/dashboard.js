@@ -21,7 +21,7 @@ const AI_RESULTS = {
   bad_json: 'не JSON (400)', too_large: 'слишком большой запрос (413)', not_configured: 'ключ ИИ не задан (503)'
 };
 const AI_SPEED = { lt5: 'до 5 секунд', s5_15: '5–15 секунд', s15_30: '15–30 секунд', s30p: 'дольше 30 секунд' };
-const AI_TASKS = { chat: 'чат', quiz: 'викторина', consolation: 'Нарек утешает', explain: 'толкование', verse: 'подбор стиха', general: 'прочее' };
+const AI_TASKS = { chat: 'чат', quiz: 'викторина', consolation: 'Нарек утешает', explain: 'толкование', verse: 'подбор стиха', puzzle: 'ИИ-уровни игры', general: 'прочее' };
 const REGIONS = (() => { try { return new Intl.DisplayNames(['ru'], { type: 'region' }); } catch (e) { return null; } })();
 const app = document.getElementById('app');
 let days = Number(localStorage.getItem('luys_stats_days')) || 14;

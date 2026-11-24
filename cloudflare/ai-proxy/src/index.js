@@ -165,6 +165,8 @@ async function handleGenerate(request, env, deps, ctx) {
     // Бесплатные вопросы: без подписки, поэтому лимит строже и есть отдельный потолок для всех бесплатных
     // ИИ-викторина только по подписке: задача quiz на бесплатный путь не пускается (классическая офлайн-викторина сервера не требует)
     tier = 'free';
+    // ИИ-уровни игры «Собери стих» тоже только по подписке: задача puzzle на бесплатный путь не пускается (классические уровни ИИ не требуют)
+    if (task === 'puzzle' && env.PUZZLE_PAID_ONLY !== 'false') return done(json({ error: 'no_subscription', reason: 'puzzle_premium' }, 403), 'no_subscription', { why: 'puzzle_premium' });
     if (task === 'quiz' && env.QUIZ_PAID_ONLY !== 'false') return done(json({ error: 'no_subscription', reason: 'quiz_premium' }, 403), 'no_subscription', { why: 'quiz_premium' });
     if (env.ALLOW_FREE === 'false') return done(json({ error: 'no_subscription', reason: 'free_disabled' }, 403), 'no_subscription', { why: 'free_disabled' });
     userName = `free:${body.installId.toLowerCase()}`;

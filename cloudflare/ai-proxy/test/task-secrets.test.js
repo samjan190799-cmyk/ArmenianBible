@@ -9,7 +9,8 @@ test('имена секретов: общий ключ и по одному на
     'GEMINI_API_KEY_QUIZ',
     'GEMINI_API_KEY_CONSOLATION',
     'GEMINI_API_KEY_EXPLAIN',
-    'GEMINI_API_KEY_VERSE'
+    'GEMINI_API_KEY_VERSE',
+    'GEMINI_API_KEY_PUZZLE'
   ]);
 });
 

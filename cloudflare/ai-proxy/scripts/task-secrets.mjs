@@ -1,6 +1,6 @@
 // Ключи Gemini из секретов GitHub для передачи Worker при выпуске (см. .github/workflows/ai-proxy.yml).
 // Имя секрета в GitHub совпадает с именем секрета Worker: GEMINI_API_KEY (общий) и GEMINI_API_KEY_<ЗАДАЧА>
-// для каждой задачи из src/tasks.js: CHAT, QUIZ, CONSOLATION, EXPLAIN, VERSE.
+// для каждой задачи из src/tasks.js: CHAT, QUIZ, CONSOLATION, EXPLAIN, VERSE, PUZZLE.
 // Берутся только непустые: что в GitHub не задано, в Cloudflare остаётся как есть.
 
 import { TASKS } from '../src/tasks.js';

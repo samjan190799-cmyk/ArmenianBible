@@ -229,6 +229,37 @@ test('QUIZ_PAID_ONLY = "false" возвращает бесплатную ИИ-в
   assert.equal((await ask(env, freeBody(1, { task: 'quiz' }))).status, 429);
 });
 
+// --- ИИ-уровни игры «Собери стих» только по подписке (задача puzzle)
+
+test('ИИ-уровни игры: бесплатному задача puzzle отказана (403 puzzle_premium), остальные задачи не затронуты', { skip }, async () => {
+  const env = makeEnv({ FREE_DAILY_LIMIT: '1', GLOBAL_DAILY_LIMIT: '100' });
+  const res = await ask(env, freeBody(1, { task: 'puzzle' }));
+  assert.equal(res.status, 403);
+  assert.deepEqual(await res.json(), { error: 'no_subscription', reason: 'puzzle_premium' });
+  // отказ не списывает вопрос установки: единственный бесплатный вопрос остался для другой задачи
+  assert.equal((await ask(env, freeBody(1, { task: 'chat' }))).status, 200);
+});
+
+test('ИИ-уровни игры: подписчик получает ответ по задаче puzzle', { skip }, async () => {
+  const res = await ask(makeEnv(), validBody({ task: 'puzzle' }));
+  const data = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(data.tier, 'premium');
+});
+
+test('ИИ-уровни игры: просроченная подписка по задаче puzzle — 403 expired, не puzzle_premium', { skip }, async () => {
+  const body = validBody({ task: 'puzzle', transaction: makeJws(chain, goodPayload({ expiresDate: Date.now() - 1000 })) });
+  const res = await ask(makeEnv(), body);
+  assert.equal(res.status, 403);
+  assert.equal((await res.json()).reason, 'expired');
+});
+
+test('PUZZLE_PAID_ONLY = "false" возвращает бесплатные ИИ-уровни в пределах лимитов', { skip }, async () => {
+  const env = makeEnv({ PUZZLE_PAID_ONLY: 'false', FREE_DAILY_LIMIT: '1', GLOBAL_DAILY_LIMIT: '100' });
+  assert.equal((await ask(env, freeBody(1, { task: 'puzzle' }))).status, 200);
+  assert.equal((await ask(env, freeBody(1, { task: 'puzzle' }))).status, 429);
+});
+
 test('бесплатный запрос с неверным номером установки — 401', { skip }, async () => {
   assert.equal((await ask(makeEnv(), { prompt: 'Привет', installId: 'не-uuid' })).status, 401);
   assert.equal((await ask(makeEnv(), { prompt: 'Привет', installId: '' })).status, 401);
