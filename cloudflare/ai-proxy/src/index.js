@@ -59,25 +59,86 @@ async function hashed(env, value) {
 
 const INSTALL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function handleGenerate(request, env, deps) {
-  if (!env.GEMINI_API_KEY) return json({ error: 'not_configured' }, 503);
-  if (Number(request.headers.get('content-length') || 0) > MAX_BODY_BYTES) return json({ error: 'too_large' }, 413);
+/** Какой счётчик отказал, без чужих номеров: свой лимит человека, установка, сеть или общий потолок */
+function scopeOf(name) {
+  if (name.startsWith('user:') || name.startsWith('early:')) return 'user';
+  if (name.startsWith('free:')) return 'install';
+  if (name.startsWith('net:')) return 'network';
+  if (name.startsWith('task:')) return 'task';
+  return name;
+}
+
+/** Сколько ждали ИИ, грубо: так видно, упираемся ли мы в таймауты */
+function speedBucket(ms) {
+  if (ms < 5_000) return 'lt5';
+  if (ms < 15_000) return 's5_15';
+  if (ms < 30_000) return 's15_30';
+  return 's30p';
+}
+
+/** Одно слово для счётчика: строчные латиница, цифры и «_ . -», не длиннее 40 знаков */
+function cleanNote(value) {
+  return String(value ?? '').toLowerCase().replace(/[^a-z0-9_.-]+/g, '_').slice(0, 40);
+}
+
+/**
+ * Исходы запросов к ИИ в счётчики владельца (страница /dashboard). Ни текста, ни номеров людей: только исход, задача,
+ * уровень, причина сбоя и время. Сбой счётчика человеку не мешает; в Worker запись уходит в waitUntil и ответ не задерживает.
+ */
+async function noteAll(env, ctx, items) {
+  if (!env.STATS) return;
+  try {
+    const clean = items.map(({ name, dims }) => {
+      const out = {};
+      for (const [key, value] of Object.entries(dims)) {
+        const text = cleanNote(value);
+        if (text) out[key] = text;
+      }
+      return { name, dims: out };
+    });
+    const day = new Date().toISOString().slice(0, 10);
+    const work = statsStub(env)
+      .fetch('https://stats/note', { method: 'POST', body: JSON.stringify({ day, items: clean }) })
+      .then((res) => res.text())
+      .catch(() => {});
+    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(work);
+    else await work;
+  } catch {
+    // Счётчик нужен владельцу, а не человеку
+  }
+}
+
+async function handleGenerate(request, env, deps, ctx) {
+  const clock = deps.clock || Date.now;
+  let task = 'general';
+  let tier = 'none';
+  // Исход запроса и попытки моделей уходят в счётчики владельца; ответ человеку от этого не меняется
+  const done = async (response, result, extra = {}, attempts = []) => {
+    await noteAll(env, ctx, [
+      { name: 'ai_server', dims: { result, task, tier, ...extra } },
+      ...attempts.map(({ model, kind }) => ({ name: 'ai_attempt', dims: { model, kind, modelkind: `${model}.${kind}` } }))
+    ]);
+    return response;
+  };
+
+  if (!env.GEMINI_API_KEY) return done(json({ error: 'not_configured' }, 503), 'not_configured');
+  if (Number(request.headers.get('content-length') || 0) > MAX_BODY_BYTES) return done(json({ error: 'too_large' }, 413), 'too_large');
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return json({ error: 'bad_json' }, 400);
+    return done(json({ error: 'bad_json' }, 400), 'bad_json');
   }
+  if (!body || typeof body !== 'object') return done(json({ error: 'bad_json' }, 400), 'bad_json');
   const prompt = typeof body.prompt === 'string' ? body.prompt : '';
   const system = typeof body.system === 'string' ? body.system : '';
-  if (!prompt.trim() || prompt.length > MAX_PROMPT_CHARS || system.length > MAX_SYSTEM_CHARS) return json({ error: 'bad_request' }, 400);
+  if (!prompt.trim() || prompt.length > MAX_PROMPT_CHARS || system.length > MAX_SYSTEM_CHARS) return done(json({ error: 'bad_request' }, 400), 'bad_request');
   const maxTokens = Math.min(Math.max(Number(body.maxTokens) || 1024, 64), 4096);
   // Для какой задачи запрос: у задачи может быть свой ключ Gemini, свои модели и суточный потолок (см. tasks.js)
-  const task = normalizeTask(body.task);
+  task = normalizeTask(body.task);
 
   const global = { name: 'global', limit: Number(env.GLOBAL_DAILY_LIMIT) || 3000, failure: 'busy' };
-  let tier;
   let counters;
   let userLimit;
   let userName;
@@ -87,13 +148,14 @@ async function handleGenerate(request, env, deps) {
     try {
       payload = await verifyAppleJws(body.transaction, { rootSha256: env.APPLE_ROOT_SHA256 || undefined });
     } catch (error) {
-      return json({ error: 'unauthorized', reason: error instanceof VerifyError ? error.code : 'bad_format' }, 401);
+      const why = error instanceof VerifyError ? error.code : 'bad_format';
+      return done(json({ error: 'unauthorized', reason: why }, 401), 'unauthorized', { why });
     }
     // Подтверждение бывает двух видов: покупка товара (подписка или пожизненная, есть productId) и покупка самого приложения
     // (AppTransaction: ранний покупатель платной версии 1.x, productId нет, зато есть originalAppVersion)
     const isAppPurchase = payload.productId === undefined && typeof payload.originalAppVersion === 'string';
     const reason = isAppPurchase ? checkAppPurchase(payload, env) : checkEntitlement(payload, env, deps.now ? deps.now() : Date.now());
-    if (reason) return json({ error: 'no_subscription', reason }, 403);
+    if (reason) return done(json({ error: 'no_subscription', reason }, 403), 'no_subscription', { why: reason });
 
     tier = 'premium';
     userName = isAppPurchase ? `early:${appPurchaseId(payload)}` : `user:${payload.originalTransactionId}`;
@@ -102,9 +164,9 @@ async function handleGenerate(request, env, deps) {
   } else if (typeof body.installId === 'string' && INSTALL_ID.test(body.installId)) {
     // Бесплатные вопросы: без подписки, поэтому лимит строже и есть отдельный потолок для всех бесплатных
     // ИИ-викторина только по подписке: задача quiz на бесплатный путь не пускается (классическая офлайн-викторина сервера не требует)
-    if (task === 'quiz' && env.QUIZ_PAID_ONLY !== 'false') return json({ error: 'no_subscription', reason: 'quiz_premium' }, 403);
-    if (env.ALLOW_FREE === 'false') return json({ error: 'no_subscription', reason: 'free_disabled' }, 403);
     tier = 'free';
+    if (task === 'quiz' && env.QUIZ_PAID_ONLY !== 'false') return done(json({ error: 'no_subscription', reason: 'quiz_premium' }, 403), 'no_subscription', { why: 'quiz_premium' });
+    if (env.ALLOW_FREE === 'false') return done(json({ error: 'no_subscription', reason: 'free_disabled' }, 403), 'no_subscription', { why: 'free_disabled' });
     userName = `free:${body.installId.toLowerCase()}`;
     userLimit = Number(env.FREE_DAILY_LIMIT) || 5;
     counters = [];
@@ -118,7 +180,7 @@ async function handleGenerate(request, env, deps) {
       global
     );
   } else {
-    return json({ error: 'unauthorized', reason: 'bad_format' }, 401);
+    return done(json({ error: 'unauthorized', reason: 'bad_format' }, 401), 'unauthorized', { why: 'bad_format' });
   }
 
   const perTaskLimit = taskDailyLimit(env, task);
@@ -126,20 +188,36 @@ async function handleGenerate(request, env, deps) {
 
   const taken = await takeAll(env, counters);
   if (!taken.ok) {
+    const scope = scopeOf(taken.failed.name);
     if (taken.failed.failure === 'quota') {
-      return json({ error: 'quota', tier, used: taken.result.used, limit: taken.result.limit }, 429);
+      return done(json({ error: 'quota', tier, used: taken.result.used, limit: taken.result.limit }, 429), 'quota', { why: scope });
     }
-    return json({ error: 'busy', tier }, 503);
+    return done(json({ error: 'busy', tier }, 503), 'busy', { why: scope });
   }
   const mine = taken.taken.find((item) => item.name === userName);
 
+  const aiStarted = clock();
   try {
-    const { text, model } = await generate(geminiEnvFor(env, task), { prompt, system, json: body.json === true, maxTokens }, deps.fetch);
-    return json({ text, model, tier, remaining: Math.max(0, mine.result.limit - mine.result.used) });
+    const { text, model, trail } = await generate(geminiEnvFor(env, task), { prompt, system, json: body.json === true, maxTokens }, deps.fetch, clock);
+    const extra = { speed: speedBucket(clock() - aiStarted) };
+    if (trail.length > 0) extra.fallback = 'yes';
+    return done(
+      json({ text, model, tier, remaining: Math.max(0, mine.result.limit - mine.result.used) }),
+      'ok',
+      extra,
+      [...trail, { model, kind: 'ok' }]
+    );
   } catch (error) {
     // ИИ не ответил: вопрос человеку не засчитываем
     await giveBack(env, taken.taken);
-    return json({ error: 'ai_failed', status: error instanceof GenerateError ? error.status : 502 }, 502);
+    const trail = error instanceof GenerateError ? error.trail : [];
+    const why = trail.length > 0 ? trail[trail.length - 1].kind : error instanceof GenerateError ? `http_${error.status}` : 'exception';
+    return done(
+      json({ error: 'ai_failed', status: error instanceof GenerateError ? error.status : 502 }, 502),
+      'ai_failed',
+      { why, taskwhy: `${task}.${why}`, speed: speedBucket(clock() - aiStarted) },
+      trail
+    );
   }
 }
 
@@ -205,7 +283,7 @@ export default {
       return json({ ok: true, service: 'luys-ai', configured: Boolean(env.GEMINI_API_KEY), dailyLimit: Number(env.DAILY_LIMIT) || 30 });
     }
     if (request.method === 'POST' && url.pathname === '/v1/generate') {
-      return handleGenerate(request, env, deps);
+      return handleGenerate(request, env, deps, ctx);
     }
     // Актуальные модели для кнопки «Обновить модели» в приложении. Открытый список: ни ключей, ни данных людей в нём нет
     if (request.method === 'GET' && url.pathname === '/v1/models') {

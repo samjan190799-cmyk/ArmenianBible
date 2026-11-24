@@ -315,12 +315,30 @@ final class AIModelRegistry: @unchecked Sendable {
         }
     }
 
-    /// Итог запроса одним словом для воронки
+    /// Итог запроса одним словом для воронки. Раньше все сбои, кроме лимита, доступа и отказа в согласии, были «error»,
+    /// и по панели нельзя было отличить таймаут от оборванной сети и от сбоя сервера. Теперь у каждого свое слово
     private static func aiOutcome(_ error: Error) -> String {
-        switch (error as NSError).code {
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case NSURLErrorTimedOut:
+                return "timeout"
+            case NSURLErrorNotConnectedToInternet, NSURLErrorDataNotAllowed, NSURLErrorInternationalRoamingOff:
+                return "offline"
+            case NSURLErrorNetworkConnectionLost, NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost,
+                 NSURLErrorDNSLookupFailed, NSURLErrorSecureConnectionFailed:
+                return "network"
+            default:
+                return "error"
+            }
+        }
+        switch nsError.code {
         case 429: return "quota"
         case 451: return "declined"
         case 401, 403: return "auth"
+        case 500, 502, 504: return "server"
+        case 503: return "busy"
+        case 400, 413: return "bad"
         default: return "error"
         }
     }

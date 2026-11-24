@@ -7,6 +7,11 @@
 
 const DAY_LIMIT_PER_INSTALL = 400;
 
+// Серверные счётчики без людей (их пишет сам Worker, приложение их присылать не может): исходы запросов к ИИ
+const NOTE_NAMES = new Set(['ai_server', 'ai_attempt']);
+const NOTE_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const NOTE_KEY = /^[a-z]{1,16}$/;
+
 export function lastDays(count, now = new Date()) {
   const days = [];
   for (let i = count - 1; i >= 0; i--) {
@@ -23,6 +28,7 @@ export class Stats {
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === '/ingest') return Response.json(await this.ingest(await request.json()));
+    if (url.pathname === '/note') return Response.json(await this.note(await request.json()));
     if (url.pathname === '/report') return Response.json(await this.report(Number(url.searchParams.get('days')) || 14));
     if (url.pathname === '/reset') return Response.json(await this.reset());
     return new Response('not found', { status: 404 });
@@ -43,6 +49,25 @@ export class Stats {
     if (await this.storage.get(key)) return false;
     await this.storage.put(key, 1);
     return true;
+  }
+
+  /**
+   * Серверные исходы без людей: по каждому пункту растёт счётчик события и счётчик по каждому параметру (как у событий приложения),
+   * поэтому сводка и страница /dashboard показывают их теми же строками. Людей тут нет: поле people будет нулём.
+   */
+  async note({ day, items }) {
+    if (typeof day !== 'string' || !NOTE_DAY.test(day)) return { accepted: 0 };
+    let accepted = 0;
+    for (const item of Array.isArray(items) ? items : []) {
+      if (!item || !NOTE_NAMES.has(item.name)) continue;
+      const dims = [''];
+      for (const [key, value] of Object.entries(item.dims || {})) {
+        if (NOTE_KEY.test(key) && typeof value === 'string' && value) dims.push(`${key}=${value}`);
+      }
+      for (const dim of dims) await this.bump(`c|${day}|${item.name}|${dim}`);
+      accepted += 1;
+    }
+    return { accepted };
   }
 
   async ingest({ day, installId, lang, app, premium, events }) {

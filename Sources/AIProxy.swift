@@ -103,6 +103,34 @@ enum AIProxy {
         NSError(domain: "AIProxy", code: code, userInfo: [NSLocalizedDescriptionKey: messagePrefix + text])
     }
 
+    // MARK: Один быстрый повтор
+    /// Пауза перед повтором: сервер или Google на секунду споткнулись
+    private static let retryDelay: UInt64 = 1_500_000_000
+    /// Повторяем только быструю неудачу: после долгого ожидания человек и так ждал достаточно
+    private static let retryWindow: TimeInterval = 20
+
+    /// Ответы сервера, после которых один повтор имеет смысл: сбой Google (502), исключение (500), таймаут Google (504)
+    /// и перегрузка (503), кроме общего потолка расходов и ненастроенного ключа (там повтор ничего не изменит)
+    private static func isRetryable(status: Int, json: [String: Any]?) -> Bool {
+        switch status {
+        case 500, 502, 504:
+            return true
+        case 503:
+            let reason = json?["error"] as? String
+            return reason != "busy" && reason != "not_configured"
+        default:
+            return false
+        }
+    }
+
+    /// Обрыв соединения, после которого повтор может сработать. Таймаут и «нет интернета» не повторяем
+    private static func isRetryable(networkError error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else { return false }
+        let codes = [NSURLErrorNetworkConnectionLost, NSURLErrorCannotConnectToHost, NSURLErrorDNSLookupFailed, NSURLErrorSecureConnectionFailed]
+        return codes.contains(nsError.code)
+    }
+
     static func generate(prompt: String, systemPrompt: String?, jsonMode: Bool, maxTokens: Int, task: AITask = .general) async throws -> String {
         let language = BibleManager.shared.appLanguage
         guard let url = URL(string: baseURL)?.appendingPathComponent("v1/generate") else {
@@ -143,9 +171,35 @@ enum AIProxy {
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        // Один быстрый повтор при сбое сервера или обрыве соединения. Сервер при сбое ИИ вопрос человеку не засчитывает,
+        // поэтому повтор не тратит лимит. Таймаут не повторяем: человек уже прождал минуту
+        var status = 0
+        var json: [String: Any]?
+        var retried = false
+        while true {
+            let started = Date()
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            } catch {
+                guard !retried, isRetryable(networkError: error), Date().timeIntervalSince(started) < retryWindow else { throw error }
+                retried = true
+                Funnel.track("feature_used", ["feature": "ai_retry"])
+                try await Task.sleep(nanoseconds: retryDelay)
+                continue
+            }
+            if !retried, status != 200, isRetryable(status: status, json: json), Date().timeIntervalSince(started) < retryWindow {
+                retried = true
+                Funnel.track("feature_used", ["feature": "ai_retry"])
+                try await Task.sleep(nanoseconds: retryDelay)
+                continue
+            }
+            break
+        }
+        if retried, status == 200 {
+            Funnel.track("feature_used", ["feature": "ai_retry_ok"])
+        }
 
         if status == 200, let text = json?["text"] as? String, !text.isEmpty {
             return text

@@ -14,6 +14,14 @@ const LABELS = {
   map: 'Карта святынь', quiz: 'Викторина', wallpaper: 'Обои', wallpaper_auto: 'Автообои', settings: 'Настройки', home: 'Главный экран',
   manuscript_pen: 'Перо рукописи', manuscript_surface: 'Основа рукописи', widget: 'Виджеты', unknown: 'Не указано'
 };
+// Исходы запросов к ИИ, которые считает сам сервер (см. index.js, ai_server и ai_attempt)
+const AI_RESULTS = {
+  ok: 'ответ дан', ai_failed: 'Google не ответил (502)', quota: 'лимит вопросов (429)', busy: 'общий потолок (503)',
+  no_subscription: 'нет подписки (403)', unauthorized: 'подпись не принята (401)', bad_request: 'плохой запрос (400)',
+  bad_json: 'не JSON (400)', too_large: 'слишком большой запрос (413)', not_configured: 'ключ ИИ не задан (503)'
+};
+const AI_SPEED = { lt5: 'до 5 секунд', s5_15: '5–15 секунд', s15_30: '15–30 секунд', s30p: 'дольше 30 секунд' };
+const AI_TASKS = { chat: 'чат', quiz: 'викторина', consolation: 'Нарек утешает', explain: 'толкование', verse: 'подбор стиха', general: 'прочее' };
 const app = document.getElementById('app');
 let days = Number(localStorage.getItem('luys_stats_days')) || 14;
 
@@ -46,6 +54,15 @@ function dimRows(events, name, key, labels) {
   return Object.entries(events[name] || {})
     .filter(([dim]) => dim.startsWith(prefix))
     .map(([dim, v]) => [labels && labels[dim.slice(prefix.length)] || dim.slice(prefix.length), v.people, v.events])
+    .sort((a, b) => b[1] - a[1]);
+}
+// Строки для счётчиков без людей: только сколько раз и какая доля от всех таких событий
+function countRows(events, name, key, labels) {
+  const prefix = key + '=';
+  const total = cell(events, name, '').events;
+  return Object.entries(events[name] || {})
+    .filter(([dim]) => dim.startsWith(prefix))
+    .map(([dim, v]) => [labels && labels[dim.slice(prefix.length)] || dim.slice(prefix.length), v.events, percent(v.events, total)])
     .sort((a, b) => b[1] - a[1]);
 }
 function section(title) {
@@ -110,6 +127,27 @@ function render(data) {
     .map(([dim, v]) => [dim.replace('result=', 'итог: ').replace('via=', 'через: '), v.people, v.events])
     .sort((a, b) => b[1] - a[1]);
   app.appendChild(table(['Что', 'Людей', 'Раз'], aiRows));
+
+  // Что видит сам сервер: чем кончился каждый запрос к ИИ и почему Google не ответил (без текста вопросов и людей)
+  const aiTotal = cell(ev, 'ai_server', '').events;
+  if (aiTotal > 0) {
+    section('ИИ на сервере: исходы запросов (' + aiTotal + ')');
+    app.appendChild(table(['Исход', 'Раз', 'Доля'], countRows(ev, 'ai_server', 'result', AI_RESULTS)));
+    section('ИИ на сервере: по задачам');
+    app.appendChild(table(['Задача', 'Раз', 'Доля'], countRows(ev, 'ai_server', 'task', AI_TASKS)));
+    section('ИИ на сервере: сколько ждали Google');
+    app.appendChild(table(['Время', 'Раз', 'Доля'], countRows(ev, 'ai_server', 'speed', AI_SPEED)));
+    const why = countRows(ev, 'ai_server', 'taskwhy');
+    if (why.length) {
+      section('ИИ на сервере: почему Google не ответил (задача.причина)');
+      app.appendChild(table(['Причина', 'Раз', 'Доля'], why));
+    }
+    const attempts = cell(ev, 'ai_attempt', '').events;
+    if (attempts > 0) {
+      section('ИИ на сервере: попытки по моделям (' + attempts + ')');
+      app.appendChild(table(['Модель.итог', 'Раз', 'Доля'], countRows(ev, 'ai_attempt', 'modelkind')));
+    }
+  }
 
   section('Языки активных людей');
   app.appendChild(table(['Язык', 'Людей-дней'], Object.entries(ev._active || {}).filter(([d]) => d.startsWith('lang=')).map(([d, v]) => [d.slice(5), v.events])));
