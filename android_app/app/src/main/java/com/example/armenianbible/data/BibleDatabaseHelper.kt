@@ -14,7 +14,7 @@ class BibleDatabaseHelper(private val context: Context) : SQLiteOpenHelper(conte
         private const val DB_NAME = "bible.db"
         private const val DB_VERSION = 1
         /** Менять при каждой замене bible.db в ассетах */
-        private const val ASSET_STAMP = "2026-10-21-ru-synod-ararat"
+        private const val ASSET_STAMP = "2026-11-25-verse-numbering"
         @Volatile private var instance: BibleDatabaseHelper? = null
 
         fun getInstance(context: Context): BibleDatabaseHelper {
