@@ -34,6 +34,7 @@ on:
           - promo
           - verselink
           - matenadaran
+          - videoextra
       language:
         description: 'Язык интерфейса для scope=store (russian, armenian, english)'
         required: false
@@ -329,6 +330,37 @@ jobs:
               done
               xcrun simctl shutdown "$UDID" || true
               echo "✅ Кадры постеров ($STORE_LANG) сняты"
+              return 0
+            fi
+
+            # 24. Кадры для ролика: игры («Собери стих», викторина) и гранатовое древо по стадиям (показать, зачем оно в приложении)
+            if [ "$SCOPE" = "videoextra" ]; then
+              shoot() {
+                local NAME="$1"; shift
+                echo "📸 Снятие $NAME ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible "$@" -k_debug_premium_unlocked YES -luys_debug_language "$STORE_LANG"
+                sleep 10
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/$NAME.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              }
+              shoot "g01_puzzle_hub" -openTab puzzle -puzzle_seed YES
+              shoot "g02_puzzle_ai" -openTab puzzle -puzzle_seed YES -puzzle_open ai
+              shoot "g03_puzzle_play" -openTab puzzle -puzzle_seed YES -puzzle_open level -puzzle_level 5 -puzzle_hints 3 -puzzle_place 2
+              shoot "g04_puzzle_daily" -openTab puzzle -puzzle_open daily -puzzle_hints 2 -puzzle_place 3
+              shoot "g05_quiz_question" -openTab quiz -quiz_autostart YES
+              shoot "g06_quiz_answered" -openTab quiz -quiz_autostart YES -quiz_pick correct
+              # Древо по стадиям: те же аргументы, что в scope=tree (две главы и свеча засчитаны), без флага Premium
+              for DAYS in 1 4 10 20 45 70; do
+                echo "📸 Древо, день $DAYS ($STORE_LANG)..."
+                xcrun simctl launch "$UDID" com.samvel.armenianbible -openTab tree -pomegranate_debug_days $DAYS -pomegranate_demo YES -luys_debug_language "$STORE_LANG"
+                sleep 10
+                xcrun simctl io "$UDID" screenshot "$OUT_DIR/tree_stage_${DAYS}d.png"
+                xcrun simctl terminate "$UDID" com.samvel.armenianbible
+                sleep 2
+              done
+              xcrun simctl shutdown "$UDID" || true
+              echo "✅ Кадры игр и древа ($STORE_LANG) сняты"
               return 0
             fi
 

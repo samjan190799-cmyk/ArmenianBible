@@ -627,6 +627,14 @@ struct HomeView: View {
                         manuscriptLaunch = ManuscriptLaunch(source: ManuscriptPage.debugSource(fallbackLanguage: manager.appLanguage))
                     }
                 }
+                #if DEBUG || targetEnvironment(simulator)
+                // Для съёмки в CI (только симулятор и отладочная сборка): игра «Собери стих», подробности в VersePuzzleView.applyDebugLaunch
+                if tabArg == "puzzle" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        isShowingPuzzle = true
+                    }
+                }
+                #endif
                 UserDefaults.standard.removeObject(forKey: "openTab")
             }
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {

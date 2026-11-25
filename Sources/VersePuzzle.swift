@@ -564,6 +564,9 @@ struct VersePuzzleView: View {
             pool = VersePuzzleLogic.levelPool(language: language)
             refreshReleases()
             Funnel.track("feature_used", ["feature": "puzzle_opened"])
+            #if DEBUG || targetEnvironment(simulator)
+            applyDebugLaunch()
+            #endif
         }
         .onChange(of: manager.appLanguage) { newLanguage in
             pool = VersePuzzleLogic.levelPool(language: newLanguage)
@@ -632,6 +635,26 @@ struct VersePuzzleView: View {
             Funnel.track("feature_used", ["feature": "puzzle_pack_next"])
         }
     }
+
+    #if DEBUG || targetEnvironment(simulator)
+    /// Для съёмки в CI (только симулятор и отладочная сборка): -puzzle_seed YES засевает четыре решённых уровня со звёздами,
+    /// -puzzle_open daily|level|ai открывает головоломку дня, уровень (-puzzle_level N) или вкладку ИИ
+    private func applyDebugLaunch() {
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: "puzzle_seed") {
+            for (index, value) in [3, 2, 3, 1].enumerated() {
+                store.recordStars(level: index + 1, stars: value)
+            }
+            refreshReleases()
+        }
+        switch defaults.string(forKey: "puzzle_open") {
+        case "daily": mode = .daily
+        case "level": mode = .level(max(1, defaults.integer(forKey: "puzzle_level")))
+        case "ai": tab = .ai
+        default: break
+        }
+    }
+    #endif
 
     /// Сколько ждать, по-человечески: «1 д 14 ч», «5 ч 20 мин», «12 мин»
     private func waitText(_ seconds: TimeInterval) -> String {
@@ -1760,7 +1783,28 @@ struct VersePuzzlePlayView: View {
             attemptLimit: limits.attempts,
             hintLimit: limits.hints
         )
+        #if DEBUG || targetEnvironment(simulator)
+        applyDebugDemo()
+        #endif
     }
+
+    #if DEBUG || targetEnvironment(simulator)
+    /// Для съёмки в CI (только симулятор и отладочная сборка): -puzzle_hints N закрепляет N первых слов,
+    /// -puzzle_place M кладёт на стол ещё M верных плиток, чтобы партия выглядела начатой
+    private func applyDebugDemo() {
+        guard var current = board else { return }
+        let defaults = UserDefaults.standard
+        for _ in 0..<max(0, defaults.integer(forKey: "puzzle_hints")) {
+            _ = current.useHint()
+        }
+        for _ in 0..<max(0, defaults.integer(forKey: "puzzle_place")) {
+            guard let slot = current.slots.firstIndex(where: { $0 == nil }),
+                  let tile = current.poolTiles.first(where: { current.tray[$0] == current.correct[slot] }) else { break }
+            current.place(tile)
+        }
+        board = current
+    }
+    #endif
 
     /// Уровень начинается заново: другой порядок плиток, попытки и подсказки с нуля (лучшие звёзды остаются)
     private func restart() {

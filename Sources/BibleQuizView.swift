@@ -620,6 +620,21 @@ struct BibleQuizView: View {
         .onAppear {
             QuizAdaptiveDiary.shared.recordSession()
             selectedQuestionCount = manager.quizDefaultQuestionCount
+            #if DEBUG || targetEnvironment(simulator)
+            // Для съёмки в CI (только симулятор и отладочная сборка): -quiz_autostart YES сразу начинает офлайн-викторину,
+            // -quiz_pick correct отвечает верно на первый вопрос
+            if UserDefaults.standard.bool(forKey: "quiz_autostart") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    startOfflineQuiz()
+                    if UserDefaults.standard.string(forKey: "quiz_pick") == "correct", let first = activeQuestions.first {
+                        stopQuestionTimer()
+                        selectedAnswerIndex = first.correctAnswerIndex
+                        showAnswerDetails = true
+                        score += 1
+                    }
+                }
+            }
+            #endif
         }
         .onDisappear {
             stopAITimer()
