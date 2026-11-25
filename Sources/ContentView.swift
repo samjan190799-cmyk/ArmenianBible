@@ -291,11 +291,8 @@ struct HomeView: View {
     @State private var isShowingPuzzle = false
     @State private var isShowingPrayerHours = false
     @State private var isShowingRecap = false
-
-    // Порядок разделов на экране (HomeSectionOrder.swift): сохранённые идентификаторы через запятую
-    @AppStorage(HomeSectionOrder.storageKey) private var savedSectionOrderRaw: String = ""
-    @State private var draggedSection: HomeSection? = nil
-    @State private var isDragDimmed = false
+    /// Пока несут карточку раздела, главный экран не листается (HomeSectionReorder.swift)
+    @State private var isReorderingSections = false
 
     // Переменные для обработки ошибок ИИ
     @State private var showingErrorAlert = false
@@ -569,8 +566,9 @@ struct HomeView: View {
                     Spacer()
                         .frame(height: 6)
                     
-                    ForEach(Array(orderedSections.enumerated()), id: \.element) { position, section in
-                        reorderableCard(section, position: position)
+                    // Разделы переставляются за ручку (три точки в углу карточки): HomeSectionReorder.swift
+                    HomeReorderableSections(language: manager.appLanguage, isReordering: $isReorderingSections) { section in
+                        sectionCard(section)
                     }
                 }
                 .padding(.bottom, 30)
@@ -580,11 +578,8 @@ struct HomeView: View {
                 // Окружение задано внутри прокрутки, поэтому листы и окна, открытые отсюда, его не наследуют.
                 .environment(\.paperSurface, .sanctuary)
             }
-        }
-        // Отпустили карточку мимо других карточек: перетаскивание всё равно завершается чисто
-        .onDrop(of: [UTType.plainText], delegate: HomeSectionEndDropDelegate(dragged: $draggedSection, onFinish: { finishSectionDrag() }))
-        .onChange(of: scenePhase) { phase in
-            if phase == .active { finishSectionDrag() }
+            // Пока несут карточку раздела, палец не должен листать страницу (iOS 16 и новее)
+            .scrollDisabled(isReorderingSections)
         }
         .environment(\.locale, Locale(identifier: manager.appLanguage.localeCode))
         .modifier(CandleIslandPreviewHook())
@@ -814,13 +809,7 @@ struct HomeView: View {
         }
     }
     
-    // MARK: - Разделы главного экрана (переставляются долгим нажатием)
-
-    /// Разделы в порядке пользователя: сохранённый порядок слит с порядком по умолчанию
-    private var orderedSections: [HomeSection] {
-        HomeSectionOrder.merge(saved: HomeSectionOrder.decode(savedSectionOrderRaw), defaults: HomeSection.defaultOrder)
-            .compactMap { HomeSection(rawValue: $0) }
-    }
+    // MARK: - Разделы главного экрана (переставляются за ручку: HomeSectionReorder.swift)
 
     @ViewBuilder
     private func sectionCard(_ section: HomeSection) -> some View {
@@ -1009,87 +998,6 @@ struct HomeView: View {
                     isShowingPaywall = true
                 }
             )
-        }
-    }
-
-    // MARK: - Перестановка разделов: долгое нажатие и перетаскивание
-
-    /// Карточка раздела: каскадный вход, подъём по долгому нажатию (системное перетаскивание), действия для VoiceOver
-    @ViewBuilder
-    private func reorderableCard(_ section: HomeSection, position: Int) -> some View {
-        let total = orderedSections.count
-        sectionCard(section)
-            .staggeredEntrance(index: min(position, 8) + 2)
-            .opacity(isDragDimmed && draggedSection == section ? 0.4 : 1)
-            // Подпись при подъёме повторяет скруглённую карточку, а не прямоугольник
-            .contentShape(.dragPreview, RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .onDrag {
-                // Системное перетаскивание само поднимает карточку над экраном; здесь только отклик и пометка
-                draggedSection = section
-                isDragDimmed = false
-                triggerHaptic(.medium)
-                // Место, откуда взяли карточку, притухает чуть позже: подъём успевает снять кадр с карточки целиком
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    if draggedSection == section {
-                        withAnimation(PaperMotion.animation(PaperMotion.swap)) {
-                            isDragDimmed = true
-                        }
-                    }
-                }
-                return NSItemProvider(object: section.rawValue as NSString)
-            }
-            .onDrop(
-                of: [UTType.plainText],
-                delegate: HomeSectionDropDelegate(
-                    target: section,
-                    dragged: $draggedSection,
-                    onMove: { dragged, target in moveDraggedSection(dragged, onto: target) },
-                    onFinish: { finishSectionDrag() }
-                )
-            )
-            // VoiceOver: перестановка без жестов перетаскивания
-            .accessibilityAction(named: Text(manager.appLanguage.pick(hy: "Տեղափոխել վերև", ru: "Переместить выше", en: "Move up"))) {
-                if position > 0 { moveSection(section, by: -1) }
-            }
-            .accessibilityAction(named: Text(manager.appLanguage.pick(hy: "Տեղափոխել ներքև", ru: "Переместить ниже", en: "Move down"))) {
-                if position < total - 1 { moveSection(section, by: 1) }
-            }
-    }
-
-    /// Раздел, который тащат, встаёт на место раздела под пальцем; порядок сразу сохраняется
-    private func moveDraggedSection(_ dragged: HomeSection, onto target: HomeSection) {
-        let current = orderedSections.map { $0.rawValue }
-        let updated = HomeSectionOrder.move(current, id: dragged.rawValue, onto: target.rawValue)
-        guard updated != current else { return }
-        withAnimation(PaperMotion.animation(.spring(response: 0.38, dampingFraction: 0.82))) {
-            savedSectionOrderRaw = HomeSectionOrder.encode(updated)
-        }
-        triggerHaptic(.soft)
-    }
-
-    /// Сдвиг на одну позицию (для VoiceOver)
-    private func moveSection(_ section: HomeSection, by delta: Int) {
-        let current = orderedSections.map { $0.rawValue }
-        let updated = HomeSectionOrder.shift(current, id: section.rawValue, by: delta)
-        guard updated != current else { return }
-        withAnimation(PaperMotion.animation(.spring(response: 0.38, dampingFraction: 0.82))) {
-            savedSectionOrderRaw = HomeSectionOrder.encode(updated)
-        }
-        triggerHaptic(.light)
-        let newPosition = (updated.firstIndex(of: section.rawValue) ?? 0) + 1
-        let message = manager.appLanguage.pick(
-            hy: "Բաժինը տեղափոխվեց. դիրք \(newPosition)՝ \(updated.count)-ից",
-            ru: "Раздел перемещён: позиция \(newPosition) из \(updated.count)",
-            en: "Section moved: position \(newPosition) of \(updated.count)"
-        )
-        UIAccessibility.post(notification: .announcement, argument: message)
-    }
-
-    /// Перетаскивание закончилось (карточку отпустили или экран ушёл в фон)
-    private func finishSectionDrag() {
-        draggedSection = nil
-        withAnimation(PaperMotion.animation(PaperMotion.swap)) {
-            isDragDimmed = false
         }
     }
 

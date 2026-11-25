@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import UniformTypeIdentifiers
 
 // MARK: - Разделы главного экрана, которые пользователь может переставлять
 /// Устойчивые идентификаторы. В хранилище попадает `rawValue`, а не номер места:
@@ -67,17 +66,6 @@ enum HomeSectionOrder {
         return result
     }
 
-    /// Раздел `id` встаёт на место раздела `target`: идущий вниз оказывается после него, идущий вверх до него
-    static func move(_ order: [String], id: String, onto target: String) -> [String] {
-        guard id != target,
-              let from = order.firstIndex(of: id),
-              let to = order.firstIndex(of: target) else { return order }
-        var result = order
-        let item = result.remove(at: from)
-        result.insert(item, at: to)
-        return result
-    }
-
     /// Сдвиг на одну позицию выше (-1) или ниже (+1); на краю порядок не меняется
     static func shift(_ order: [String], id: String, by delta: Int) -> [String] {
         guard let from = order.firstIndex(of: id) else { return order }
@@ -88,52 +76,58 @@ enum HomeSectionOrder {
         return result
     }
 
-}
+    // MARK: Перетаскивание за ручку: где стоит каждая карточка и куда встаёт поднятая
 
-// MARK: - Перетаскивание карточки: цель падения у каждой карточки
-/// Пока карточку тащат, другие расступаются: как только палец заходит на соседа, раздел встаёт на его место.
-struct HomeSectionDropDelegate: DropDelegate {
-    let target: HomeSection
-    @Binding var dragged: HomeSection?
-    let onMove: (HomeSection, HomeSection) -> Void
-    let onFinish: () -> Void
-
-    func validateDrop(info: DropInfo) -> Bool {
-        dragged != nil
-    }
-
-    func dropEntered(info: DropInfo) {
-        if let current = dragged, current != target {
-            onMove(current, target)
+    /// Верх каждой карточки в колонке (в порядке `order`): высоты и промежутки подряд
+    static func tops(_ order: [String], heights: [String: CGFloat], spacing: CGFloat) -> [CGFloat] {
+        var result: [CGFloat] = []
+        var y: CGFloat = 0
+        for id in order {
+            result.append(y)
+            y += (heights[id] ?? 0) + spacing
         }
+        return result
     }
 
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
+    /// Высота всей колонки карточек
+    static func columnHeight(_ order: [String], heights: [String: CGFloat], spacing: CGFloat) -> CGFloat {
+        guard !order.isEmpty else { return 0 }
+        let cards = order.reduce(CGFloat(0)) { $0 + (heights[$1] ?? 0) }
+        return cards + spacing * CGFloat(order.count - 1)
     }
 
-    func performDrop(info: DropInfo) -> Bool {
-        onFinish()
-        return true
-    }
-}
-
-/// Цель падения на весь экран: отпустили между карточками или у края, перетаскивание всё равно завершается чисто
-struct HomeSectionEndDropDelegate: DropDelegate {
-    @Binding var dragged: HomeSection?
-    let onFinish: () -> Void
-
-    func validateDrop(info: DropInfo) -> Bool {
-        dragged != nil
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        onFinish()
-        return true
+    /// Порядок после того, как поднятая карточка `id` оказалась верхним краем на высоте `top`.
+    /// Сосед уступает место, когда карточка зашла на него больше чем наполовину.
+    /// Обратный ход срабатывает только после промежутка между карточками, поэтому порядок не дрожит на границе.
+    static func settle(_ order: [String], id: String, top: CGFloat, heights: [String: CGFloat], spacing: CGFloat) -> [String] {
+        guard var index = order.firstIndex(of: id), let height = heights[id] else { return order }
+        var result = order
+        let bottom = top + height
+        var steps = 0
+        while steps < result.count {
+            steps += 1
+            let positions = tops(result, heights: heights, spacing: spacing)
+            if index + 1 < result.count {
+                let below = result[index + 1]
+                let belowCenter = positions[index + 1] + (heights[below] ?? 0) / 2
+                if bottom > belowCenter {
+                    result.swapAt(index, index + 1)
+                    index += 1
+                    continue
+                }
+            }
+            if index > 0 {
+                let above = result[index - 1]
+                let aboveCenter = positions[index - 1] + (heights[above] ?? 0) / 2
+                if top < aboveCenter {
+                    result.swapAt(index, index - 1)
+                    index -= 1
+                    continue
+                }
+            }
+            break
+        }
+        return result
     }
 }
 
@@ -168,9 +162,9 @@ struct HomeSectionOrderResetRow: View {
                     .foregroundColor(primaryTextColor)
 
                 Text(language.pick(
-                    hy: "Գլխավոր էկրանին երկար սեղմեք քարտի վրա և տեղափոխեք",
-                    ru: "На главном экране удерживайте карточку и перетащите её на нужное место",
-                    en: "On the home screen, press and hold a card and drag it where you want it"
+                    hy: "Գլխավոր էկրանին քարտի վերևի աջ անկյունի երեք կետերը բռնեք և տեղափոխեք",
+                    ru: "На главном экране возьмитесь за три точки в углу карточки и перетащите её на нужное место",
+                    en: "On the home screen, hold the three dots in a card's corner and drag it where you want it"
                 ))
                     .font(PaperFont.font(size: 11.5))
                     .foregroundColor(Paper.inkSecondary)
