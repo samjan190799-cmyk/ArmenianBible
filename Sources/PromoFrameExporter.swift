@@ -16,6 +16,8 @@ enum PromoFrameExporter {
             switch kind {
             case "manuscript": await exportManuscript()
             case "nativity": await exportNativity()
+            case "treestages": await exportTreeStages()
+            case "treedaily": await exportTreeDaily()
             default: break
             }
         }
@@ -54,6 +56,71 @@ enum PromoFrameExporter {
         finish("nativity", frames: frames)
     }
 
+    // MARK: Гранатовое древо: рост по ступеням и рост за одно задание
+    /// Кадр дерева в пропорциях 9:16, чтобы крона занимала весь экран ролика
+    private static let treeFrameSize = CGSize(width: 440, height: 782)
+    private static let treeFrameScale: CGFloat = 2.2
+
+    private static func treeSnapshot(_ stage: PomegranateStage, within: Double, fruits: Int = 0) -> PomegranateGrowthSnapshot {
+        PomegranateGrowthSnapshot(stage: stage, within: within, fruits: fruits, day: "2026-01-01")
+    }
+
+    /// Замедленная съёмка: от зёрнышка до Древа Жизни. Время идёт быстрее обычного, каждая ступень вырастает из прежней так же, как на экране сада
+    private static func exportTreeStages() async {
+        guard let folder = makeFolder("treestages") else { return }
+        let size = treeFrameSize
+        let stages: [PomegranateStage] = [.seed, .sprout, .youngTree, .bloomingTree, .fruitfulTree, .treeOfLife]
+        let speed = 1.8
+        var index = 0
+        for _ in 0..<Int(0.8 * fps) {
+            let still = PomegranateGrowthFrame(resting: treeSnapshot(.seed, within: 0))
+            write(TreeExportFrame(frame: still, time: Double(index) / fps, size: size), size: size, scale: treeFrameScale, to: folder, index: index)
+            index += 1
+            if index % 8 == 0 { await Task.yield() }
+        }
+        for step in 1..<stages.count {
+            let plan = PomegranateGrowthPlan(
+                from: treeSnapshot(stages[step - 1], within: 1),
+                to: treeSnapshot(stages[step], within: 0.5),
+                start: Date(),
+                delay: 0
+            )
+            let count = Int(plan.total / speed * fps)
+            for i in 0..<count {
+                let frame = plan.frame(at: Double(i) / fps * speed)
+                write(TreeExportFrame(frame: frame, time: Double(index) / fps, size: size), size: size, scale: treeFrameScale, to: folder, index: index)
+                index += 1
+                if index % 8 == 0 { await Task.yield() }
+            }
+        }
+        for _ in 0..<Int(2.4 * fps) {
+            let still = PomegranateGrowthFrame(resting: treeSnapshot(.treeOfLife, within: 0.5))
+            write(TreeExportFrame(frame: still, time: Double(index) / fps, size: size), size: size, scale: treeFrameScale, to: folder, index: index)
+            index += 1
+            if index % 8 == 0 { await Task.yield() }
+        }
+        finish("treestages", frames: index)
+    }
+
+    /// Рост за одно задание: к корням падает росинка, по кроне проходит волна роста, на ветках вырастают три граната
+    private static func exportTreeDaily() async {
+        guard let folder = makeFolder("treedaily") else { return }
+        let size = treeFrameSize
+        let plan = PomegranateGrowthPlan(
+            from: treeSnapshot(.fruitfulTree, within: 0.45, fruits: 0),
+            to: treeSnapshot(.fruitfulTree, within: 0.6, fruits: 3),
+            start: Date(),
+            delay: 0.8
+        )
+        let count = Int((plan.total + 1.6) * fps)
+        for index in 0..<count {
+            let frame = plan.frame(at: Double(index) / fps)
+            write(TreeExportFrame(frame: frame, time: Double(index) / fps, size: size), size: size, scale: treeFrameScale, to: folder, index: index)
+            if index % 8 == 0 { await Task.yield() }
+        }
+        finish("treedaily", frames: count)
+    }
+
     // MARK: Запись кадров
     private static func makeFolder(_ name: String) -> URL? {
         guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
@@ -86,6 +153,25 @@ enum PromoFrameExporter {
         }
         guard let data = image?.jpegData(compressionQuality: 0.9) else { return }
         try? data.write(to: folder.appendingPathComponent(String(format: "frame_%04d.jpg", index)), options: .atomic)
+    }
+}
+
+// MARK: - Кадр гранатового древа
+/// Древо на том же тёмном фоне, что и экран сада; кадр зависит только от кадра роста и времени ветра
+private struct TreeExportFrame: View {
+    let frame: PomegranateGrowthFrame
+    let time: Double
+    let size: CGSize
+
+    var body: some View {
+        let scene = PomegranateScene(stage: frame.stage, size: size, time: time, thirst: false, compact: false, frame: frame)
+        ZStack {
+            SanctuaryBackground()
+            Canvas { context, _ in
+                PomegranateRenderer.draw(scene, palette: PomegranatePalette.dark, in: context)
+            }
+        }
+        .environment(\.colorScheme, .dark)
     }
 }
 

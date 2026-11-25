@@ -1790,7 +1790,8 @@ struct VersePuzzlePlayView: View {
 
     #if DEBUG || targetEnvironment(simulator)
     /// Для съёмки в CI (только симулятор и отладочная сборка): -puzzle_hints N закрепляет N первых слов,
-    /// -puzzle_place M кладёт на стол ещё M верных плиток, чтобы партия выглядела начатой
+    /// -puzzle_place M кладёт на стол ещё M верных плиток, чтобы партия выглядела начатой (с большим M кладутся все),
+    /// -puzzle_submit YES после этого нажимает «Проверить»
     private func applyDebugDemo() {
         guard var current = board else { return }
         let defaults = UserDefaults.standard
@@ -1801,6 +1802,10 @@ struct VersePuzzlePlayView: View {
             guard let slot = current.slots.firstIndex(where: { $0 == nil }),
                   let tile = current.poolTiles.first(where: { current.tray[$0] == current.correct[slot] }) else { break }
             current.place(tile)
+        }
+        // -puzzle_submit YES проверяет расстановку: верные слова закрепляются, и если все на месте, головоломка решена
+        if defaults.bool(forKey: "puzzle_submit") {
+            _ = current.submit()
         }
         board = current
     }
