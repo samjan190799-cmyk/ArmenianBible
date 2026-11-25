@@ -126,7 +126,7 @@ function applyFix(db, fix, ctx) {
       const i = idx(op.split), t = units[i].text, at = t.indexOf(op.at);
       if (at < 0 || t.indexOf(op.at, at + 1) >= 0) throw new Error(`${fix.id}: метка «${op.at}» в ${op.split} должна встречаться ровно один раз`);
       const left = closeLeft(col, t.slice(0, at)), right = openRight(col, t.slice(at));
-      notes.push({ row: op.split, how: `разрез ${op.split}`, text: `${short(left)} | ${short(right)}` });
+      notes.push({ row: op.split, how: `разрез ${op.split}`, text: `${short(left, 26)} | ${short(right, 26)}`, raw: true });
       units.splice(i, 1, { label: units[i].label, text: left }, { label: units[i].label + '+', text: right });
     } else if (op.insertBefore !== undefined || op.insertAfter !== undefined) {
       const at = op.insertBefore !== undefined ? idx(op.insertBefore) : idx(op.insertAfter) + 1;
@@ -200,7 +200,7 @@ function reviewMarkdown(results, names) {
     if (!r.fix.review) continue;
     lines.push(`## ${r.fix.title} [${r.fix.col === 'hy' ? 'эчмиадзинский' : 'Нор Арарат'}]`);
     if (!r.notes.length) lines.push('- без склеек и разрезов');
-    for (const n of r.notes) lines.push(`- ${n.row ? `${n.row}: ` : ''}${n.how}: ${short(n.text, 60)}`);
+    for (const n of r.notes) lines.push(`- ${n.row ? `${n.row}: ` : ''}${n.how}: ${n.raw ? n.text : short(n.text, 60)}`);
     for (const w of r.warnings) lines.push(`- ВНИМАНИЕ: ${w}`);
     lines.push('');
   }
