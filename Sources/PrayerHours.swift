@@ -1,9 +1,12 @@
 import SwiftUI
+import Combine
 import UserNotifications
 
 // MARK: - Молитвы по часам
 // Четыре короткие паузы в течение дня: утро, день, вечер, ночь. К каждой отрывок Писания из самой Библии приложения
 // и по желанию тихое напоминание. Тексты берутся из базы Библии, своих «молитв» приложение не сочиняет.
+// Каждый день отрывок новый (больше ста тридцати наборов, PrayerPassages.swift), а виден он только с назначенного часа:
+// до этого времени вместо молитвы закрытая карточка.
 
 // MARK: Часы молитвы
 enum PrayerHour: String, CaseIterable, Identifiable {
@@ -91,22 +94,39 @@ enum PrayerHour: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Отрывки Писания (книга, глава, стихи). Только Новый Завет: там нумерация стихов не расходится
-    /// между изданиями, а Псалмы в разных традициях нумеруются по-разному
-    var passages: [PrayerPassage] {
+    /// Все наборы отрывков этого часа (таблица в PrayerPassages.swift). Каждый набор показывается вместе
+    var passageSets: [[PrayerPassage]] {
+        let table: [[[Int]]]
         switch self {
-        case .morning:
-            return [PrayerPassage(bookId: 42, chapter: 1, from: 78, to: 79)]   // Луки 1:78-79
-        case .noon:
-            return [PrayerPassage(bookId: 40, chapter: 6, from: 9, to: 13)]    // Матфея 6:9-13 («Отче наш»)
-        case .evening:
-            return [
-                PrayerPassage(bookId: 42, chapter: 24, from: 29, to: 29),      // Луки 24:29
-                PrayerPassage(bookId: 60, chapter: 5, from: 7, to: 7)          // 1 Петра 5:7
-            ]
-        case .night:
-            return [PrayerPassage(bookId: 42, chapter: 2, from: 29, to: 32)]   // Луки 2:29-32
+        case .morning: table = PrayerPassageTable.morning
+        case .noon: table = PrayerPassageTable.noon
+        case .evening: table = PrayerPassageTable.evening
+        case .night: table = PrayerPassageTable.night
         }
+        return table.map { group in
+            group.map { PrayerPassage(bookId: $0[0], chapter: $0[1], from: $0[2], to: $0[3]) }
+        }
+    }
+
+    /// Набор отрывков на заданный день: набор идёт по кругу, поэтому молитва каждый день новая.
+    /// У каждого часа свой сдвиг и свой размер таблицы, так что утро, день, вечер и ночь не повторяют друг друга в одном порядке
+    func passages(forDay day: Int) -> [PrayerPassage] {
+        let sets = passageSets
+        guard !sets.isEmpty else { return [] }
+        let shift: Int
+        switch self {
+        case .morning: shift = 0
+        case .noon: shift = 11
+        case .evening: shift = 5
+        case .night: shift = 17
+        }
+        let index = ((day + shift) % sets.count + sets.count) % sets.count
+        return sets[index]
+    }
+
+    /// Отрывки на сегодня
+    var passages: [PrayerPassage] {
+        passages(forDay: VersePuzzleLogic.dayNumber())
     }
 }
 
@@ -123,11 +143,43 @@ struct PrayerPassageText: Identifiable {
     let text: String
     var id: String { reference }
 
+    /// Приводит стих из базы к читаемому виду. Убирает заголовок Псалма в квадратных скобках («[Псалом Давида.]»), букву алфавита
+    /// в начале стиха («NUN. Thy word…») и примечания переводчиков в фигурных скобках с двоеточием («{lamp: or, candle}»).
+    /// Слова, добавленные переводчиком («{is}»), и слова в квадратных скобках остаются, но без скобок
+    static func clean(_ raw: String) -> String {
+        var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.hasPrefix("["), let close = text.firstIndex(of: "]") {
+            text.removeSubrange(text.startIndex...close)
+            text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let dot = text.firstIndex(of: "."), text.distance(from: text.startIndex, to: dot) <= 7,
+           !text[text.startIndex..<dot].isEmpty,
+           text[text.startIndex..<dot].allSatisfy({ $0.isASCII && $0.isUppercase }) {
+            text.removeSubrange(text.startIndex...dot)
+        }
+        var result = ""
+        var index = text.startIndex
+        while index < text.endIndex {
+            let character = text[index]
+            if character == "{", let close = text[index...].firstIndex(of: "}") {
+                let inner = text[text.index(after: index)..<close]
+                if !inner.contains(":") { result += String(inner) }
+                index = text.index(after: close)
+            } else {
+                result.append(character)
+                index = text.index(after: index)
+            }
+        }
+        result = result.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
+        while result.contains("  ") { result = result.replacingOccurrences(of: "  ", with: " ") }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     static func load(_ passage: PrayerPassage, language: AppLanguage) -> PrayerPassageText? {
         var parts: [String] = []
         for verse in passage.from...passage.to {
             if let found = BibleDatabase.shared.getVerseText(bookId: passage.bookId, chapter: passage.chapter, verse: verse) {
-                let text = found.text(for: language).trimmingCharacters(in: .whitespacesAndNewlines)
+                let text = clean(found.text(for: language))
                 if !text.isEmpty { parts.append(text) }
             }
         }
@@ -202,6 +254,27 @@ final class PrayerHoursStore: ObservableObject {
     func isEnabled(_ hour: PrayerHour) -> Bool { enabled.contains(hour) }
 
     func reminderMinutes(for hour: PrayerHour) -> Int { minutes[hour] ?? hour.defaultMinutes }
+
+    // MARK: Когда молитва открывается
+    /// Молитва открывается в назначенное время своего часа (время напоминания; по умолчанию 7:30, 12:00, 18:30 и 21:30)
+    /// и остаётся открытой до полуночи. Ночная после полуночи остаётся открытой до утреннего времени.
+    /// Напоминание включать не обязательно: время работает и без него
+    func isOpen(_ hour: PrayerHour, at date: Date = Date()) -> Bool {
+        let now = Self.minutesOfDay(date)
+        if now >= reminderMinutes(for: hour) { return true }
+        return hour == .night && now < reminderMinutes(for: .morning)
+    }
+
+    /// Через сколько минут молитва откроется; nil, если уже открыта
+    func minutesUntilOpen(_ hour: PrayerHour, at date: Date = Date()) -> Int? {
+        guard !isOpen(hour, at: date) else { return nil }
+        return max(1, reminderMinutes(for: hour) - Self.minutesOfDay(date))
+    }
+
+    private static func minutesOfDay(_ date: Date) -> Int {
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+    }
 
     func setEnabled(_ hour: PrayerHour, _ on: Bool) {
         if on {
@@ -311,6 +384,9 @@ struct PrayerHoursView: View {
 
     @State private var selected: PrayerHour = PrayerHour.current()
     @State private var passages: [PrayerPassageText] = []
+    /// Текущее время: обновляется раз в несколько секунд, чтобы закрытая молитва раскрылась сама, когда придёт её час
+    @State private var now = Date()
+    private let clock = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
 
     private var language: AppLanguage { manager.appLanguage }
 
@@ -334,9 +410,13 @@ struct PrayerHoursView: View {
             }
         }
         .onAppear {
+            now = Date()
             store.refresh()
             loadPassages()
             Funnel.track("feature_used", ["feature": "prayer_hours_opened"])
+        }
+        .onReceive(clock) { value in
+            withAnimation(.easeInOut(duration: 0.5)) { now = value }
         }
         .onChange(of: selected) { _ in loadPassages() }
         .onChange(of: manager.appLanguage) { _ in loadPassages() }
@@ -376,6 +456,7 @@ struct PrayerHoursView: View {
             ForEach(PrayerHour.allCases) { hour in
                 let isSelected = hour == selected
                 let isDone = store.doneToday.contains(hour)
+                let isLocked = !store.isOpen(hour, at: now)
                 Button {
                     Haptics.impact(.light)
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -393,6 +474,11 @@ struct PrayerHoursView: View {
                                     .foregroundColor(Paper.moss)
                                     .background(Circle().fill(Paper.page))
                                     .offset(x: 9, y: -6)
+                            } else if isLocked {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(isSelected ? Paper.onAccent : Paper.inkSecondary)
+                                    .offset(x: 9, y: -5)
                             }
                         }
                         Text(hour.shortTitle(for: language))
@@ -417,8 +503,85 @@ struct PrayerHoursView: View {
         }
     }
 
-    // MARK: Молитва выбранного часа
+    // MARK: Молитва выбранного часа: до назначенного времени закрыта
+    @ViewBuilder
     private var prayerCard: some View {
+        if store.isOpen(selected, at: now) {
+            openCard.transition(.opacity)
+        } else {
+            lockedCard.transition(.opacity)
+        }
+    }
+
+    /// Закрытая карточка: ни отрывка, ни ссылки, ни приглашения, ни кнопки «Аминь», только час и сколько осталось
+    private var lockedCard: some View {
+        let opensAt = store.reminderMinutes(for: selected)
+        let wait = store.minutesUntilOpen(selected, at: now) ?? 1
+        return VStack(spacing: 16) {
+            ZStack(alignment: .bottomTrailing) {
+                Image(systemName: selected.symbol)
+                    .font(.system(size: 34))
+                    .foregroundColor(Paper.gold.opacity(0.5))
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(Paper.gold)
+                    .offset(x: 12, y: 6)
+            }
+
+            VStack(spacing: 6) {
+                Text(selected.title(for: language))
+                    .font(PaperFont.font(size: 20, weight: .semibold))
+                    .foregroundColor(Paper.ink)
+                Text(language.pick(
+                    hy: "Աղոթքը կբացվի ժամը \(timeText(opensAt))-ին",
+                    ru: "Откроется в \(timeText(opensAt))",
+                    en: "Opens at \(timeText(opensAt))"
+                ))
+                .font(PaperFont.font(size: 15, weight: .semibold))
+                .foregroundColor(Paper.gold)
+                Text(waitText(wait))
+                    .font(PaperFont.font(size: 13))
+                    .foregroundColor(Paper.inkSecondary)
+            }
+
+            Text(language.pick(
+                hy: "Աղոթքի տեքստը երևում է միայն իր ժամին։ Վերադարձեք, երբ ժամանակը գա։",
+                ru: "Текст молитвы виден только в свой час. Возвращайтесь, когда придёт время.",
+                en: "The prayer is revealed only at its hour. Come back when the time comes."
+            ))
+            .font(PaperFont.font(size: 13))
+            .foregroundColor(Paper.inkSecondary)
+            .multilineTextAlignment(.center)
+            .lineSpacing(3)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .paperSheet(cornerRadius: 22)
+    }
+
+    /// Время для надписи, в формате языка приложения («18:30» или «6:30 PM»)
+    private func timeText(_ minutes: Int) -> String {
+        let date = Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: Date()) ?? Date()
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: language.localeCode)
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    /// Сколько осталось, по-человечески: «2 ч 35 мин», «12 мин»
+    private func waitText(_ minutes: Int) -> String {
+        let total = max(1, minutes)
+        let hours = total / 60
+        let mins = total % 60
+        if hours > 0 {
+            return language.pick(hy: "Մնաց՝ \(hours) ժ \(mins) ր", ru: "Осталось \(hours) ч \(mins) мин", en: "In \(hours) h \(mins) min")
+        }
+        return language.pick(hy: "Մնաց՝ \(mins) ր", ru: "Осталось \(mins) мин", en: "In \(mins) min")
+    }
+
+    /// Открытая молитва: отрывок на сегодня и кнопка «Аминь»
+    private var openCard: some View {
         let done = store.doneToday.contains(selected)
         return VStack(spacing: 16) {
             Image(systemName: selected.symbol)
@@ -488,10 +651,18 @@ struct PrayerHoursView: View {
     // MARK: Напоминания
     private var remindersCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(language.pick(hy: "ՀԻՇԵՑՈՒՄՆԵՐ", ru: "НАПОМИНАНИЯ", en: "REMINDERS"))
+            Text(language.pick(hy: "ԱՂՈԹՔԻ ԺԱՄԵՐ", ru: "ВРЕМЯ МОЛИТВ", en: "PRAYER TIMES"))
                 .font(PaperFont.font(size: 11, weight: .semibold))
                 .foregroundColor(Paper.inkSecondary)
                 .tracking(1.0)
+
+            Text(language.pick(
+                hy: "Այս ժամին աղոթքը բացվում է։ Հիշեցումը՝ ըստ ցանկության։",
+                ru: "В это время молитва открывается. Напоминание по желанию.",
+                en: "The prayer opens at this time. The reminder is optional."
+            ))
+            .font(PaperFont.font(size: 12))
+            .foregroundColor(Paper.inkSecondary)
 
             ForEach(PrayerHour.allCases) { hour in
                 HStack(spacing: 10) {
@@ -506,10 +677,12 @@ struct PrayerHoursView: View {
 
                     Spacer()
 
-                    if store.isEnabled(hour) {
-                        DatePicker("", selection: timeBinding(for: hour), displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                    }
+                    DatePicker("", selection: timeBinding(for: hour), displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+
+                    Image(systemName: store.isEnabled(hour) ? "bell.fill" : "bell.slash")
+                        .font(.system(size: 13))
+                        .foregroundColor(store.isEnabled(hour) ? Paper.gold : Paper.inkSecondary.opacity(0.6))
 
                     Toggle("", isOn: toggleBinding(for: hour))
                         .labelsHidden()
@@ -558,7 +731,7 @@ struct PrayerHoursView: View {
     }
 
     private func amen() {
-        guard store.markDone(selected) else { return }
+        guard store.isOpen(selected), store.markDone(selected) else { return }
         Haptics.notify(.success)
         // Молитва питает Гранатовое древо так же, как шаг плана чтения: задание дня не засчитывается, но древо поливается
         PomegranateTreeManager.shared.record(.plan)
