@@ -114,8 +114,9 @@ export async function generate(env, { prompt, system, json, maxTokens }, fetchFn
     }
     trail.push({ model, kind: `http_${res.status}` });
     lastStatus = res.status;
-    // Ключ не принят или квота Google исчерпана: другая модель не поможет
-    if (res.status === 401 || res.status === 403 || res.status === 429) break;
+    // Ключ не принят: другая модель не поможет. А 429 (лимит) у Google считается отдельно по каждой модели,
+    // поэтому на нём пробуем следующую: у запасной лимит может быть свободен (на панели 429 был у половины запросов)
+    if (res.status === 401 || res.status === 403) break;
   }
   throw new GenerateError(lastStatus, trail);
 }

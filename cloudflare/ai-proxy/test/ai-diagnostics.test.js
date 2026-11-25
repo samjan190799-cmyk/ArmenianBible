@@ -128,14 +128,26 @@ test('generate: таймаут, обрыв сети и ошибка Google от�
   );
 });
 
-test('generate: 429 от Google сразу заканчивает попытки, и trail это показывает', async () => {
+test('generate: 429 от Google не заканчивает попытки, trail показывает каждую модель', async () => {
   let calls = 0;
   await assert.rejects(
     generate({ GEMINI_API_KEY: 'k', GEMINI_MODELS: 'm-a,m-b' }, { prompt: 'p', maxTokens: 100 }, async () => {
       calls += 1;
       return new Response('', { status: 429 });
     }),
-    (error) => error.status === 429 && error.trail.length === 1 && error.trail[0].kind === 'http_429'
+    (error) => error.status === 429 && error.trail.length === 2 && error.trail.every((item) => item.kind === 'http_429')
+  );
+  assert.equal(calls, 2);
+});
+
+test('generate: 403 от Google заканчивает попытки сразу, и trail это показывает', async () => {
+  let calls = 0;
+  await assert.rejects(
+    generate({ GEMINI_API_KEY: 'k', GEMINI_MODELS: 'm-a,m-b' }, { prompt: 'p', maxTokens: 100 }, async () => {
+      calls += 1;
+      return new Response('', { status: 403 });
+    }),
+    (error) => error.status === 403 && error.trail.length === 1 && error.trail[0].kind === 'http_403'
   );
   assert.equal(calls, 1);
 });

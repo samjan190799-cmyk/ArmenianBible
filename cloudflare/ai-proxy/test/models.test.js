@@ -104,8 +104,36 @@ test('пустой ответ первой модели: берём следую
   assert.equal(result.text, 'Готово');
 });
 
-test('ключ не принят (403) или квота Google (429): другие модели не пробуются', async () => {
-  for (const status of [401, 403, 429]) {
+test('лимит Google (429) у первой модели: пробуется следующая, и ответ приходит от неё', async () => {
+  const asked = [];
+  const fetchFn = async (url) => {
+    asked.push(modelOf(url));
+    return asked.length === 1 ? new Response('', { status: 429 }) : reply('Ответ');
+  };
+  const result = await generate({ GEMINI_API_KEY: 'k', GEMINI_MODELS: 'a-model,b-model' }, args, fetchFn);
+  assert.equal(result.text, 'Ответ');
+  assert.equal(result.model, 'b-model');
+  assert.deepEqual(asked, ['a-model', 'b-model']);
+  assert.deepEqual(result.trail.map((item) => item.kind), ['http_429']);
+});
+
+test('лимит Google (429) у всех моделей: пробуются все, ошибка остаётся 429', async () => {
+  const asked = [];
+  const fetchFn = async (url) => {
+    asked.push(modelOf(url));
+    return new Response('', { status: 429 });
+  };
+  await assert.rejects(generate({ GEMINI_API_KEY: 'k', GEMINI_MODELS: 'a-model,b-model,c-model' }, args, fetchFn), (error) => {
+    assert.ok(error instanceof GenerateError);
+    assert.equal(error.status, 429);
+    assert.deepEqual(error.trail.map((item) => item.kind), ['http_429', 'http_429', 'http_429']);
+    return true;
+  });
+  assert.deepEqual(asked, ['a-model', 'b-model', 'c-model']);
+});
+
+test('ключ не принят (401, 403): другие модели не пробуются', async () => {
+  for (const status of [401, 403]) {
     let calls = 0;
     const fetchFn = async () => {
       calls += 1;
