@@ -17,11 +17,11 @@ enum AIServerConsent {
         return await withCheckedContinuation { continuation in
             let alert = UIAlertController(
                 // Только слова, смысл тот же: ключ согласия остаётся v1, поэтому согласившихся не спрашиваем заново,
-                // а отказавшиеся увидят окно с новым текстом при следующем вопросе. Армянский текст не менялся:
-                // новую версию и кнопку «Не сейчас» должен проверить носитель
-                title: language.pick(hy: "ԱԲ մեր սերվերի միջոցով", ru: "Вопрос к ИИ", en: "Question for AI"),
+                // а отказавшиеся увидят окно с новым текстом при следующем вопросе. Новый армянский текст и кнопку
+                // «Ոչ հիմա» написал не носитель языка: их надо показать носителю до выпуска в App Store
+                title: language.pick(hy: "Հարց ԱԲ-ին", ru: "Вопрос к ИИ", en: "Question for AI"),
                 message: language.pick(
-                    hy: "Ձեր հարցը կփոխանցվի հավելվածի սերվերի միջոցով Google Gemini ծառայությանը՝ պատասխան ստանալու համար: Մենք հարցերն ու պատասխանները չենք պահպանում: Հարցում մի գրեք տվյալներ, որոնցով կարելի է ճանաչել ձեզ:",
+                    hy: "Պատասխան ստանալու համար ձեր հարցը մեր սերվերի միջոցով կուղարկվի Google Gemini-ին։ Մենք ձեր հարցերն ու պատասխանները չենք պահպանում։ Խնդրում ենք չգրել անձնական տվյալներ՝ անուն, հասցե, հեռախոսահամար։",
                     ru: "Чтобы ответить, ваш вопрос уйдёт через наш сервер к Google Gemini. Мы не храним ваши вопросы и ответы. Пожалуйста, не пишите личные данные: имя, адрес, телефон.",
                     en: "To answer, your question is sent through our server to Google Gemini. We don't store your questions or answers. Please don't include personal details such as your name, address or phone number."
                 ),
@@ -31,7 +31,7 @@ enum AIServerConsent {
                 UserDefaults.standard.set(true, forKey: storageKey)
                 continuation.resume(returning: true)
             })
-            alert.addAction(UIAlertAction(title: language.pick(hy: "Չեղարկել", ru: "Не сейчас", en: "Not now"), style: .cancel) { _ in
+            alert.addAction(UIAlertAction(title: language.pick(hy: "Ոչ հիմա", ru: "Не сейчас", en: "Not now"), style: .cancel) { _ in
                 continuation.resume(returning: false)
             })
             presenter.present(alert, animated: true)
