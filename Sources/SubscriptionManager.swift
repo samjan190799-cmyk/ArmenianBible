@@ -89,10 +89,16 @@ final class SubscriptionManager: ObservableObject {
         AppGroupConstants.sharedBool(forKey: "is_premium_active")
     }
 
-    /// Панель тестировщика (принудительный Premium/Free) доступна ТОЛЬКО в сборках TestFlight и DEBUG.
-    /// В App Store её нет: там флаги стираются при запуске, а статус определяет только StoreKit.
+    /// Панель тестировщика (принудительный Premium/Free, переключатель Авто/Free/Pro) доступна ТОЛЬКО в отладочной сборке и на симуляторе.
+    /// В TestFlight и App Store её нет: проверка идёт флагом компиляции, а не чеком покупок (его видит и App Review);
+    /// флаги стираются при запуске, а статус определяет только StoreKit. Чтобы снова проверять лимиты в TestFlight,
+    /// верните здесь `Bundle.isTestFlightOrDebug`, но не в сборке для App Store.
     nonisolated static var devToolsAvailable: Bool {
-        Bundle.isTestFlightOrDebug
+        #if DEBUG || targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
     }
 
     /// Человек сам купил подписку или восстановил покупки: принудительный Free из панели тестировщика не должен её перекрывать
