@@ -85,8 +85,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     /// Пока плеер переходит к стартовой позиции, его время (0:00) нельзя считать настоящим
     private var isSeekPending = false
     private var lastPersistDate = Date.distantPast
-    /// Приложение на переднем плане (обновляется уведомлениями жизненного цикла)
-    private var isAppInForeground = true
 
     /// Длительности файлов озвучки (сек). Нужны, чтобы бегунок сразу показывал
     /// сохранённую позицию, ещё до загрузки плеера.
@@ -101,14 +99,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         DispatchQueue.main.async {
             UIApplication.shared.beginReceivingRemoteControlEvents()
         }
-    }
-
-    // MARK: - Правила фонового воспроизведения
-
-    /// Фон и экран блокировки доступны ТОЛЬКО в TestFlight (и Debug).
-    /// В App Store звук работает лишь пока приложение открыто.
-    private var backgroundPlaybackAllowed: Bool {
-        Bundle.isTestFlightOrDebug || isAppInForeground
     }
 
     // MARK: - Бесплатный лимит (защита внутри плеера, а не только на кнопках)
@@ -233,8 +223,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     }
 
     func playPrayer(_ prayer: NarekPrayer, language: AppLanguage? = nil) {
-        guard backgroundPlaybackAllowed else { return }
-
         let lang = language ?? voiceLanguage
         // Позицию продолжения определяем до смены состояния
         let startTime = resumePosition(for: prayer, language: lang) ?? prayer.audioTimestampSeconds(for: lang)
@@ -260,8 +248,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     }
 
     func play(prayer: NarekPrayer, language: AppLanguage, startAtSeconds: Double? = nil) {
-        guard backgroundPlaybackAllowed else { return }
-
         let startAt = startAtSeconds ?? prayer.audioTimestampSeconds(for: language)
         guard isPositionAllowed(startAt, language: language) else {
             paywallRequested = true
@@ -411,7 +397,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
                 DispatchQueue.main.async {
                     guard let self = self, let p = newPlayer, self.player === p else { return }
                     self.isSeekPending = false
-                    if self.isPlaying && self.backgroundPlaybackAllowed {
+                    if self.isPlaying {
                         p.play()
                         p.rate = rate
                     }
@@ -435,9 +421,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     }
 
     func resume() {
-        // Вне TestFlight продолжить звук из фона или с экрана блокировки нельзя
-        guard backgroundPlaybackAllowed else { return }
-
         // Без Premium дальше бесплатной главы продолжать нельзя
         guard isPositionAllowed(currentTime, language: voiceLanguage) else {
             paywallRequested = true
@@ -514,7 +497,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
 
     /// Явный переход к другой главе (вперёд/назад) — всегда с её начала, без «продолжения».
     private func playChapterFromStart(_ prayer: NarekPrayer) {
-        guard backgroundPlaybackAllowed else { return }
         let start = prayer.audioTimestampSeconds(for: voiceLanguage)
         guard isPositionAllowed(start, language: voiceLanguage) else {
             paywallRequested = true
@@ -684,7 +666,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     @objc private func handleAppDidBecomeActive() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.isAppInForeground = true
             // После возвращения показываем актуальную информацию в Центре управления
             if self.player != nil {
                 self.updateNowPlayingInfo()
@@ -695,24 +676,11 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     @objc private func handleAppDidEnterBackground() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.isAppInForeground = false
             self.savePlaybackState()
 
-            // ВАЖНОЕ ТРЕБОВАНИЕ: Фоновое воспроизведение и работа при блокировке экрана
-            // активны ТОЛЬКО для пользователей TestFlight (и разработчиков в Debug).
-            // В боевом релизе App Store звук останавливается при сворачивании, а элементы
-            // управления убираются с экрана блокировки, чтобы продолжить нельзя было и оттуда.
-            if !Bundle.isTestFlightOrDebug {
-                if self.isPlaying {
-                    #if DEBUG
-                    print("🛑 [NarekPlayer] Режим App Store: фоновое воспроизведение отключено при сворачивании")
-                    #endif
-                    self.pause()
-                }
-                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            } else if self.isPlaying {
-                // Для TestFlight: обновляем информацию на экране блокировки
+            // Запись Нарека продолжает играть в фоне и при выключенном экране у всех (режим audio в
+            // UIBackgroundModes), поэтому на экране блокировки показываем текущую главу и позицию
+            if self.isPlaying {
                 self.updateNowPlayingInfo()
             }
         }
@@ -765,7 +733,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
 
-        // Пауза разрешена всегда; всё, что запускает звук, — только когда фон разрешён
+        // Кнопки на экране блокировки, в Пункте управления и на наушниках
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] _ in
             DispatchQueue.main.async {
@@ -776,7 +744,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
 
         commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] _ in
-            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
+            guard let self = self else { return .commandFailed }
             DispatchQueue.main.async {
                 self.resume()
             }
@@ -789,7 +757,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
             DispatchQueue.main.async {
                 if self.isPlaying {
                     self.pause()
-                } else if self.backgroundPlaybackAllowed {
+                } else {
                     self.resume()
                 }
             }
@@ -798,7 +766,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
 
         commandCenter.nextTrackCommand.isEnabled = true
         commandCenter.nextTrackCommand.addTarget { [weak self] _ in
-            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
+            guard let self = self else { return .commandFailed }
             DispatchQueue.main.async {
                 self.playNextPrayer()
             }
@@ -807,7 +775,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
 
         commandCenter.previousTrackCommand.isEnabled = true
         commandCenter.previousTrackCommand.addTarget { [weak self] _ in
-            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
+            guard let self = self else { return .commandFailed }
             DispatchQueue.main.async {
                 self.playPreviousPrayer()
             }
@@ -817,7 +785,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         commandCenter.skipForwardCommand.isEnabled = true
         commandCenter.skipForwardCommand.preferredIntervals = [15]
         commandCenter.skipForwardCommand.addTarget { [weak self] _ in
-            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
+            guard let self = self else { return .commandFailed }
             DispatchQueue.main.async {
                 self.skipForward(seconds: 15)
             }
@@ -827,7 +795,7 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         commandCenter.skipBackwardCommand.isEnabled = true
         commandCenter.skipBackwardCommand.preferredIntervals = [15]
         commandCenter.skipBackwardCommand.addTarget { [weak self] _ in
-            guard let self = self, self.backgroundPlaybackAllowed else { return .commandFailed }
+            guard let self = self else { return .commandFailed }
             DispatchQueue.main.async {
                 self.skipBackward(seconds: 15)
             }
@@ -837,7 +805,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
         commandCenter.changePlaybackPositionCommand.isEnabled = true
         commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let self = self,
-                  self.backgroundPlaybackAllowed,
                   let posEvent = event as? MPChangePlaybackPositionCommandEvent else {
                 return .commandFailed
             }
@@ -849,9 +816,6 @@ class NarekAudioPlayer: NSObject, ObservableObject {
     }
 
     func updateNowPlayingInfo(prayer: NarekPrayer? = nil) {
-        // Вне TestFlight на экране блокировки плеера быть не должно
-        guard backgroundPlaybackAllowed else { return }
-
         let p = prayer ?? (currentlyPlayingId != nil ? NarekatsiDatabase.shared.prayers.first(where: { $0.id == currentlyPlayingId }) : nil)
         guard let currentPrayer = p else { return }
 
